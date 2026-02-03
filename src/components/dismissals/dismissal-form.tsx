@@ -1,0 +1,256 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createDismissal, updateDismissal } from '@/app/actions/dismissals';
+import { getEmployeesByCompany } from '@/app/actions/employees';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+interface DismissalFormProps {
+    companies: Array<{ id: string; nome: string; cnpj: string }>;
+    initialData?: any;
+    isEditing?: boolean;
+    redirectPath?: string;
+}
+
+export function DismissalForm({ companies, initialData, isEditing = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
+    
+    // Form States
+    const [companyId, setCompanyId] = useState<string>(initialData?.company_id || '');
+    const [employeeId, setEmployeeId] = useState<string>(initialData?.employee_id || '');
+    const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
+    
+    const [dismissalDate, setDismissalDate] = useState<Date | undefined>(
+        initialData?.dismissal_date ? new Date(initialData.dismissal_date) : undefined
+    );
+
+    // Fetch employees when company changes
+    useEffect(() => {
+        if (companyId) {
+            getEmployeesByCompany(companyId).then(setEmployees);
+            if (companyId !== initialData?.company_id) {
+                setEmployeeId('');
+            }
+        } else {
+            setEmployees([]);
+            setEmployeeId('');
+        }
+    }, [companyId, initialData?.company_id]);
+
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        setLoading(true);
+
+        const formData = new FormData(event.currentTarget);
+        
+        if (dismissalDate) {
+            formData.set('dismissal_date', format(dismissalDate, 'yyyy-MM-dd'));
+        } else {
+             toast.error('Data de Desligamento é obrigatória');
+             setLoading(false);
+             return;
+        }
+
+        try {
+            let result;
+            if (isEditing && initialData?.id) {
+                result = await updateDismissal(initialData.id, formData);
+            } else {
+                result = await createDismissal(formData);
+            }
+
+            if (result.success) {
+                toast.success(isEditing ? 'Rescisão atualizada!' : 'Solicitação de rescisão criada!');
+                router.push(redirectPath);
+                router.refresh();
+            } else {
+                toast.error(result.error || 'Erro ao salvar rescisão');
+            }
+        } catch (error) {
+            toast.error('Erro inesperado');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <Card className="w-full max-w-2xl mx-auto">
+            <CardHeader>
+                <CardTitle>{isEditing ? 'Editar Rescisão' : 'Nova Solicitação de Rescisão'}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Empresa */}
+                    <div className="space-y-2">
+                        <Label htmlFor="company_id">Empresa *</Label>
+                         {isEditing ? (
+                             <Input 
+                                value={companies.find(c => c.id === initialData.company_id)?.nome || 'Empresa desconhecida'} 
+                                disabled 
+                             />
+                         ) : (
+                            <Select 
+                                name="company_id" 
+                                required 
+                                defaultValue={initialData?.company_id}
+                                onValueChange={setCompanyId}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione a empresa" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {companies.map(company => (
+                                        <SelectItem key={company.id} value={company.id}>
+                                            {company.nome} ({company.cnpj})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         )}
+                         {isEditing && <input type="hidden" name="company_id" value={initialData.company_id} />}
+                    </div>
+
+                    {/* Funcionário */}
+                    <div className="space-y-2">
+                        <Label htmlFor="employee_id">Funcionário *</Label>
+                         {isEditing ? (
+                             <Input 
+                                value={initialData.employee_name} 
+                                disabled 
+                             />
+                         ) : (
+                            <Select 
+                                name="employee_id" 
+                                required 
+                                value={employeeId}
+                                onValueChange={setEmployeeId}
+                                disabled={!companyId}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder={companyId ? "Selecione o funcionário" : "Selecione a empresa primeiro"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {employees.map(employee => (
+                                        <SelectItem key={employee.id} value={employee.id}>
+                                            {employee.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         )}
+                         {isEditing && <input type="hidden" name="employee_id" value={initialData.employee_id} />}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Tipo de Aviso */}
+                        <div className="space-y-2">
+                            <Label htmlFor="notice_type">Tipo de Aviso *</Label>
+                            <Select name="notice_type" required defaultValue={initialData?.notice_type}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Trabalhado">Trabalhado</SelectItem>
+                                    <SelectItem value="Indenizado">Indenizado</SelectItem>
+                                    <SelectItem value="Fim de Contrato">Fim de Contrato</SelectItem>
+                                    <SelectItem value="Quebra de Contrato">Quebra de Contrato</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Causa Demissão */}
+                        <div className="space-y-2">
+                            <Label htmlFor="dismissal_cause">Causa Demissão *</Label>
+                            <Select name="dismissal_cause" required defaultValue={initialData?.dismissal_cause}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a causa" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Sem Justa Causa">Sem Justa Causa</SelectItem>
+                                    <SelectItem value="Com Justa Causa">Com Justa Causa</SelectItem>
+                                    <SelectItem value="Fim de Contrato">Fim de Contrato</SelectItem>
+                                    <SelectItem value="Fim Antecipado C.T. Empregado">Fim Antecipado C.T. Empregado</SelectItem>
+                                    <SelectItem value="Fim Antecipado C.T. Empresa">Fim Antecipado C.T. Empresa</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Data de Desligamento */}
+                    <div className="space-y-2 flex flex-col">
+                        <Label>Data de Desligamento *</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !dismissalDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dismissalDate ? format(dismissalDate, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione uma data</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={dismissalDate}
+                                    onSelect={setDismissalDate}
+                                    initialFocus
+                                    locale={ptBR}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    {/* Observações */}
+                    <div className="space-y-2">
+                        <Label htmlFor="observations">Observações</Label>
+                        <Textarea 
+                            id="observations" 
+                            name="observations" 
+                            placeholder="Informações adicionais..." 
+                            className="min-h-[100px]"
+                            defaultValue={initialData?.observations}
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-4 pt-4">
+                        <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => router.back()}
+                            disabled={loading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isEditing ? 'Salvar Alterações' : 'Enviar Solicitação'}
+                        </Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
