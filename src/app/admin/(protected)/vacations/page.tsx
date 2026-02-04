@@ -23,7 +23,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
   // Check view permission
   let hasViewPermission = false;
   let hasCreatePermission = false;
-  let isAdmin = session.role === 'admin';
+  let isAdmin = session.role === 'admin' || session.role === 'operator';
 
   if (isAdmin) {
       hasViewPermission = true;
@@ -176,7 +176,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
                     <TableCell>
                         {getStatusBadge(vacation.status)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                         <VacationActions 
                             vacationId={vacation.id}
                             startDate={vacation.start_date}

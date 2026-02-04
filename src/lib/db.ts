@@ -34,6 +34,10 @@ function convertSql(sql: string): string {
   converted = converted.replace(/datetime\('now',\s*'-03:00'\)/gi, "(NOW() - INTERVAL '3 hours')");
   converted = converted.replace(/datetime\("now",\s*'-03:00'\)/gi, "(NOW() - INTERVAL '3 hours')");
   
+  // Handle +1 hour
+  converted = converted.replace(/datetime\('now',\s*'\+1 hour'\)/gi, "(NOW() + INTERVAL '1 hour')");
+  converted = converted.replace(/datetime\("now",\s*'\+1 hour'\)/gi, "(NOW() + INTERVAL '1 hour')");
+  
   // Replace GROUP_CONCAT with STRING_AGG
   converted = converted.replace(/GROUP_CONCAT\(([^)]+)\)/gi, (match, args) => {
     const parts = args.split(',').map((s: string) => s.trim());

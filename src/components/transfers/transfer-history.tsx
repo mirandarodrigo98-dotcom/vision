@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { History, Loader2 } from "lucide-react";
 import { getTransferHistory } from '@/app/actions/audit';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface AuditLog {
     id: string;
@@ -32,8 +31,9 @@ interface AuditLog {
 
 const ACTION_LABELS: Record<string, string> = {
     'CREATE_TRANSFER': 'Solicitação de Transferência',
-    'UPDATE_TRANSFER': 'Retificação da Transferência',
-    'CANCEL_TRANSFER': 'Cancelamento da Transferência',
+    'UPDATE_TRANSFER': 'Retificação de Transferência',
+    'CANCEL_TRANSFER': 'Cancelamento de Transferência',
+    'APPROVE_TRANSFER': 'Conclusão de Transferência'
 };
 
 export function TransferHistory({ transferId }: { transferId: string }) {
@@ -61,9 +61,9 @@ export function TransferHistory({ transferId }: { transferId: string }) {
                     <TooltipTrigger asChild>
                         <DialogTrigger asChild>
                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                variant="outline" 
+                                size="sm" 
+                                className="text-amber-600 border-amber-200 hover:bg-amber-50"
                             >
                                 <History className="h-4 w-4" />
                             </Button>
@@ -76,7 +76,7 @@ export function TransferHistory({ transferId }: { transferId: string }) {
             </TooltipProvider>
             <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Histórico da Transferência</DialogTitle>
+                    <DialogTitle>Histórico de Transferência</DialogTitle>
                     <DialogDescription>
                         Movimentações e ações registradas.
                     </DialogDescription>
@@ -99,10 +99,10 @@ export function TransferHistory({ transferId }: { transferId: string }) {
                                             {ACTION_LABELS[log.action] || log.action}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {format(new Date(log.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                            {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
                                         </span>
                                         <span className="text-xs text-gray-400">
-                                            Por: {log.user_name || log.actor_email || 'Sistema'}
+                                            {log.user_name || log.actor_email}
                                         </span>
                                     </div>
                                 </div>

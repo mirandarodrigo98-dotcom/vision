@@ -408,6 +408,7 @@ export async function updateAdmission(formData: FormData) {
         if (normalize(existingAdmission.marital_status) !== normalize(maritalStatus)) changes.push('marital_status');
         if (normalize(existingAdmission.race_color) !== normalize(raceColor)) changes.push('race_color');
         
+        // Address changes
         if (normalize(existingAdmission.zip_code) !== normalize(zipCode)) changes.push('zip_code');
         if (normalize(existingAdmission.address_street) !== normalize(addressStreet)) changes.push('address_street');
         if (normalize(existingAdmission.address_number) !== normalize(addressNumber)) changes.push('address_number');
@@ -419,83 +420,47 @@ export async function updateAdmission(formData: FormData) {
         if (normalize(existingAdmission.cbo) !== normalize(cbo)) changes.push('cbo');
         if (normalize(existingAdmission.contract_type) !== normalize(contractType)) changes.push('contract_type');
 
-        // Handle File (Optional on update)
-        const file = formData.get('file') as File;
-        let downloadLink = null; // Will need to fetch existing if not updated, but wait...
-        
-        // If a new file is uploaded, process it
-        if (file && file.size > 0) {
-             const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-            if (file.size > MAX_SIZE) return { error: 'O arquivo excede o limite máximo de 50MB.' };
-            
-            const ext = path.extname(file.name).toLowerCase();
-            if (ext !== '.zip' && ext !== '.rar') return { error: 'Apenas arquivos .zip ou .rar são permitidos.' };
-
-            const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-            await mkdir(uploadDir, { recursive: true });
-            
-            const fileName = `${existingAdmission.protocol_number}-${file.name}`; // Reuse protocol number
-            const filePath = path.join(uploadDir, fileName);
-            const fileBuffer = Buffer.from(await file.arrayBuffer());
-            await writeFile(filePath, fileBuffer);
-
-            // Upload to R2
-            try {
-                const r2Result = await uploadToR2(fileBuffer, fileName, file.type);
-                if (r2Result) {
-                    downloadLink = r2Result.downloadLink;
-                }
-            } catch (error) {
-                console.error('R2 Upload Failed on Update:', error);
-            }
-
-            // Save Attachment Metadata
-            db.prepare(`
-                INSERT INTO admission_attachments (
-                    id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now', '-03:00'))
-            `).run(randomUUID(), admissionId, file.name, file.type, file.size, fileName);
-        } else {
-             // If no new file, we might want to keep the old download link.
-             // But the email function expects a download link. 
-             // We can fetch the latest attachment for this admission to get the link if we were storing it in the admission table.
-             // But we are not storing the download link in the admission table, only in the email.
-             // Actually, the `uploadToR2` returns a signed URL. Signed URLs expire.
-             // If we are re-sending the email, we should probably generate a new signed URL for the *existing* file if no new file is uploaded.
-             // However, finding the existing file key might be tricky if we don't store it in `admission_requests`.
-             // We store it in `admission_attachments`.
-             const lastAttachment = await db.prepare('SELECT storage_path FROM admission_attachments WHERE admission_id = ? ORDER BY created_at DESC LIMIT 1').get(admissionId) as { storage_path: string };
-             if (lastAttachment) {
-                 const { getR2DownloadLink } = await import('@/lib/r2');
-                 downloadLink = await getR2DownloadLink(lastAttachment.storage_path);
-             }
-        }
-
-        // Update Admission in DB
         await db.prepare(`
             UPDATE admission_requests SET
-                education_level = ?, admission_date = ?, job_role = ?, salary_cents = ?, work_schedule = ?, 
-                has_vt = ?, vt_tarifa_cents = ?, vt_linha = ?, vt_qtd_por_dia = ?, has_adv = ?, 
-                adv_day = ?, adv_periodicity = ?, trial1_days = ?, trial2_days = ?, general_observations = ?, 
+                education_level = ?, admission_date = ?, job_role = ?, salary_cents = ?, work_schedule = ?,
+                has_vt = ?, vt_tarifa_cents = ?, vt_linha = ?, vt_qtd_por_dia = ?,
+                has_adv = ?, adv_day = ?, adv_periodicity = ?,
+                trial1_days = ?, trial2_days = ?, general_observations = ?,
                 cpf = ?, birth_date = ?, mother_name = ?, email = ?, phone = ?, marital_status = ?, race_color = ?,
                 zip_code = ?, address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?,
                 address_city = ?, address_state = ?, cbo = ?, contract_type = ?,
-                status = 'RECTIFIED', updated_at = CURRENT_TIMESTAMP
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
             educationLevel, admissionDate, jobRole, salaryCents, workSchedule,
-            hasVt, vtTarifaCents, vtLinha, vtQtdPorDia, hasAdv,
-            advDay, advPeriodicity, trial1Days, trial2Days, generalObservations,
+            hasVt, vtTarifaCents, vtLinha, vtQtdPorDia,
+            hasAdv, advDay, advPeriodicity,
+            trial1Days, trial2Days, generalObservations,
             cpf, birthDate, motherName, email, phone, maritalStatus, raceColor,
             zipCode, addressStreet, addressNumber, addressComplement, addressNeighborhood,
             addressCity, addressState, cbo, contractType,
             admissionId
         );
 
-        // Generate PDF
+        logAudit({
+            action: 'UPDATE_ADMISSION',
+            actor_user_id: session.user_id,
+            actor_email: session.email,
+            role: session.role,
+            entity_type: 'admission_request',
+            entity_id: admissionId,
+            metadata: { changes, protocolNumber: existingAdmission.protocol_number },
+            success: true
+        });
+
+        // Send Email (Rectification)
+        const userCompany = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(existingAdmission.company_id) as any;
+        const user = await db.prepare('SELECT name FROM users WHERE id = ?').get(session.user_id) as any;
+        
+        // Generate Updated PDF
         const pdfData = {
             protocol_number: existingAdmission.protocol_number,
-            employee_full_name: existingAdmission.employee_full_name, // Use existing name
+            employee_full_name: existingAdmission.employee_full_name,
             cpf, birth_date: birthDate, mother_name: motherName, email, phone,
             marital_status: maritalStatus, education_level: educationLevel, race_color: raceColor,
             zip_code: zipCode, address_street: addressStreet, address_number: addressNumber,
@@ -508,7 +473,7 @@ export async function updateAdmission(formData: FormData) {
             working_hours: workSchedule,
             has_vt: hasVt, vt_tarifa_brl: (vtTarifaCents / 100).toFixed(2).replace('.', ','),
             vt_linha: vtLinha, has_adv: hasAdv, general_observations: generalObservations,
-            changes: changes
+            changes // Pass changes to highlight in PDF if supported
         };
 
         let pdfBuffer: Buffer;
@@ -519,36 +484,101 @@ export async function updateAdmission(formData: FormData) {
             pdfBuffer = Buffer.from('Erro ao gerar relatório PDF'); 
         }
 
-        // Send Email (Notification of Rectification)
-        const user = await db.prepare('SELECT name FROM users WHERE id = ?').get(session.user_id) as any;
-        const userCompanyData = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(existingAdmission.company_id) as any;
-        
         await sendAdmissionNotification('UPDATE', {
-            companyName: userCompanyData.nome,
-            cnpj: userCompanyData.cnpj,
+            companyName: userCompany.nome,
+            cnpj: userCompany.cnpj,
             userName: user?.name || session.name || 'Usuário',
             employeeName: existingAdmission.employee_full_name,
+            admissionDate: format(new Date(admissionDate), 'dd/MM/yyyy'),
             pdfBuffer: pdfBuffer,
-            downloadLink: downloadLink || undefined
+            changes
         });
 
+        revalidatePath('/app/admissions');
+        revalidatePath('/admin/admissions');
+        return { success: true };
+    } catch (e: any) {
+        console.error('Update Admission Error:', e);
+        return { error: 'Erro ao atualizar admissão.' };
+    }
+}
+
+export async function completeAdmission(admissionId: string) {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return { error: 'Unauthorized' };
+    }
+
+    try {
+        const admission = await db.prepare('SELECT * FROM admission_requests WHERE id = ?').get(admissionId) as any;
+        
+        if (!admission) {
+            return { error: 'Admissão não encontrada.' };
+        }
+
+        if (admission.status === 'COMPLETED') {
+            return { error: 'Admissão já concluída.' };
+        }
+
+        // Get creator info for email
+        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(admission.created_by_user_id) as { email: string, name: string };
+        
+        // Transaction to create employee and update admission
+        const txn = db.transaction(async () => {
+            // 1. Create Employee
+            // Note: Mapping limited fields available in admission_requests to employees table
+            const employeeId = randomUUID();
+            // Check if status column exists or if we should use default
+            await db.prepare(`
+                INSERT INTO employees (
+                    id, company_id, name, admission_date, birth_date, cpf, 
+                    status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `).run(
+                employeeId, 
+                admission.company_id, 
+                admission.employee_full_name, 
+                admission.admission_date, 
+                admission.birth_date, 
+                admission.cpf
+            );
+
+            // 2. Update Admission Status
+            await db.prepare("UPDATE admission_requests SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(admissionId);
+        });
+        
+        await txn();
+
+        // 3. Send Email to Client
+        const userCompany = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(admission.company_id) as any;
+        
+        await sendAdmissionNotification('COMPLETED', {
+            companyName: userCompany.nome,
+            cnpj: userCompany.cnpj,
+            userName: creator?.name || 'Cliente',
+            employeeName: admission.employee_full_name,
+            recipientEmail: creator?.email // Send to the creator
+        });
+
+        // 4. Audit Log
         logAudit({
-            action: 'UPDATE_ADMISSION',
+            action: 'APPROVE_ADMISSION',
             actor_user_id: session.user_id,
             actor_email: session.user_id,
             role: session.role,
             entity_type: 'admission_request',
             entity_id: admissionId,
-            metadata: { protocolNumber: existingAdmission.protocol_number },
+            metadata: { protocolNumber: admission.protocol_number },
             success: true
         });
 
         revalidatePath('/app');
         revalidatePath('/admin/admissions');
+        revalidatePath('/admin/employees'); // Update employees list
+        
         return { success: true };
-
     } catch (e: any) {
-        console.error('Update Admission Error:', e);
-        return { error: 'Erro ao atualizar admissão.' };
+        console.error('Approve Admission Error:', e);
+        return { error: 'Erro ao aprovar admissão.' };
     }
 }

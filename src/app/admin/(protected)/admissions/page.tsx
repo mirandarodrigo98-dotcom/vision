@@ -76,7 +76,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
               <TableHead>
                 <ColumnHeader column="status" title="Status" />
               </TableHead>
-              <TableHead>Ações</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,7 +117,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
                     }
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <AdmissionActions 
                     admissionId={adm.id}
                     admissionDate={adm.admission_date}

@@ -18,7 +18,7 @@ export const Logo: React.FC<LogoProps> = ({ className, width = 100, height = 100
       {...props}
     >
       <rect width="100" height="100" rx="24" fill="#0F172A"/>
-      <path d="M32 36L50 72L68 36" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 36L50 72L68 36" stroke="white" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round"/>
       <circle cx="50" cy="24" r="5" fill="#3B82F6"/>
     </svg>
   );

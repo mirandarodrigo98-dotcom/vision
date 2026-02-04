@@ -254,6 +254,10 @@ export async function approveTransfer(id: string) {
              return { error: 'Apenas transferências pendentes podem ser aprovadas.' };
         }
 
+        // Get creator info
+        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(transfer.created_by_user_id) as { email: string, name: string };
+        const sourceCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(transfer.source_company_id) as { nome: string };
+
         // Transaction to ensure consistency
         const approveTransaction = db.transaction(async () => {
             // 1. Update Transfer Status
@@ -269,7 +273,9 @@ export async function approveTransfer(id: string) {
             const employee = await db.prepare('SELECT id FROM employees WHERE name = ? AND company_id = ?').get(transfer.employee_name, transfer.source_company_id) as { id: string };
             
             if (employee) {
-                await db.prepare(`UPDATE employees SET company_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(transfer.target_company_id, employee.id);
+                // Update company and set status to 'Transferido'
+                // Note: 'status' column must exist in employees table
+                await db.prepare(`UPDATE employees SET company_id = ?, status = 'Transferido', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(transfer.target_company_id, employee.id);
             } else {
                  throw new Error('Funcionário não encontrado na empresa de origem.');
             }
@@ -285,6 +291,17 @@ export async function approveTransfer(id: string) {
             entity_id: id,
             metadata: { status: 'COMPLETED', targetCompanyId: transfer.target_company_id },
             success: true
+        });
+
+        // Send Notification to Creator
+        await sendTransferNotification('COMPLETED', {
+            userName: creator?.name || 'Cliente',
+            recipientEmail: creator?.email,
+            sourceCompany: sourceCompany.nome,
+            targetCompany: transfer.target_company_name,
+            employeeName: transfer.employee_name,
+            transferDate: format(new Date(transfer.transfer_date), 'dd/MM/yyyy'),
+            observation: transfer.observations
         });
 
         revalidatePath('/app/transfers');

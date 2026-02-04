@@ -402,18 +402,19 @@ export async function approveDismissal(id: string) {
     }
 
     try {
-        const txn = await db.transaction(async () => {
+        // Get creator info for email
+        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(dismissal.created_by_user_id) as { email: string, name: string };
+        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
+        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(dismissal.employee_id) as any;
+
+        const txn = db.transaction(async () => {
             // Update dismissal status
             await db.prepare(`
                 UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?
             `).run(id);
 
-            // Optionally: Update employee status to inactive?
-            // Usually, this happens only after the date passes or via a specific routine.
-            // For now, we will just mark the request as COMPLETED. 
-            // If we want to deactivate the employee immediately or schedule it:
-            // await db.prepare(`UPDATE employees SET is_active = 0 WHERE id = ?`).run(dismissal.employee_id);
-            // But let's keep it simple as per instructions (form structure).
+            // Update employee status to inactive
+            await db.prepare(`UPDATE employees SET is_active = 0, status = 'Desligado', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(dismissal.employee_id);
         });
         await txn();
 
@@ -425,6 +426,29 @@ export async function approveDismissal(id: string) {
             entity_id: id,
             metadata: { employee_id: dismissal.employee_id },
             success: true
+        });
+
+        // Generate PDF for completion record (optional but good for consistency)
+        const pdfBytes = await generateDismissalPDF({
+            company_name: company.nome,
+            companyCNPJ: company.cnpj,
+            employee_name: employee.name,
+            notice_type: dismissal.notice_type,
+            reason: dismissal.dismissal_cause,
+            dismissal_date: dismissal.dismissal_date,
+            observations: dismissal.observations,
+            protocol_number: dismissal.protocol_number
+        });
+        const pdfBuffer = Buffer.from(pdfBytes);
+
+        // Send Email to Creator
+        await sendDismissalNotification('COMPLETED', {
+            userName: creator?.name || 'Cliente',
+            recipientEmail: creator?.email,
+            companyName: company.nome,
+            cnpj: company.cnpj,
+            employeeName: employee.name,
+            pdfBuffer: pdfBuffer
         });
 
         revalidatePath('/admin/dismissals');

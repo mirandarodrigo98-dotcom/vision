@@ -128,8 +128,8 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
                         }
                       </span>
                     </TableCell>
-                    <TableCell>
-                        <div className="flex items-center gap-2">
+                    <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
                              <TransferActions 
                                 transferId={tr.id}
                                 transferDate={tr.transfer_date}

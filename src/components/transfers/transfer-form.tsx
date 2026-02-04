@@ -27,9 +27,10 @@ interface TransferFormProps {
     initialData?: any;
     isEditing?: boolean;
     redirectPath?: string;
+    readOnly?: boolean;
 }
 
-export function TransferForm({ companies, initialData, isEditing = false, redirectPath = '/app/transfers' }: TransferFormProps) {
+export function TransferForm({ companies, initialData, isEditing = false, redirectPath = '/app/transfers', readOnly = false }: TransferFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState<Date | undefined>(
@@ -91,10 +92,11 @@ export function TransferForm({ companies, initialData, isEditing = false, redire
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
-                <CardTitle>{isEditing ? 'Retificar Transferência' : 'Nova Solicitação de Transferência'}</CardTitle>
+                <CardTitle>{readOnly ? 'Visualizar Transferência' : (isEditing ? 'Retificar Transferência' : 'Nova Solicitação de Transferência')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <fieldset disabled={readOnly} className="space-y-6 border-none p-0 m-0 group-disabled:opacity-100">
                     {/* Source Company */}
                     <div className="space-y-2">
                         <Label htmlFor="source_company_id">Empresa Origem *</Label>
@@ -225,14 +227,30 @@ export function TransferForm({ companies, initialData, isEditing = false, redire
                         />
                     </div>
 
-                    <div className="flex justify-end gap-4 pt-4">
-                        <Button type="button" variant="outline" onClick={() => router.back()}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Enviar Solicitação')}
-                        </Button>
-                    </div>
+                    </fieldset>
+
+                    {!readOnly && (
+                        <div className="flex justify-end gap-4 pt-4">
+                            <Button type="button" variant="outline" onClick={() => router.back()}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={loading}>
+                                {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Enviar Solicitação')}
+                            </Button>
+                        </div>
+                    )}
+
+                    {readOnly && (
+                         <div className="flex justify-end pt-4">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => router.back()}
+                            >
+                                Voltar
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </CardContent>
         </Card>

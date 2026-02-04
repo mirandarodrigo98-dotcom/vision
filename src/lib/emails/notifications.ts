@@ -29,12 +29,13 @@ interface AdmissionEmailData {
     pdfBuffer?: Buffer;
     downloadLink?: string;
     changes?: string[];
+    recipientEmail?: string;
 }
 
-export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL', data: AdmissionEmailData) {
-    const to = await getDestEmail();
+export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: AdmissionEmailData) {
+    const to = data.recipientEmail || await getDestEmail();
     if (!to) {
-        console.warn('Email destination not configured (NZD_DEST_EMAIL).');
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
         return { success: false, error: 'Destination email not configured' };
     }
 
@@ -67,6 +68,12 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         html = `
             <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
         `;
+    } else if (type === 'COMPLETED') {
+        subject = `Admissão de “${data.employeeName}” foi Concluída.`;
+        html = `
+            <p>A admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong> foi concluída com sucesso.</p>
+            <p>O funcionário foi cadastrado no sistema.</p>
+        `;
     }
 
     return await resend.emails.send({
@@ -88,10 +95,11 @@ interface TransferEmailData {
     transferDate: string;
     observation: string;
     changes?: string[]; // Keys: source_company, target_company, employee, transfer_date, observation
+    recipientEmail?: string;
 }
 
-export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL', data: TransferEmailData) {
-    const to = await getDestEmail();
+export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: TransferEmailData) {
+    const to = data.recipientEmail || await getDestEmail();
     if (!to) return { success: false, error: 'Destination email not configured' };
 
     let subject = '';
@@ -123,6 +131,12 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         html = `
             <p>A solicitação de transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi <strong style="color: red;">CANCELADA</strong> pelo usuário <strong>“${data.userName}”</strong>.</p>
         `;
+    } else if (type === 'COMPLETED') {
+        subject = `Transferência de “${data.employeeName}” foi Concluída.`;
+        html = `
+            <p>A transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi concluída.</p>
+            <p>O status do funcionário foi atualizado para "Transferido".</p>
+        `;
     }
 
     return await resend.emails.send({
@@ -141,10 +155,11 @@ interface VacationEmailData {
     userName: string;
     employeeName: string;
     pdfBuffer?: Buffer;
+    recipientEmail?: string;
 }
 
-export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL', data: VacationEmailData) {
-    const to = await getDestEmail();
+export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: VacationEmailData) {
+    const to = data.recipientEmail || await getDestEmail();
     if (!to) return { success: false, error: 'Destination email not configured' };
 
     let subject = '';
@@ -170,6 +185,11 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         html = `
             <p>A solicitação Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
         `;
+    } else if (type === 'COMPLETED') {
+        subject = `Férias de “${data.employeeName}” foram Concluídas.`;
+        html = `
+            <p>A solicitação de férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong> foi concluída.</p>
+        `;
     }
 
     return await resend.emails.send({
@@ -190,10 +210,11 @@ interface DismissalEmailData {
     employeeName: string;
     pdfBuffer?: Buffer;
     changes?: string[];
+    recipientEmail?: string;
 }
 
-export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL', data: DismissalEmailData) {
-    const to = await getDestEmail();
+export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: DismissalEmailData) {
+    const to = data.recipientEmail || await getDestEmail();
     if (!to) return { success: false, error: 'Destination email not configured' };
 
     let subject = '';
@@ -218,6 +239,12 @@ export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         subject = `Solicitação Demissão de “${data.employeeName}” foi Cancelada`;
         html = `
             <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+        `;
+    } else if (type === 'COMPLETED') {
+        subject = `Rescisão de “${data.employeeName}” foi Concluída.`;
+        html = `
+            <p>A rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong> foi concluída.</p>
+            <p>O funcionário foi desligado do cadastro (Status: Desligado).</p>
         `;
     }
 

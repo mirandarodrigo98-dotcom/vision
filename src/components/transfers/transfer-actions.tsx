@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Ban, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, Ban, Loader2, CheckCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,21 +52,23 @@ export function TransferActions({ transferId, transferDate, status, employeeName
   const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
-  const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  
+  // Admin/Operator CAN cancel. Client can cancel if not expired.
+  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
     setIsCancelling(true);
     try {
       const result = await cancelTransfer(transferId);
-      if (result.success) {
+      if (result.error) {
+        toast.error(result.error);
+      } else {
         toast.success('Transferência cancelada com sucesso.');
         router.refresh();
-      } else {
-        toast.error(result.error || 'Erro ao cancelar transferência.');
       }
     } catch (error) {
-      toast.error('Erro ao processar solicitação.');
+      toast.error('Erro ao cancelar transferência.');
     } finally {
       setIsCancelling(false);
     }
@@ -76,22 +78,25 @@ export function TransferActions({ transferId, transferDate, status, employeeName
     setIsApproving(true);
     try {
       const result = await approveTransfer(transferId);
-      if (result.success) {
+      if (result.error) {
+        toast.error(result.error);
+      } else {
         toast.success('Transferência aprovada com sucesso.');
         router.refresh();
-      } else {
-        toast.error(result.error || 'Erro ao aprovar transferência.');
       }
     } catch (error) {
-      toast.error('Erro ao processar aprovação.');
+      toast.error('Erro ao aprovar transferência.');
     } finally {
       setIsApproving(false);
     }
   };
 
-  const handleRectify = () => {
-    if (!canEdit) return;
-    router.push(`${basePath}/transfers/${transferId}/edit`);
+  const handleView = () => {
+    if (isAdmin) {
+      router.push(`/admin/transfers/${transferId}/view`);
+    } else {
+      router.push(`/app/transfers/${transferId}/view`);
+    }
   };
 
   const getTooltipMessage = () => {
@@ -105,7 +110,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
 
   return (
     <div className="flex items-center gap-2 justify-center">
-       {/* History is always visible */}
+       
        <TransferHistory transferId={transferId} />
 
        <TooltipProvider>
@@ -116,26 +121,24 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                   <TooltipTrigger asChild>
                       <AlertDialogTrigger asChild>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
+                            variant="outline" 
+                            size="sm" 
                             disabled={isApproving}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="text-green-600 border-green-200 hover:bg-green-50"
                           >
                             {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
                       </AlertDialogTrigger>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Concluir Transferência</p>
+                    <p>Concluir/Aprovar Transferência</p>
                   </TooltipContent>
                 </Tooltip>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Concluir Transferência</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Confirma que a transferência de <strong>{employeeName}</strong> foi realizada?
-                      <br/><br/>
-                      Ao confirmar, o funcionário será movido automaticamente para a empresa de destino no sistema.
+                      Confirma a aprovação da transferência de <strong>{employeeName}</strong>?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -148,64 +151,80 @@ export function TransferActions({ transferId, transferDate, status, employeeName
             </AlertDialog>
           )}
 
-          {/* Rectify Button */}
+          {/* View Button */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="inline-block">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleRectify} 
-                  disabled={!canEdit}
-                  className={`
-                    ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'}
-                  `}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
+                <span>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleView}
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                </span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{tooltipMessage || "Retificar"}</p>
+                <p>Visualizar Detalhes</p>
             </TooltipContent>
           </Tooltip>
 
           {/* Cancel Button */}
-          {!isCanceled && !isCompleted && (isAdmin || !isExpired) && (
+          {canCancel ? (
              <AlertDialog>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          disabled={isCancelling}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-                        </Button>
-                      </AlertDialogTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Cancelar Transferência</p>
-                  </TooltipContent>
+                    <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                disabled={isCancelling}
+                            >
+                                {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                            </Button>
+                        </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Cancelar Transferência</p>
+                    </TooltipContent>
                 </Tooltip>
                 <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancelar Transferência</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tem certeza que deseja cancelar a solicitação de transferência de <strong>{employeeName}</strong>?
-                      Esta ação não pode ser desfeita.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
-                      Confirmar Cancelamento
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Cancelar Transferência</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja cancelar a solicitação de transferência de <strong>{employeeName}</strong>?
+                            <br/><br/>
+                            Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                            Confirmar Cancelamento
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
-             </AlertDialog>
+            </AlertDialog>
+          ) : (
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <div className="inline-block">
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     disabled
+                     className="text-gray-300 cursor-not-allowed"
+                   >
+                     <Ban className="h-4 w-4" />
+                   </Button>
+                 </div>
+               </TooltipTrigger>
+               <TooltipContent>
+                 <p>{tooltipMessage}</p>
+               </TooltipContent>
+             </Tooltip>
           )}
        </TooltipProvider>
     </div>

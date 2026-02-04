@@ -23,9 +23,9 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   // Check view permission
   let hasViewPermission = false;
   let hasCreatePermission = false;
-  let isAdmin = session.role === 'admin';
+  const isManager = session.role === 'admin' || session.role === 'operator';
 
-  if (isAdmin) {
+  if (isManager) {
       hasViewPermission = true;
       hasCreatePermission = true;
   } else {
@@ -172,13 +172,13 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                     <TableCell>
                         {getStatusBadge(dismissal.status)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                         <DismissalActions 
                             dismissalId={dismissal.id}
                             dismissalDate={dismissal.dismissal_date}
                             status={dismissal.status}
                             employeeName={dismissal.employee_name}
-                            isAdmin={isAdmin}
+                            isAdmin={isManager}
                             basePath="/admin"
                         />
                     </TableCell>

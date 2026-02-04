@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Copy, AlertTriangle } from "lucide-react";
+import { Calendar as CalendarIcon, Copy, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -34,6 +34,7 @@ interface AdmissionFormProps {
     initialData?: any;
     isEditing?: boolean;
     isAdmin?: boolean;
+    readOnly?: boolean;
 }
 
 const DEFAULT_SCHEDULE = [
@@ -46,7 +47,7 @@ const DEFAULT_SCHEDULE = [
     { day: 'Sábado', active: false, isDSR: false, isFolga: false, isCPS: false, start: '', breakStart: '', breakEnd: '', end: '' },
 ];
 
-export function AdmissionForm({ companies, initialData, isEditing = false, isAdmin = false }: AdmissionFormProps) {
+export function AdmissionForm({ companies, initialData, isEditing = false, isAdmin = false, readOnly = false }: AdmissionFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -353,6 +354,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
     return (
         <TooltipProvider>
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                <fieldset disabled={readOnly} className="contents">
                 {isEditing && (
                     <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-md flex items-start gap-3">
                         <AlertTriangle className="h-5 w-5 mt-0.5" />
@@ -400,7 +402,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                     {/* Other fields with defaultValue */}
                     <div className="space-y-2">
                         <Label htmlFor="education_level">Grau de Instrução <span className="text-red-500">*</span></Label>
-                        <Select name="education_level" required defaultValue={initialData?.education_level || "medio_completo"}>
+                        <Select name="education_level" required defaultValue={initialData?.education_level || "medio_completo"} disabled={readOnly}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
@@ -414,6 +416,206 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                 <SelectItem value="pos_graduacao">Pós-Graduação</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cpf">CPF <span className="text-red-500">*</span></Label>
+                            <Input id="cpf" name="cpf" required defaultValue={initialData?.cpf} readOnly={readOnly} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="birth_date">Data de Nascimento <span className="text-red-500">*</span></Label>
+                            <Input type="date" id="birth_date" name="birth_date" required defaultValue={initialData?.birth_date} readOnly={readOnly} />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="mother_name">Nome da Mãe <span className="text-red-500">*</span></Label>
+                        <Input id="mother_name" name="mother_name" required defaultValue={initialData?.mother_name} readOnly={readOnly} onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="email">E-mail</Label>
+                            <Input type="email" id="email" name="email" defaultValue={initialData?.email} readOnly={readOnly} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Telefone/Celular <span className="text-red-500">*</span></Label>
+                            <Input id="phone" name="phone" required defaultValue={initialData?.phone} readOnly={readOnly} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="marital_status">Estado Civil <span className="text-red-500">*</span></Label>
+                            <Select name="marital_status" required defaultValue={initialData?.marital_status} disabled={readOnly}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="single">Solteiro(a)</SelectItem>
+                                    <SelectItem value="married">Casado(a)</SelectItem>
+                                    <SelectItem value="divorced">Divorciado(a)</SelectItem>
+                                    <SelectItem value="widowed">Viúvo(a)</SelectItem>
+                                    <SelectItem value="separated">Separado(a)</SelectItem>
+                                    <SelectItem value="stable_union">União Estável</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="race_color">Cor/Raça <span className="text-red-500">*</span></Label>
+                            <Select name="race_color" required defaultValue={initialData?.race_color} disabled={readOnly}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="white">Branca</SelectItem>
+                                    <SelectItem value="black">Preta</SelectItem>
+                                    <SelectItem value="pardo">Parda</SelectItem>
+                                    <SelectItem value="yellow">Amarela</SelectItem>
+                                    <SelectItem value="indigenous">Indígena</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <h3 className="font-semibold text-lg">Endereço</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="zip_code">CEP <span className="text-red-500">*</span></Label>
+                                <Input id="zip_code" name="zip_code" required defaultValue={initialData?.zip_code} readOnly={readOnly} />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="address_street">Rua/Logradouro <span className="text-red-500">*</span></Label>
+                                <Input id="address_street" name="address_street" required defaultValue={initialData?.address_street} readOnly={readOnly} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="address_number">Número <span className="text-red-500">*</span></Label>
+                                <Input id="address_number" name="address_number" required defaultValue={initialData?.address_number} readOnly={readOnly} />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="address_complement">Complemento</Label>
+                                <Input id="address_complement" name="address_complement" defaultValue={initialData?.address_complement} readOnly={readOnly} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="address_neighborhood">Bairro <span className="text-red-500">*</span></Label>
+                                <Input id="address_neighborhood" name="address_neighborhood" required defaultValue={initialData?.address_neighborhood} readOnly={readOnly} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="address_city">Cidade <span className="text-red-500">*</span></Label>
+                                <Input id="address_city" name="address_city" required defaultValue={initialData?.address_city} readOnly={readOnly} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="address_state">Estado (UF) <span className="text-red-500">*</span></Label>
+                                <Input id="address_state" name="address_state" maxLength={2} required defaultValue={initialData?.address_state} readOnly={readOnly} className="uppercase" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <h3 className="font-semibold text-lg">Dados Contratuais</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="cbo">CBO <span className="text-red-500">*</span></Label>
+                                <Input id="cbo" name="cbo" required defaultValue={initialData?.cbo} readOnly={readOnly} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="contract_type">Tipo de Contrato <span className="text-red-500">*</span></Label>
+                                <Select name="contract_type" required defaultValue={initialData?.contract_type || "clt"} disabled={readOnly}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="clt">CLT (Indeterminado)</SelectItem>
+                                        <SelectItem value="determined">Prazo Determinado</SelectItem>
+                                        <SelectItem value="temporary">Temporário</SelectItem>
+                                        <SelectItem value="internship">Estágio</SelectItem>
+                                        <SelectItem value="apprentice">Menor Aprendiz</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+{/* Fixed duplicate select
+                        <div className="space-y-2">
+                            <Label htmlFor="race_color">Raça/Cor <span className="text-red-500">*</span></Label>
+                            <Select name="race_color" required defaultValue={initialData?.race_color} disabled={readOnly}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="branca">Branca</SelectItem>
+                                    <SelectItem value="preta">Preta</SelectItem>
+                                    <SelectItem value="parda">Parda</SelectItem>
+                                    <SelectItem value="amarela">Amarela</SelectItem>
+                                    <SelectItem value="indigena">Indígena</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+*/}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Endereço Completo</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-1">
+                                <Label htmlFor="zip_code" className="text-xs">CEP</Label>
+                                <Input id="zip_code" name="zip_code" required defaultValue={initialData?.zip_code} readOnly={readOnly} />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Label htmlFor="address_street" className="text-xs">Rua</Label>
+                                <Input id="address_street" name="address_street" required defaultValue={initialData?.address_street} readOnly={readOnly} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                            <div>
+                                <Label htmlFor="address_number" className="text-xs">Número</Label>
+                                <Input id="address_number" name="address_number" required defaultValue={initialData?.address_number} readOnly={readOnly} />
+                            </div>
+                             <div>
+                                <Label htmlFor="address_complement" className="text-xs">Complemento</Label>
+                                <Input id="address_complement" name="address_complement" defaultValue={initialData?.address_complement} readOnly={readOnly} />
+                            </div>
+                             <div>
+                                <Label htmlFor="address_neighborhood" className="text-xs">Bairro</Label>
+                                <Input id="address_neighborhood" name="address_neighborhood" required defaultValue={initialData?.address_neighborhood} readOnly={readOnly} />
+                            </div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                             <div className="md:col-span-2">
+                                <Label htmlFor="address_city" className="text-xs">Cidade</Label>
+                                <Input id="address_city" name="address_city" required defaultValue={initialData?.address_city} readOnly={readOnly} />
+                            </div>
+                             <div>
+                                <Label htmlFor="address_state" className="text-xs">UF</Label>
+                                <Input id="address_state" name="address_state" required maxLength={2} defaultValue={initialData?.address_state} readOnly={readOnly} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cbo">CBO</Label>
+                            <Input id="cbo" name="cbo" defaultValue={initialData?.cbo} readOnly={readOnly} placeholder="Código CBO" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="contract_type">Tipo de Contrato <span className="text-red-500">*</span></Label>
+                            <Select name="contract_type" required defaultValue={initialData?.contract_type || "clt_determinado"} disabled={readOnly}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="clt_determinado">CLT - Determinado</SelectItem>
+                                    <SelectItem value="clt_indeterminado">CLT - Indeterminado</SelectItem>
+                                    <SelectItem value="estagio">Estágio</SelectItem>
+                                    <SelectItem value="aprendiz">Jovem Aprendiz</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                     
                     {/* Fields for PDF (Hidden or Visible?) - Based on original form, they were not visible in the snippet I saw. 
@@ -509,6 +711,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                             required 
                             defaultValue={initialData?.job_role}
                             onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()}
+                            readOnly={readOnly}
                         />
                     </div>
 
@@ -521,6 +724,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                             onChange={handleSalaryChange}
                             placeholder="0,00" 
                             required 
+                            readOnly={readOnly}
                         />
                         <input type="hidden" name="salary_cents" value={salaryDisplay ? parseInt(salaryDisplay.replace(/\D/g, ''), 10) : ''} />
                     </div>
@@ -552,13 +756,13 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                                 <Checkbox 
                                                     checked={day.active} 
                                                     onCheckedChange={(checked) => handleActiveChange(index, checked as boolean)}
-                                                    disabled={day.isDSR || day.isFolga || day.isCPS}
+                                                    disabled={readOnly || day.isDSR || day.isFolga || day.isCPS}
                                                 />
                                             </td>
                                             <td className="p-2 text-center">
                                                 <TimePicker 
                                                     value={day.start} 
-                                                    disabled={!day.active}
+                                                    disabled={readOnly || !day.active}
                                                     onChange={(val) => {
                                                         const newSchedule = [...schedule];
                                                         newSchedule[index].start = val;
@@ -570,7 +774,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                             <td className="p-2 text-center">
                                                 <TimePicker 
                                                     value={day.breakStart} 
-                                                    disabled={!day.active}
+                                                    disabled={readOnly || !day.active}
                                                     onChange={(val) => {
                                                         const newSchedule = [...schedule];
                                                         newSchedule[index].breakStart = val;
@@ -582,7 +786,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                             <td className="p-2 text-center">
                                                 <TimePicker 
                                                     value={day.breakEnd} 
-                                                    disabled={!day.active}
+                                                    disabled={readOnly || !day.active}
                                                     onChange={(val) => {
                                                         const newSchedule = [...schedule];
                                                         newSchedule[index].breakEnd = val;
@@ -594,7 +798,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                             <td className="p-2 text-center">
                                                 <TimePicker 
                                                     value={day.end} 
-                                                    disabled={!day.active}
+                                                    disabled={readOnly || !day.active}
                                                     onChange={(val) => {
                                                         const newSchedule = [...schedule];
                                                         newSchedule[index].end = val;
@@ -607,7 +811,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                                 {formatMinutes(calculateDailyMinutes(day))}
                                             </td>
                                             <td className="p-2 text-center">
-                                                {day.active ? (
+                                                {day.active && !readOnly ? (
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Button
@@ -641,7 +845,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                                     size="sm"
                                                     className={day.isDSR ? "bg-blue-600 hover:bg-blue-700 h-8 text-[10px] px-1" : "h-8 text-[10px] px-1"}
                                                     onClick={() => handleDSRChange(index, !day.isDSR)}
-                                                    disabled={day.active || day.isFolga || day.isCPS || (schedule.some(d => d.isDSR) && !day.isDSR)}
+                                                    disabled={readOnly || day.active || day.isFolga || day.isCPS || (schedule.some(d => d.isDSR) && !day.isDSR)}
                                                     title="Descanso Semanal Remunerado"
                                                 >
                                                     DSR
@@ -654,7 +858,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                                     size="sm"
                                                     className={day.isFolga ? "bg-gray-600 hover:bg-gray-700 h-8 text-[10px] px-1" : "h-8 text-[10px] px-1"}
                                                     onClick={() => handleFolgaChange(index, !day.isFolga)}
-                                                    disabled={day.active || day.isDSR || day.isCPS}
+                                                    disabled={readOnly || day.active || day.isDSR || day.isCPS}
                                                     title="Folga Concedida"
                                                 >
                                                     Folga
@@ -667,7 +871,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                                     size="sm"
                                                     className={day.isCPS ? "bg-orange-600 hover:bg-orange-700 h-8 text-[10px] px-1" : "h-8 text-[10px] px-1"}
                                                     onClick={() => handleCPSChange(index, !day.isCPS)}
-                                                    disabled={day.active || day.isDSR || day.isFolga || (schedule.some(d => d.isCPS) && !day.isCPS)}
+                                                    disabled={readOnly || day.active || day.isDSR || day.isFolga || (schedule.some(d => d.isCPS) && !day.isCPS)}
                                                     title="Compensado"
                                                 >
                                                     CPS
@@ -690,7 +894,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                     
                     <div className="space-y-2">
                          <Label htmlFor="trial_period">Contrato de Experiência <span className="text-red-500">*</span></Label>
-                         <Select value={trialPeriod} onValueChange={setTrialPeriod} name="trial_period">
+                         <Select value={trialPeriod} onValueChange={setTrialPeriod} name="trial_period" disabled={readOnly}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
@@ -714,7 +918,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                     {/* Vale Transporte */}
                     <div className="space-y-4 border p-4 rounded-md">
                         <div className="flex items-center space-x-2">
-                            <Checkbox id="has_vt" checked={hasVt} onCheckedChange={(c) => setHasVt(!!c)} />
+                            <Checkbox id="has_vt" checked={hasVt} onCheckedChange={(c) => setHasVt(!!c)} disabled={readOnly} />
                             <Label htmlFor="has_vt" className="font-semibold">Vale Transporte</Label>
                         </div>
                         
@@ -729,6 +933,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                         onChange={handleVtTarifaChange}
                                         placeholder="0,00"
                                         required={hasVt} 
+                                        readOnly={readOnly}
                                     />
                                     <input type="hidden" name="vt_tarifa_cents" value={vtTarifaDisplay ? parseInt(vtTarifaDisplay.replace(/\D/g, ''), 10) : ''} />
                                 </div>
@@ -740,6 +945,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                         required={hasVt} 
                                         defaultValue={initialData?.vt_linha}
                                         onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()}
+                                        readOnly={readOnly}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -750,6 +956,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                         type="number" 
                                         required={hasVt} 
                                         defaultValue={initialData?.vt_qtd_por_dia}
+                                        readOnly={readOnly}
                                     />
                                 </div>
                             </div>
@@ -759,7 +966,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                     {/* Adiantamento Salarial */}
                     <div className="space-y-4 border p-4 rounded-md">
                         <div className="flex items-center space-x-2">
-                            <Checkbox id="has_adv" checked={hasAdv} onCheckedChange={(c) => setHasAdv(!!c)} />
+                            <Checkbox id="has_adv" checked={hasAdv} onCheckedChange={(c) => setHasAdv(!!c)} disabled={readOnly} />
                             <Label htmlFor="has_adv" className="font-semibold">Adiantamento Salarial</Label>
                         </div>
                         
@@ -775,11 +982,12 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                         max="31" 
                                         required={hasAdv} 
                                         defaultValue={initialData?.adv_day}
+                                        readOnly={readOnly}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="adv_periodicity">Periodicidade <span className="text-red-500">*</span></Label>
-                                    <Select name="adv_periodicity" required={hasAdv} defaultValue={initialData?.adv_periodicity || "mensal"}>
+                                    <Select name="adv_periodicity" required={hasAdv} defaultValue={initialData?.adv_periodicity || "mensal"} disabled={readOnly}>
                                         <SelectTrigger className="w-full">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -807,6 +1015,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                             placeholder="Insira observações gerais sobre a admissão aqui..."
                             className="min-h-[120px]"
                             defaultValue={initialData?.general_observations}
+                            readOnly={readOnly}
                         />
                     </div>
                 </CardContent>
@@ -850,6 +1059,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                 type="button"
                                 variant="outline"
                                 onClick={() => document.getElementById('file')?.click()}
+                                disabled={readOnly}
                             >
                                 Selecionar Arquivo
                             </Button>
@@ -862,6 +1072,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                             accept=".zip,.rar" 
                             required={!isEditing}
                             className="hidden"
+                            disabled={readOnly}
                             onChange={(e) => {
                                 if (e.target.files && e.target.files.length > 0) {
                                     const file = e.target.files[0];
@@ -896,10 +1107,37 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                         {error}
                     </div>
                 )}
-                <Button type="submit" size="lg" disabled={loading} className={isEditing ? "bg-amber-600 hover:bg-amber-700" : ""}>
-                    {loading ? (isEditing ? 'Atualizando...' : 'Enviando...') : (isEditing ? 'Salvar Alterações' : 'Enviar Admissão')}
-                </Button>
             </div>
+            </fieldset>
+
+            {!readOnly && (
+                <div className="flex justify-end gap-4 pt-4">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => router.back()}
+                        disabled={loading}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button type="submit" disabled={loading} className={isEditing ? "bg-amber-600 hover:bg-amber-700" : ""}>
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isEditing ? 'Salvar Alterações' : 'Criar Admissão'}
+                    </Button>
+                </div>
+            )}
+
+            {readOnly && (
+                 <div className="flex justify-end pt-4">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => router.back()}
+                    >
+                        Voltar
+                    </Button>
+                </div>
+            )}
             </form>
         </TooltipProvider>
     );

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Ban, Loader2 } from 'lucide-react';
+import { Ban, Loader2, Eye, CheckCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
-import { cancelAdmission } from '@/app/actions/admissions';
+import { cancelAdmission, completeAdmission } from '@/app/actions/admissions';
 import { toast } from 'sonner';
 import { AdmissionHistory } from './admission-history';
 import {
@@ -36,6 +36,7 @@ interface AdmissionActionsProps {
 export function AdmissionActions({ admissionId, admissionDate, status, employeeName, isAdmin = false }: AdmissionActionsProps) {
   const router = useRouter();
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   // Check deadline: 1 day before admission date
   const admDate = new Date(admissionDate);
@@ -49,7 +50,9 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
   
   const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
-  const canEdit = !isCanceled && (isAdmin || !isExpired);
+  const isCompleted = status === 'COMPLETED';
+  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  const canApprove = isAdmin && !isCanceled && !isCompleted;
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -68,19 +71,35 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
     }
   };
 
-  const handleRectify = () => {
-    if (!canEdit) return;
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const result = await completeAdmission(admissionId);
+      if (result.success) {
+        toast.success('Admissão concluída com sucesso!');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Erro ao concluir admissão.');
+      }
+    } catch (error) {
+      toast.error('Erro ao processar solicitação.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleView = () => {
     if (isAdmin) {
-      router.push(`/admin/admissions/${admissionId}/edit`);
+      router.push(`/admin/admissions/${admissionId}/view`);
     } else {
-      router.push(`/app/admissions/${admissionId}/edit`);
+      router.push(`/app/admissions/${admissionId}/view`);
     }
   };
 
   const getTooltipMessage = () => {
     if (isAdmin) return "Ações administrativas";
     if (isCanceled) return "Admissão cancelada";
-    if (isExpired) return "Prazo de retificação/cancelamento expirado";
+    if (isExpired) return "Prazo de cancelamento expirado";
     return null;
   };
 
@@ -92,38 +111,74 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
        <AdmissionHistory admissionId={admissionId} />
 
        <TooltipProvider>
-          {/* Rectify Button */}
+          {/* Approve Button (Admin Only) */}
+          {canApprove && (
+            <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={isApproving}
+                          className="text-green-600 border-green-200 hover:bg-green-50"
+                        >
+                          {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Concluir/Aprovar Admissão</p>
+                  </TooltipContent>
+                </Tooltip>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Concluir Admissão</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Confirma a aprovação da admissão de <strong>{employeeName}</strong>?
+                      <br/>
+                      Um novo cadastro de funcionário será criado automaticamente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleApprove} className="bg-green-600 hover:bg-green-700">
+                      Concluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {/* View Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="inline-block">
                 <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleRectify} 
-                  disabled={!canEdit}
-                  className={`
-                    ${canEdit ? "text-blue-600 hover:text-blue-800 hover:bg-blue-50" : "text-gray-300 cursor-not-allowed"}
-                  `}
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleView} 
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Eye className="h-4 w-4" />
                 </Button>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{!canEdit && tooltipMessage ? tooltipMessage : "Retificar"}</p>
+              <p>Visualizar Detalhes</p>
             </TooltipContent>
           </Tooltip>
 
           {/* Cancel Button */}
-          {canEdit ? (
+          {canCancel ? (
              <AlertDialog>
                <Tooltip>
                  <TooltipTrigger asChild>
                    <AlertDialogTrigger asChild>
                      <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                       variant="outline" 
+                       size="sm" 
+                       className="text-red-600 border-red-200 hover:bg-red-50"
                        disabled={isCancelling}
                      >
                        {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
@@ -156,7 +211,7 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
                    <Button 
                      variant="ghost" 
                      size="icon" 
-                     disabled={true}
+                     disabled
                      className="text-gray-300 cursor-not-allowed"
                    >
                      <Ban className="h-4 w-4" />

@@ -195,6 +195,14 @@ export async function loginClient(email: string, password: string) {
       return { error: 'Conta inativa.' };
   }
 
+  // Check temp password expiration
+  if (user.password_temporary && user.temp_password_expires_at) {
+      const expiresAt = new Date(user.temp_password_expires_at);
+      if (new Date() > expiresAt) {
+          return { error: 'Senha provisória expirada.' };
+      }
+  }
+
   await createSession(user.id, user.role);
 
   logAudit({
@@ -206,7 +214,39 @@ export async function loginClient(email: string, password: string) {
     metadata: { method: 'password' }
   });
 
+  if (user.password_temporary) {
+      return { success: true, mustChangePassword: true };
+  }
+
   return { success: true };
+}
+
+export async function updatePassword(password: string) {
+    const session = await getSession();
+    if (!session) return { error: 'Não autorizado' };
+
+    // Validar senha (mínimo 6 caracteres)
+    if (password.length < 6) {
+        return { error: 'A senha deve ter no mínimo 6 caracteres.' };
+    }
+
+    const hash = await hashPassword(password);
+    
+    await db.prepare(`
+        UPDATE users 
+        SET password_hash = ?, password_temporary = 0, temp_password_expires_at = NULL, updated_at = datetime('now')
+        WHERE id = ?
+    `).run(hash, session.user_id);
+
+    logAudit({
+        action: 'UPDATE_PASSWORD',
+        actor_user_id: session.user_id,
+        actor_email: session.email,
+        role: session.role,
+        success: true
+    });
+
+    return { success: true };
 }
 
 export async function logout() {

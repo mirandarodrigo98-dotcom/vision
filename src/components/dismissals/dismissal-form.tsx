@@ -95,10 +95,11 @@ export function DismissalForm({ companies, initialData, isEditing = false, redir
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
-                <CardTitle>{isEditing ? 'Editar Rescisão' : 'Nova Solicitação de Rescisão'}</CardTitle>
+                <CardTitle>{readOnly ? 'Visualizar Rescisão' : (isEditing ? 'Editar Rescisão' : 'Nova Solicitação de Rescisão')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <fieldset disabled={readOnly} className="space-y-6 border-none p-0 m-0 group-disabled:opacity-100">
                     {/* Empresa */}
                     <div className="space-y-2">
                         <Label htmlFor="company_id">Empresa *</Label>

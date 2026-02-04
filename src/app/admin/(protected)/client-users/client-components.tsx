@@ -7,9 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { createClientUser, updateClientUser, toggleUserStatus, sendPassword } from '@/app/actions/client-users';
+import { createClientUser, updateClientUser, toggleUserStatus, sendPassword, generateTempPassword } from '@/app/actions/client-users';
 import { toast } from 'sonner';
-import { Pencil, Power, PowerOff, Plus, Key, Loader2, Search, X } from 'lucide-react';
+import { Pencil, Power, PowerOff, Plus, Key, Loader2, Search, X, Clock } from 'lucide-react';
 import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 
@@ -32,6 +32,11 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
   const [editing, setEditing] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
   const [sendingPassword, setSendingPassword] = useState<string | null>(null);
+  
+  // Temp password dialog
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [tempPasswordOpen, setTempPasswordOpen] = useState(false);
+  const [generatingTemp, setGeneratingTemp] = useState<string | null>(null);
 
   async function handleSendPassword(userId: string) {
     setSendingPassword(userId);
@@ -43,6 +48,20 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
     } else {
         toast.success('Senha enviada por e-mail!');
     }
+  }
+
+  async function handleGenerateTempPassword(userId: string) {
+      setGeneratingTemp(userId);
+      const res = await generateTempPassword(userId);
+      setGeneratingTemp(null);
+
+      if (res.error) {
+          toast.error(res.error);
+      } else {
+          setTempPassword(res.password);
+          setTempPasswordOpen(true);
+          toast.success('Senha provisória gerada!');
+      }
   }
 
   return (
@@ -72,7 +91,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
               <TableHead>
                 <ColumnHeader column="is_active" title="Status" />
               </TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -105,25 +124,50 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
                         {user.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-center space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleGenerateTempPassword(user.id)}
+                        disabled={!!generatingTemp}
+                        title="Gerar Senha Provisória (1h)"
+                        className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                      >
+                        {generatingTemp === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleSendPassword(user.id)}
                         disabled={!!sendingPassword}
-                        title="Enviar nova senha"
+                        title="Enviar nova senha por e-mail"
                       >
                         {sendingPassword === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => { setEditing(user); setOpen(true); }}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => { setEditing(user); setOpen(true); }}
+                        title="Editar Usuário"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <form action={async () => {
                          await toggleUserStatus(user.id, !user.is_active);
                          toast.success('Status atualizado');
                       }} className="inline-block">
-                        <Button variant="ghost" size="icon" type="submit" title={user.is_active ? "Desativar" : "Ativar"}>
-                          {user.is_active ? <PowerOff className="h-4 w-4 text-red-500" /> : <Power className="h-4 w-4 text-green-500" />}
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            type="submit" 
+                            title={user.is_active ? "Desativar" : "Ativar"}
+                            className={user.is_active 
+                                ? "text-red-600 border-red-200 hover:bg-red-50" 
+                                : "text-green-600 border-green-200 hover:bg-green-50"
+                            }
+                        >
+                          {user.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                         </Button>
                       </form>
                     </TableCell>
@@ -149,6 +193,24 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
             companies={companies}
             onSuccess={() => setOpen(false)} 
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={tempPasswordOpen} onOpenChange={setTempPasswordOpen}>
+        <DialogContent className="max-w-sm">
+            <DialogHeader>
+                <DialogTitle>Senha Provisória Gerada</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 text-center">
+                <p className="text-sm text-gray-500 mb-2">Esta senha é válida por 1 hora.</p>
+                <div className="p-4 bg-gray-100 rounded-md border border-gray-200">
+                    <code className="text-2xl font-mono font-bold tracking-wider select-all">{tempPassword}</code>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">Clique na senha para selecionar e copiar.</p>
+            </div>
+            <div className="flex justify-end">
+                <Button onClick={() => setTempPasswordOpen(false)}>Fechar</Button>
+            </div>
         </DialogContent>
       </Dialog>
     </div>

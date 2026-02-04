@@ -14,8 +14,8 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   
-  // Steps: 'email' -> 'otp' (admin/operator) OR 'password' (client)
-  const [step, setStep] = useState<'email' | 'otp' | 'password'>('email');
+  // Steps: 'login' (email+password) -> 'otp'
+  const [step, setStep] = useState<'login' | 'otp'>('login');
   
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -30,9 +30,9 @@ export default function LoginPage() {
         const elapsed = Date.now() - parseInt(storedTime, 10);
         if (elapsed < 10 * 60 * 1000) { // 10 minutes
             setEmail(storedEmail);
-            setStep(storedStep as 'email' | 'otp' | 'password');
-
+            // If stored step was OTP, restore it. Otherwise default to login.
             if (storedStep === 'otp') {
+                setStep('otp');
                 const secondsPassed = Math.floor(elapsed / 1000);
                 if (secondsPassed < 60) {
                     setTimeLeft(60 - secondsPassed);
@@ -67,7 +67,7 @@ export default function LoginPage() {
       if (type) localStorage.setItem('login_type', type);
   };
 
-  async function handleCheckEmail(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail) {
@@ -77,14 +77,32 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+        // 1. Check user type first
         const check = await checkUserType(cleanEmail);
         
         if (check.authMethod === 'password') {
-            // Priority: Password flow (Admin, Operator, Client)
-            setStep('password');
-            persistState(cleanEmail, 'password', check.type);
+            // 2. If password user, try to login directly
+            if (!password) {
+                toast.error('Por favor, digite sua senha.');
+                setLoading(false);
+                return;
+            }
+
+            const res = await loginClient(cleanEmail, password);
+            if (res.error) {
+                toast.error(res.error);
+            } else {
+                toast.success('Login realizado com sucesso!');
+                clearStorage();
+                
+                if (res.mustChangePassword) {
+                    window.location.replace('/change-password');
+                } else {
+                    window.location.replace('/'); 
+                }
+            }
         } else if (check.authMethod === 'otp') {
-             // Fallback: OTP flow (Old Admins, Operators)
+             // 3. If OTP user, send code and switch to OTP step
             const res = await requestOtp(cleanEmail);
             if (res.error) {
                 toast.error(res.error);
@@ -101,7 +119,7 @@ export default function LoginPage() {
     } catch (err) {
         console.error(err);
         const message = err instanceof Error ? err.message : 'Erro desconhecido';
-        toast.error(`Erro ao verificar e-mail: ${message}`);
+        toast.error(`Erro ao realizar login: ${message}`);
     } finally {
         setLoading(false);
     }
@@ -128,26 +146,6 @@ export default function LoginPage() {
     }
   }
 
-  async function handleLoginPassword(e: React.FormEvent) {
-      e.preventDefault();
-      setLoading(true);
-      try {
-          const res = await loginClient(email, password);
-          if (res.error) {
-              toast.error(res.error);
-              setLoading(false);
-          } else {
-              toast.success('Login realizado com sucesso!');
-              clearStorage();
-              // Force redirect using window.location.replace to prevent back button loop
-              window.location.replace('/'); 
-          }
-      } catch {
-          toast.error('Erro ao realizar login.');
-          setLoading(false);
-      }
-  }
-
   async function handleResendOtp() {
       setLoading(true);
       const cleanEmail = email.toLowerCase().trim();
@@ -167,7 +165,7 @@ export default function LoginPage() {
   }
 
   const handleBack = () => {
-      setStep('email');
+      setStep('login');
       setOtp('');
       setPassword('');
       clearStorage();
@@ -183,19 +181,17 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>
-              {step === 'email' && 'Acesse sua conta'}
+              {step === 'login' && 'Acesse sua conta'}
               {step === 'otp' && 'Código de Verificação'}
-              {step === 'password' && 'Digite sua Senha'}
           </CardTitle>
           <CardDescription>
-              {step === 'email' && 'Digite seu e-mail para continuar'}
+              {step === 'login' && 'Digite suas credenciais para continuar'}
               {step === 'otp' && `Enviamos um código para ${email}`}
-              {step === 'password' && `Olá, digite sua senha para entrar`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 'email' && (
-            <form onSubmit={handleCheckEmail} className="space-y-4">
+          {step === 'login' && (
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">E-mail</label>
                 <Input 
@@ -209,8 +205,19 @@ export default function LoginPage() {
                   autoFocus
                 />
               </div>
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">Senha</label>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="********"
+                  disabled={loading}
+                />
+              </div>
               <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? 'Verificando...' : 'Continuar'}
+                {loading ? 'Entrar' : 'Entrar'}
               </Button>
             </form>
           )}

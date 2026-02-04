@@ -28,9 +28,10 @@ interface VacationFormProps {
     initialData?: any;
     isEditing?: boolean;
     redirectPath?: string;
+    readOnly?: boolean;
 }
 
-export function VacationForm({ companies, initialData, isEditing = false, redirectPath = '/admin/vacations' }: VacationFormProps) {
+export function VacationForm({ companies, initialData, isEditing = false, redirectPath = '/admin/vacations', readOnly = false }: VacationFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
@@ -115,10 +116,11 @@ export function VacationForm({ companies, initialData, isEditing = false, redire
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
-                <CardTitle>{isEditing ? 'Editar Férias' : 'Nova Solicitação de Férias'}</CardTitle>
+                <CardTitle>{readOnly ? 'Visualizar Férias' : (isEditing ? 'Editar Férias' : 'Nova Solicitação de Férias')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <fieldset disabled={readOnly} className="space-y-6 border-none p-0 m-0 group-disabled:opacity-100">
                     {/* Empresa */}
                     <div className="space-y-2">
                         <Label htmlFor="company_id">Empresa *</Label>
@@ -266,20 +268,36 @@ export function VacationForm({ companies, initialData, isEditing = false, redire
                         />
                     </div>
 
-                    <div className="flex justify-end gap-4 pt-4">
-                        <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={() => router.back()}
-                            disabled={loading}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isEditing ? 'Salvar Alterações' : 'Enviar Solicitação'}
-                        </Button>
-                    </div>
+                    </fieldset>
+
+                    {!readOnly && (
+                        <div className="flex justify-end gap-4 pt-4">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => router.back()}
+                                disabled={loading}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={loading}>
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isEditing ? 'Salvar Alterações' : 'Enviar Solicitação'}
+                            </Button>
+                        </div>
+                    )}
+
+                    {readOnly && (
+                         <div className="flex justify-end pt-4">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => router.back()}
+                            >
+                                Voltar
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </CardContent>
         </Card>

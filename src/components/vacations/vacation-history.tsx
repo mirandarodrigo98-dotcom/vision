@@ -9,17 +9,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { History, Loader2 } from "lucide-react";
-import { getAdmissionHistory } from '@/app/actions/audit';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { History, Loader2 } from "lucide-react";
+import { getVacationHistory } from '@/app/actions/audit';
+import { format } from 'date-fns';
 
 interface AuditLog {
     id: string;
@@ -31,14 +30,13 @@ interface AuditLog {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-    'CREATE_ADMISSION': 'Criação da Admissão',
-    'UPDATE_ADMISSION': 'Retificação da Admissão',
-    'CANCEL_ADMISSION': 'Cancelamento da Admissão',
-    'EMAIL_SENT': 'E-mail Enviado',
-    'EMAIL_FAILED': 'Falha no E-mail',
+    'CREATE_VACATION': 'Solicitação de Férias',
+    'UPDATE_VACATION': 'Retificação de Férias',
+    'CANCEL_VACATION': 'Cancelamento de Férias',
+    'APPROVE_VACATION': 'Conclusão de Férias'
 };
 
-export function AdmissionHistory({ admissionId }: { admissionId: string }) {
+export function VacationHistory({ vacationId }: { vacationId: string }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -46,7 +44,7 @@ export function AdmissionHistory({ admissionId }: { admissionId: string }) {
     useEffect(() => {
         if (open) {
             setLoading(true);
-            getAdmissionHistory(admissionId)
+            getVacationHistory(vacationId)
                 .then(result => {
                     if (result.success && result.logs) {
                         setLogs(result.logs);
@@ -54,7 +52,7 @@ export function AdmissionHistory({ admissionId }: { admissionId: string }) {
                 })
                 .finally(() => setLoading(false));
         }
-    }, [open, admissionId]);
+    }, [open, vacationId]);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -72,14 +70,13 @@ export function AdmissionHistory({ admissionId }: { admissionId: string }) {
                         </DialogTrigger>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Movimentações</p>
+                        <p>Histórico de Movimentações</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
-            
             <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Histórico da Admissão</DialogTitle>
+                    <DialogTitle>Histórico de Férias</DialogTitle>
                     <DialogDescription>
                         Movimentações e ações registradas.
                     </DialogDescription>
@@ -102,10 +99,10 @@ export function AdmissionHistory({ admissionId }: { admissionId: string }) {
                                             {ACTION_LABELS[log.action] || log.action}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {format(new Date(log.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                            {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
                                         </span>
                                         <span className="text-xs text-gray-400">
-                                            Por: {log.user_name || log.actor_email || 'Sistema'}
+                                            {log.user_name || log.actor_email}
                                         </span>
                                     </div>
                                 </div>

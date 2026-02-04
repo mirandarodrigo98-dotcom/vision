@@ -389,6 +389,18 @@ export async function approveVacation(id: string) {
     if (!hasPermission) return { error: 'Sem permissão para aprovar.' };
 
     try {
+        const vacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
+        if (!vacation) return { error: 'Férias não encontradas.' };
+
+        if (vacation.status !== 'SUBMITTED') {
+             return { error: 'Apenas solicitações pendentes podem ser aprovadas.' };
+        }
+
+        // Get creator info
+        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(vacation.created_by_user_id) as { email: string, name: string };
+        const company = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(vacation.company_id) as { nome: string };
+        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(vacation.employee_id) as { name: string };
+
         await db.prepare(`
             UPDATE vacations 
             SET status = 'COMPLETED', updated_at = datetime('now', '-03:00')
@@ -405,7 +417,17 @@ export async function approveVacation(id: string) {
             success: true
         });
 
+        // Send Notification to Creator
+        await sendVacationNotification('COMPLETED', {
+            userName: creator?.name || 'Cliente',
+            recipientEmail: creator?.email,
+            companyName: company.nome,
+            cnpj: '', // Not strictly needed for this email type but interface might require it
+            employeeName: employee.name
+        });
+
         revalidatePath('/admin/vacations');
+        revalidatePath('/app/vacations');
         return { success: true };
 
     } catch (error) {

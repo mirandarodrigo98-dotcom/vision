@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Ban, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, Ban, Loader2, CheckCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { cancelDismissal, approveDismissal } from '@/app/actions/dismissals';
 import { toast } from 'sonner';
+import { DismissalHistory } from './dismissal-history';
 import {
   Tooltip,
   TooltipContent,
@@ -50,21 +51,23 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
-  const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  
+  // Admin/Operator CAN cancel. Client can cancel if not expired.
+  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
     setIsCancelling(true);
     try {
       const result = await cancelDismissal(dismissalId);
-      if (result.success) {
+      if (result.error) {
+        toast.error(result.error);
+      } else {
         toast.success('Rescisão cancelada com sucesso.');
         router.refresh();
-      } else {
-        toast.error(result.error || 'Erro ao cancelar rescisão.');
       }
     } catch (error) {
-      toast.error('Erro ao processar solicitação.');
+      toast.error('Erro ao cancelar rescisão.');
     } finally {
       setIsCancelling(false);
     }
@@ -74,22 +77,25 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
     setIsApproving(true);
     try {
       const result = await approveDismissal(dismissalId);
-      if (result.success) {
+      if (result.error) {
+        toast.error(result.error);
+      } else {
         toast.success('Rescisão aprovada com sucesso.');
         router.refresh();
-      } else {
-        toast.error(result.error || 'Erro ao aprovar rescisão.');
       }
     } catch (error) {
-      toast.error('Erro ao processar aprovação.');
+      toast.error('Erro ao aprovar rescisão.');
     } finally {
       setIsApproving(false);
     }
   };
 
-  const handleRectify = () => {
-    if (!canEdit) return;
-    router.push(`${basePath}/dismissals/${dismissalId}/edit`);
+  const handleView = () => {
+    if (isAdmin) {
+      router.push(`/admin/dismissals/${dismissalId}/view`);
+    } else {
+      router.push(`/app/dismissals/${dismissalId}/view`);
+    }
   };
 
   const getTooltipMessage = () => {
@@ -104,6 +110,8 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   return (
     <div className="flex items-center gap-2 justify-center">
        
+       <DismissalHistory dismissalId={dismissalId} />
+
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
           {canApprove && (
@@ -112,10 +120,10 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                   <TooltipTrigger asChild>
                       <AlertDialogTrigger asChild>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
+                            variant="outline" 
+                            size="sm" 
                             disabled={isApproving}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="text-green-600 border-green-200 hover:bg-green-50"
                           >
                             {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
@@ -130,6 +138,8 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                     <AlertDialogTitle>Concluir Rescisão</AlertDialogTitle>
                     <AlertDialogDescription>
                       Confirma a aprovação da rescisão de <strong>{employeeName}</strong>?
+                      <br/>
+                      O funcionário será marcado como "Desligado".
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -142,46 +152,43 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
             </AlertDialog>
           )}
 
-          {/* Edit Button */}
+          {/* View Button */}
           <Tooltip>
             <TooltipTrigger asChild>
                 <span>
                     <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={handleRectify}
-                        disabled={!canEdit}
-                        className={!canEdit ? "opacity-50 cursor-not-allowed" : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"}
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleView}
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
                     >
-                        <Pencil className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                     </Button>
                 </span>
             </TooltipTrigger>
-            {tooltipMessage && (
-                <TooltipContent>
-                    <p>{tooltipMessage}</p>
-                </TooltipContent>
-            )}
+            <TooltipContent>
+                <p>Visualizar Detalhes</p>
+            </TooltipContent>
           </Tooltip>
 
           {/* Cancel Button */}
-          {!isCanceled && !isCompleted && (
+          {canCancel ? (
              <AlertDialog>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <AlertDialogTrigger asChild>
                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                disabled={!canEdit || isCancelling}
-                                className={!canEdit ? "opacity-50 cursor-not-allowed" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                disabled={isCancelling}
                             >
                                 {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                             </Button>
                         </AlertDialogTrigger>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>{tooltipMessage || "Cancelar Rescisão"}</p>
+                        <p>Cancelar Rescisão</p>
                     </TooltipContent>
                 </Tooltip>
                 <AlertDialogContent>
@@ -201,6 +208,24 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+          ) : (
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <div className="inline-block">
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     disabled
+                     className="text-gray-300 cursor-not-allowed"
+                   >
+                     <Ban className="h-4 w-4" />
+                   </Button>
+                 </div>
+               </TooltipTrigger>
+               <TooltipContent>
+                 <p>{tooltipMessage}</p>
+               </TooltipContent>
+             </Tooltip>
           )}
        </TooltipProvider>
     </div>

@@ -6,14 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { createTeamUser, toggleTeamUserStatus, deleteTeamUser, TeamUser } from '@/app/actions/team';
+import { createTeamUser, toggleTeamUserStatus, deleteTeamUser, generateTempPassword, sendPassword, TeamUser } from '@/app/actions/team';
 import { toast } from 'sonner';
-import { Plus, Trash, Shield, User, Ban, CheckCircle } from 'lucide-react';
+import { Plus, Trash, Shield, User, Power, PowerOff, Clock, Key, Loader2, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [tempPasswordOpen, setTempPasswordOpen] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
+  const [generatingTemp, setGeneratingTemp] = useState<string | null>(null);
+  const [sendingPassword, setSendingPassword] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -68,8 +74,71 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
     }
   }
 
+  async function handleGenerateTempPassword(userId: string) {
+      setGeneratingTemp(userId);
+      try {
+          const res = await generateTempPassword(userId);
+          if (res.error) {
+              toast.error(res.error);
+          } else {
+              setTempPassword(res.password!);
+              setTempPasswordOpen(true);
+              toast.success('Senha provisória gerada.');
+          }
+      } catch (error) {
+          toast.error('Erro ao gerar senha.');
+      } finally {
+          setGeneratingTemp(null);
+      }
+  }
+
+  async function handleSendPassword(userId: string) {
+      if (!confirm('Deseja gerar uma nova senha e enviar por e-mail? A senha atual será invalidada.')) return;
+      
+      setSendingPassword(userId);
+      try {
+          const res = await sendPassword(userId);
+          if (res.error) {
+              toast.error(res.error);
+          } else {
+              toast.success('Senha enviada por e-mail.');
+          }
+      } catch (error) {
+          toast.error('Erro ao enviar senha.');
+      } finally {
+          setSendingPassword(null);
+      }
+  }
+
   return (
     <div className="space-y-6">
+      <Dialog open={tempPasswordOpen} onOpenChange={setTempPasswordOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Senha Provisória Gerada</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center justify-center space-y-4 py-4">
+                  <div className="text-4xl font-mono font-bold tracking-widest bg-gray-100 px-6 py-3 rounded-lg border">
+                      {tempPassword}
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                      Esta senha é válida por 1 hora.<br/>
+                      Copie e envie para o usuário.
+                  </p>
+                  <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                          navigator.clipboard.writeText(tempPassword);
+                          toast.success('Senha copiada!');
+                      }}
+                  >
+                      <Copy className="mr-2 h-4 w-4" /> Copiar Senha
+                  </Button>
+              </div>
+          </DialogContent>
+      </Dialog>
+
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Gestão de Equipe</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -168,20 +237,45 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button 
-                      variant="ghost" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleGenerateTempPassword(user.id)}
+                      disabled={!!generatingTemp}
+                      title="Gerar Senha Provisória (1h)"
+                      className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                    >
+                      {generatingTemp === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleSendPassword(user.id)}
+                      disabled={!!sendingPassword}
+                      title="Enviar Nova Senha por Email"
+                      className="text-slate-600 border-slate-200 hover:bg-slate-50"
+                    >
+                      {sendingPassword === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
+                    </Button>
+                    <Button 
+                      variant="outline" 
                       size="sm"
                       onClick={() => handleToggleStatus(user)}
                       title={user.is_active ? 'Desativar' : 'Ativar'}
+                      className={user.is_active 
+                        ? "text-red-600 border-red-200 hover:bg-red-50" 
+                        : "text-green-600 border-green-200 hover:bg-green-50"
+                      }
                     >
-                      {user.is_active ? <Ban className="h-4 w-4 text-orange-600" /> : <CheckCircle className="h-4 w-4 text-green-600" />}
+                      {user.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                     </Button>
                     <Button 
-                      variant="ghost" 
+                      variant="outline" 
                       size="sm"
                       onClick={() => handleDelete(user)}
                       title="Excluir"
+                      className="text-red-600 border-red-200 hover:bg-red-50"
                     >
-                      <Trash className="h-4 w-4 text-red-600" />
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

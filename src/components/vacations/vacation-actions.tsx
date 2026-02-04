@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Ban, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, Ban, Loader2, CheckCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { cancelVacation, approveVacation } from '@/app/actions/vacations';
 import { toast } from 'sonner';
+import { VacationHistory } from './vacation-history';
 import {
   Tooltip,
   TooltipContent,
@@ -51,21 +52,23 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
   const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
-  const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  
+  // Admin/Operator CAN cancel. Client can cancel if not expired.
+  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
     setIsCancelling(true);
     try {
       const result = await cancelVacation(vacationId);
-      if (result.success) {
+      if (result.error) {
+        toast.error(result.error);
+      } else {
         toast.success('Férias canceladas com sucesso.');
         router.refresh();
-      } else {
-        toast.error(result.error || 'Erro ao cancelar férias.');
       }
     } catch (error) {
-      toast.error('Erro ao processar solicitação.');
+      toast.error('Erro ao cancelar férias.');
     } finally {
       setIsCancelling(false);
     }
@@ -75,27 +78,30 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
     setIsApproving(true);
     try {
       const result = await approveVacation(vacationId);
-      if (result.success) {
+      if (result.error) {
+        toast.error(result.error);
+      } else {
         toast.success('Férias aprovadas com sucesso.');
         router.refresh();
-      } else {
-        toast.error(result.error || 'Erro ao aprovar férias.');
       }
     } catch (error) {
-      toast.error('Erro ao processar aprovação.');
+      toast.error('Erro ao aprovar férias.');
     } finally {
       setIsApproving(false);
     }
   };
 
-  const handleRectify = () => {
-    if (!canEdit) return;
-    router.push(`${basePath}/vacations/${vacationId}/edit`);
+  const handleView = () => {
+    if (isAdmin) {
+      router.push(`/admin/vacations/${vacationId}/view`);
+    } else {
+      router.push(`/app/vacations/${vacationId}/view`);
+    }
   };
 
   const getTooltipMessage = () => {
-    if (isCanceled) return "Férias canceladas";
-    if (isCompleted) return "Férias concluídas";
+    if (isCanceled) return "Solicitação cancelada";
+    if (isCompleted) return "Solicitação concluída";
     if (isExpired && !isAdmin) return "Prazo de retificação/cancelamento expirado";
     return null;
   };
@@ -104,7 +110,9 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
 
   return (
     <div className="flex items-center gap-2 justify-center">
-       
+       {/* History is always visible */}
+       <VacationHistory vacationId={vacationId} />
+
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
           {canApprove && (
@@ -113,10 +121,10 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
                   <TooltipTrigger asChild>
                       <AlertDialogTrigger asChild>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
+                            variant="outline" 
+                            size="sm" 
                             disabled={isApproving}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="text-green-600 border-green-200 hover:bg-green-50"
                           >
                             {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
@@ -143,46 +151,43 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
             </AlertDialog>
           )}
 
-          {/* Edit Button */}
+          {/* View Button */}
           <Tooltip>
             <TooltipTrigger asChild>
                 <span>
                     <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={handleRectify}
-                        disabled={!canEdit}
-                        className={!canEdit ? "opacity-50 cursor-not-allowed" : "text-blue-600 hover:text-blue-700 hover:bg-blue-50"}
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleView}
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
                     >
-                        <Pencil className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                     </Button>
                 </span>
             </TooltipTrigger>
-            {tooltipMessage && (
-                <TooltipContent>
-                    <p>{tooltipMessage}</p>
-                </TooltipContent>
-            )}
+            <TooltipContent>
+                <p>Visualizar Detalhes</p>
+            </TooltipContent>
           </Tooltip>
 
           {/* Cancel Button */}
-          {!isCanceled && !isCompleted && (
+          {canCancel ? (
              <AlertDialog>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <AlertDialogTrigger asChild>
                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                disabled={!canEdit || isCancelling}
-                                className={!canEdit ? "opacity-50 cursor-not-allowed" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                disabled={isCancelling}
                             >
                                 {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                             </Button>
                         </AlertDialogTrigger>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>{tooltipMessage || "Cancelar Férias"}</p>
+                        <p>Cancelar Solicitação</p>
                     </TooltipContent>
                 </Tooltip>
                 <AlertDialogContent>
@@ -202,6 +207,24 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+          ) : (
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <div className="inline-block">
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     disabled
+                     className="text-gray-300 cursor-not-allowed"
+                   >
+                     <Ban className="h-4 w-4" />
+                   </Button>
+                 </div>
+               </TooltipTrigger>
+               <TooltipContent>
+                 <p>{tooltipMessage}</p>
+               </TooltipContent>
+             </Tooltip>
           )}
        </TooltipProvider>
     </div>
