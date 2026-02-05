@@ -356,11 +356,21 @@ export async function cancelVacation(id: string) {
         const companyName = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(vacation.company_id) as any;
         const employeeName = await db.prepare('SELECT name FROM employees WHERE id = ?').get(vacation.employee_id) as any;
 
-        await sendVacationNotification('CANCEL', {
+        let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
+        let recipientEmail: string | undefined = undefined;
+
+        if (session.role === 'admin' || session.role === 'operator') {
+            notifType = 'CANCEL_BY_ADMIN';
+            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(vacation.created_by_user_id) as { email: string };
+            recipientEmail = creator?.email;
+        }
+
+        await sendVacationNotification(notifType, {
             companyName: companyName.nome,
             cnpj: companyName.cnpj,
             userName: session.name || session.email,
-            employeeName: employeeName.name
+            employeeName: employeeName.name,
+            recipientEmail
         });
 
         revalidatePath('/admin/vacations');
@@ -398,7 +408,7 @@ export async function approveVacation(id: string) {
 
         // Get creator info
         const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(vacation.created_by_user_id) as { email: string, name: string };
-        const company = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(vacation.company_id) as { nome: string };
+        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(vacation.company_id) as { nome: string, cnpj: string };
         const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(vacation.employee_id) as { name: string };
 
         await db.prepare(`
@@ -422,7 +432,7 @@ export async function approveVacation(id: string) {
             userName: creator?.name || 'Cliente',
             recipientEmail: creator?.email,
             companyName: company.nome,
-            cnpj: '', // Not strictly needed for this email type but interface might require it
+            cnpj: company.cnpj,
             employeeName: employee.name
         });
 

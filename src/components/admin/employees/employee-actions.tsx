@@ -41,9 +41,9 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
+              variant="outline"
+              size="sm"
+              className="text-primary border-primary/20 hover:bg-primary/10"
               onClick={() => router.push(`/admin/employees/${id}/edit`)}
             >
               <Edit className="h-4 w-4" />
@@ -58,13 +58,16 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
+              variant="outline"
+              size="sm"
+              className={isActive 
+                ? "text-red-600 border-red-200 hover:bg-red-50" 
+                : "text-green-600 border-green-200 hover:bg-green-50"
+              }
               onClick={handleToggleStatus}
               disabled={isPending}
             >
-              <Power className={`h-4 w-4 ${isActive ? 'text-red-500' : 'text-green-500'}`} />
+              <Power className="h-4 w-4" />
               <span className="sr-only">{isActive ? 'Desativar' : 'Ativar'}</span>
             </Button>
           </TooltipTrigger>

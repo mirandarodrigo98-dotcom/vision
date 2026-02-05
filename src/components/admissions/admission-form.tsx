@@ -356,14 +356,14 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                 <fieldset disabled={readOnly} className="contents">
                 {isEditing && (
-                    <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-md flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 mt-0.5" />
-                        <div>
-                            <p className="font-bold">Modo de Retificação</p>
-                            <p className="text-sm">Você está editando uma admissão existente. O nome do funcionário não pode ser alterado. Para alterar o nome, cancele esta admissão e crie uma nova.</p>
-                        </div>
-                    </div>
-                )}
+        <div className="bg-primary/10 border border-primary/20 text-primary p-4 rounded-md flex items-start gap-3 mb-6">
+          <AlertTriangle className="h-5 w-5 mt-0.5 text-primary" />
+          <div>
+            <p className="font-bold">Modo de Retificação</p>
+            <p className="text-sm opacity-90">Você está editando uma admissão existente. O nome do funcionário não pode ser alterado. Para alterar o nome, cancele esta admissão e crie uma nova.</p>
+          </div>
+        </div>
+      )}
             
                 <Card>
                 <CardHeader>

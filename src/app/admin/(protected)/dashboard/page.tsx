@@ -1,93 +1,242 @@
-import db from '@/lib/db';
+import { getDashboardData, DashboardStats, SubBlockStats } from './dashboard-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Users, Building2, AlertCircle } from 'lucide-react';
+import { 
+  Building2, 
+  Users, 
+  FileText, 
+  TrendingUp, 
+  UserPlus, 
+  UserMinus, 
+  Plane, 
+  Briefcase,
+  ArrowRightLeft
+} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 export default async function AdminDashboard() {
-  const stats = {
-    totalAdmissions: await db.prepare('SELECT COUNT(*) FROM admission_requests').pluck().get() as number,
-    pendingAdmissions: await db.prepare("SELECT COUNT(*) FROM admission_requests WHERE status = 'SUBMITTED'").pluck().get() as number,
-    companies: await db.prepare('SELECT COUNT(*) FROM client_companies WHERE is_active = 1').pluck().get() as number,
-    users: await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client_user' AND is_active = 1").pluck().get() as number,
-  };
-
-  const recentLogs = await db.prepare(`
-    SELECT * FROM audit_logs 
-    ORDER BY timestamp DESC 
-    LIMIT 5
-  `).all() as any[];
+  const stats = await getDashboardData();
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Painel</h1>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <h1 className="text-3xl font-bold tracking-tight text-primary">Painel Vision</h1>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admissões Pendentes</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingAdmissions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Admissões</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalAdmissions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.companies}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Clientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.users}</div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* BLOCO 1: ADMINISTRAÇÃO */}
+      {stats.admin && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-secondary" />
+            <h2 className="text-xl font-semibold text-primary">Administração</h2>
+          </div>
+          <Separator className="bg-primary/20" />
+          
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard 
+              title="Empresas Ativas" 
+              value={stats.admin.activeCompanies} 
+              icon={Building2} 
+            />
+            <StatCard 
+              title="Total de Clientes" 
+              value={stats.admin.totalClients} 
+              icon={Users} 
+            />
+            <StatCard 
+              title="Solicitações (Mês Anterior)" 
+              value={stats.admin.totalRequestsPrevMonth} 
+              icon={FileText} 
+              subtext="Concluídas"
+            />
+            <StatCard 
+              title="Solicitações (Mês Atual)" 
+              value={stats.admin.totalRequestsCurrMonth} 
+              icon={TrendingUp} 
+              subtext="Concluídas"
+            />
+          </div>
 
-      <div className="grid gap-4 md:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>Atividade Recente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      [{log.action}] {log.actor_email || 'Sistema'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {log.success ? 'Sucesso' : `Erro: ${log.error_message}`}
-                    </p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(log.timestamp).toLocaleString('pt-BR')}
+          <div className="grid gap-4 md:grid-cols-2">
+            <ChartCard 
+              title="Solicitações (Últimos 12 Meses)" 
+              data={stats.admin.requestsChart} 
+            />
+            <RankingCard 
+              title="TOP 10 Clientes (Solicitações)" 
+              data={stats.admin.topClients} 
+            />
+          </div>
+        </section>
+      )}
+
+      {/* BLOCO 2: DEPARTAMENTO PESSOAL */}
+      {stats.dp && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 mt-8">
+            <Briefcase className="h-6 w-6 text-secondary" />
+            <h2 className="text-xl font-semibold text-primary">Departamento Pessoal</h2>
+          </div>
+          <Separator className="bg-primary/20" />
+
+          {/* Subbloco 1: Admissões */}
+          {stats.dp.admissions && (
+            <SubBlock 
+              title="Admissões" 
+              icon={UserPlus} 
+              stats={stats.dp.admissions} 
+            />
+          )}
+
+          {/* Subbloco 2: Demissões */}
+          {stats.dp.dismissals && (
+            <SubBlock 
+              title="Demissões" 
+              icon={UserMinus} 
+              stats={stats.dp.dismissals} 
+            />
+          )}
+
+          {/* Subbloco 3: Férias */}
+          {stats.dp.vacations && (
+            <SubBlock 
+              title="Férias" 
+              icon={Plane} 
+              stats={stats.dp.vacations} 
+            />
+          )}
+
+          {/* Subbloco 4: Transferências */}
+          {stats.dp.transfers && (
+            <SubBlock 
+              title="Transferências" 
+              icon={ArrowRightLeft} 
+              stats={stats.dp.transfers} 
+            />
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+// --- Componentes Auxiliares ---
+
+function StatCard({ title, value, icon: Icon, subtext }: { title: string, value: number, icon: any, subtext?: string }) {
+  return (
+    <Card className="border-primary/10 shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-primary" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-primary">{value}</div>
+        {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChartCard({ title, data }: { title: string, data: { month: string, count: number }[] }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  
+  return (
+    <Card className="border-primary/10">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-primary">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[200px] w-full flex items-end gap-2 pt-4">
+          {data.length === 0 ? (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+              Sem dados
+            </div>
+          ) : (
+            data.map((item) => (
+              <div key={item.month} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group">
+                <div 
+                  className="w-full bg-secondary/80 rounded-t-sm relative transition-all duration-500 hover:bg-secondary min-h-[4px]" 
+                  style={{ height: `${(item.count / max) * 100}%` }}
+                >
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    {item.count}
                   </div>
                 </div>
-              ))}
-              {recentLogs.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhuma atividade recente.</p>
-              )}
+                <span className="text-[10px] text-muted-foreground truncate w-full text-center">{item.month}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RankingCard({ title, data }: { title: string, data: { name: string, count: number }[] }) {
+  return (
+    <Card className="border-primary/10">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-primary">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {data.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem dados</p>
+          ) : (
+            data.map((item, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {index + 1}
+                  </div>
+                  <span className="text-sm font-medium truncate" title={item.name}>{item.name}</span>
+                </div>
+                <span className="text-sm font-bold text-secondary">{item.count}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SubBlock({ title, icon: Icon, stats }: { title: string, icon: any, stats: SubBlockStats }) {
+  return (
+    <div className="space-y-4 pt-4">
+        <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+                <Icon className="h-5 w-5 text-primary" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <h3 className="text-lg font-medium text-gray-800">{title}</h3>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard 
+              title="Mês Anterior" 
+              value={stats.prevMonth} 
+              icon={FileText} 
+              subtext="Concluídas"
+            />
+            <StatCard 
+              title="Mês Atual" 
+              value={stats.currMonth} 
+              icon={TrendingUp} 
+              subtext="Concluídas"
+            />
+            <div className="md:col-span-2 lg:col-span-2 row-span-2">
+                 <div className="grid gap-4 h-full">
+                    <ChartCard 
+                        title={`Evolução (6 Meses)`} 
+                        data={stats.chart} 
+                    />
+                 </div>
+            </div>
+            <div className="md:col-span-2 lg:col-span-2">
+                <RankingCard 
+                    title={`TOP 5 Clientes`} 
+                    data={stats.topClients} 
+                />
+            </div>
+        </div>
+        <Separator className="bg-gray-100" />
     </div>
   );
 }

@@ -22,16 +22,13 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
 
   // Check view permission
   let hasViewPermission = false;
-  let hasCreatePermission = false;
   const isManager = session.role === 'admin' || session.role === 'operator';
 
   if (isManager) {
       hasViewPermission = true;
-      hasCreatePermission = true;
   } else {
       const permissions = await getRolePermissions(session.role);
       hasViewPermission = permissions.includes('dismissals.view'); // Ensure this permission exists
-      hasCreatePermission = permissions.includes('dismissals.create'); // Ensure this permission exists
   }
 
   if (!hasViewPermission) {
@@ -102,14 +99,6 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Rescisões</h2>
-        {hasCreatePermission && (
-            <Link href="/admin/dismissals/new">
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nova Solicitação
-                </Button>
-            </Link>
-        )}
       </div>
 
       <div className="flex items-center justify-between">

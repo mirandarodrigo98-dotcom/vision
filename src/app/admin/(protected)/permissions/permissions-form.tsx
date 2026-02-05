@@ -99,24 +99,16 @@ export function PermissionsForm({ initialOperatorPermissions, initialClientPermi
                 </Button>
             </div>
 
-            <Tabs defaultValue="operator" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="operator">Equipe (Operadores)</TabsTrigger>
-                    <TabsTrigger value="client">Clientes (Usuários)</TabsTrigger>
+            <Tabs defaultValue="client_user" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="client_user">Clientes</TabsTrigger>
+                    <TabsTrigger value="operator">Operadores</TabsTrigger>
                 </TabsList>
-                
-                <TabsContent value="operator" className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded-md mb-4 text-sm text-blue-800 border border-blue-200">
-                        Defina o que os membros da equipe interna (Operadores) podem fazer no sistema.
-                    </div>
-                    {renderPermissionsList('operator', operatorPermissions)}
+                <TabsContent value="client_user">
+                    {renderPermissionsList('client_user', clientPermissions)}
                 </TabsContent>
-                
-                <TabsContent value="client" className="space-y-4">
-                    <div className="bg-amber-50 p-4 rounded-md mb-4 text-sm text-amber-800 border border-amber-200">
-                        Defina o que os usuários das empresas clientes podem fazer no sistema.
-                    </div>
-                    {renderPermissionsList('client', clientPermissions)}
+                <TabsContent value="operator">
+                    {renderPermissionsList('operator', operatorPermissions)}
                 </TabsContent>
             </Tabs>
         </div>

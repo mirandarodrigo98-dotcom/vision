@@ -22,16 +22,13 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
 
   // Check view permission
   let hasViewPermission = false;
-  let hasCreatePermission = false;
   let isAdmin = session.role === 'admin' || session.role === 'operator';
 
   if (isAdmin) {
       hasViewPermission = true;
-      hasCreatePermission = true;
   } else {
       const permissions = await getRolePermissions(session.role);
       hasViewPermission = permissions.includes('vacations.view');
-      hasCreatePermission = permissions.includes('vacations.create');
   }
 
   if (!hasViewPermission) {
@@ -102,14 +99,6 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Férias</h2>
-        {hasCreatePermission && (
-            <Link href="/admin/vacations/new">
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nova Solicitação
-                </Button>
-            </Link>
-        )}
       </div>
 
       <div className="flex items-center justify-between">

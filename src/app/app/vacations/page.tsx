@@ -10,6 +10,8 @@ import { redirect } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { hasPermission } from '@/lib/rbac';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ClientVacationsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -18,6 +20,8 @@ interface ClientVacationsPageProps {
 export default async function ClientVacationsPage({ searchParams }: ClientVacationsPageProps) {
   const session = await getSession();
   if (!session || session.role !== 'client_user') redirect('/login');
+
+  const canCreate = await hasPermission(session.role, 'vacations.create');
 
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
@@ -73,12 +77,30 @@ export default async function ClientVacationsPage({ searchParams }: ClientVacati
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Férias</h2>
-        <Link href="/app/vacations/new">
+        {canCreate ? (
+          <Link href="/app/vacations/new">
             <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Solicitação
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Solicitação
             </Button>
-        </Link>
+          </Link>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0}>
+                  <Button disabled>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Solicitação
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Você não tem permissão para criar novas férias.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       <div className="flex items-center justify-between">

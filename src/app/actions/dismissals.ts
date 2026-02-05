@@ -367,11 +367,21 @@ export async function cancelDismissal(id: string) {
         const company = db.prepare('SELECT cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
 
         if (company) {
-             await sendDismissalNotification('CANCEL', {
+             let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
+             let recipientEmail: string | undefined = undefined;
+
+             if (session.role === 'admin' || session.role === 'operator') {
+                 notifType = 'CANCEL_BY_ADMIN';
+                 const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(dismissal.created_by_user_id) as { email: string };
+                 recipientEmail = creator?.email;
+             }
+
+             await sendDismissalNotification(notifType, {
                 userName: session.name || session.email,
                 companyName: dismissal.company_name,
                 cnpj: company.cnpj,
-                employeeName: dismissal.employee_name
+                employeeName: dismissal.employee_name,
+                recipientEmail
             });
         }
 

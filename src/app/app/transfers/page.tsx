@@ -69,7 +69,10 @@ export default async function TransfersListPage() {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>É necessário ter mais de uma empresa vinculada para realizar transferências.</p>
+                <p>{!hasCreatePermission 
+                  ? "Você não tem permissão para criar novas transferências."
+                  : "É necessário ter mais de uma empresa vinculada para realizar transferências."
+                }</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

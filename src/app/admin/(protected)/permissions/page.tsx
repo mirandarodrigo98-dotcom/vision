@@ -3,7 +3,7 @@ import { PermissionsForm } from './permissions-form';
 
 export default async function PermissionsPage() {
     const operatorPermissions = await getRolePermissions('operator');
-    const clientPermissions = await getRolePermissions('client');
+    const clientPermissions = await getRolePermissions('client_user');
 
     return (
         <PermissionsForm 

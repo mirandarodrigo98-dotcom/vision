@@ -149,7 +149,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
                         size="sm" 
                         onClick={() => { setEditing(user); setOpen(true); }}
                         title="Editar Usuário"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="text-primary border-primary/20 hover:bg-primary/10"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>

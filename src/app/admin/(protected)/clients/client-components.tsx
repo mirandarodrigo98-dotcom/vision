@@ -72,7 +72,11 @@ export function CompanyList({ companies }: { companies: Company[] }) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link href={`/admin/clients/${company.id}/edit`}>
-                          <Button variant="ghost" size="icon">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-primary border-primary/20 hover:bg-primary/10"
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </Link>

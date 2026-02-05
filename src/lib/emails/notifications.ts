@@ -32,7 +32,7 @@ interface AdmissionEmailData {
     recipientEmail?: string;
 }
 
-export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: AdmissionEmailData) {
+export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: AdmissionEmailData) {
     const to = data.recipientEmail || await getDestEmail();
     if (!to) {
         console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
@@ -64,15 +64,24 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
             attachments.push({ filename: 'Relatorio_Admissao_Retificado.pdf', content: data.pdfBuffer });
         }
     } else if (type === 'CANCEL') {
-        subject = `Solicitação de Admissão de “${data.employeeName}” foi cancelada.`;
+        subject = `Cancelamento de Admissão - ${data.companyName}`;
         html = `
-            <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>O usuário <strong>“${data.userName}”</strong> cancelou a solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>.</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Admissão de “${data.employeeName}” foi cancelada.`;
+        html = `
+            <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     } else if (type === 'COMPLETED') {
-        subject = `Admissão de “${data.employeeName}” foi Concluída.`;
+        subject = `Admissão de “${data.employeeName}” foi concluída.`;
         html = `
-            <p>A admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong> foi concluída com sucesso.</p>
-            <p>O funcionário foi cadastrado no sistema.</p>
+            <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CONCLUÍDA.</p>
+            <p>A documentação de admissão bem como as orientações serão enviadas pelo Portal do Cliente.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     }
 
@@ -98,7 +107,7 @@ interface TransferEmailData {
     recipientEmail?: string;
 }
 
-export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: TransferEmailData) {
+export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: TransferEmailData) {
     const to = data.recipientEmail || await getDestEmail();
     if (!to) return { success: false, error: 'Destination email not configured' };
 
@@ -127,15 +136,23 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
             ${formatField('OBSERVAÇÃO', `"${data.observation}"`, 'observation', changes)}
         `;
     } else if (type === 'CANCEL') {
-        subject = `Cancelamento de Transferência “${data.employeeName}” foi solicitada.`;
+        subject = `Cancelamento de Transferência - ${data.sourceCompany}`;
         html = `
-            <p>A solicitação de transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi <strong style="color: red;">CANCELADA</strong> pelo usuário <strong>“${data.userName}”</strong>.</p>
+            <p>O usuário <strong>"${data.userName}"</strong> cancelou a solicitação de transferência de <strong>“${data.employeeName}”</strong>.</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Cancelamento de Transferência “${data.employeeName}”`;
+        html = `
+            <p>A solicitação de transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     } else if (type === 'COMPLETED') {
-        subject = `Transferência de “${data.employeeName}” foi Concluída.`;
+        subject = `Transferência de “${data.employeeName}” foi concluída.`;
         html = `
-            <p>A transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi concluída.</p>
-            <p>O status do funcionário foi atualizado para "Transferido".</p>
+            <p>A solicitação da transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi CONCLUÍDA.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     }
 
@@ -158,7 +175,7 @@ interface VacationEmailData {
     recipientEmail?: string;
 }
 
-export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: VacationEmailData) {
+export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: VacationEmailData) {
     const to = data.recipientEmail || await getDestEmail();
     if (!to) return { success: false, error: 'Destination email not configured' };
 
@@ -181,14 +198,24 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         `;
         if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Ferias_Retificado.pdf', content: data.pdfBuffer });
     } else if (type === 'CANCEL') {
-        subject = `Solicitação Férias de “${data.employeeName}” foi Cancelada`;
+        subject = `Cancelamento de Férias - ${data.companyName}`;
         html = `
-            <p>A solicitação Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>O usuário <strong>“${data.userName}”</strong> cancelou a solicitação de Férias de <strong>“${data.employeeName}”</strong>.</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Férias de “${data.employeeName}” foi Cancelada`;
+        html = `
+            <p>A solicitação de Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     } else if (type === 'COMPLETED') {
-        subject = `Férias de “${data.employeeName}” foram Concluídas.`;
+        subject = `Solicitação de Férias de “${data.employeeName}” foi Concluída.`;
         html = `
-            <p>A solicitação de férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong> foi concluída.</p>
+            <p>A solicitação de Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CONCLUÍDA.</p>
+            <p>A documentação será enviada para o Portal do Cliente.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     }
 
@@ -213,7 +240,7 @@ interface DismissalEmailData {
     recipientEmail?: string;
 }
 
-export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED', data: DismissalEmailData) {
+export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: DismissalEmailData) {
     const to = data.recipientEmail || await getDestEmail();
     if (!to) return { success: false, error: 'Destination email not configured' };
 
@@ -236,15 +263,23 @@ export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         `;
         if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Demissao_Retificado.pdf', content: data.pdfBuffer });
     } else if (type === 'CANCEL') {
-        subject = `Solicitação Demissão de “${data.employeeName}” foi Cancelada`;
+        subject = `Cancelamento de Demissão - ${data.companyName}`;
         html = `
-            <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>O usuário <strong>“${data.userName}”</strong> cancelou a solicitação de Demissão de <strong>“${data.employeeName}”</strong>.</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Demissão de “${data.employeeName}” foi Cancelada`;
+        html = `
+            <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     } else if (type === 'COMPLETED') {
-        subject = `Rescisão de “${data.employeeName}” foi Concluída.`;
+        subject = `Demissão de “${data.employeeName}” foi Concluída`;
         html = `
-            <p>A rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong> foi concluída.</p>
-            <p>O funcionário foi desligado do cadastro (Status: Desligado).</p>
+            <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CONCLUÍDA.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
     }
 

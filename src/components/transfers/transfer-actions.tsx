@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, Ban, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, Ban, Loader2, CheckCircle, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +55,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
   
   // Admin/Operator CAN cancel. Client can cancel if not expired.
   const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
@@ -99,6 +100,14 @@ export function TransferActions({ transferId, transferDate, status, employeeName
     }
   };
 
+  const handleEdit = () => {
+    if (isAdmin) {
+      router.push(`/admin/transfers/${transferId}/edit`);
+    } else {
+      router.push(`/app/transfers/${transferId}/edit`);
+    }
+  };
+
   const getTooltipMessage = () => {
     if (isCanceled) return "Transferência cancelada";
     if (isCompleted) return "Transferência concluída";
@@ -115,7 +124,8 @@ export function TransferActions({ transferId, transferDate, status, employeeName
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
-          {canApprove && (
+          {isAdmin && (
+            canApprove ? (
             <AlertDialog>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -149,6 +159,25 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                   </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled
+                      className="text-gray-300 border-gray-200 cursor-not-allowed"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isCanceled ? "Transferência cancelada" : isCompleted ? "Transferência já concluída" : "Ação indisponível"}</p>
+                </TooltipContent>
+              </Tooltip>
+            )
           )}
 
           {/* View Button */}
@@ -159,7 +188,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                         variant="outline" 
                         size="sm" 
                         onClick={handleView}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="text-primary border-primary/20 hover:bg-primary/10"
                     >
                         <Eye className="h-4 w-4" />
                     </Button>
@@ -167,6 +196,31 @@ export function TransferActions({ transferId, transferDate, status, employeeName
             </TooltipTrigger>
             <TooltipContent>
                 <p>Visualizar Detalhes</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Edit Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="inline-block">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEdit} 
+                  disabled={!canEdit}
+                  className={!canEdit ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{
+                isCanceled ? "Solicitação cancelada" :
+                isCompleted ? "Solicitação concluída" :
+                (!isAdmin && isExpired) ? "Prazo de retificação expirado" :
+                "Retificar Solicitação"
+              }</p>
             </TooltipContent>
           </Tooltip>
 
@@ -212,10 +266,10 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                <TooltipTrigger asChild>
                  <div className="inline-block">
                    <Button 
-                     variant="ghost" 
-                     size="icon" 
+                     variant="outline" 
+                     size="sm" 
                      disabled
-                     className="text-gray-300 cursor-not-allowed"
+                     className="text-gray-300 border-gray-200 cursor-not-allowed"
                    >
                      <Ban className="h-4 w-4" />
                    </Button>

@@ -59,13 +59,13 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                 <div className="relative">
                     <Avatar className="w-32 h-32 border-4 border-white shadow-lg">
                         <AvatarImage src={previewUrl || ''} className="object-cover" />
-                        <AvatarFallback className="text-3xl font-bold bg-blue-100 text-blue-700">
+                        <AvatarFallback className="text-3xl font-bold bg-primary/10 text-primary">
                             {getInitials(user.name)}
                         </AvatarFallback>
                     </Avatar>
                     <label 
                         htmlFor="avatar-upload" 
-                        className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white cursor-pointer hover:bg-blue-700 transition-colors shadow-md"
+                        className="absolute bottom-0 right-0 p-2 bg-primary rounded-full text-white cursor-pointer hover:bg-primary/90 transition-colors shadow-md"
                         title="Alterar foto"
                     >
                         <Camera size={20} />

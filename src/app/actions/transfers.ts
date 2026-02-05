@@ -223,13 +223,25 @@ export async function cancelTransfer(id: string) {
         });
 
         // Send Notification
-        await sendTransferNotification('CANCEL', {
+        const sourceCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(transfer.source_company_id) as { nome: string };
+
+        let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
+        let recipientEmail: string | undefined = undefined;
+
+        if (session.role === 'admin' || session.role === 'operator') {
+            notifType = 'CANCEL_BY_ADMIN';
+            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(transfer.created_by_user_id) as { email: string };
+            recipientEmail = creator?.email;
+        }
+
+        await sendTransferNotification(notifType, {
             userName: session.name || session.email,
-            sourceCompany: '', // Not strictly needed for cancel template: "transferência de X para empresa Y foi CANCELADA pelo usuário Z"
+            sourceCompany: sourceCompany.nome,
             targetCompany: transfer.target_company_name,
             employeeName: transfer.employee_name,
             transferDate: '',
-            observation: ''
+            observation: '',
+            recipientEmail
         });
 
         revalidatePath('/app/transfers');

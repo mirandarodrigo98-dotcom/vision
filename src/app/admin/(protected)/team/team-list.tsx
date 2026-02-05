@@ -219,7 +219,7 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
                     {user.role === 'admin' ? (
                       <Shield className="h-4 w-4 text-purple-600" />
                     ) : (
-                      <User className="h-4 w-4 text-blue-600" />
+                      <User className="h-4 w-4 text-primary" />
                     )}
                     <span className="capitalize">{user.role === 'admin' ? 'Administrador' : 'Operador'}</span>
                   </div>

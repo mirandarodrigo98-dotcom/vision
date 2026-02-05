@@ -8,10 +8,14 @@ import { format } from 'date-fns';
 import { redirect } from 'next/navigation';
 
 import { AdmissionActions } from '@/components/admissions/admission-actions';
+import { hasPermission } from '@/lib/rbac';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default async function AdmissionsListPage() {
   const session = await getSession();
   if (!session) redirect('/login');
+
+  const canCreate = await hasPermission(session.role, 'admissions.create');
 
   if (session.role === 'admin' || session.role === 'operator') {
     redirect('/admin/dashboard');
@@ -28,7 +32,7 @@ export default async function AdmissionsListPage() {
   const placeholders = companyIds.map(() => '?').join(',');
 
   const admissions = await db.prepare(`
-    SELECT a.*, c.nome as company_name
+    SELECT a.*, to_char(a.admission_date::date, 'YYYY-MM-DD') as admission_date, c.nome as company_name
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
     WHERE a.company_id IN (${placeholders})
@@ -48,11 +52,28 @@ export default async function AdmissionsListPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Admissões</h1>
-        <Link href="/app/admissions/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Nova Admissão
-          </Button>
-        </Link>
+        {canCreate ? (
+          <Link href="/app/admissions/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Nova Admissão
+            </Button>
+          </Link>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0}>
+                  <Button disabled>
+                    <Plus className="mr-2 h-4 w-4" /> Nova Admissão
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Você não tem permissão para criar novas admissões.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       <div className="border rounded-md bg-white">
@@ -75,7 +96,7 @@ export default async function AdmissionsListPage() {
                 <TableCell className="font-medium text-xs text-muted-foreground">{adm.company_name}</TableCell>
                 <TableCell className="font-medium">{adm.employee_full_name}</TableCell>
                 <TableCell>{adm.job_role}</TableCell>
-                <TableCell>{adm.admission_date ? format(new Date(adm.admission_date), 'dd/MM/yyyy') : '-'}</TableCell>
+                <TableCell>{adm.admission_date ? adm.admission_date.split('-').reverse().join('/') : '-'}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold
                     ${adm.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}

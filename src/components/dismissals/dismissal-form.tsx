@@ -26,10 +26,11 @@ interface DismissalFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
     initialData?: any;
     isEditing?: boolean;
+    readOnly?: boolean;
     redirectPath?: string;
 }
 
-export function DismissalForm({ companies, initialData, isEditing = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
+export function DismissalForm({ companies, initialData, isEditing = false, readOnly = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
@@ -235,6 +236,7 @@ export function DismissalForm({ companies, initialData, isEditing = false, redir
                             defaultValue={initialData?.observations}
                         />
                     </div>
+                    </fieldset>
 
                     <div className="flex justify-end gap-4 pt-4">
                         <Button 

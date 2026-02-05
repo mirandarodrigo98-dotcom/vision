@@ -279,11 +279,21 @@ export async function cancelAdmission(admissionId: string) {
         const user = await db.prepare('SELECT name FROM users WHERE id = ?').get(session.user_id) as any;
         const userName = user?.name || session.name || 'Usuário';
 
-        await sendAdmissionNotification('CANCEL', {
+        let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
+        let recipientEmail: string | undefined = undefined;
+
+        if (session.role === 'admin' || session.role === 'operator') {
+            notifType = 'CANCEL_BY_ADMIN';
+            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(admission.created_by_user_id) as { email: string };
+            recipientEmail = creator?.email;
+        }
+
+        await sendAdmissionNotification(notifType, {
             companyName: userCompany.nome,
             cnpj: userCompany.cnpj,
             userName: userName,
-            employeeName: admission.employee_full_name
+            employeeName: admission.employee_full_name,
+            recipientEmail
         });
 
         logAudit({

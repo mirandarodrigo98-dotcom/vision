@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, Ban, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, Ban, Loader2, CheckCircle, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +54,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   
   // Admin/Operator CAN cancel. Client can cancel if not expired.
   const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
@@ -98,6 +99,14 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
     }
   };
 
+  const handleEdit = () => {
+    if (isAdmin) {
+      router.push(`/admin/dismissals/${dismissalId}/edit`);
+    } else {
+      router.push(`/app/dismissals/${dismissalId}/edit`);
+    }
+  };
+
   const getTooltipMessage = () => {
     if (isCanceled) return "Rescisão cancelada";
     if (isCompleted) return "Rescisão concluída";
@@ -114,7 +123,8 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
-          {canApprove && (
+          {isAdmin && (
+            canApprove ? (
             <AlertDialog>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -150,6 +160,25 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                   </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled
+                      className="text-gray-300 border-gray-200 cursor-not-allowed"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isCanceled ? "Rescisão cancelada" : isCompleted ? "Rescisão já concluída" : "Ação indisponível"}</p>
+                </TooltipContent>
+              </Tooltip>
+            )
           )}
 
           {/* View Button */}
@@ -160,7 +189,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                         variant="outline" 
                         size="sm" 
                         onClick={handleView}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="text-primary border-primary/20 hover:bg-primary/10"
                     >
                         <Eye className="h-4 w-4" />
                     </Button>
@@ -168,6 +197,31 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
             </TooltipTrigger>
             <TooltipContent>
                 <p>Visualizar Detalhes</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Edit Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="inline-block">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEdit} 
+                  disabled={!canEdit}
+                  className={!canEdit ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{
+                isCanceled ? "Rescisão cancelada" :
+                isCompleted ? "Rescisão concluída" :
+                (!isAdmin && isExpired) ? "Prazo de retificação expirado" :
+                "Retificar Rescisão"
+              }</p>
             </TooltipContent>
           </Tooltip>
 
@@ -213,10 +267,10 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                <TooltipTrigger asChild>
                  <div className="inline-block">
                    <Button 
-                     variant="ghost" 
-                     size="icon" 
+                     variant="outline" 
+                     size="sm" 
                      disabled
-                     className="text-gray-300 cursor-not-allowed"
+                     className="text-gray-300 border-gray-200 cursor-not-allowed"
                    >
                      <Ban className="h-4 w-4" />
                    </Button>
