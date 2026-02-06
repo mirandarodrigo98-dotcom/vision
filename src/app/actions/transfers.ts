@@ -83,7 +83,8 @@ export async function createTransfer(formData: FormData) {
             targetCompany: targetCompany.nome,
             employeeName,
             transferDate: format(new Date(transferDate), 'dd/MM/yyyy'),
-            observation: observations
+            observation: observations,
+            senderEmail: session.email
         });
 
         revalidatePath('/app/transfers');
@@ -170,7 +171,8 @@ export async function updateTransfer(id: string, formData: FormData) {
             employeeName: transfer.employee_name,
             transferDate: format(new Date(transferDate), 'dd/MM/yyyy'),
             observation: observations,
-            changes
+            changes,
+            senderEmail: session.email
         });
 
         revalidatePath('/app/transfers');
@@ -241,7 +243,8 @@ export async function cancelTransfer(id: string) {
             employeeName: transfer.employee_name,
             transferDate: '',
             observation: '',
-            recipientEmail
+            recipientEmail,
+            senderEmail: session.email
         });
 
         revalidatePath('/app/transfers');
@@ -313,7 +316,8 @@ export async function approveTransfer(id: string) {
             targetCompany: transfer.target_company_name,
             employeeName: transfer.employee_name,
             transferDate: format(new Date(transfer.transfer_date), 'dd/MM/yyyy'),
-            observation: transfer.observations
+            observation: transfer.observations,
+            senderEmail: session.email
         });
 
         revalidatePath('/app/transfers');

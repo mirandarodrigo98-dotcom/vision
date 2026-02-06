@@ -34,8 +34,10 @@ const ACTION_LABELS: Record<string, string> = {
     'CREATE_ADMISSION': 'Criação da Admissão',
     'UPDATE_ADMISSION': 'Retificação da Admissão',
     'CANCEL_ADMISSION': 'Cancelamento da Admissão',
+    'APPROVE_ADMISSION': 'Conclusão da Admissão',
     'EMAIL_SENT': 'E-mail Enviado',
     'EMAIL_FAILED': 'Falha no E-mail',
+    'CREATE_ADMISSION_ERROR': 'Erro na Criação da Admissão',
 };
 
 export function AdmissionHistory({ admissionId }: { admissionId: string }) {

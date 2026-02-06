@@ -200,6 +200,7 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
           </Tooltip>
 
           {/* Edit Button */}
+          {!isAdmin && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="inline-block">
@@ -223,6 +224,7 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
               }</p>
             </TooltipContent>
           </Tooltip>
+          )}
 
           {/* Cancel Button */}
           {canCancel ? (

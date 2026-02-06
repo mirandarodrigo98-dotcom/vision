@@ -100,9 +100,10 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold
                     ${adm.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
-                    ${adm.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' : ''}
+                    ${adm.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
                     ${adm.status === 'RECTIFIED' ? 'bg-orange-100 text-orange-800' : ''}
                     ${adm.status === 'EMAILED' ? 'bg-green-100 text-green-800' : ''}
+                    ${adm.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
                     ${adm.status === 'ERROR' ? 'bg-red-100 text-red-800' : ''}
                     ${adm.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                   `}>
@@ -113,6 +114,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
                       adm.status === 'DRAFT' ? 'Rascunho' : 
                       adm.status === 'CANCELLED' ? 'Cancelado' : 
                       adm.status === 'EMAILED' ? 'Enviado' :
+                      adm.status === 'COMPLETED' ? 'Concluído' :
                       adm.status
                     }
                   </span>

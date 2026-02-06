@@ -211,7 +211,8 @@ export async function createVacation(formData: FormData) {
             cnpj: companyName.cnpj,
             userName: session.name || session.email,
             employeeName: employeeName.name,
-            pdfBuffer
+            pdfBuffer,
+            senderEmail: session.email
         });
 
         revalidatePath('/admin/vacations');
@@ -304,7 +305,8 @@ export async function updateVacation(id: string, formData: FormData) {
             cnpj: companyName.cnpj,
             userName: session.name || session.email,
             employeeName: employeeName.name,
-            pdfBuffer
+            pdfBuffer,
+            senderEmail: session.email
         });
 
         revalidatePath('/admin/vacations');
@@ -370,7 +372,8 @@ export async function cancelVacation(id: string) {
             cnpj: companyName.cnpj,
             userName: session.name || session.email,
             employeeName: employeeName.name,
-            recipientEmail
+            recipientEmail,
+            senderEmail: session.email
         });
 
         revalidatePath('/admin/vacations');
@@ -433,7 +436,8 @@ export async function approveVacation(id: string) {
             recipientEmail: creator?.email,
             companyName: company.nome,
             cnpj: company.cnpj,
-            employeeName: employee.name
+            employeeName: employee.name,
+            senderEmail: session.email
         });
 
         revalidatePath('/admin/vacations');

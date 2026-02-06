@@ -200,6 +200,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
           </Tooltip>
 
           {/* Edit Button */}
+          {!isAdmin && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="inline-block">
@@ -223,6 +224,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
               }</p>
             </TooltipContent>
           </Tooltip>
+          )}
 
           {/* Cancel Button */}
           {canCancel ? (

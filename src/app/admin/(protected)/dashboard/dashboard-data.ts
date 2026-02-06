@@ -5,7 +5,7 @@ import { getRolePermissions } from '@/app/actions/permissions';
 export interface DashboardStats {
   admin?: {
     activeCompanies: number;
-    totalClients: number;
+    activeClientUsers: number;
     totalRequestsPrevMonth: number;
     totalRequestsCurrMonth: number;
     requestsChart: { month: string; count: number }[];
@@ -48,10 +48,12 @@ export async function getDashboardData(): Promise<DashboardStats> {
   // ----------------------------------------------------------------------
   if (isAdmin) {
     // Active Companies
-    const companies = await db.prepare('SELECT COUNT(*) FROM client_companies WHERE is_active = 1').pluck().get() as number;
+    const companiesCount = await db.prepare('SELECT COUNT(*) FROM client_companies WHERE is_active = 1').pluck().get();
+    const companies = Number(companiesCount);
     
-    // Total Clients (Companies)
-    const totalClients = await db.prepare('SELECT COUNT(*) FROM client_companies').pluck().get() as number;
+    // Active Client Users (changed from Total Clients)
+    const activeClientUsersCount = await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client_user' AND is_active = 1").pluck().get();
+    const activeClientUsers = Number(activeClientUsersCount);
 
     // Helper for Total Requests (Admissions + Dismissals + Vacations + Transfers)
     // We need to sum counts from 4 tables
@@ -64,7 +66,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
           SELECT COUNT(*) FROM ${table} 
           WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
         `).pluck().get(start.toISOString(), end.toISOString()) as number;
-        total += count;
+        total += Number(count);
       }
       return total;
     };
@@ -91,9 +93,23 @@ export async function getDashboardData(): Promise<DashboardStats> {
         });
     }
 
-    const requestsChart = Array.from(chartMap.entries())
-        .map(([month, count]) => ({ month, count }))
-        .sort((a, b) => a.month.localeCompare(b.month));
+    // Generate last 12 months (including empty ones)
+    const requestsChart: { month: string; count: number }[] = [];
+    const current = new Date(twelveMonthsAgo);
+    const endMonth = now.getFullYear() * 12 + now.getMonth();
+
+    while (current.getFullYear() * 12 + current.getMonth() <= endMonth) {
+      const year = current.getFullYear();
+      const month = current.getMonth() + 1;
+      const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
+      
+      requestsChart.push({
+        month: monthStr,
+        count: chartMap.get(monthStr) || 0
+      });
+
+      current.setMonth(current.getMonth() + 1);
+    }
 
     // Ranking: Top 10 Clients (Last 12 Months)
     // We need to aggregate by company_id across tables
@@ -123,7 +139,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
 
     stats.admin = {
         activeCompanies: companies,
-        totalClients,
+        activeClientUsers,
         totalRequestsPrevMonth,
         totalRequestsCurrMonth,
         requestsChart,
@@ -138,22 +154,43 @@ export async function getDashboardData(): Promise<DashboardStats> {
 
   const getSubBlockStats = async (table: string) => {
     // Counts
-    const prevMonth = await db.prepare(`
+    const prevMonthCount = await db.prepare(`
         SELECT COUNT(*) FROM ${table} WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
-    `).pluck().get(prevMonthStart.toISOString(), currMonthStart.toISOString()) as number;
+    `).pluck().get(prevMonthStart.toISOString(), currMonthStart.toISOString());
+    const prevMonth = Number(prevMonthCount);
 
-    const currMonth = await db.prepare(`
+    const currMonthCount = await db.prepare(`
         SELECT COUNT(*) FROM ${table} WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
-    `).pluck().get(currMonthStart.toISOString(), nextMonthStart.toISOString()) as number;
+    `).pluck().get(currMonthStart.toISOString(), nextMonthStart.toISOString());
+    const currMonth = Number(currMonthCount);
 
     // Chart (Last 6 Months)
-    const chart = await db.prepare(`
+    const chartData = await db.prepare(`
         SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count 
         FROM ${table} 
         WHERE status = 'COMPLETED' AND created_at >= ?
         GROUP BY month
         ORDER BY month
     `).all(sixMonthsAgo.toISOString()) as { month: string, count: number }[];
+
+    // Fill missing months
+    const chart: { month: string; count: number }[] = [];
+    const current = new Date(sixMonthsAgo);
+    const endMonth = now.getFullYear() * 12 + now.getMonth();
+    
+    const dataMap = new Map(chartData.map(d => [d.month, Number(d.count)]));
+
+    while (current.getFullYear() * 12 + current.getMonth() <= endMonth) {
+        const year = current.getFullYear();
+        const month = current.getMonth() + 1;
+        const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
+        
+        chart.push({
+            month: monthStr,
+            count: dataMap.get(monthStr) || 0
+        });
+        current.setMonth(current.getMonth() + 1);
+    }
 
     // Ranking (Top 5) - Assuming All Time or Last 6 Months? "Ranking TOP 5 clientes".
     // Usually implies "Recent" or "General". I'll use Last 6 Months to be consistent with the chart.

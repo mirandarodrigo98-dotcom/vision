@@ -10,6 +10,7 @@ const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const S3 = new S3Client({
   region: 'auto',
   endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  forcePathStyle: true, // Required for R2 to ensure bucket is in path, not subdomain
   credentials: {
     accessKeyId: R2_ACCESS_KEY_ID || '',
     secretAccessKey: R2_SECRET_ACCESS_KEY || '',
@@ -39,17 +40,13 @@ export async function uploadToR2(
         // Generate a signed URL for downloading (valid for 7 days - 604800 seconds)
         // Or if the bucket is public, we can just construct the URL.
         // Assuming private bucket for security, so we use signed URL.
-        const getCommand = new PutObjectCommand({
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const getCommand = new GetObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: fileName
         });
         
         // Note: PutObjectCommand is for upload. For download link we need GetObjectCommand.
-        // But we just want to return a link.
-        // If we want a long-lived link, we might need a public bucket or custom domain.
-        // For "direct download", a signed URL is good but expires.
-        // If the user wants a permanent link, they should set up a custom domain on R2.
-        // Let's assume for now we generate a signed URL for 7 days or use a public custom domain if provided.
         
         let downloadLink = '';
         
@@ -82,4 +79,30 @@ export async function getR2DownloadLink(fileKey: string): Promise<string> {
     
     // Generate signed URL for 7 days
     return await getSignedUrl(S3, getCmd, { expiresIn: 604800 });
+}
+
+export async function getPresignedUploadUrl(fileName: string, mimeType: string): Promise<{ uploadUrl: string; fileKey: string; downloadLink: string }> {
+    if (!R2_BUCKET_NAME) throw new Error('R2_BUCKET_NAME not configured');
+
+    const command = new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: fileName,
+        ContentType: mimeType,
+    });
+
+    // Signed URL for PUT (Upload) - valid for 1 hour
+    const uploadUrl = await getSignedUrl(S3, command, { expiresIn: 3600 });
+
+    let downloadLink = '';
+    if (process.env.R2_PUBLIC_DOMAIN) {
+        downloadLink = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+    } else {
+        downloadLink = await getR2DownloadLink(fileName);
+    }
+
+    return {
+        uploadUrl,
+        fileKey: fileName,
+        downloadLink
+    };
 }

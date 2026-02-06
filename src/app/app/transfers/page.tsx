@@ -7,6 +7,8 @@ import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { redirect } from 'next/navigation';
 import { TransferActions } from '@/components/transfers/transfer-actions';
+import { Badge } from '@/components/ui/badge';
+import { hasPermission } from '@/lib/rbac';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default async function TransfersListPage() {
@@ -108,16 +110,22 @@ export default async function TransfersListPage() {
                     <TableCell>{tr.target_company_name}</TableCell>
                     <TableCell>{tr.transfer_date ? format(new Date(tr.transfer_date), 'dd/MM/yyyy') : '-'}</TableCell>
                     <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold
-                        ${tr.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' : ''}
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                        ${tr.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${tr.status === 'APPROVED' ? 'bg-green-100 text-green-800' : ''}
+                        ${tr.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
                         ${tr.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
-                    `}>
+                        ${tr.status === 'REJECTED' ? 'bg-red-200 text-red-900' : ''}
+                      `}>
                         {
-                        tr.status === 'SUBMITTED' ? 'Enviado' : 
-                        tr.status === 'CANCELLED' ? 'Cancelado' : 
-                        tr.status
+                          tr.status === 'SUBMITTED' ? 'Solicitado' : 
+                          tr.status === 'APPROVED' ? 'Concluído' :
+                          tr.status === 'COMPLETED' ? 'Concluído' :
+                          tr.status === 'CANCELLED' ? 'Cancelado' : 
+                          tr.status === 'REJECTED' ? 'Rejeitado' :
+                          tr.status
                         }
-                    </span>
+                      </span>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{tr.protocol_number || '-'}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">

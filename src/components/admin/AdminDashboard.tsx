@@ -158,7 +158,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                   </Transition.Child>
 
                   {/* Sidebar component */}
-                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4 ring-1 ring-white/10">
+                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#134D38] px-6 pb-4 ring-1 ring-white/10">
                     <div className="flex h-16 shrink-0 items-center gap-2">
                       <img src="/logo.svg" alt="Vision Logo" width={32} height={32} />
                       <span className="text-white font-bold text-xl">VISION Admin</span>
@@ -182,14 +182,14 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                         onClick={() => toggleMenu(item.name)}
                                         className={classNames(
                                           isChildCurrent
-                                            ? 'bg-gray-800 text-white'
-                                            : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                                            ? 'bg-[#0E3A2B] text-white'
+                                            : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
                                           'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                         )}
                                       >
                                         <item.icon
                                           className={classNames(
-                                            isChildCurrent ? 'text-white' : 'text-gray-400 group-hover:text-white',
+                                            isChildCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
                                             'h-6 w-6 shrink-0'
                                           )}
                                           aria-hidden="true"
@@ -212,8 +212,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={classNames(
                                                   pathname === child.href
-                                                    ? 'bg-gray-800 text-white'
-                                                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                                                    ? 'bg-[#0E3A2B] text-white'
+                                                    : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
                                                   'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
                                                 )}
                                               >
@@ -230,14 +230,14 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                       onClick={() => setSidebarOpen(false)}
                                       className={classNames(
                                         isCurrent
-                                          ? 'bg-gray-800 text-white'
-                                          : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                                          ? 'bg-[#0E3A2B] text-white'
+                                          : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
                                         'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                       )}
                                     >
                                       <item.icon
                                         className={classNames(
-                                          isCurrent ? 'text-white' : 'text-gray-400 group-hover:text-white',
+                                          isCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
                                           'h-6 w-6 shrink-0'
                                         )}
                                         aria-hidden="true"
@@ -269,7 +269,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
             onMouseLeave={() => setIsHovering(false)}
         >
           {/* Sidebar component */}
-          <div className="flex grow flex-col gap-y-5 bg-gray-900">
+          <div className="flex grow flex-col gap-y-5 bg-[#134D38]">
             <div className="flex h-16 shrink-0 items-center px-6 mt-5">
               {!isExpanded ? (
                 <div className="w-full flex justify-center">
@@ -301,8 +301,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                 onClick={() => toggleMenu(item.name)}
                                 className={classNames(
                                   isChildCurrent
-                                    ? 'bg-gray-800 text-white'
-                                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                                    ? 'bg-[#0E3A2B] text-white'
+                                    : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
                                   'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
                                   !isExpanded ? 'justify-center' : ''
                                 )}
@@ -310,7 +310,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                               >
                                 <item.icon
                                   className={classNames(
-                                    isChildCurrent ? 'text-white' : 'text-gray-400 group-hover:text-white',
+                                    isChildCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
                                     'h-6 w-6 shrink-0'
                                   )}
                                   aria-hidden="true"
@@ -336,8 +336,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                         href={child.href}
                                         className={classNames(
                                           pathname === child.href
-                                            ? 'bg-gray-800 text-white'
-                                            : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                                            ? 'bg-[#0E3A2B] text-white'
+                                            : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
                                           'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
                                         )}
                                       >
@@ -350,25 +350,24 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                             </>
                           ) : (
                             <Link
-                              href={item.href!}
-                              className={classNames(
-                                isCurrent
-                                  ? 'bg-gray-800 text-white'
-                                  : 'text-gray-400 hover:text-white hover:bg-gray-800',
-                                'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
-                                !isExpanded ? 'justify-center' : ''
-                              )}
-                              title={!isExpanded ? item.name : undefined}
-                            >
-                              <item.icon
-                                className={classNames(
-                                  isCurrent ? 'text-white' : 'text-gray-400 group-hover:text-white',
-                                  'h-6 w-6 shrink-0'
-                                )}
-                                aria-hidden="true"
-                              />
-                              {isExpanded && item.name}
-                            </Link>
+                                      href={item.href!}
+                                      className={classNames(
+                                        isCurrent
+                                          ? 'bg-[#0E3A2B] text-white'
+                                          : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
+                                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
+                                        !isExpanded ? 'justify-center' : ''
+                                      )}
+                                    >
+                                      <item.icon
+                                        className={classNames(
+                                          isCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
+                                          'h-6 w-6 shrink-0'
+                                        )}
+                                        aria-hidden="true"
+                                      />
+                                      {isExpanded && item.name}
+                                    </Link>
                           )}
                         </li>
                       )

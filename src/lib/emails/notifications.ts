@@ -24,6 +24,7 @@ interface AdmissionEmailData {
     companyName: string;
     cnpj: string;
     userName: string;
+    senderEmail?: string; // Email of the user who performed the action
     employeeName: string;
     admissionDate?: string;
     pdfBuffer?: Buffer;
@@ -33,7 +34,28 @@ interface AdmissionEmailData {
 }
 
 export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: AdmissionEmailData) {
-    const to = data.recipientEmail || await getDestEmail();
+    // 1. Determine RECIPIENT based on action type
+    // - NEW/UPDATE/CANCEL (Client Actions) -> Admin/Operator (NZD_DEST_EMAIL)
+    // - COMPLETED/CANCEL_BY_ADMIN (Admin Actions) -> Client (Creator)
+    
+    let to = '';
+    
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        // Client actions -> Send to NZD (Admin/Operator)
+        to = await getDestEmail() || ''; // Default to NZD email
+        
+        console.log(`[Email Debug] Type: ${type}, To: ${to}, Sender: ${data.senderEmail}`);
+
+        // SAFETY CHECK: Prevent sending internal notifications to the sender (client)
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        // Admin actions -> Send to Client (Creator)
+        to = data.recipientEmail || ''; 
+    }
+
     if (!to) {
         console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
         return { success: false, error: 'Destination email not configured' };
@@ -43,12 +65,15 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
     let html = '';
     const attachments: any[] = [];
 
+    // Button Style
+    const btnStyle = "display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;";
+
     if (type === 'NEW') {
         subject = 'Nova Admissão Solicitada';
         html = `
             <p>Você está recebendo uma solicitação de admissão da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
             <p>A data de admissão é <strong>“${data.admissionDate}”</strong>. Confira a documentação e relatório anexados.</p>
-            ${data.downloadLink ? `<p><a href="${data.downloadLink}">Baixar Documentos</a></p>` : ''}
+            ${data.downloadLink ? `<p><a href="${data.downloadLink}" style="${btnStyle}">Baixar Arquivo Anexo (ZIP/RAR)</a></p>` : '<p style="color: orange;"><em>Link do arquivo anexo não disponível (verifique o armazenamento R2).</em></p>'}
         `;
         if (data.pdfBuffer) {
             attachments.push({ filename: 'Relatorio_Admissao.pdf', content: data.pdfBuffer });
@@ -105,11 +130,32 @@ interface TransferEmailData {
     observation: string;
     changes?: string[]; // Keys: source_company, target_company, employee, transfer_date, observation
     recipientEmail?: string;
+    senderEmail?: string;
 }
 
 export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: TransferEmailData) {
-    const to = data.recipientEmail || await getDestEmail();
-    if (!to) return { success: false, error: 'Destination email not configured' };
+    let to = '';
+    
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        // Client actions -> Send to NZD (Admin/Operator)
+        to = await getDestEmail() || ''; 
+        
+        console.log(`[Email Debug] Transfer Type: ${type}, To: ${to}, Sender: ${data.senderEmail}`);
+
+        // SAFETY CHECK
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        // Admin actions -> Send to Client (Creator)
+        to = data.recipientEmail || ''; 
+    }
+
+    if (!to) {
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
+        return { success: false, error: 'Destination email not configured' };
+    }
 
     let subject = '';
     let html = '';
@@ -173,11 +219,32 @@ interface VacationEmailData {
     employeeName: string;
     pdfBuffer?: Buffer;
     recipientEmail?: string;
+    senderEmail?: string;
 }
 
 export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: VacationEmailData) {
-    const to = data.recipientEmail || await getDestEmail();
-    if (!to) return { success: false, error: 'Destination email not configured' };
+    let to = '';
+    
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        // Client actions -> Send to NZD (Admin/Operator)
+        to = await getDestEmail() || ''; 
+        
+        console.log(`[Email Debug] Vacation Type: ${type}, To: ${to}, Sender: ${data.senderEmail}`);
+
+        // SAFETY CHECK
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        // Admin actions -> Send to Client (Creator)
+        to = data.recipientEmail || ''; 
+    }
+
+    if (!to) {
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
+        return { success: false, error: 'Destination email not configured' };
+    }
 
     let subject = '';
     let html = '';
@@ -238,11 +305,32 @@ interface DismissalEmailData {
     pdfBuffer?: Buffer;
     changes?: string[];
     recipientEmail?: string;
+    senderEmail?: string;
 }
 
 export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: DismissalEmailData) {
-    const to = data.recipientEmail || await getDestEmail();
-    if (!to) return { success: false, error: 'Destination email not configured' };
+    let to = '';
+    
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        // Client actions -> Send to NZD (Admin/Operator)
+        to = await getDestEmail() || ''; 
+        
+        console.log(`[Email Debug] Dismissal Type: ${type}, To: ${to}, Sender: ${data.senderEmail}`);
+
+        // SAFETY CHECK
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        // Admin actions -> Send to Client (Creator)
+        to = data.recipientEmail || ''; 
+    }
+
+    if (!to) {
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
+        return { success: false, error: 'Destination email not configured' };
+    }
 
     let subject = '';
     let html = '';

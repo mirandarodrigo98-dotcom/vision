@@ -211,7 +211,8 @@ export async function createDismissal(formData: FormData) {
             companyName: company.nome,
             cnpj: company.cnpj,
             employeeName: employee.name,
-            pdfBuffer: pdfBuffer
+            pdfBuffer: pdfBuffer,
+            senderEmail: session.email
         });
 
         revalidatePath('/admin/dismissals');
@@ -307,7 +308,8 @@ export async function updateDismissal(id: string, formData: FormData) {
                 cnpj: company.cnpj,
                 employeeName: dismissal.employee_name,
                 pdfBuffer: pdfBuffer,
-                changes
+                changes,
+                senderEmail: session.email
             });
         }
 
@@ -381,7 +383,8 @@ export async function cancelDismissal(id: string) {
                 companyName: dismissal.company_name,
                 cnpj: company.cnpj,
                 employeeName: dismissal.employee_name,
-                recipientEmail
+                recipientEmail,
+                senderEmail: session.email
             });
         }
 
@@ -458,7 +461,8 @@ export async function approveDismissal(id: string) {
             companyName: company.nome,
             cnpj: company.cnpj,
             employeeName: employee.name,
-            pdfBuffer: pdfBuffer
+            pdfBuffer: pdfBuffer,
+            senderEmail: session.email
         });
 
         revalidatePath('/admin/dismissals');

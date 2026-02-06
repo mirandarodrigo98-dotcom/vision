@@ -201,6 +201,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
           </Tooltip>
 
           {/* Edit Button */}
+          {!isAdmin && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="inline-block">
@@ -224,6 +225,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
               }</p>
             </TooltipContent>
           </Tooltip>
+          )}
 
           {/* Cancel Button */}
           {canCancel ? (

@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { sendAdmissionNotification } from '@/lib/emails/notifications';
 import { format } from 'date-fns';
-import { uploadToR2 } from '@/lib/r2';
+import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { generateAdmissionPDF } from '@/lib/pdf-generator';
 
 export async function createAdmission(formData: FormData) {
@@ -19,19 +19,29 @@ export async function createAdmission(formData: FormData) {
     }
 
     try {
+        const fileKey = formData.get('file_key') as string;
         const file = formData.get('file') as File;
-        if (!file || file.size === 0) {
-            return { error: 'Arquivo obrigatório (.zip ou .rar)' };
-        }
+        
+        let originalName = '';
+        
+        if (fileKey) {
+             originalName = formData.get('original_file_name') as string;
+             if (!originalName) return { error: 'Nome do arquivo original não fornecido.' };
+        } else {
+            if (!file || file.size === 0) {
+                return { error: 'Arquivo obrigatório (.zip ou .rar)' };
+            }
 
-        // Validate file size (50MB Limit)
-        const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-        if (file.size > MAX_SIZE) {
-            return { error: 'O arquivo excede o limite máximo de 50MB.' };
+            // Validate file size (50MB Limit)
+            const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+            if (file.size > MAX_SIZE) {
+                return { error: 'O arquivo excede o limite máximo de 50MB.' };
+            }
+            originalName = file.name;
         }
 
         // Validate file extension
-        const ext = path.extname(file.name).toLowerCase();
+        const ext = path.extname(originalName).toLowerCase();
         if (ext !== '.zip' && ext !== '.rar') {
             return { error: 'Apenas arquivos .zip ou .rar são permitidos.' };
         }
@@ -123,38 +133,58 @@ export async function createAdmission(formData: FormData) {
             addressCity, addressState, cbo, contractType
         );
 
-        // Save File Locally
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-        await mkdir(uploadDir, { recursive: true });
+        // Prepare File Handling
+        let fileName = '';
+        let fileType = '';
+        let fileSize = 0;
         
-        const fileName = `${protocolNumber}-${file.name}`;
-        const filePath = path.join(uploadDir, fileName);
-        const fileBuffer = Buffer.from(await file.arrayBuffer());
-        await writeFile(filePath, fileBuffer);
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+        let saveLocalPromise = Promise.resolve();
+        let r2Promise: Promise<{ downloadLink: string; fileKey: string } | null> = Promise.resolve(null);
 
-        // Save Attachment Metadata
-        await db.prepare(`
-            INSERT INTO admission_attachments (
-                id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `).run(
-            randomUUID(), admissionId, file.name, file.type, file.size, fileName
-        );
+        if (fileKey) {
+            // Client-side upload
+            fileName = fileKey;
+            fileType = formData.get('file_type') as string;
+            fileSize = parseInt(formData.get('file_size') as string || '0');
+            
+            r2Promise = (async () => {
+                try {
+                    const link = await getR2DownloadLink(fileName);
+                    return { downloadLink: link, fileKey: fileName };
+                } catch (e) {
+                    console.error('Failed to generate download link:', e);
+                    return null;
+                }
+            })();
+        } else {
+            // Server-side upload fallback
+            const fileBuffer = Buffer.from(await file.arrayBuffer());
+            fileName = `${protocolNumber}-${file.name}`;
+            fileType = file.type;
+            fileSize = file.size;
+            
+            const filePath = path.join(uploadDir, fileName);
 
-        // Upload to Cloudflare R2
-        let downloadLink: string | null = null;
-        let r2Success = false;
-        try {
-            const r2Result = await uploadToR2(fileBuffer, fileName, file.type);
-            if (r2Result) {
-                downloadLink = r2Result.downloadLink;
-                r2Success = true;
-            }
-        } catch (error) {
-            console.error('R2 Upload Failed:', error);
+            // 1. Local Save (Non-blocking failure)
+            saveLocalPromise = (async () => {
+                try {
+                    await mkdir(uploadDir, { recursive: true });
+                    await writeFile(filePath, fileBuffer);
+                } catch (e) {
+                    console.error('Local save failed:', e);
+                }
+            })();
+
+            // 2. R2 Upload
+            r2Promise = uploadToR2(fileBuffer, fileName, fileType)
+                .catch(error => {
+                    console.error('R2 Upload Failed:', error);
+                    return null;
+                });
         }
 
-        // Generate PDF
+        // 3. Generate PDF
         const pdfData = {
             protocol_number: protocolNumber,
             employee_full_name: employeeFullName,
@@ -172,36 +202,55 @@ export async function createAdmission(formData: FormData) {
             vt_linha: vtLinha, has_adv: hasAdv, general_observations: generalObservations
         };
 
-        let pdfBuffer: Buffer;
-        try {
-            pdfBuffer = await generateAdmissionPDF(pdfData);
-        } catch (error) {
-            console.error('PDF Generation Failed:', error);
-            pdfBuffer = Buffer.from('Erro ao gerar relatório PDF'); 
-        }
+        const pdfPromise = generateAdmissionPDF(pdfData)
+            .catch(error => {
+                console.error('PDF Generation Failed:', error);
+                return Buffer.from('Erro ao gerar relatório PDF'); 
+            });
+
+        // Save Attachment Metadata (DB is fast, do it now)
+        await db.prepare(`
+            INSERT INTO admission_attachments (
+                id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `).run(
+            randomUUID(), admissionId, originalName, fileType, fileSize, fileName
+        );
+
+        // Await Parallel Tasks
+        // We must await all tasks because in Serverless environments (Vercel), 
+        // background tasks may be killed immediately after response is sent.
+        // Parallel execution still provides performance benefits over sequential.
+        const [_, r2Result, pdfBuffer] = await Promise.all([
+            saveLocalPromise, 
+            r2Promise, 
+            pdfPromise
+        ]);
+
+        const downloadLink = r2Result?.downloadLink || null;
 
         // Send Email
-        const user = await db.prepare(`
-            SELECT name 
-            FROM users 
-            WHERE id = ?
-        `).get(session.user_id) as any;
-
-        let emailSuccess = false;
+        const user = await db.prepare(`SELECT name, email FROM users WHERE id = ?`).get(session.user_id) as any;
         
-        const emailResult = await sendAdmissionNotification('NEW', {
-            companyName: userCompanyData.nome,
-            cnpj: userCompanyData.cnpj,
-            userName: user?.name || session.name || 'Usuário',
-            employeeName: employeeFullName,
-            admissionDate: format(new Date(admissionDate), 'dd/MM/yyyy'),
-            pdfBuffer: pdfBuffer,
-            downloadLink: downloadLink || undefined
-        });
-        emailSuccess = !emailResult.error;
+        let emailSuccess = false;
+        if (pdfBuffer) {
+            const emailResult = await sendAdmissionNotification('NEW', {
+                companyName: userCompanyData.nome,
+                cnpj: userCompanyData.cnpj,
+                userName: user?.name || session.name || 'Usuário',
+                senderEmail: user?.email || session.email,
+                employeeName: employeeFullName,
+                admissionDate: format(new Date(admissionDate), 'dd/MM/yyyy'),
+                pdfBuffer: pdfBuffer,
+                downloadLink: downloadLink || undefined
+            });
+            
+            // Check if email was sent successfully (Resend returns data object with id)
+            emailSuccess = !!emailResult?.data?.id;
 
-        if (!emailSuccess) {
-            console.warn('Email sending failed:', emailResult.error);
+            if (emailResult.error) {
+                 console.warn('Email sending failed:', emailResult.error);
+            }
         }
 
         // Audit Log
@@ -212,17 +261,18 @@ export async function createAdmission(formData: FormData) {
             role: 'client_user',
             entity_type: 'admission_request',
             entity_id: admissionId,
-            metadata: { protocolNumber, employeeFullName, downloadLink: downloadLink || 'failed' },
+            metadata: { protocolNumber, employeeFullName, status: 'submitted' },
             success: true
         });
 
         revalidatePath('/app');
+        
         return { 
             success: true, 
             protocolNumber, 
-            downloadLink, 
-            r2Success, 
-            emailSuccess 
+            downloadLink,
+            r2Success: !!r2Result,
+            emailSuccess
         };
 
     } catch (e: any) {
@@ -293,7 +343,8 @@ export async function cancelAdmission(admissionId: string) {
             cnpj: userCompany.cnpj,
             userName: userName,
             employeeName: admission.employee_full_name,
-            recipientEmail
+            recipientEmail,
+            senderEmail: session.email
         });
 
         logAudit({
@@ -367,20 +418,81 @@ export async function updateAdmission(formData: FormData) {
         // Extra fields
         const cpf = formData.get('cpf') as string || '';
         const birthDate = formData.get('birth_date') as string || '';
-        const motherName = formData.get('mother_name') as string || '';
         const email = formData.get('email') as string || '';
         const phone = formData.get('phone') as string || '';
         const maritalStatus = formData.get('marital_status') as string || '';
         const raceColor = formData.get('race_color') as string || '';
-        const zipCode = formData.get('zip_code') as string || '';
-        const addressStreet = formData.get('address_street') as string || '';
-        const addressNumber = formData.get('address_number') as string || '';
-        const addressComplement = formData.get('address_complement') as string || '';
-        const addressNeighborhood = formData.get('address_neighborhood') as string || '';
-        const addressCity = formData.get('address_city') as string || '';
-        const addressState = formData.get('address_state') as string || '';
-        const cbo = formData.get('cbo') as string || '';
         const contractType = formData.get('contract_type') as string || '';
+
+        // Fix missing variables for PDF generation (using existing values)
+        const motherName = existingAdmission.mother_name || '';
+        const zipCode = existingAdmission.zip_code || '';
+        const addressStreet = existingAdmission.address_street || '';
+        const addressNumber = existingAdmission.address_number || '';
+        const addressComplement = existingAdmission.address_complement || '';
+        const addressNeighborhood = existingAdmission.address_neighborhood || '';
+        const addressCity = existingAdmission.address_city || '';
+        const addressState = existingAdmission.address_state || '';
+        const cbo = existingAdmission.cbo || '';
+
+        // Handle File Upload (Client-side or Server-side)
+        const fileKey = formData.get('file_key') as string;
+        const file = formData.get('file') as File;
+        let r2Result = null;
+        let originalName = '';
+        let fileName = '';
+        let fileType = '';
+        let fileSize = 0;
+        let r2Promise: Promise<{ downloadLink: string; fileKey: string } | null> | null = null;
+
+        if (fileKey) {
+             // Client-side upload
+             fileName = fileKey;
+             originalName = formData.get('original_file_name') as string;
+             fileType = formData.get('file_type') as string;
+             fileSize = parseInt(formData.get('file_size') as string || '0');
+             
+             if (originalName) {
+                 r2Promise = (async () => {
+                    try {
+                        const link = await getR2DownloadLink(fileName);
+                        return { downloadLink: link, fileKey: fileName };
+                    } catch (e) {
+                        console.error('Failed to generate download link:', e);
+                        return null;
+                    }
+                })();
+             }
+        } else if (file && file.size > 0) {
+             // Server-side upload fallback
+             const fileBuffer = Buffer.from(await file.arrayBuffer());
+             fileName = `${existingAdmission.protocol_number}-${file.name}`;
+             fileType = file.type;
+             fileSize = file.size;
+             originalName = file.name;
+
+             r2Promise = uploadToR2(fileBuffer, fileName, fileType);
+        }
+
+        if (r2Promise) {
+            try {
+                r2Result = await r2Promise;
+                if (r2Result) {
+                     await db.prepare(`
+                        INSERT INTO admission_attachments (
+                            id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    `).run(
+                        randomUUID(), admissionId, originalName, fileType, fileSize, fileName
+                    );
+                    changes.push('file_attachment');
+                }
+            } catch (e) {
+                console.error('File upload failed during update:', e);
+                // We don't block update if upload fails, but we should warn? 
+                // For now just log.
+            }
+        }
 
         // Change Detection
         const changes: string[] = [];
@@ -412,13 +524,14 @@ export async function updateAdmission(formData: FormData) {
         
         if (normalize(existingAdmission.cpf) !== normalize(cpf)) changes.push('cpf');
         if (normalize(existingAdmission.birth_date) !== normalize(birthDate)) changes.push('birth_date');
-        if (normalize(existingAdmission.mother_name) !== normalize(motherName)) changes.push('mother_name');
+        // if (normalize(existingAdmission.mother_name) !== normalize(motherName)) changes.push('mother_name');
         if (normalize(existingAdmission.email) !== normalize(email)) changes.push('email');
         if (normalize(existingAdmission.phone) !== normalize(phone)) changes.push('phone');
         if (normalize(existingAdmission.marital_status) !== normalize(maritalStatus)) changes.push('marital_status');
         if (normalize(existingAdmission.race_color) !== normalize(raceColor)) changes.push('race_color');
         
-        // Address changes
+        // Address changes - REMOVED
+        /*
         if (normalize(existingAdmission.zip_code) !== normalize(zipCode)) changes.push('zip_code');
         if (normalize(existingAdmission.address_street) !== normalize(addressStreet)) changes.push('address_street');
         if (normalize(existingAdmission.address_number) !== normalize(addressNumber)) changes.push('address_number');
@@ -428,6 +541,7 @@ export async function updateAdmission(formData: FormData) {
         if (normalize(existingAdmission.address_state) !== normalize(addressState)) changes.push('address_state');
         
         if (normalize(existingAdmission.cbo) !== normalize(cbo)) changes.push('cbo');
+        */
         if (normalize(existingAdmission.contract_type) !== normalize(contractType)) changes.push('contract_type');
 
         await db.prepare(`
@@ -436,9 +550,8 @@ export async function updateAdmission(formData: FormData) {
                 has_vt = ?, vt_tarifa_cents = ?, vt_linha = ?, vt_qtd_por_dia = ?,
                 has_adv = ?, adv_day = ?, adv_periodicity = ?,
                 trial1_days = ?, trial2_days = ?, general_observations = ?,
-                cpf = ?, birth_date = ?, mother_name = ?, email = ?, phone = ?, marital_status = ?, race_color = ?,
-                zip_code = ?, address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?,
-                address_city = ?, address_state = ?, cbo = ?, contract_type = ?,
+                cpf = ?, birth_date = ?, email = ?, phone = ?, marital_status = ?, race_color = ?,
+                contract_type = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
@@ -446,9 +559,8 @@ export async function updateAdmission(formData: FormData) {
             hasVt, vtTarifaCents, vtLinha, vtQtdPorDia,
             hasAdv, advDay, advPeriodicity,
             trial1Days, trial2Days, generalObservations,
-            cpf, birthDate, motherName, email, phone, maritalStatus, raceColor,
-            zipCode, addressStreet, addressNumber, addressComplement, addressNeighborhood,
-            addressCity, addressState, cbo, contractType,
+            cpf, birthDate, email, phone, maritalStatus, raceColor,
+            contractType,
             admissionId
         );
 
@@ -501,7 +613,8 @@ export async function updateAdmission(formData: FormData) {
             employeeName: existingAdmission.employee_full_name,
             admissionDate: format(new Date(admissionDate), 'dd/MM/yyyy'),
             pdfBuffer: pdfBuffer,
-            changes
+            changes,
+            senderEmail: session.email
         });
 
         revalidatePath('/app/admissions');
@@ -542,8 +655,8 @@ export async function completeAdmission(admissionId: string) {
             await db.prepare(`
                 INSERT INTO employees (
                     id, company_id, name, admission_date, birth_date, cpf, 
-                    status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `).run(
                 employeeId, 
                 admission.company_id, 
@@ -567,7 +680,8 @@ export async function completeAdmission(admissionId: string) {
             cnpj: userCompany.cnpj,
             userName: creator?.name || 'Cliente',
             employeeName: admission.employee_full_name,
-            recipientEmail: creator?.email // Send to the creator
+            recipientEmail: creator?.email, // Send to the creator
+            senderEmail: session.email
         });
 
         // 4. Audit Log

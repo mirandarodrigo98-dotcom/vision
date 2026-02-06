@@ -46,3 +46,6 @@ next-env.d.ts
 *.sqlite3
 
 .vercel
+
+# uploads
+public/uploads/*

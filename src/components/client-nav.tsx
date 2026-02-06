@@ -74,7 +74,7 @@ export function ClientNav() {
             onClick={() => toggleGroup(item.label)}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 rounded-md transition-colors text-sm font-medium",
-              hasActiveChild ? "text-white bg-indigo-800/20" : "text-indigo-200 hover:text-white hover:bg-indigo-800/50"
+              hasActiveChild ? "text-white bg-[#0E3A2B]" : "text-green-100 hover:text-white hover:bg-[#0E3A2B]/50"
             )}
           >
             <div className="flex items-center gap-3">
@@ -102,8 +102,8 @@ export function ClientNav() {
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium",
           isActive 
-            ? "bg-indigo-800 text-white" 
-            : "text-indigo-200 hover:text-white hover:bg-indigo-800/50"
+            ? "bg-[#0E3A2B] text-white" 
+            : "text-green-100 hover:text-white hover:bg-[#0E3A2B]/50"
         )}
       >
         <Icon size={18} />
@@ -113,8 +113,8 @@ export function ClientNav() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-indigo-900 text-white border-r">
-      <div className="p-6 border-b border-indigo-800">
+    <div className="flex flex-col h-screen w-64 bg-[#134D38] text-white border-r">
+      <div className="p-6 border-b border-[#1A6347]">
         <h1 className="text-xl font-bold">VISION Client</h1>
       </div>
       
@@ -122,10 +122,10 @@ export function ClientNav() {
         {navItems.map(renderNavItem)}
       </nav>
 
-      <div className="p-4 border-t border-indigo-800">
+      <div className="p-4 border-t border-[#1A6347]">
         <Button 
           variant="ghost" 
-          className="w-full justify-start gap-3 text-indigo-200 hover:text-white hover:bg-indigo-800"
+          className="w-full justify-start gap-3 text-white/80 hover:text-white hover:bg-[#1A6347]"
           onClick={handleLogout}
         >
           <LogOut size={18} />

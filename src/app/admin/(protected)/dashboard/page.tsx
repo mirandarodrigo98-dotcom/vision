@@ -36,8 +36,8 @@ export default async function AdminDashboard() {
               icon={Building2} 
             />
             <StatCard 
-              title="Total de Clientes" 
-              value={stats.admin.totalClients} 
+              title="Usuário Cliente" 
+              value={stats.admin.activeClientUsers} 
               icon={Users} 
             />
             <StatCard 
@@ -121,14 +121,20 @@ export default async function AdminDashboard() {
 
 function StatCard({ title, value, icon: Icon, subtext }: { title: string, value: number, icon: any, subtext?: string }) {
   return (
-    <Card className="border-primary/10 shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-primary" />
+    <Card className="border-primary/10 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground line-clamp-2 min-h-[3rem] flex items-center">
+          {title}
+        </CardTitle>
+        <Icon className="h-4 w-4 text-primary mt-1" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-primary">{value}</div>
-        {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+        <div className="text-2xl font-bold text-primary">{Number(value)}</div>
+        {subtext ? (
+          <p className="text-xs text-muted-foreground mt-1">{subtext}</p>
+        ) : (
+          <div className="h-5 mt-1" aria-hidden="true" />
+        )}
       </CardContent>
     </Card>
   );
@@ -138,28 +144,34 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
   const max = Math.max(...data.map(d => d.count), 1);
   
   return (
-    <Card className="border-primary/10">
+    <Card className="border-primary/10 h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-base font-semibold text-primary">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-[200px] w-full flex items-end gap-2 pt-4">
+      <CardContent className="flex-1">
+        <div className="h-[240px] w-full flex items-end gap-1 pt-4 pb-8 px-2">
           {data.length === 0 ? (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
               Sem dados
             </div>
           ) : (
             data.map((item) => (
-              <div key={item.month} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group">
+              <div key={item.month} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group min-w-0">
                 <div 
-                  className="w-full bg-secondary/80 rounded-t-sm relative transition-all duration-500 hover:bg-secondary min-h-[4px]" 
+                  className="w-full max-w-[16px] bg-secondary/80 rounded-t-sm relative transition-all duration-500 hover:bg-secondary min-h-[4px]" 
                   style={{ height: `${(item.count / max) * 100}%` }}
+                  suppressHydrationWarning
                 >
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    {item.count}
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                    {Number(item.count)}
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground truncate w-full text-center">{item.month}</span>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap -rotate-45 origin-center translate-y-3">
+                  {(() => {
+                    const [year, month] = item.month.split('-');
+                    return `${month}/${year.slice(-2)}`;
+                  })()}
+                </span>
               </div>
             ))
           )}
@@ -171,11 +183,11 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
 
 function RankingCard({ title, data }: { title: string, data: { name: string, count: number }[] }) {
   return (
-    <Card className="border-primary/10">
+    <Card className="border-primary/10 h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-base font-semibold text-primary">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <div className="space-y-4">
           {data.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sem dados</p>
@@ -188,7 +200,7 @@ function RankingCard({ title, data }: { title: string, data: { name: string, cou
                   </div>
                   <span className="text-sm font-medium truncate" title={item.name}>{item.name}</span>
                 </div>
-                <span className="text-sm font-bold text-secondary">{item.count}</span>
+                <span className="text-sm font-bold text-secondary">{Number(item.count)}</span>
               </div>
             ))
           )}

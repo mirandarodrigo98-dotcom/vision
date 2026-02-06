@@ -82,19 +82,6 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
 
   const vacations = await db.prepare(query).all(...params) as any[];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'SUBMITTED':
-        return <Badge variant="secondary">Solicitado</Badge>;
-      case 'COMPLETED':
-        return <Badge variant="default" className="bg-green-600 hover:bg-green-700">Concluído</Badge>;
-      case 'CANCELLED':
-        return <Badge variant="destructive">Cancelado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -163,7 +150,18 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
                     <TableCell>{vacation.days_quantity}</TableCell>
                     <TableCell>{formattedReturnDate}</TableCell>
                     <TableCell>
-                        {getStatusBadge(vacation.status)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                        ${vacation.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${vacation.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
+                        ${vacation.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
+                      `}>
+                        {
+                          vacation.status === 'SUBMITTED' ? 'Solicitado' : 
+                          vacation.status === 'COMPLETED' ? 'Concluído' :
+                          vacation.status === 'CANCELLED' ? 'Cancelado' : 
+                          vacation.status
+                        }
+                      </span>
                     </TableCell>
                     <TableCell className="text-center">
                         <VacationActions 

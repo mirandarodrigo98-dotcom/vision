@@ -59,7 +59,7 @@ export default async function ClientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
-                 <div className="text-2xl font-bold">{company.admission_count}</div>
+                 <div className="text-2xl font-bold">{Number(company.admission_count)}</div>
                  <FileText className="h-4 w-4 text-gray-400" />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
