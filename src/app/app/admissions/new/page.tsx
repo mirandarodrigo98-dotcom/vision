@@ -7,6 +7,8 @@ export default async function NewAdmissionPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
+  const activeCompanyId = session.active_company_id;
+
   const companies = await db.prepare(`
     SELECT c.id, c.nome, c.cnpj 
     FROM client_companies c 
@@ -24,7 +26,7 @@ export default async function NewAdmissionPage() {
         </p>
       </div>
       
-      <AdmissionForm companies={companies} />
+      <AdmissionForm companies={companies} activeCompanyId={activeCompanyId} />
     </div>
   );
 }

@@ -5,6 +5,20 @@ import { format } from 'date-fns';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
+function wrapHtml(content: string) {
+    return `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="color: #333; font-size: 16px; line-height: 1.5;">
+          ${content}
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 32px 0;" />
+        <p style="color: #666; font-size: 12px; text-align: center;">
+          Este é um e-mail automático, por favor não responda.
+        </p>
+      </div>
+    `;
+}
+
 // Helper to get destination email
 async function getDestEmail() {
     const setting = await db.prepare("SELECT value FROM settings WHERE key = 'NZD_DEST_EMAIL'").get() as { value: string };
@@ -72,7 +86,8 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         subject = 'Nova Admissão Solicitada';
         html = `
             <p>Você está recebendo uma solicitação de admissão da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
-            <p>A data de admissão é <strong>“${data.admissionDate}”</strong>. Confira a documentação e relatório anexados.</p>
+            <p>A data de admissão é <strong>“${data.admissionDate}”</strong>.</p>
+            <p>Segue anexado o relatório de admissão bem como o link para download da documentação do funcionário.</p>
             ${data.downloadLink ? `<p><a href="${data.downloadLink}" style="${btnStyle}">Baixar Arquivo Anexo (ZIP/RAR)</a></p>` : '<p style="color: orange;"><em>Link do arquivo anexo não disponível (verifique o armazenamento R2).</em></p>'}
         `;
         if (data.pdfBuffer) {
@@ -82,21 +97,21 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         subject = `Admissão de “${data.employeeName}” foi retificada.`;
         html = `
             <p>Você está recebendo uma retificação de admissão da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
-            <p>Confira as alterações no relatório anexo.</p>
+            <p>Confira as alterações solicitadas no relatório anexo.</p>
             ${data.downloadLink ? `<p><a href="${data.downloadLink}">Baixar Documentos (se houver novos)</a></p>` : ''}
         `;
         if (data.pdfBuffer) {
             attachments.push({ filename: 'Relatorio_Admissao_Retificado.pdf', content: data.pdfBuffer });
         }
     } else if (type === 'CANCEL') {
-        subject = `Cancelamento de Admissão - ${data.companyName}`;
+        subject = `Solicitação de Admissão de “${data.employeeName}” foi cancelada.`;
         html = `
-            <p>O usuário <strong>“${data.userName}”</strong> cancelou a solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>.</p>
+            <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi CANCELADA.</p>
         `;
     } else if (type === 'CANCEL_BY_ADMIN') {
         subject = `Admissão de “${data.employeeName}” foi cancelada.`;
         html = `
-            <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>A solicitação de admissão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CANCELADA.</p>
             <br/>
             <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
@@ -114,7 +129,7 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: `<div style="font-family: Arial, sans-serif;">${html}</div>`,
+        html: wrapHtml(html),
         attachments
     });
 }
@@ -161,7 +176,7 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
     let html = '';
 
     if (type === 'NEW') {
-        subject = 'Nova Solicitação de Transferência Solicitada';
+        subject = 'Nova Transferência Solicitada';
         html = `
             <p>Uma nova solicitação de transferência foi solicitada pelo usuário <strong>"${data.userName}"</strong>.</p>
             <p><strong>ORIGEM:</strong> "${data.sourceCompany}"</p>
@@ -182,14 +197,14 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
             ${formatField('OBSERVAÇÃO', `"${data.observation}"`, 'observation', changes)}
         `;
     } else if (type === 'CANCEL') {
-        subject = `Cancelamento de Transferência - ${data.sourceCompany}`;
+        subject = 'Cancelamento de Transferência Solicitada';
         html = `
-            <p>O usuário <strong>"${data.userName}"</strong> cancelou a solicitação de transferência de <strong>“${data.employeeName}”</strong>.</p>
+            <p>A solicitação de transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi CANCELADA pelo usuário <strong>“${data.userName}”</strong>.</p>
         `;
     } else if (type === 'CANCEL_BY_ADMIN') {
         subject = `Cancelamento de Transferência “${data.employeeName}”`;
         html = `
-            <p>A solicitação de transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>A solicitação de transferência de <strong>“${data.employeeName}”</strong> para a empresa <strong>“${data.targetCompany}”</strong> foi CANCELADA.</p>
             <br/>
             <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
@@ -206,7 +221,7 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: `<div style="font-family: Arial, sans-serif;">${html}</div>`
+        html: wrapHtml(html)
     });
 }
 
@@ -254,7 +269,7 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         subject = 'Nova Solicitação de Férias';
         html = `
             <p>Você está recebendo uma solicitação de Férias da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
-            <p>Confira o Relatório Anexado.</p>
+            <p>Confira o Relatório Anexados.</p>
         `;
         if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Ferias.pdf', content: data.pdfBuffer });
     } else if (type === 'UPDATE') {
@@ -265,14 +280,14 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         `;
         if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Ferias_Retificado.pdf', content: data.pdfBuffer });
     } else if (type === 'CANCEL') {
-        subject = `Cancelamento de Férias - ${data.companyName}`;
+        subject = `Solicitação Férias de “${data.employeeName}” foi Cancelada`;
         html = `
-            <p>O usuário <strong>“${data.userName}”</strong> cancelou a solicitação de Férias de <strong>“${data.employeeName}”</strong>.</p>
+            <p>A solicitação Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi CANCELADA.</p>
         `;
     } else if (type === 'CANCEL_BY_ADMIN') {
         subject = `Férias de “${data.employeeName}” foi Cancelada`;
         html = `
-            <p>A solicitação de Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>A solicitação de Férias de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CANCELADA.</p>
             <br/>
             <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
@@ -290,7 +305,7 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: `<div style="font-family: Arial, sans-serif;">${html}</div>`,
+        html: wrapHtml(html),
         attachments
     });
 }
@@ -340,7 +355,7 @@ export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         subject = 'Nova Solicitação de Demissão';
         html = `
             <p>Você está recebendo uma solicitação de Demissão da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
-            <p>Confira o Relatório Anexado.</p>
+            <p>Confira o Relatório Anexados.</p>
         `;
         if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Demissao.pdf', content: data.pdfBuffer });
     } else if (type === 'UPDATE') {
@@ -351,14 +366,14 @@ export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         `;
         if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Demissao_Retificado.pdf', content: data.pdfBuffer });
     } else if (type === 'CANCEL') {
-        subject = `Cancelamento de Demissão - ${data.companyName}`;
+        subject = `Solicitação Demissão de “${data.employeeName}” foi Cancelada`;
         html = `
-            <p>O usuário <strong>“${data.userName}”</strong> cancelou a solicitação de Demissão de <strong>“${data.employeeName}”</strong>.</p>
+            <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi CANCELADA.</p>
         `;
     } else if (type === 'CANCEL_BY_ADMIN') {
         subject = `Demissão de “${data.employeeName}” foi Cancelada`;
         html = `
-            <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi <strong style="color: red;">CANCELADA</strong>.</p>
+            <p>A solicitação de Rescisão de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CANCELADA.</p>
             <br/>
             <p>Departamento Pessoal<br>NZD Contabilidade</p>
         `;
@@ -375,7 +390,7 @@ export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: `<div style="font-family: Arial, sans-serif;">${html}</div>`,
+        html: wrapHtml(html),
         attachments
     });
 }

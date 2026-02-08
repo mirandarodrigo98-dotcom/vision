@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import { Edit, Power } from 'lucide-react';
+import { Edit, Power, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -36,14 +36,31 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 justify-center">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="text-primary border-primary/20 hover:bg-primary/10"
+              className="text-[#06276b] border-[#06276b]/20 hover:bg-[#06276b]/10"
+              onClick={() => router.push(`/admin/employees/${id}`)}
+            >
+              <Eye className="h-4 w-4" />
+              <span className="sr-only">Visualizar</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Visualizar</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-[#06276b] border-[#06276b]/20 hover:bg-[#06276b]/10"
               onClick={() => router.push(`/admin/employees/${id}/edit`)}
             >
               <Edit className="h-4 w-4" />
@@ -62,7 +79,7 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
               size="sm"
               className={isActive 
                 ? "text-red-600 border-red-200 hover:bg-red-50" 
-                : "text-green-600 border-green-200 hover:bg-green-50"
+                : "text-[#06276b] border-[#06276b]/20 hover:bg-[#06276b]/10"
               }
               onClick={handleToggleStatus}
               disabled={isPending}

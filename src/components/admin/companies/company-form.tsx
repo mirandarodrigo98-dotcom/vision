@@ -8,7 +8,16 @@ import { createCompany, updateCompany } from '@/app/actions/companies';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 import { validateCNPJ } from '@/lib/validators';
 
@@ -24,6 +33,12 @@ interface Company {
   data_abertura: string | null;
   telefone: string;
   email_contato: string;
+  address_type: string | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  address_zip_code: string | null;
+  address_neighborhood: string | null;
   is_active: number;
 }
 
@@ -37,6 +52,10 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
   const [loading, setLoading] = useState(false);
   const [cnpjValue, setCnpjValue] = useState(company?.cnpj || '');
   const [cnpjError, setCnpjError] = useState('');
+  const [cepValue, setCepValue] = useState(company?.address_zip_code || '');
+  const [date, setDate] = useState<Date | undefined>(
+    company?.data_abertura ? new Date(company.data_abertura + 'T12:00:00') : undefined
+  );
 
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -55,6 +74,18 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
     
     setCnpjValue(value);
     if (cnpjError) setCnpjError('');
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 8) value = value.slice(0, 8);
+    
+    // Mask: 00000-000
+    if (value.length > 5) {
+      value = value.replace(/^(\d{5})(\d{0,3})/, '$1-$2');
+    }
+    
+    setCepValue(value);
   };
 
   const handleCnpjBlur = () => {
@@ -115,15 +146,17 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
       </CardHeader>
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Código *</label>
+          {/* Código */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Código *</label>
+            <div className="space-y-1">
               <Input 
                 name="code" 
                 defaultValue={company?.code || ''} 
                 required 
                 placeholder="Ex: 1"
                 disabled={hasLinkedRecords}
+                className="w-[10ch]"
               />
               {hasLinkedRecords ? (
                 <p className="text-xs text-yellow-600">Código não pode ser alterado pois existem registros vinculados.</p>
@@ -131,8 +164,18 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
                 <p className="text-xs text-muted-foreground">O código deve ser único para cada empresa.</p>
               )}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">CNPJ *</label>
+          </div>
+
+          {/* Filial */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Filial</label>
+            <Input name="filial" defaultValue={company?.filial || ''} className="w-[8ch]" />
+          </div>
+
+          {/* CNPJ */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">CNPJ *</label>
+            <div className="space-y-1">
               <Input 
                 name="cnpj" 
                 value={cnpjValue} 
@@ -141,7 +184,7 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
                 placeholder="00.000.000/0000-00"
                 maxLength={18}
                 required 
-                className={cnpjError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                className={`w-[22ch] ${cnpjError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 disabled={hasLinkedRecords}
               />
               {hasLinkedRecords && <p className="text-xs text-yellow-600 mt-1">CNPJ não pode ser alterado pois existem registros vinculados.</p>}
@@ -149,47 +192,108 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Nome Fantasia *</label>
-            <Input name="nome" defaultValue={company?.nome} required />
+          {/* Data de Abertura */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Data de Abertura</label>
+            <div className="w-[18ch]">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal px-3",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione...</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+              <input type="hidden" name="data_abertura" value={date ? format(date, 'yyyy-MM-dd') : ''} />
+            </div>
           </div>
-          
-          <div className="space-y-2">
+
+          {/* Razão Social */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Razão Social</label>
-            <Input name="razao_social" defaultValue={company?.razao_social} />
+            <Input name="razao_social" defaultValue={company?.razao_social} className="w-[80ch]" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="space-y-2">
-              <label className="text-sm font-medium">Filial</label>
-              <Input name="filial" defaultValue={company?.filial || ''} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Data de Abertura</label>
-              <Input name="data_abertura" type="date" defaultValue={company?.data_abertura || ''} />
-            </div>
+          {/* Nome Fantasia */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Nome Fantasia *</label>
+            <Input name="nome" defaultValue={company?.nome} required className="w-[20ch]" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium">Município</label>
-              <Input name="municipio" defaultValue={company?.municipio || ''} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">UF</label>
-              <Input name="uf" maxLength={2} defaultValue={company?.uf || ''} />
-            </div>
+          {/* Tipo Logradouro */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Tipo Logradouro</label>
+            <Input name="address_type" placeholder="Ex: Rua, Av, Alameda" defaultValue={company?.address_type || ''} className="w-[16ch]" />
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Telefone</label>
-              <Input name="telefone" defaultValue={company?.telefone || ''} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email Contato</label>
-              <Input name="email_contato" type="email" defaultValue={company?.email_contato || ''} />
-            </div>
+
+          {/* Logradouro */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Logradouro</label>
+            <Input name="address_street" defaultValue={company?.address_street || ''} className="w-[80ch]" />
+          </div>
+
+          {/* Número */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Número</label>
+            <Input name="address_number" defaultValue={company?.address_number || ''} className="w-[12ch]" />
+          </div>
+
+          {/* Complemento */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Complemento</label>
+            <Input name="address_complement" defaultValue={company?.address_complement || ''} className="w-[20ch]" />
+          </div>
+
+          {/* Município */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Município</label>
+            <Input name="municipio" defaultValue={company?.municipio || ''} className="w-[50ch]" />
+          </div>
+
+          {/* Estado */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Estado</label>
+            <Input name="uf" maxLength={2} defaultValue={company?.uf || ''} className="w-[8ch]" />
+          </div>
+
+          {/* CEP */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">CEP</label>
+            <Input 
+              name="address_zip_code" 
+              value={cepValue} 
+              onChange={handleCepChange}
+              placeholder="00000-000"
+              maxLength={9}
+              className="w-[15ch]"
+            />
+          </div>
+
+          {/* E-mail */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">E-mail</label>
+            <Input name="email_contato" type="email" defaultValue={company?.email_contato || ''} className="w-[50ch]" />
+          </div>
+
+          {/* Telefone */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Telefone</label>
+            <Input name="telefone" defaultValue={company?.telefone || ''} className="w-[20ch]" />
           </div>
           
           <div className="flex justify-end gap-2 pt-4">

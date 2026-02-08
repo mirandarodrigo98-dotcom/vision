@@ -102,8 +102,8 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
                     ${adm.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
                     ${adm.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
                     ${adm.status === 'RECTIFIED' ? 'bg-orange-100 text-orange-800' : ''}
-                    ${adm.status === 'EMAILED' ? 'bg-green-100 text-green-800' : ''}
-                    ${adm.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
+                    ${adm.status === 'EMAILED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
+                    ${adm.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
                     ${adm.status === 'ERROR' ? 'bg-red-100 text-red-800' : ''}
                     ${adm.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                   `}>

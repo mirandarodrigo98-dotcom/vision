@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -174,8 +173,11 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-start pt-10 sm:pt-16 bg-gray-50 p-4">
       <div className="mb-8 text-center flex flex-col items-center">
-        <Logo width={128} height={128} className="mb-6 shadow-2xl rounded-[32px]" />
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">VISION</h1>
+        <img 
+            src="/logo.png?v=2" 
+            alt="Vision Logo" 
+            className="mb-6 h-32 w-auto object-contain"
+        />
       </div>
 
       <Card className="w-full max-w-md">

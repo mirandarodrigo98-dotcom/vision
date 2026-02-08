@@ -99,7 +99,7 @@ export function CompanyImportDialog() {
           </div>
           <div className="flex flex-col gap-2 text-xs text-muted-foreground bg-muted p-3 rounded">
             <p className="font-semibold">Colunas esperadas no CSV:</p>
-            <p>CODIGO, ESTAB, CNPJ, EMPRESA, MUNICIPIO, UF, ABERTURA, EMAIL</p>
+            <p>CODIGOEMPRESA, CODIGOESTAB, INSCRFEDERAL, DATAINICIOATIV, NOMEESTABCOMPLETO, NOMEFANTASIA, DESCRTIPOLOGRAD, ENDERECOESTAB, NUMENDERESTAB, COMPLENDERESTAB, BAIRROENDERESTAB, NOMEMUNIC, SIGLAESTADO, CEPENDERESTAB, EMAILDPO</p>
             {file && <div className="flex items-center gap-2 mt-2 font-medium text-foreground">
               <FileText className="h-4 w-4" />
               {file.name}

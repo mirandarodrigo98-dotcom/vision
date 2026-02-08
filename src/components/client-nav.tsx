@@ -15,7 +15,8 @@ import {
   Plane,
   ArrowRightLeft,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  FileBarChart
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -30,7 +31,6 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: '/app', label: 'Painel', icon: LayoutDashboard },
-  { href: '/app/profile', label: 'Meu Perfil', icon: User },
   { 
     label: 'Pessoal', 
     icon: Users,
@@ -39,6 +39,13 @@ const navItems: NavItem[] = [
       { href: '/app/dismissals', label: 'Demissões', icon: UserMinus },
       { href: '/app/vacations', label: 'Férias', icon: Plane },
       { href: '/app/transfers', label: 'Transferências', icon: ArrowRightLeft },
+      { 
+        label: 'Relatórios', 
+        icon: FileBarChart,
+        children: [
+            { href: '/api/reports/ethnic-racial', label: 'Autodeclaração Étnico-Racial', icon: FileText },
+        ]
+      },
     ]
   },
 ];
@@ -74,7 +81,7 @@ export function ClientNav() {
             onClick={() => toggleGroup(item.label)}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 rounded-md transition-colors text-sm font-medium",
-              hasActiveChild ? "text-white bg-[#0E3A2B]" : "text-green-100 hover:text-white hover:bg-[#0E3A2B]/50"
+              hasActiveChild ? "text-white bg-[#041a4a]" : "text-blue-100 hover:text-white hover:bg-[#041a4a]/50"
             )}
           >
             <div className="flex items-center gap-3">
@@ -94,6 +101,21 @@ export function ClientNav() {
     }
 
     const isActive = pathname === item.href;
+    const isApiRoute = item.href?.startsWith('/api/');
+
+    if (isApiRoute) {
+      return (
+        <a 
+          key={item.href} 
+          href={item.href!}
+          className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium text-blue-100 hover:text-white hover:bg-[#041a4a]/50"
+          download
+        >
+          <Icon size={18} />
+          {item.label}
+        </a>
+      );
+    }
     
     return (
       <Link 
@@ -102,8 +124,8 @@ export function ClientNav() {
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium",
           isActive 
-            ? "bg-[#0E3A2B] text-white" 
-            : "text-green-100 hover:text-white hover:bg-[#0E3A2B]/50"
+            ? "bg-[#041a4a] text-white" 
+            : "text-blue-100 hover:text-white hover:bg-[#041a4a]/50"
         )}
       >
         <Icon size={18} />
@@ -113,25 +135,14 @@ export function ClientNav() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-[#134D38] text-white border-r">
-      <div className="p-6 border-b border-[#1A6347]">
+    <div className="flex flex-col h-screen w-64 bg-[#06276b] text-white border-r">
+      <div className="p-6 border-b border-[#103d8f]">
         <h1 className="text-xl font-bold">VISION Client</h1>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map(renderNavItem)}
       </nav>
-
-      <div className="p-4 border-t border-[#1A6347]">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start gap-3 text-white/80 hover:text-white hover:bg-[#1A6347]"
-          onClick={handleLogout}
-        >
-          <LogOut size={18} />
-          Sair
-        </Button>
-      </div>
     </div>
   );
 }

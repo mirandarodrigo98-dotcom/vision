@@ -304,3 +304,171 @@ export async function generateDismissalPDF(data: any): Promise<Buffer> {
 
     return Buffer.from(doc.output('arraybuffer'));
 }
+
+export async function generateEthnicRacialSelfDeclarationPDF(companyData: any): Promise<Buffer> {
+    const doc = new jsPDF();
+    const pageWidth = 210;
+    const margin = 10;
+    const maxWidth = pageWidth - (margin * 2);
+    
+    // Title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Termo de Autodeclaração Étnico-Racial', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    
+    // Header
+    let y = 40;
+    let x = margin;
+    
+    // Line 1: À [Name] CNPJ sob o n.º [CNPJ]
+    doc.text('À ', x, y);
+    x += doc.getTextWidth('À ');
+    
+    doc.setFont('helvetica', 'bold');
+    const name = (companyData.nome || '').toUpperCase();
+    doc.text(name, x, y);
+    x += doc.getTextWidth(name);
+    
+    doc.setFont('helvetica', 'normal');
+    const cnpjPrefix = ' CNPJ sob o n.º ';
+    doc.text(cnpjPrefix, x, y);
+    x += doc.getTextWidth(cnpjPrefix);
+    
+    doc.setFont('helvetica', 'bold');
+    const cnpj = companyData.cnpj || '';
+    doc.text(cnpj, x, y);
+    
+    y += 7;
+    x = margin;
+    doc.setFont('helvetica', 'normal');
+
+    // Address Line
+    // Format Line 1: tipo logradouro numero complemento bairro
+    // Format Line 2: cidade/estado - cep
+    
+    const addressLine1Parts = [
+        companyData.address_type,
+        companyData.address_street,
+        companyData.address_number,
+        companyData.address_complement ? `- ${companyData.address_complement}` : null,
+        companyData.address_neighborhood ? `- ${companyData.address_neighborhood}` : null
+    ].filter(Boolean);
+    
+    const addressLine1 = addressLine1Parts.join(' ');
+    doc.text(addressLine1, margin, y, { maxWidth: maxWidth });
+    
+    // Calculate height of line 1 to know where to put line 2
+    const dimLine1 = doc.getTextDimensions(addressLine1, { maxWidth: maxWidth });
+    y += dimLine1.h + 5; // Add some spacing
+    
+    const addressLine2Parts = [
+        (companyData.municipio && companyData.uf) ? `${companyData.municipio}/${companyData.uf}` : null,
+        companyData.address_zip_code ? `- CEP: ${companyData.address_zip_code}` : null
+    ].filter(Boolean);
+    
+    const addressLine2 = addressLine2Parts.join(' ');
+    doc.text(addressLine2, margin, y, { maxWidth: maxWidth });
+    
+    y += 20;
+    
+    // Body
+    // Line 1: Eu, _____________________________________________________________________________________
+    const part1 = "Eu,";
+    doc.text(part1, margin, y);
+    const wPart1 = doc.getTextWidth(part1);
+    doc.line(margin + wPart1 + 2, y + 1, pageWidth - margin, y + 1); // Line to end
+    y += 10;
+    
+    // Line 2: inscrito(a) no CPF sob n.º ________________________________, ...
+    const part2 = "inscrito(a) no CPF sob n.º ";
+    doc.text(part2, margin, y);
+    const wPart2 = doc.getTextWidth(part2);
+    
+    const cpfLineLength = 60;
+    doc.line(margin + wPart2 + 2, y + 1, margin + wPart2 + 2 + cpfLineLength, y + 1);
+    
+    const startX = margin + wPart2 + 2 + cpfLineLength + 1;
+    const fullText = ", autodeclaro para o fim específico de atender às disposições constantes na Lei n. 14.553 de 20 de abril de 2023*, que sou:";
+    
+    const availableWidth = pageWidth - margin - startX;
+    const words = fullText.split(' ');
+    let line1Text = "";
+    let remainingTextIndex = 0;
+    
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const testLine = line1Text ? (line1Text + " " + word) : word;
+        if (doc.getTextWidth(testLine) < availableWidth) {
+            line1Text = testLine;
+            remainingTextIndex = i + 1;
+        } else {
+            break;
+        }
+    }
+    
+    doc.text(line1Text, startX, y);
+    
+    y += 8;
+    
+    if (remainingTextIndex < words.length) {
+        const restOfText = words.slice(remainingTextIndex).join(' ');
+        const splitText = doc.splitTextToSize(restOfText, maxWidth);
+        doc.text(splitText, margin, y);
+        y += splitText.length * 7;
+    }
+    
+    y += 5;
+    
+    // Checkboxes
+    const options = [
+        '( ) Branco (a)',
+        '( ) Preto (a)',
+        '( ) Pardo (a)',
+        '( ) Amarelo (a)',
+        '( ) Indígena'
+    ];
+    
+    options.forEach(opt => {
+        doc.text(opt, margin + 10, y);
+        y += 7;
+    });
+    
+    y += 10;
+    
+    // Disclaimer
+    const disclaimer = `Estou ciente de que, o presente documento visa cumprir com as exigências legais vigentes, e em caso de falsidade ideológica, ficarei sujeito às sanções legais aplicáveis. Ainda, em razão da relação de emprego existente, autorizo expressamente o empregador acima qualificado a utilizar e replicar a informação acima por mim fornecida, em documentos e cadastros sejam internos ou externos, para fins de cumprimento de legislação e para regular o cadastro do vínculo empregatício.
+
+Por ser verdade as informações acima, firmo o presente, para todos os fins de direito.`;
+
+    doc.text(disclaimer, margin, y, { maxWidth: maxWidth, align: 'justify' });
+    
+    // Estimate height
+    const dim = doc.getTextDimensions(disclaimer, { maxWidth: maxWidth });
+    y += dim.h + 20;
+    
+    // Date and City
+    const city = companyData.municipio || '______________________';
+    const uf = companyData.uf || '__';
+    
+    const dateText = `${city}/${uf}, ________ de_______________________ de ___________.`;
+    doc.text(dateText, margin, y);
+    
+    y += 30;
+    
+    // Signature
+    doc.line(margin, y, margin + 80, y); // Line for signature
+    y += 5;
+    doc.text('Assinatura', margin, y);
+    
+    // Footer / Legal Note
+    y = 270;
+    doc.setFontSize(8);
+    const footerText = `Lei nº 14.553, de 20 de abril de 2023: Altera os arts. 39 e 49 da Lei nº 12.288, de 20 de julho de 2010 (Estatuto da Igualdade Racial), para determinar procedimentos e critérios de coleta de informações relativas à distribuição dos segmentos étnicos e raciais no mercado de trabalho.`;
+    
+    doc.text(footerText, margin, y, { maxWidth: maxWidth, align: 'justify' });
+    
+    return Buffer.from(doc.output('arraybuffer'));
+}

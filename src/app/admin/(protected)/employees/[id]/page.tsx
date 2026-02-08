@@ -6,7 +6,7 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function EditEmployeePage({ params }: PageProps) {
+export default async function ViewEmployeePage({ params }: PageProps) {
   const { id } = await params;
 
   const employee = await db.prepare('SELECT * FROM employees WHERE id = ?').get(id) as any;
@@ -20,9 +20,9 @@ export default async function EditEmployeePage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Editar Funcionário</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Visualizar Funcionário</h1>
       </div>
-      <EmployeeForm companies={companies} initialData={employee} />
+      <EmployeeForm companies={companies} initialData={employee} readOnly={true} />
     </div>
   );
 }

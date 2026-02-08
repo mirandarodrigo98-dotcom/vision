@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -48,7 +47,6 @@ export default function ChangePasswordPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-start pt-10 sm:pt-16 bg-gray-50 p-4">
       <div className="mb-8 text-center flex flex-col items-center">
-        <Logo width={128} height={128} className="mb-6 shadow-2xl rounded-[32px]" />
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">VISION</h1>
       </div>
 

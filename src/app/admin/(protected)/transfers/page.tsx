@@ -116,8 +116,8 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
                         ${tr.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
-                         ${tr.status === 'APPROVED' ? 'bg-green-100 text-green-800' : ''}
-                         ${tr.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
+                         ${tr.status === 'APPROVED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
+                         ${tr.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
                          ${tr.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                          ${tr.status === 'REJECTED' ? 'bg-red-200 text-red-900' : ''}
                        `}>

@@ -19,7 +19,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
   `).get(id, id, id);
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center space-x-2">
         <h1 className="text-3xl font-bold tracking-tight">Editar Empresa</h1>
       </div>

@@ -33,6 +33,9 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
+  const activeCompanyId = session.active_company_id;
+  if (!activeCompanyId) return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa.</div>;
+
   let query = `
     SELECT 
       d.*,
@@ -41,10 +44,10 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
     FROM dismissals d
     JOIN client_companies cc ON d.company_id = cc.id
     JOIN employees e ON d.employee_id = e.id
-    WHERE d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)
+    WHERE d.company_id = ?
   `;
 
-  const params: any[] = [session.user_id];
+  const params: any[] = [activeCompanyId];
 
   if (q) {
     query += ` AND (d.protocol_number LIKE ? OR e.name LIKE ? OR cc.nome LIKE ?)`;
@@ -105,9 +108,6 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
                 <ColumnHeader column="created_at" title="Data Solicitação" />
               </TableHead>
               <TableHead>
-                <ColumnHeader column="company_name" title="Empresa" />
-              </TableHead>
-              <TableHead>
                 <ColumnHeader column="employee_name" title="Funcionário" />
               </TableHead>
               <TableHead>
@@ -123,7 +123,7 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
           <TableBody>
             {dismissals.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                         Nenhuma solicitação de rescisão encontrada.
                     </TableCell>
                 </TableRow>
@@ -143,14 +143,13 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
                 <TableRow key={dismissal.id}>
                     <TableCell className="font-mono text-xs">{dismissal.protocol_number}</TableCell>
                     <TableCell>{formattedCreatedAt}</TableCell>
-                    <TableCell>{dismissal.company_name}</TableCell>
                     <TableCell>{dismissal.employee_name}</TableCell>
                     <TableCell>{formattedDismissalDate}</TableCell>
                     <TableCell>{dismissal.notice_type}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
                         ${dismissal.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        ${dismissal.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
+                        ${dismissal.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
                         ${dismissal.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                       `}>
                         {

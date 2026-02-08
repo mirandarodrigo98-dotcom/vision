@@ -12,13 +12,13 @@ interface ClientsPageProps {
 
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const resolvedSearchParams = await searchParams;
-  const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'nome';
+  const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'razao_social';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'asc';
   const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
 
   // Whitelist allowed sort columns
-  const allowedSorts = ['code', 'nome', 'cnpj', 'email_contato', 'is_active', 'created_at'];
-  const safeSort = allowedSorts.includes(sort) ? sort : 'nome';
+  const allowedSorts = ['code', 'nome', 'razao_social', 'cnpj', 'email_contato', 'is_active', 'created_at'];
+  const safeSort = allowedSorts.includes(sort) ? sort : 'razao_social';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   let query = `
@@ -34,9 +34,9 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const params: any[] = [];
 
   if (q) {
-    query += ' WHERE (c.nome LIKE ? OR c.cnpj LIKE ? OR c.email_contato LIKE ? OR c.code LIKE ?)';
+    query += ' WHERE (c.nome LIKE ? OR c.razao_social LIKE ? OR c.cnpj LIKE ? OR c.email_contato LIKE ? OR c.code LIKE ?)';
     const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ, likeQ);
+    params.push(likeQ, likeQ, likeQ, likeQ, likeQ);
   }
 
   // Use CAST to sort numerically if sorting by code

@@ -21,23 +21,20 @@ export default async function AdmissionsListPage() {
     redirect('/admin/dashboard');
   }
 
-  // Get User Companies (User might have access to multiple)
-  const userCompanies = await db.prepare('SELECT company_id FROM user_companies WHERE user_id = ?').all(session.user_id) as Array<{ company_id: string }>;
+  // Filter by Active Company
+  const activeCompanyId = session.active_company_id;
 
-  if (userCompanies.length === 0) {
-      return <div>Você não está vinculado a nenhuma empresa. Contate o suporte.</div>;
+  if (!activeCompanyId) {
+      return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa para visualizar as admissões.</div>;
   }
-
-  const companyIds = userCompanies.map(c => c.company_id);
-  const placeholders = companyIds.map(() => '?').join(',');
 
   const admissions = await db.prepare(`
     SELECT a.*, to_char(a.admission_date::date, 'YYYY-MM-DD') as admission_date, c.nome as company_name
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
-    WHERE a.company_id IN (${placeholders})
+    WHERE a.company_id = ?
     ORDER BY a.created_at DESC
-  `).all(...companyIds) as Array<{
+  `).all(activeCompanyId) as Array<{
     id: string;
     employee_full_name: string;
     job_role: string;
@@ -80,7 +77,6 @@ export default async function AdmissionsListPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Empresa</TableHead>
               <TableHead>Funcionário</TableHead>
               <TableHead>Cargo</TableHead>
               <TableHead>Data Admissão</TableHead>
@@ -93,7 +89,6 @@ export default async function AdmissionsListPage() {
           <TableBody>
             {admissions.map((adm) => (
               <TableRow key={adm.id}>
-                <TableCell className="font-medium text-xs text-muted-foreground">{adm.company_name}</TableCell>
                 <TableCell className="font-medium">{adm.employee_full_name}</TableCell>
                 <TableCell>{adm.job_role}</TableCell>
                 <TableCell>{adm.admission_date ? adm.admission_date.split('-').reverse().join('/') : '-'}</TableCell>
@@ -102,8 +97,8 @@ export default async function AdmissionsListPage() {
                     ${adm.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
                     ${adm.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
                     ${adm.status === 'RECTIFIED' ? 'bg-orange-100 text-orange-800' : ''}
-                    ${adm.status === 'EMAILED' ? 'bg-green-100 text-green-800' : ''}
-                    ${adm.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
+                    ${adm.status === 'EMAILED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
+                    ${adm.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
                     ${adm.status === 'ERROR' ? 'bg-red-100 text-red-800' : ''}
                     ${adm.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                   `}>

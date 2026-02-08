@@ -24,19 +24,20 @@ import {
 
 interface TransferFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
+    activeCompanyId?: string | null;
     initialData?: any;
     isEditing?: boolean;
     redirectPath?: string;
     readOnly?: boolean;
 }
 
-export function TransferForm({ companies, initialData, isEditing = false, redirectPath = '/app/transfers', readOnly = false }: TransferFormProps) {
+export function TransferForm({ companies, activeCompanyId, initialData, isEditing = false, redirectPath = '/app/transfers', readOnly = false }: TransferFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState<Date | undefined>(
         initialData?.transfer_date ? new Date(initialData.transfer_date) : undefined
     );
-    const [sourceCompanyId, setSourceCompanyId] = useState<string>(initialData?.source_company_id || '');
+    const [sourceCompanyId, setSourceCompanyId] = useState<string>(initialData?.source_company_id || activeCompanyId || '');
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
     const [selectedEmployeeName, setSelectedEmployeeName] = useState<string>(initialData?.employee_name || '');
 
@@ -97,35 +98,8 @@ export function TransferForm({ companies, initialData, isEditing = false, redire
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <fieldset disabled={readOnly} className="space-y-6 border-none p-0 m-0 group-disabled:opacity-100">
-                    {/* Source Company */}
-                    <div className="space-y-2">
-                        <Label htmlFor="source_company_id">Empresa Origem *</Label>
-                         {isEditing ? (
-                             <Input 
-                                value={companies.find(c => c.id === initialData.source_company_id)?.nome || 'Empresa desconhecida'} 
-                                disabled 
-                             />
-                         ) : (
-                            <Select 
-                                name="source_company_id" 
-                                required 
-                                defaultValue={initialData?.source_company_id}
-                                onValueChange={setSourceCompanyId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecione a empresa de origem" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {companies.map(company => (
-                                        <SelectItem key={company.id} value={company.id}>
-                                            {company.nome} ({company.cnpj})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                         )}
-                         {isEditing && <input type="hidden" name="source_company_id" value={initialData.source_company_id} />}
-                    </div>
+                    {/* Hidden Source Company ID */}
+                    <input type="hidden" name="source_company_id" value={initialData?.source_company_id || activeCompanyId || ''} />
 
                     {/* Employee Name */}
                     <div className="space-y-2">

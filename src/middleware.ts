@@ -5,8 +5,8 @@ export function middleware(request: NextRequest) {
   const sessionId = request.cookies.get('session_id')?.value;
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas
-  if (pathname === '/login' || pathname.startsWith('/_next') || pathname === '/') {
+  // Rotas públicas e arquivos estáticos
+  if (pathname === '/login' || pathname.startsWith('/_next') || pathname === '/' || pathname.includes('.')) {
     return NextResponse.next();
   }
 

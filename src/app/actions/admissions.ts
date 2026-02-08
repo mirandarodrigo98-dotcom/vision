@@ -70,6 +70,7 @@ export async function createAdmission(formData: FormData) {
         const email = formData.get('email') as string || '';
         const phone = formData.get('phone') as string || '';
         const maritalStatus = formData.get('marital_status') as string || '';
+        const gender = formData.get('gender') as string || '';
         const raceColor = formData.get('race_color') as string || '';
         const zipCode = formData.get('zip_code') as string || '';
         const addressStreet = formData.get('address_street') as string || '';
@@ -116,19 +117,19 @@ export async function createAdmission(formData: FormData) {
                 admission_date, job_role, salary_cents, work_schedule, has_vt, 
                 vt_tarifa_cents, vt_linha, vt_qtd_por_dia, has_adv, adv_day, 
                 adv_periodicity, trial1_days, trial2_days, general_observations, status, protocol_number, 
-                cpf, birth_date, mother_name, email, phone, marital_status, race_color,
+                cpf, birth_date, mother_name, email, phone, marital_status, gender, race_color,
                 zip_code, address_street, address_number, address_complement, address_neighborhood,
                 address_city, address_state, cbo, contract_type,
                 created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', ?, 
-                      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).run(
             admissionId, userCompanyData.id, session.user_id, employeeFullName, educationLevel,
             admissionDate, jobRole, salaryCents, workSchedule, hasVt,
             vtTarifaCents, vtLinha, vtQtdPorDia, hasAdv, advDay,
             advPeriodicity, trial1Days, trial2Days, generalObservations, protocolNumber,
-            cpf, birthDate, motherName, email, phone, maritalStatus, raceColor,
+            cpf, birthDate, motherName, email, phone, maritalStatus, gender, raceColor,
             zipCode, addressStreet, addressNumber, addressComplement, addressNeighborhood,
             addressCity, addressState, cbo, contractType
         );
@@ -189,7 +190,7 @@ export async function createAdmission(formData: FormData) {
             protocol_number: protocolNumber,
             employee_full_name: employeeFullName,
             cpf, birth_date: birthDate, mother_name: motherName, email, phone,
-            marital_status: maritalStatus, education_level: educationLevel, race_color: raceColor,
+            marital_status: maritalStatus, gender, education_level: educationLevel, race_color: raceColor,
             zip_code: zipCode, address_street: addressStreet, address_number: addressNumber,
             address_complement: addressComplement, address_neighborhood: addressNeighborhood,
             address_city: addressCity, address_state: addressState,

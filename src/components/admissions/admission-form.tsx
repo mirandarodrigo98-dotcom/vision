@@ -33,6 +33,7 @@ import { validateCPF } from '@/lib/validators';
 
 interface AdmissionFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
+    activeCompanyId?: string | null;
     initialData?: any;
     isEditing?: boolean;
     isAdmin?: boolean;
@@ -49,7 +50,7 @@ const DEFAULT_SCHEDULE = [
     { day: 'Sábado', active: false, isDSR: false, isFolga: false, isCPS: false, start: '', breakStart: '', breakEnd: '', end: '' },
 ];
 
-export function AdmissionForm({ companies, initialData, isEditing = false, isAdmin = false, readOnly = false }: AdmissionFormProps) {
+export function AdmissionForm({ companies, activeCompanyId, initialData, isEditing = false, isAdmin = false, readOnly = false }: AdmissionFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -539,20 +540,8 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                     <CardTitle>Dados da Empresa e Funcionário</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Empresa (Primeiro campo) */}
-                    <div className="space-y-2">
-                        <Label htmlFor="company_id">Empresa <span className="text-red-500">*</span></Label>
-                        <Select name="company_id" required defaultValue={initialData?.company_id} disabled={isEditing || readOnly}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione a empresa..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {companies.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {/* Hidden Company ID */}
+                    <input type="hidden" name="company_id" value={initialData?.company_id || activeCompanyId || ''} />
 
                     <div className="space-y-2">
                         <Label htmlFor="employee_full_name">Nome Completo <span className="text-red-500">*</span></Label>
@@ -569,41 +558,7 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                     </div>
                     
                     {/* Other fields with defaultValue */}
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="education_level">Grau de Instrução <span className="text-red-500">*</span></Label>
-                            <Select name="education_level" required defaultValue={initialData?.education_level || "medio_completo"} disabled={readOnly}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="fundamental_incompleto">Fundamental Incompleto</SelectItem>
-                                    <SelectItem value="fundamental_completo">Fundamental Completo</SelectItem>
-                                    <SelectItem value="medio_incompleto">Médio Incompleto</SelectItem>
-                                    <SelectItem value="medio_completo">Médio Completo</SelectItem>
-                                    <SelectItem value="superior_incompleto">Superior Incompleto</SelectItem>
-                                    <SelectItem value="superior_completo">Superior Completo</SelectItem>
-                                    <SelectItem value="pos_graduacao">Pós-Graduação</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cpf">CPF <span className="text-red-500">*</span></Label>
-                            <Input 
-                                id="cpf" 
-                                name="cpf" 
-                                required 
-                                defaultValue={initialData?.cpf ? formatCPF(initialData.cpf) : ''} 
-                                readOnly={readOnly} 
-                                onBlur={handleCpfBlur}
-                                onInput={(e) => {
-                                    e.currentTarget.value = formatCPF(e.currentTarget.value);
-                                }}
-                                maxLength={14}
-                                className={cpfError ? "border-red-500" : ""}
-                            />
-                            {cpfError && <p className="text-xs text-red-500">{cpfError}</p>}
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="birth_date">Data de Nascimento <span className="text-red-500">*</span></Label>
                              <Popover>
@@ -634,6 +589,23 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                             <input type="hidden" name="birth_date" value={birthDate ? format(birthDate, 'yyyy-MM-dd') : ''} required />
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="cpf">CPF <span className="text-red-500">*</span></Label>
+                            <Input 
+                                id="cpf" 
+                                name="cpf" 
+                                required 
+                                defaultValue={initialData?.cpf ? formatCPF(initialData.cpf) : ''} 
+                                readOnly={readOnly} 
+                                onBlur={handleCpfBlur}
+                                onInput={(e) => {
+                                    e.currentTarget.value = formatCPF(e.currentTarget.value);
+                                }}
+                                maxLength={14}
+                                className={cpfError ? "border-red-500" : ""}
+                            />
+                            {cpfError && <p className="text-xs text-red-500">{cpfError}</p>}
+                        </div>
+                        <div className="space-y-2">
                             <Label htmlFor="marital_status">Estado Civil <span className="text-red-500">*</span></Label>
                             <Select name="marital_status" required defaultValue={initialData?.marital_status} disabled={readOnly}>
                                 <SelectTrigger>
@@ -646,6 +618,39 @@ export function AdmissionForm({ companies, initialData, isEditing = false, isAdm
                                     <SelectItem value="widowed">Viúvo(a)</SelectItem>
                                     <SelectItem value="separated">Separado(a)</SelectItem>
                                     <SelectItem value="stable_union">União Estável</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="education_level">Grau de Instrução <span className="text-red-500">*</span></Label>
+                            <Select name="education_level" required defaultValue={initialData?.education_level || "medio_completo"} disabled={readOnly}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="fundamental_incompleto">Fundamental Incompleto</SelectItem>
+                                    <SelectItem value="fundamental_completo">Fundamental Completo</SelectItem>
+                                    <SelectItem value="medio_incompleto">Médio Incompleto</SelectItem>
+                                    <SelectItem value="medio_completo">Médio Completo</SelectItem>
+                                    <SelectItem value="superior_incompleto">Superior Incompleto</SelectItem>
+                                    <SelectItem value="superior_completo">Superior Completo</SelectItem>
+                                    <SelectItem value="pos_graduacao">Pós-Graduação</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="gender">Sexo <span className="text-red-500">*</span></Label>
+                            <Select name="gender" required defaultValue={initialData?.gender} disabled={readOnly}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="M">Masculino</SelectItem>
+                                    <SelectItem value="F">Feminino</SelectItem>
+                                    <SelectItem value="O">Outro</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

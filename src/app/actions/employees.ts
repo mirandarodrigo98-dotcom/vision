@@ -10,14 +10,14 @@ import { parse as parseDate } from 'date-fns';
 
 const EmployeeSchema = z.object({
   company_id: z.string().min(1, 'Empresa é obrigatória'),
-  code: z.string().regex(/^\d+$/, 'Código deve ser numérico').optional().or(z.literal('')),
+  code: z.string().min(1, 'Código é obrigatório').regex(/^\d+$/, 'Código deve ser numérico'),
   name: z.string().min(1, 'Nome é obrigatório'),
-  admission_date: z.string().optional(),
-  birth_date: z.string().optional(),
-  gender: z.string().optional(),
+  admission_date: z.string().min(1, 'Data de admissão é obrigatória'),
+  birth_date: z.string().min(1, 'Data de nascimento é obrigatória'),
+  gender: z.string().min(1, 'Sexo é obrigatório'),
   pis: z.string().optional(),
-  cpf: z.string().optional(),
-  esocial_registration: z.string().optional(),
+  cpf: z.string().min(1, 'CPF é obrigatório'),
+  esocial_registration: z.string().min(1, 'e-Social é obrigatório'),
 });
 
 export async function createEmployee(formData: FormData) {

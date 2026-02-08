@@ -22,7 +22,6 @@ import {
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
-import { Logo } from '@/components/Logo'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -158,9 +157,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                   </Transition.Child>
 
                   {/* Sidebar component */}
-                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#134D38] px-6 pb-4 ring-1 ring-white/10">
+                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#06276b] px-6 pb-4 ring-1 ring-white/10">
                     <div className="flex h-16 shrink-0 items-center gap-2">
-                      <img src="/logo.svg" alt="Vision Logo" width={32} height={32} />
                       <span className="text-white font-bold text-xl">VISION Admin</span>
                     </div>
                     <nav className="flex flex-1 flex-col">
@@ -182,8 +180,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                         onClick={() => toggleMenu(item.name)}
                                         className={classNames(
                                           isChildCurrent
-                                            ? 'bg-[#0E3A2B] text-white'
-                                            : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
+                                            ? 'bg-[#041a4a] text-white'
+                                            : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
                                           'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                         )}
                                       >
@@ -212,8 +210,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={classNames(
                                                   pathname === child.href
-                                                    ? 'bg-[#0E3A2B] text-white'
-                                                    : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
+                                                    ? 'bg-[#041a4a] text-white'
+                                                    : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
                                                   'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
                                                 )}
                                               >
@@ -230,8 +228,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                       onClick={() => setSidebarOpen(false)}
                                       className={classNames(
                                         isCurrent
-                                          ? 'bg-[#0E3A2B] text-white'
-                                          : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
+                                          ? 'bg-[#041a4a] text-white'
+                                          : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
                                         'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                       )}
                                     >
@@ -269,15 +267,14 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
             onMouseLeave={() => setIsHovering(false)}
         >
           {/* Sidebar component */}
-          <div className="flex grow flex-col gap-y-5 bg-[#134D38]">
+          <div className="flex grow flex-col gap-y-5 bg-[#06276b]">
             <div className="flex h-16 shrink-0 items-center px-6 mt-5">
               {!isExpanded ? (
                 <div className="w-full flex justify-center">
-                   <Logo width={32} height={32} />
+                   <span className="text-white font-bold text-xl">V</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                   <Logo width={32} height={32} />
                    <span className="text-white font-bold text-xl whitespace-nowrap">VISION Admin</span>
                 </div>
               )}
@@ -301,8 +298,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                 onClick={() => toggleMenu(item.name)}
                                 className={classNames(
                                   isChildCurrent
-                                    ? 'bg-[#0E3A2B] text-white'
-                                    : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
+                                    ? 'bg-[#041a4a] text-white'
+                                    : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
                                   'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
                                   !isExpanded ? 'justify-center' : ''
                                 )}
@@ -335,11 +332,11 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                       <Link
                                         href={child.href}
                                         className={classNames(
-                                          pathname === child.href
-                                            ? 'bg-[#0E3A2B] text-white'
-                                            : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
-                                          'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
-                                        )}
+                                        pathname === child.href
+                                          ? 'bg-[#041a4a] text-white'
+                                          : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                        'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
+                                      )}
                                       >
                                         {child.name}
                                       </Link>
@@ -352,12 +349,12 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                             <Link
                                       href={item.href!}
                                       className={classNames(
-                                        isCurrent
-                                          ? 'bg-[#0E3A2B] text-white'
-                                          : 'text-gray-200 hover:text-white hover:bg-[#0E3A2B]',
-                                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
-                                        !isExpanded ? 'justify-center' : ''
-                                      )}
+                                      isCurrent
+                                        ? 'bg-[#041a4a] text-white'
+                                        : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                      'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
+                                      !isExpanded ? 'justify-center' : ''
+                                    )}
                                     >
                                       <item.icon
                                         className={classNames(

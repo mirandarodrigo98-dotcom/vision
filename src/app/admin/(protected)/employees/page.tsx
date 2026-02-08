@@ -104,7 +104,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
               <TableHead>
                 <ColumnHeader column="created_at" title="Criado em" />
               </TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
+              <TableHead className="w-[100px] text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

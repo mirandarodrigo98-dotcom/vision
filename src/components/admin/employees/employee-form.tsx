@@ -36,9 +36,10 @@ interface Employee {
 interface EmployeeFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
     initialData?: Employee;
+    readOnly?: boolean;
 }
 
-export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
+export function EmployeeForm({ companies, initialData, readOnly }: EmployeeFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [admissionDate, setAdmissionDate] = useState<Date | undefined>(
@@ -52,14 +53,21 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
         event.preventDefault();
         setLoading(true);
 
+        if (!admissionDate) {
+            toast.error('Data de admissão é obrigatória');
+            setLoading(false);
+            return;
+        }
+        if (!birthDate) {
+            toast.error('Data de nascimento é obrigatória');
+            setLoading(false);
+            return;
+        }
+
         const formData = new FormData(event.currentTarget);
         
-        if (admissionDate) {
-            formData.set('admission_date', admissionDate.toISOString());
-        }
-        if (birthDate) {
-            formData.set('birth_date', birthDate.toISOString());
-        }
+        formData.set('admission_date', admissionDate.toISOString());
+        formData.set('birth_date', birthDate.toISOString());
 
         try {
             const result = initialData 
@@ -86,11 +94,16 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{initialData ? 'Editar Funcionário' : 'Dados do Funcionário'}</CardTitle>
+                <CardTitle>
+                    {readOnly 
+                        ? 'Visualizar Funcionário' 
+                        : (initialData ? 'Editar Funcionário' : 'Dados do Funcionário')}
+                </CardTitle>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <fieldset disabled={readOnly} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="company_id">Empresa *</Label>
                             <Select name="company_id" required defaultValue={initialData?.company_id}>
@@ -108,11 +121,12 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="code">Código</Label>
+                            <Label htmlFor="code">Código *</Label>
                             <Input 
                                 id="code" 
                                 name="code" 
                                 type="number" 
+                                required
                                 placeholder="Código do funcionário" 
                                 defaultValue={initialData?.code || ''} 
                                 min="1"
@@ -126,7 +140,7 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Data de Admissão</Label>
+                            <Label>Data de Admissão *</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -153,7 +167,7 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Data de Nascimento</Label>
+                            <Label>Data de Nascimento *</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -180,8 +194,8 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="gender">Sexo</Label>
-                            <Select name="gender" defaultValue={initialData?.gender || undefined}>
+                            <Label htmlFor="gender">Sexo *</Label>
+                            <Select name="gender" required defaultValue={initialData?.gender || undefined}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione o sexo" />
                                 </SelectTrigger>
@@ -199,23 +213,26 @@ export function EmployeeForm({ companies, initialData }: EmployeeFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="cpf">CPF</Label>
-                            <Input id="cpf" name="cpf" placeholder="000.000.000-00" defaultValue={initialData?.cpf || ''} />
+                            <Label htmlFor="cpf">CPF *</Label>
+                            <Input id="cpf" name="cpf" required placeholder="000.000.000-00" defaultValue={initialData?.cpf || ''} />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="esocial_registration">e-Social</Label>
-                            <Input id="esocial_registration" name="esocial_registration" placeholder="Matrícula e-Social" defaultValue={initialData?.esocial_registration || ''} />
+                            <Label htmlFor="esocial_registration">e-Social *</Label>
+                            <Input id="esocial_registration" name="esocial_registration" required placeholder="Matrícula e-Social" defaultValue={initialData?.esocial_registration || ''} />
                         </div>
                     </div>
+                </fieldset>
 
                     <div className="flex justify-end gap-4 pt-4">
                         <Button type="button" variant="outline" onClick={() => router.back()}>
-                            Cancelar
+                            {readOnly ? 'Voltar' : 'Cancelar'}
                         </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? 'Salvando...' : (initialData ? 'Atualizar Funcionário' : 'Salvar Funcionário')}
-                        </Button>
+                        {!readOnly && (
+                            <Button type="submit" disabled={loading}>
+                                {loading ? 'Salvando...' : (initialData ? 'Atualizar Funcionário' : 'Salvar Funcionário')}
+                            </Button>
+                        )}
                     </div>
                 </form>
             </CardContent>

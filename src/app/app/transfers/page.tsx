@@ -29,17 +29,18 @@ export default async function TransfersListPage() {
       return <div>Você não está vinculado a nenhuma empresa. Contate o suporte.</div>;
   }
 
-  const companyIds = userCompanies.map(c => c.company_id);
+  const activeCompanyId = session.active_company_id;
+  if (!activeCompanyId) return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa.</div>;
+
   const canCreateTransfer = userCompanies.length > 1;
-  const placeholders = companyIds.map(() => '?').join(',');
 
   const transfers = await db.prepare(`
     SELECT t.*, c.nome as source_company_name
     FROM transfer_requests t
     JOIN client_companies c ON t.source_company_id = c.id
-    WHERE t.source_company_id IN (${placeholders})
+    WHERE t.source_company_id = ?
     ORDER BY t.created_at DESC
-  `).all(...companyIds) as Array<{
+  `).all(activeCompanyId) as Array<{
     id: string;
     source_company_name: string;
     target_company_name: string;
@@ -85,7 +86,6 @@ export default async function TransfersListPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Empresa Origem</TableHead>
               <TableHead>Funcionário</TableHead>
               <TableHead>Empresa Destino</TableHead>
               <TableHead>Data Transferência</TableHead>
@@ -98,22 +98,21 @@ export default async function TransfersListPage() {
           <TableBody>
             {transfers.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         Nenhuma transferência encontrada.
                     </TableCell>
                 </TableRow>
             ) : (
                 transfers.map((tr) => (
                 <TableRow key={tr.id}>
-                    <TableCell className="font-medium text-xs text-muted-foreground">{tr.source_company_name}</TableCell>
                     <TableCell className="font-medium">{tr.employee_name}</TableCell>
                     <TableCell>{tr.target_company_name}</TableCell>
                     <TableCell>{tr.transfer_date ? format(new Date(tr.transfer_date), 'dd/MM/yyyy') : '-'}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
                         ${tr.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        ${tr.status === 'APPROVED' ? 'bg-green-100 text-green-800' : ''}
-                        ${tr.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : ''}
+                        ${tr.status === 'APPROVED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
+                        ${tr.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
                         ${tr.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                         ${tr.status === 'REJECTED' ? 'bg-red-200 text-red-900' : ''}
                       `}>

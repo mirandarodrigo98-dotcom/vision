@@ -66,7 +66,6 @@ export async function createTeamUser(data: { name: string; email: string; role: 
         subject: 'Seja Bem-Vindo à VISION',
         html: `
             <div style="font-family: Arial, sans-serif; text-align: center;">
-                <img src="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/logo.svg" alt="Vision Logo" style="max-width: 150px; margin-bottom: 20px;" />
                 <p>Você está recebendo sua senha de acesso a Vision. Será necessário alterar no primeiro acesso.</p>
                 <br />
                 <p><strong>Usuário:</strong> ${email}</p>
@@ -223,7 +222,6 @@ export async function sendPassword(userId: string) {
             subject: 'Seja Bem-Vindo à VISION',
             html: `
                 <div style="font-family: Arial, sans-serif; text-align: center;">
-                    <img src="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/logo.svg" alt="Vision Logo" style="max-width: 150px; margin-bottom: 20px;" />
                     <p>Você está recebendo sua senha de acesso a Vision. Será necessário alterar no primeiro acesso.</p>
                     <br />
                     <p><strong>Usuário:</strong> ${user.email}</p>
@@ -232,7 +230,7 @@ export async function sendPassword(userId: string) {
                     <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Acessar Sistema</a></p>
                 </div>
             `,
-            category: 'password_reset'
+            category: 'welcome_email'
         });
 
         logAudit({

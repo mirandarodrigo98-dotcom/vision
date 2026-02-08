@@ -19,6 +19,11 @@ export async function createCompany(data: FormData) {
   const telefone = data.get('telefone') as string;
   const email_contato = data.get('email_contato') as string;
   const code = data.get('code') as string;
+  const address_type = data.get('address_type') as string;
+  const address_street = data.get('address_street') as string;
+  const address_number = data.get('address_number') as string;
+  const address_complement = data.get('address_complement') as string;
+  const address_zip_code = data.get('address_zip_code') as string;
 
   if (!nome || !cnpj || !code) {
     return { error: 'Nome, CNPJ e Código são obrigatórios.' };
@@ -27,9 +32,16 @@ export async function createCompany(data: FormData) {
   try {
     const id = uuidv4();
     await db.prepare(`
-      INSERT INTO client_companies (id, nome, razao_social, cnpj, telefone, email_contato, code, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).run(id, nome, razao_social, cnpj, telefone, email_contato, code);
+      INSERT INTO client_companies (
+        id, nome, razao_social, cnpj, telefone, email_contato, code,
+        address_type, address_street, address_number, address_complement, address_zip_code,
+        created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).run(
+      id, nome, razao_social, cnpj, telefone, email_contato, code,
+      address_type, address_street, address_number, address_complement, address_zip_code
+    );
 
     logAudit({
       action: 'CREATE_CLIENT',
@@ -71,6 +83,11 @@ export async function updateCompany(id: string, data: FormData) {
   const municipio = data.get('municipio') as string;
   const uf = data.get('uf') as string;
   const data_abertura = data.get('data_abertura') as string;
+  const address_type = data.get('address_type') as string;
+  const address_street = data.get('address_street') as string;
+  const address_number = data.get('address_number') as string;
+  const address_complement = data.get('address_complement') as string;
+  const address_zip_code = data.get('address_zip_code') as string;
 
   if (!code) {
     return { error: 'Código é obrigatório.' };
@@ -102,9 +119,15 @@ export async function updateCompany(id: string, data: FormData) {
       UPDATE client_companies 
       SET nome = ?, razao_social = ?, cnpj = ?, telefone = ?, email_contato = ?, code = ?, 
           filial = ?, municipio = ?, uf = ?, data_abertura = ?,
+          address_type = ?, address_street = ?, address_number = ?, address_complement = ?, address_zip_code = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(nome, razao_social, cnpj, telefone, email_contato, code, filial, municipio, uf, data_abertura, id);
+    `).run(
+      nome, razao_social, cnpj, telefone, email_contato, code, 
+      filial, municipio, uf, data_abertura, 
+      address_type, address_street, address_number, address_complement, address_zip_code,
+      id
+    );
 
     logAudit({
       action: 'UPDATE_CLIENT',
@@ -113,7 +136,7 @@ export async function updateCompany(id: string, data: FormData) {
       role: 'admin',
       entity_type: 'company',
       entity_id: id,
-      metadata: { nome, cnpj, code, filial, municipio, uf, data_abertura },
+      metadata: { nome, cnpj, code, filial, municipio, uf, data_abertura, address_zip_code },
       success: true
     });
 
@@ -253,11 +276,13 @@ export async function importCompanies(formData: FormData) {
     const stmt = db.prepare(`
       INSERT INTO client_companies (
         id, code, filial, cnpj, razao_social, nome, 
-        municipio, uf, data_abertura, email_contato, 
+        municipio, uf, data_abertura, email_contato,
+        address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood,
         created_at, updated_at
       ) VALUES (
         ?, ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, 
+        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT(cnpj) DO UPDATE SET
@@ -269,6 +294,12 @@ export async function importCompanies(formData: FormData) {
         uf = excluded.uf,
         data_abertura = excluded.data_abertura,
         email_contato = excluded.email_contato,
+        address_type = excluded.address_type,
+        address_street = excluded.address_street,
+        address_number = excluded.address_number,
+        address_complement = excluded.address_complement,
+        address_zip_code = excluded.address_zip_code,
+        address_neighborhood = excluded.address_neighborhood,
         updated_at = CURRENT_TIMESTAMP
     `);
 
@@ -287,18 +318,28 @@ export async function importCompanies(formData: FormData) {
       for (const row of items) {
         try {
         // Mapping fields
-        // "CODIGO","ESTAB","CNPJ","EMPRESA","MUNICIPIO","UF","ABERTURA","EMAIL"
-        // Apply sanitization to text fields
-        let code = row['CODIGO']?.trim(); // Code usually numeric, but keep as is just in case
-        const filial = sanitizeString(row['ESTAB']);
-        const cnpj = row['CNPJ']?.trim(); // CNPJ format should be preserved or cleaned? Usually better to keep dots/dashes if present, or strip. 
-                                          // Existing code expects string. Let's just trim.
-        const razao_social = sanitizeString(row['EMPRESA']);
-        const nome = razao_social;
-        const municipio = sanitizeString(row['MUNICIPIO']);
-        const uf = sanitizeString(row['UF']);
-        const abertura = row['ABERTURA']?.trim(); 
-        const email = row['EMAIL']?.trim();
+        /*
+        "CODIGOEMPRESA","CODIGOESTAB","INSCRFEDERAL","DATAINICIOATIV","NOMEESTABCOMPLETO",
+        "NOMEFANTASIA","DESCRTIPOLOGRAD","ENDERECOESTAB","NUMENDERESTAB","COMPLENDERESTAB",
+        "BAIRROENDERESTAB","NOMEMUNIC","SIGLAESTADO","CEPENDERESTAB","EMAILDPO" 
+        */
+        let code = row['CODIGOEMPRESA']?.trim();
+        const filial = row['CODIGOESTAB']?.trim();
+        const cnpj = row['INSCRFEDERAL']?.trim();
+        const razao_social = sanitizeString(row['NOMEESTABCOMPLETO']);
+        const nome = sanitizeString(row['NOMEFANTASIA']);
+        
+        const address_type = row['DESCRTIPOLOGRAD']?.trim();
+        const address_street = sanitizeString(row['ENDERECOESTAB']);
+        const address_number = row['NUMENDERESTAB']?.trim();
+        const address_complement = sanitizeString(row['COMPLENDERESTAB']);
+        const address_neighborhood = sanitizeString(row['BAIRROENDERESTAB']);
+        const municipio = sanitizeString(row['NOMEMUNIC']);
+        const uf = row['SIGLAESTADO']?.trim();
+        const address_zip_code = row['CEPENDERESTAB']?.trim();
+        const email = row['EMAILDPO']?.trim();
+        
+        const abertura = row['DATAINICIOATIV']?.trim();
 
         if (!cnpj || !razao_social) {
           console.warn('Skipping row missing CNPJ or EMPRESA:', row);
@@ -351,6 +392,7 @@ export async function importCompanies(formData: FormData) {
           await stmt.run(
             id, code, filial, cnpj, razao_social, nome,
             municipio, uf, data_abertura, email,
+            address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood
           );
           successCount++;
         } catch (err) {

@@ -33,9 +33,17 @@ export async function getSession() {
   if (!sessionId) return null;
 
   const session = await db.prepare(`
-    SELECT s.*, u.email, u.name, u.avatar_path
+    SELECT 
+      s.*, 
+      u.email, 
+      u.name, 
+      u.avatar_path,
+      u.active_company_id,
+      c.razao_social as company_name,
+      c.cnpj as company_cnpj
     FROM sessions s
     JOIN users u ON s.user_id = u.id
+    LEFT JOIN client_companies c ON u.active_company_id = c.id
     WHERE s.id = ? AND s.expires_at > datetime('now')
   `).get(sessionId) as any;
 

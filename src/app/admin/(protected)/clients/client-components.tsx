@@ -41,7 +41,7 @@ export function CompanyList({ companies }: { companies: Company[] }) {
                 <ColumnHeader column="code" title="Código" />
               </TableHead>
               <TableHead>
-                <ColumnHeader column="nome" title="Nome" />
+                <ColumnHeader column="razao_social" title="Razão Social" />
               </TableHead>
               <TableHead>
                 <ColumnHeader column="cnpj" title="CNPJ" />
@@ -59,7 +59,7 @@ export function CompanyList({ companies }: { companies: Company[] }) {
             {companies.map((company) => (
               <TableRow key={company.id}>
                 <TableCell className="font-medium">{company.code || '-'}</TableCell>
-                <TableCell className="font-medium">{company.nome}</TableCell>
+                <TableCell className="font-medium">{company.razao_social}</TableCell>
                 <TableCell>{company.cnpj}</TableCell>
                 <TableCell>{company.email_contato}</TableCell>
                 <TableCell>

@@ -24,18 +24,19 @@ import {
 
 interface DismissalFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
+    activeCompanyId?: string | null;
     initialData?: any;
     isEditing?: boolean;
     readOnly?: boolean;
     redirectPath?: string;
 }
 
-export function DismissalForm({ companies, initialData, isEditing = false, readOnly = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
+export function DismissalForm({ companies, activeCompanyId, initialData, isEditing = false, readOnly = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
     // Form States
-    const [companyId, setCompanyId] = useState<string>(initialData?.company_id || '');
+    const [companyId, setCompanyId] = useState<string>(initialData?.company_id || activeCompanyId || '');
     const [employeeId, setEmployeeId] = useState<string>(initialData?.employee_id || '');
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
     
@@ -101,35 +102,8 @@ export function DismissalForm({ companies, initialData, isEditing = false, readO
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <fieldset disabled={readOnly} className="space-y-6 border-none p-0 m-0 group-disabled:opacity-100">
-                    {/* Empresa */}
-                    <div className="space-y-2">
-                        <Label htmlFor="company_id">Empresa *</Label>
-                         {isEditing ? (
-                             <Input 
-                                value={companies.find(c => c.id === initialData.company_id)?.nome || 'Empresa desconhecida'} 
-                                disabled 
-                             />
-                         ) : (
-                            <Select 
-                                name="company_id" 
-                                required 
-                                defaultValue={initialData?.company_id}
-                                onValueChange={setCompanyId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecione a empresa" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {companies.map(company => (
-                                        <SelectItem key={company.id} value={company.id}>
-                                            {company.nome} ({company.cnpj})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                         )}
-                         {isEditing && <input type="hidden" name="company_id" value={initialData.company_id} />}
-                    </div>
+                    {/* Hidden Company ID */}
+                    <input type="hidden" name="company_id" value={initialData?.company_id || activeCompanyId || ''} />
 
                     {/* Funcionário */}
                     <div className="space-y-2">

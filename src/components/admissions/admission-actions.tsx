@@ -134,7 +134,7 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
                           variant="outline" 
                           size="sm" 
                           disabled={isApproving}
-                          className="text-green-600 border-green-200 hover:bg-green-50"
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
                         >
                           {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                         </Button>
@@ -155,7 +155,7 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleApprove} className="bg-green-600 hover:bg-green-700">
+                    <AlertDialogAction onClick={handleApprove} className="bg-blue-600 hover:bg-blue-700">
                       Concluir
                     </AlertDialogAction>
                   </AlertDialogFooter>

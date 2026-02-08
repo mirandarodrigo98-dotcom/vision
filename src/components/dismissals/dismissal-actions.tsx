@@ -154,7 +154,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleApprove} className="bg-green-600 hover:bg-green-700">
+                    <AlertDialogAction onClick={handleApprove} className="bg-blue-600 hover:bg-blue-700">
                       Concluir
                     </AlertDialogAction>
                   </AlertDialogFooter>

@@ -1,242 +1,257 @@
 'use server';
 
 import db from '@/lib/db';
-import { logAudit } from '@/lib/audit';
 import { getSession, hashPassword } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email/resend';
 import { v4 as uuidv4 } from 'uuid';
-import { revalidatePath } from 'next/cache';
-import crypto from 'crypto';
 
-export async function createClientUser(data: FormData) {
+export async function getUserCompanies() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' };
-  }
+  if (!session) return [];
 
-  const name = data.get('name') as string;
-  const email = data.get('email') as string;
-  const phone = data.get('phone') as string;
-  // Get all company_ids
-  const company_ids = data.getAll('company_ids') as string[];
+  const companies = await db.prepare(`
+    SELECT c.id, c.razao_social, c.cnpj
+    FROM client_companies c
+    JOIN user_companies uc ON c.id = uc.company_id
+    WHERE uc.user_id = ? AND c.is_active = 1
+    ORDER BY c.razao_social
+  `).all(session.user_id) as any[];
 
-  if (!name || !email || company_ids.length === 0) {
-    return { error: 'Nome, Email e pelo menos uma Empresa são obrigatórios.' };
-  }
-
-  try {
-    const userId = uuidv4();
-    
-    // Generate random password (8 chars alphanumeric)
-    const password = crypto.randomBytes(4).toString('hex');
-    const hash = await hashPassword(password);
-    
-    // Transação para criar user e vínculo
-    const tx = await db.transaction(async () => {
-      await db.prepare(`
-        INSERT INTO users (id, name, email, phone, role, is_active, password_hash, password_temporary)
-        VALUES (?, ?, ?, ?, 'client_user', 1, ?, 1)
-      `).run(userId, name, email, phone, hash);
-
-      const insertCompany = db.prepare(`
-        INSERT INTO user_companies (user_id, company_id)
-        VALUES (?, ?)
-      `);
-      
-      for (const cid of company_ids) {
-          await insertCompany.run(userId, cid);
-      }
-    });
-    
-    await tx();
-
-    // Send email with password
-    await sendEmail({
-        to: email,
-        subject: 'Seja Bem-Vindo à VISION',
-        html: `
-            <div style="font-family: Arial, sans-serif; text-align: center;">
-                <img src="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/logo.svg" alt="Vision Logo" style="max-width: 150px; margin-bottom: 20px;" />
-                <p>Você está recebendo sua senha de acesso a Vision. Será necessário alterar no primeiro acesso.</p>
-                <br />
-                <p><strong>Usuário:</strong> ${email}</p>
-                <p><strong>Senha:</strong> ${password}</p>
-                <br />
-                <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Acessar Sistema</a></p>
-            </div>
-        `,
-        category: 'welcome_email'
-    });
-
-    logAudit({
-      action: 'CREATE_USER',
-      actor_user_id: session.user_id,
-      actor_email: session.email,
-      role: 'admin',
-      entity_type: 'user',
-      entity_id: userId,
-      metadata: { name, email, company_ids },
-      success: true
-    });
-
-    revalidatePath('/admin/client-users');
-    return { success: true };
-  } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return { error: 'Email já cadastrado.' };
-    }
-    return { error: 'Erro ao criar usuário: ' + error.message };
-  }
+  return companies;
 }
 
-export async function updateClientUser(id: string, data: FormData) {
+export async function switchCompany(companyId: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' };
+  if (!session) throw new Error('Unauthorized');
+
+  // Verify if user is linked to this company
+  const link = await db.prepare(`
+    SELECT 1 FROM user_companies 
+    WHERE user_id = ? AND company_id = ?
+  `).get(session.user_id, companyId);
+
+  if (!link) {
+    throw new Error('User not linked to this company');
   }
 
-  const name = data.get('name') as string;
-  const email = data.get('email') as string;
-  const phone = data.get('phone') as string;
-  const company_ids = data.getAll('company_ids') as string[];
+  // Update active company
+  await db.prepare(`
+    UPDATE users SET active_company_id = ? WHERE id = ?
+  `).run(companyId, session.user_id);
 
-  if (company_ids.length === 0) {
-      return { error: 'Selecione pelo menos uma empresa.' };
-  }
-
-  try {
-    const tx = await db.transaction(async () => {
-        await db.prepare(`
-            UPDATE users 
-            SET name = ?, email = ?, phone = ?, updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(name, email, phone, id);
-
-        await db.prepare('DELETE FROM user_companies WHERE user_id = ?').run(id);
-        
-        const insertCompany = db.prepare('INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)');
-        for (const cid of company_ids) {
-            await insertCompany.run(id, cid);
-        }
-    });
-
-    await tx();
-
-    logAudit({
-      action: 'UPDATE_USER',
-      actor_user_id: session.user_id,
-      actor_email: session.email,
-      role: 'admin',
-      entity_type: 'user',
-      entity_id: id,
-      metadata: { name, email, company_ids },
-      success: true
-    });
-
-    revalidatePath('/admin/client-users');
-    return { success: true };
-  } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return { error: 'Email já cadastrado.' };
-    }
-    return { error: 'Erro ao atualizar usuário.' };
-  }
-}
-
-export async function toggleUserStatus(id: string, isActive: boolean) {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') {
-    return { error: 'Unauthorized' };
-  }
-
-  await db.prepare("UPDATE users SET is_active = ?, updated_at = datetime('now') WHERE id = ?").run(isActive ? 1 : 0, id);
-  
-  revalidatePath('/admin/client-users');
+  revalidatePath('/app');
   return { success: true };
 }
 
-export async function generateTempPassword(userId: string) {
-    const session = await getSession();
-    if (!session || session.role !== 'admin') {
-        return { error: 'Unauthorized' };
-    }
+export async function createClientUser(formData: FormData) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Unauthorized' };
+  }
 
-    try {
-        const user = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as { email: string, name: string };
-        if (!user) return { error: 'Usuário não encontrado' };
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const phone = formData.get('phone') as string;
+  const companyIds = formData.getAll('company_ids') as string[];
 
-        const password = crypto.randomBytes(4).toString('hex'); // 8 chars
-        const hash = await hashPassword(password);
+  if (!name || !email || companyIds.length === 0) {
+    return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
+  }
 
-        // Valid for 1 hour (Postgres syntax via converter)
+  // Check if email exists
+  const existing = await db.prepare('SELECT 1 FROM users WHERE email = ?').get(email);
+  if (existing) {
+    return { error: 'Email já está em uso.' };
+  }
+
+  const tempPassword = Math.random().toString(36).slice(-8);
+  const hashedPassword = await hashPassword(tempPassword);
+  const userId = uuidv4();
+
+  try {
+    const createUser = db.transaction(async () => {
+      // Create user
+      await db.prepare(`
+        INSERT INTO users (id, name, email, phone, password_hash, role, is_active, created_at)
+        VALUES (?, ?, ?, ?, ?, 'client_user', 1, NOW())
+      `).run(userId, name, email, phone, hashedPassword);
+
+      // Link companies
+      for (const companyId of companyIds) {
         await db.prepare(`
-            UPDATE users 
-            SET password_hash = ?, password_temporary = 1, temp_password_expires_at = datetime('now', '+1 hour'), updated_at = datetime('now')
-            WHERE id = ?
-        `).run(hash, userId);
+          INSERT INTO user_companies (user_id, company_id)
+          VALUES (?, ?)
+        `).run(userId, companyId);
+      }
 
-        logAudit({
-            action: 'GENERATE_TEMP_PASSWORD',
-            actor_user_id: session.user_id,
-            actor_email: session.email,
-            role: 'admin',
-            entity_type: 'user',
-            entity_id: userId,
-            metadata: { email: user.email },
-            success: true
-        });
+      // Set first company as active
+      if (companyIds.length > 0) {
+        await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(companyIds[0], userId);
+      }
+    });
 
-        return { success: true, password };
-    } catch (e: any) {
-        return { error: e.message };
-    }
+    await createUser();
+
+    // Send email
+    await sendEmail({
+      to: email,
+      subject: 'Bem-vindo ao VISION',
+      html: `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h2>Bem-vindo ao VISION</h2>
+          <p>Olá ${name},</p>
+          <p>Sua conta de acesso foi criada com sucesso.</p>
+          <p>Para acessar o sistema, utilize as credenciais abaixo:</p>
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
+            <p style="margin: 5px 0;"><strong>Senha Provisória:</strong> ${tempPassword}</p>
+          </div>
+          <p>Recomendamos que altere sua senha após o primeiro acesso.</p>
+          <p>Atenciosamente,<br>Equipe NZD</p>
+        </div>
+      `,
+      category: 'user_created'
+    });
+
+    revalidatePath('/admin/client-users');
+    return { success: true };
+  } catch (e: any) {
+    console.error(e);
+    return { error: 'Erro ao criar usuário: ' + e.message };
+  }
+}
+
+export async function updateClientUser(userId: string, formData: FormData) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Unauthorized' };
+  }
+
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const phone = formData.get('phone') as string;
+  const companyIds = formData.getAll('company_ids') as string[];
+
+  if (!name || !email || companyIds.length === 0) {
+    return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
+  }
+
+  // Check if email exists for other user
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId);
+  if (existing) {
+    return { error: 'Email já está em uso por outro usuário.' };
+  }
+
+  try {
+    const updateUser = db.transaction(async () => {
+      // Update user details
+      await db.prepare(`
+        UPDATE users 
+        SET name = ?, email = ?, phone = ?, updated_at = NOW()
+        WHERE id = ?
+      `).run(name, email, phone, userId);
+
+      // Update companies links
+      // First delete all
+      await db.prepare('DELETE FROM user_companies WHERE user_id = ?').run(userId);
+
+      // Then re-insert
+      for (const companyId of companyIds) {
+        await db.prepare(`
+          INSERT INTO user_companies (user_id, company_id)
+          VALUES (?, ?)
+        `).run(userId, companyId);
+      }
+
+      // Check active company
+      const activeCompanyCheck = await db.prepare(`
+        SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = (SELECT active_company_id FROM users WHERE id = ?)
+      `).get(userId, userId);
+
+      if (!activeCompanyCheck && companyIds.length > 0) {
+        // If active company is no longer linked, set to first one
+        await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(companyIds[0], userId);
+      }
+    });
+
+    await updateUser();
+
+    revalidatePath('/admin/client-users');
+    return { success: true };
+  } catch (e: any) {
+    console.error(e);
+    return { error: 'Erro ao atualizar usuário: ' + e.message };
+  }
+}
+
+export async function toggleUserStatus(userId: string, isActive: boolean) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Unauthorized' };
+  }
+
+  try {
+    await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(isActive ? 1 : 0, userId);
+    revalidatePath('/admin/client-users');
+    return { success: true };
+  } catch (e: any) {
+    return { error: e.message };
+  }
 }
 
 export async function sendPassword(userId: string) {
-    const session = await getSession();
-    if (!session || session.role !== 'admin') {
-        return { error: 'Unauthorized' };
-    }
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Unauthorized' };
+  }
 
-    try {
-        const user = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as { email: string, name: string };
-        if (!user) return { error: 'Usuário não encontrado' };
+  try {
+    const user = await db.prepare('SELECT name, email FROM users WHERE id = ?').get(userId) as any;
+    if (!user) return { error: 'Usuário não encontrado' };
 
-        const password = crypto.randomBytes(6).toString('hex'); // 12 chars
-        const hash = await hashPassword(password);
+    const newPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await hashPassword(newPassword);
 
-        await db.prepare(`
-            UPDATE users 
-            SET password_hash = ?, password_temporary = 1, updated_at = datetime('now')
-            WHERE id = ?
-        `).run(hash, userId);
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashedPassword, userId);
 
-        await sendEmail({
-            to: user.email,
-            subject: 'Sua Senha de Acesso - NZD Contabilidade',
-            html: `
-                <p>Olá ${user.name},</p>
-                <p>Sua conta foi configurada. Use a senha temporária abaixo para acessar o sistema:</p>
-                <h3>${password}</h3>
-                <p>Você deverá alterar sua senha após o login.</p>
-                <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Acessar Sistema</a></p>
-            `,
-            category: 'password_reset'
-        });
+    await sendEmail({
+      to: user.email,
+      subject: 'Nova Senha de Acesso - VISION',
+      html: `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h2>Redefinição de Senha</h2>
+          <p>Olá ${user.name},</p>
+          <p>Uma nova senha foi gerada para seu acesso ao VISION.</p>
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p style="margin: 5px 0;"><strong>Nova Senha:</strong> ${newPassword}</p>
+          </div>
+          <p>Recomendamos que altere sua senha após o acesso.</p>
+        </div>
+      `,
+      category: 'password_reset'
+    });
 
-        logAudit({
-            action: 'SEND_PASSWORD',
-            actor_user_id: session.user_id,
-            actor_email: session.email,
-            role: 'admin',
-            entity_type: 'user',
-            entity_id: userId,
-            metadata: { email: user.email },
-            success: true
-        });
+    return { success: true };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+}
 
-        return { success: true };
-    } catch (e: any) {
-        return { error: e.message };
-    }
+export async function generateTempPassword(userId: string) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Unauthorized' };
+  }
+
+  try {
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await hashPassword(tempPassword);
+
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashedPassword, userId);
+
+    return { success: true, password: tempPassword };
+  } catch (e: any) {
+    return { error: e.message };
+  }
 }

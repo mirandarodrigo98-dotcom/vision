@@ -7,6 +7,8 @@ export default async function ClientNewVacationPage() {
   const session = await getSession();
   if (!session || session.role !== 'client_user') redirect('/login');
 
+  const activeCompanyId = session.active_company_id;
+
   const companies = await db.prepare(`
     SELECT c.id, c.nome, c.cnpj 
     FROM client_companies c 
@@ -24,7 +26,7 @@ export default async function ClientNewVacationPage() {
         </p>
       </div>
       
-      <VacationForm companies={companies} redirectPath="/app/vacations" />
+      <VacationForm companies={companies} activeCompanyId={activeCompanyId} redirectPath="/app/vacations" />
     </div>
   );
 }
