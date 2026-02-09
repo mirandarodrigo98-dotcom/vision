@@ -43,6 +43,7 @@ export default async function AdmissionsListPage() {
     protocol_number: string;
     created_at: string;
     company_name: string;
+    created_by_user_id: string;
   }>;
 
   return (
@@ -78,11 +79,11 @@ export default async function AdmissionsListPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Funcionário</TableHead>
-              <TableHead>Cargo</TableHead>
-              <TableHead>Data Admissão</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Protocolo</TableHead>
-              <TableHead>Criado em</TableHead>
+              <TableHead className="text-center">Cargo</TableHead>
+              <TableHead className="text-center">Data Admissão</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-center">Protocolo</TableHead>
+              <TableHead className="text-center">Data Inclusão</TableHead>
               <TableHead className="text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -90,9 +91,9 @@ export default async function AdmissionsListPage() {
             {admissions.map((adm) => (
               <TableRow key={adm.id}>
                 <TableCell className="font-medium">{adm.employee_full_name}</TableCell>
-                <TableCell>{adm.job_role}</TableCell>
-                <TableCell>{adm.admission_date ? adm.admission_date.split('-').reverse().join('/') : '-'}</TableCell>
-                <TableCell>
+                <TableCell className="text-center">{adm.job_role}</TableCell>
+                <TableCell className="text-center">{adm.admission_date ? adm.admission_date.split('-').reverse().join('/') : '-'}</TableCell>
+                <TableCell className="text-center">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold
                     ${adm.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
                     ${adm.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
@@ -114,8 +115,8 @@ export default async function AdmissionsListPage() {
                     }
                   </span>
                 </TableCell>
-                <TableCell className="font-mono text-xs">{adm.protocol_number || '-'}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">
+                <TableCell className="font-mono text-xs text-center">{adm.protocol_number || '-'}</TableCell>
+                <TableCell className="text-muted-foreground text-sm text-center">
                     {format(new Date(adm.created_at), 'dd/MM/yyyy HH:mm')}
                 </TableCell>
                 <TableCell className="text-center">
@@ -124,6 +125,8 @@ export default async function AdmissionsListPage() {
                     admissionDate={adm.admission_date} 
                     status={adm.status}
                     employeeName={adm.employee_full_name}
+                    createdByUserId={adm.created_by_user_id}
+                    currentUserId={session.user_id}
                   />
                 </TableCell>
               </TableRow>

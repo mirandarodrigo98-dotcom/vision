@@ -4,12 +4,24 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 dotenv.config();
 
+// Fix for "SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'"
+// We handle SSL configuration via the 'ssl' property below, so we can remove sslmode from the connection string
+// to avoid the warning from pg-connection-string.
+const originalConnectionString = process.env.DATABASE_URL || '';
+const hasSslMode = originalConnectionString.includes('sslmode=require');
+const isNeon = originalConnectionString.includes('neon.tech');
+
+let connectionString = originalConnectionString;
+if (hasSslMode) {
+  connectionString = connectionString.replace('?sslmode=require', '').replace('&sslmode=require', '');
+}
+
 // Create a connection pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech') 
+  connectionString: connectionString,
+  ssl: (isNeon || hasSslMode || process.env.NODE_ENV === 'production') 
     ? { rejectUnauthorized: false } 
-    : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined),
+    : undefined,
 });
 
 if (!process.env.DATABASE_URL && typeof window === 'undefined') {

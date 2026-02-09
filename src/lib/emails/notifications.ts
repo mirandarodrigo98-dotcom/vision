@@ -1,13 +1,38 @@
 import { Resend } from 'resend';
 import db from '@/lib/db';
 import { format } from 'date-fns';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
-function wrapHtml(content: string) {
+async function getLogoBase64(): Promise<string | null> {
+    try {
+        const logoSetting = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+        if (!logoSetting?.value) return null;
+
+        const logoPath = join(process.cwd(), 'public', logoSetting.value);
+        const buffer = await readFile(logoPath);
+        const ext = logoSetting.value.split('.').pop()?.toLowerCase();
+        const mimeType = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png');
+        
+        return `data:${mimeType};base64,${buffer.toString('base64')}`;
+    } catch (e) {
+        console.error('Error fetching logo for email:', e);
+        return null;
+    }
+}
+
+async function wrapHtml(content: string) {
+    const logoSrc = await getLogoBase64();
+    const logoHtml = logoSrc 
+        ? `<div style="text-align: center; margin-bottom: 24px;"><img src="${logoSrc}" alt="Logo" style="max-width: 300px; max-height: 100px; object-fit: contain;" /></div>`
+        : '';
+
     return `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        ${logoHtml}
         <div style="color: #333; font-size: 16px; line-height: 1.5;">
           ${content}
         </div>
@@ -129,7 +154,7 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: wrapHtml(html),
+        html: await wrapHtml(html),
         attachments
     });
 }
@@ -146,6 +171,7 @@ interface TransferEmailData {
     changes?: string[]; // Keys: source_company, target_company, employee, transfer_date, observation
     recipientEmail?: string;
     senderEmail?: string;
+    pdfBuffer?: Buffer;
 }
 
 export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: TransferEmailData) {
@@ -174,6 +200,7 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
 
     let subject = '';
     let html = '';
+    const attachments: any[] = [];
 
     if (type === 'NEW') {
         subject = 'Nova Transferência Solicitada';
@@ -184,7 +211,11 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
             <p><strong>FUNCIONÁRIO:</strong> "${data.employeeName}"</p>
             <p><strong>DATA DE TRANSFERENCIA:</strong> "${data.transferDate}"</p>
             <p><strong>OBSERVAÇÃO:</strong> "${data.observation}"</p>
+            <p>Confira o Relatório Anexo.</p>
         `;
+        if (data.pdfBuffer) {
+            attachments.push({ filename: 'Relatorio_Transferencia.pdf', content: data.pdfBuffer });
+        }
     } else if (type === 'UPDATE') {
         subject = 'Retificação de Transferência Solicitada';
         const changes = data.changes || [];
@@ -195,7 +226,11 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
             ${formatField('FUNCIONÁRIO', `"${data.employeeName}"`, 'employee_id', changes)}
             ${formatField('DATA DE TRANSFERENCIA', `"${data.transferDate}"`, 'transfer_date', changes)}
             ${formatField('OBSERVAÇÃO', `"${data.observation}"`, 'observation', changes)}
+            <p>Confira as alterações no relatório anexo.</p>
         `;
+        if (data.pdfBuffer) {
+            attachments.push({ filename: 'Relatorio_Transferencia_Retificado.pdf', content: data.pdfBuffer });
+        }
     } else if (type === 'CANCEL') {
         subject = 'Cancelamento de Transferência Solicitada';
         html = `
@@ -221,7 +256,7 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: wrapHtml(html)
+        html: await wrapHtml(html)
     });
 }
 
@@ -305,7 +340,7 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: wrapHtml(html),
+        html: await wrapHtml(html),
         attachments
     });
 }
@@ -390,7 +425,7 @@ export async function sendDismissalNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: wrapHtml(html),
+        html: await wrapHtml(html),
         attachments
     });
 }

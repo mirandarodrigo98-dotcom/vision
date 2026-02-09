@@ -16,12 +16,17 @@ export async function getAdmissionHistory(admissionId: string) {
     return { error: 'Admissão não encontrada.' };
   }
 
-  // Verify ownership or admin
-  if (session.role === 'client_user' && admission.created_by_user_id !== session.user_id) {
-    // Also check if user belongs to the same company? 
-    // For now strict ownership or same company logic if needed. 
-    // The previous logic checked `created_by_user_id`.
-    return { error: 'Unauthorized' };
+  // Verify access (company or ownership)
+  if (session.role === 'client_user') {
+      const hasAccess = await db.prepare(`
+          SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
+      `).get(session.user_id, admission.company_id);
+
+      // If user has access to the company, they can see the history
+      // Fallback: check if they are the creator (though creator should usually have company access)
+      if (!hasAccess && admission.created_by_user_id !== session.user_id) {
+          return { error: 'Unauthorized' };
+      }
   }
 
   try {

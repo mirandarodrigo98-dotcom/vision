@@ -66,20 +66,11 @@ export async function createAdmission(formData: FormData) {
         // Extra fields for PDF
         const cpf = formData.get('cpf') as string || '';
         const birthDate = formData.get('birth_date') as string || '';
-        const motherName = formData.get('mother_name') as string || '';
         const email = formData.get('email') as string || '';
         const phone = formData.get('phone') as string || '';
         const maritalStatus = formData.get('marital_status') as string || '';
         const gender = formData.get('gender') as string || '';
         const raceColor = formData.get('race_color') as string || '';
-        const zipCode = formData.get('zip_code') as string || '';
-        const addressStreet = formData.get('address_street') as string || '';
-        const addressNumber = formData.get('address_number') as string || '';
-        const addressComplement = formData.get('address_complement') as string || '';
-        const addressNeighborhood = formData.get('address_neighborhood') as string || '';
-        const addressCity = formData.get('address_city') as string || '';
-        const addressState = formData.get('address_state') as string || '';
-        const cbo = formData.get('cbo') as string || '';
         const contractType = formData.get('contract_type') as string || '';
 
         // Generate Protocol Number
@@ -189,18 +180,19 @@ export async function createAdmission(formData: FormData) {
         const pdfData = {
             protocol_number: protocolNumber,
             employee_full_name: employeeFullName,
-            cpf, birth_date: birthDate, mother_name: motherName, email, phone,
+            cpf, birth_date: birthDate, email, phone,
             marital_status: maritalStatus, gender, education_level: educationLevel, race_color: raceColor,
-            zip_code: zipCode, address_street: addressStreet, address_number: addressNumber,
-            address_complement: addressComplement, address_neighborhood: addressNeighborhood,
-            address_city: addressCity, address_state: addressState,
-            job_role: jobRole, cbo, admission_date: admissionDate,
-            salary: (salaryCents / 100).toFixed(2).replace('.', ','),
+            job_role: jobRole, admission_date: admissionDate,
+            salary_cents: salaryCents,
             contract_type: contractType,
-            experience_days_1: trial1Days, experience_days_2: trial2Days,
-            working_hours: workSchedule,
-            has_vt: hasVt, vt_tarifa_brl: (vtTarifaCents / 100).toFixed(2).replace('.', ','),
-            vt_linha: vtLinha, has_adv: hasAdv, general_observations: generalObservations
+            trial1_days: trial1Days, trial2_days: trial2Days,
+            work_schedule: workSchedule,
+            has_vt: hasVt, 
+            vt_tarifa_cents: vtTarifaCents,
+            vt_linha: vtLinha, vt_qtd_por_dia: vtQtdPorDia,
+            has_adv: hasAdv, 
+            adv_day: advDay, adv_periodicity: advPeriodicity,
+            general_observations: generalObservations
         };
 
         const pdfPromise = generateAdmissionPDF(pdfData)
@@ -304,8 +296,15 @@ export async function cancelAdmission(admissionId: string) {
             return { error: 'Admissão não encontrada.' };
         }
 
-        if (session.role !== 'admin' && admission.created_by_user_id !== session.user_id) {
-            return { error: 'Você não tem permissão para cancelar esta admissão.' };
+        if (session.role === 'client_user') {
+            // Check company access
+            const hasAccess = await db.prepare(`
+                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, admission.company_id);
+            
+            if (!hasAccess && admission.created_by_user_id !== session.user_id) {
+                return { error: 'Você não tem permissão para cancelar esta admissão.' };
+            }
         }
 
         // Check date constraint: Must be at least 1 day before admission date
@@ -381,8 +380,15 @@ export async function updateAdmission(formData: FormData) {
         const existingAdmission = await db.prepare('SELECT * FROM admission_requests WHERE id = ?').get(admissionId) as any;
         if (!existingAdmission) return { error: 'Admissão não encontrada.' };
 
-        if (session.role !== 'admin' && existingAdmission.created_by_user_id !== session.user_id) {
-            return { error: 'Você não tem permissão para editar esta admissão.' };
+        if (session.role === 'client_user') {
+            // Check company access
+            const hasAccess = await db.prepare(`
+                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, existingAdmission.company_id);
+
+            if (!hasAccess && existingAdmission.created_by_user_id !== session.user_id) {
+                 return { error: 'Você não tem permissão para editar esta admissão.' };
+            }
         }
 
         // Check date constraint
@@ -422,19 +428,9 @@ export async function updateAdmission(formData: FormData) {
         const email = formData.get('email') as string || '';
         const phone = formData.get('phone') as string || '';
         const maritalStatus = formData.get('marital_status') as string || '';
+        const gender = formData.get('gender') as string || '';
         const raceColor = formData.get('race_color') as string || '';
         const contractType = formData.get('contract_type') as string || '';
-
-        // Fix missing variables for PDF generation (using existing values)
-        const motherName = existingAdmission.mother_name || '';
-        const zipCode = existingAdmission.zip_code || '';
-        const addressStreet = existingAdmission.address_street || '';
-        const addressNumber = existingAdmission.address_number || '';
-        const addressComplement = existingAdmission.address_complement || '';
-        const addressNeighborhood = existingAdmission.address_neighborhood || '';
-        const addressCity = existingAdmission.address_city || '';
-        const addressState = existingAdmission.address_state || '';
-        const cbo = existingAdmission.cbo || '';
 
         // Handle File Upload (Client-side or Server-side)
         const fileKey = formData.get('file_key') as string;
@@ -499,9 +495,19 @@ export async function updateAdmission(formData: FormData) {
         const changes: string[] = [];
         const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
         const normalizeBool = (val: any) => Boolean(val);
+        const normalizeDate = (val: any) => {
+            if (!val) return '';
+            if (val instanceof Date) {
+                 return val.toISOString().split('T')[0];
+            }
+            const str = String(val).trim();
+            if (str.includes('T')) return str.split('T')[0];
+            if (str.match(/^\d{4}-\d{2}-\d{2}\s/)) return str.split(' ')[0];
+            return str;
+        };
 
         if (normalize(existingAdmission.education_level) !== normalize(educationLevel)) changes.push('education_level');
-        if (normalize(existingAdmission.admission_date) !== normalize(admissionDate)) changes.push('admission_date');
+        if (normalizeDate(existingAdmission.admission_date) !== normalizeDate(admissionDate)) changes.push('admission_date');
         if (normalize(existingAdmission.job_role) !== normalize(jobRole)) changes.push('job_role');
         if (existingAdmission.salary_cents !== salaryCents) changes.push('salary_cents');
         if (normalize(existingAdmission.work_schedule) !== normalize(workSchedule)) changes.push('work_schedule');
@@ -524,25 +530,13 @@ export async function updateAdmission(formData: FormData) {
         if (normalize(existingAdmission.general_observations) !== normalize(generalObservations)) changes.push('general_observations');
         
         if (normalize(existingAdmission.cpf) !== normalize(cpf)) changes.push('cpf');
-        if (normalize(existingAdmission.birth_date) !== normalize(birthDate)) changes.push('birth_date');
-        // if (normalize(existingAdmission.mother_name) !== normalize(motherName)) changes.push('mother_name');
+        if (normalizeDate(existingAdmission.birth_date) !== normalizeDate(birthDate)) changes.push('birth_date');
         if (normalize(existingAdmission.email) !== normalize(email)) changes.push('email');
         if (normalize(existingAdmission.phone) !== normalize(phone)) changes.push('phone');
         if (normalize(existingAdmission.marital_status) !== normalize(maritalStatus)) changes.push('marital_status');
+        if (normalize(existingAdmission.gender) !== normalize(gender)) changes.push('gender');
         if (normalize(existingAdmission.race_color) !== normalize(raceColor)) changes.push('race_color');
         
-        // Address changes - REMOVED
-        /*
-        if (normalize(existingAdmission.zip_code) !== normalize(zipCode)) changes.push('zip_code');
-        if (normalize(existingAdmission.address_street) !== normalize(addressStreet)) changes.push('address_street');
-        if (normalize(existingAdmission.address_number) !== normalize(addressNumber)) changes.push('address_number');
-        if (normalize(existingAdmission.address_complement) !== normalize(addressComplement)) changes.push('address_complement');
-        if (normalize(existingAdmission.address_neighborhood) !== normalize(addressNeighborhood)) changes.push('address_neighborhood');
-        if (normalize(existingAdmission.address_city) !== normalize(addressCity)) changes.push('address_city');
-        if (normalize(existingAdmission.address_state) !== normalize(addressState)) changes.push('address_state');
-        
-        if (normalize(existingAdmission.cbo) !== normalize(cbo)) changes.push('cbo');
-        */
         if (normalize(existingAdmission.contract_type) !== normalize(contractType)) changes.push('contract_type');
 
         await db.prepare(`
@@ -551,8 +545,9 @@ export async function updateAdmission(formData: FormData) {
                 has_vt = ?, vt_tarifa_cents = ?, vt_linha = ?, vt_qtd_por_dia = ?,
                 has_adv = ?, adv_day = ?, adv_periodicity = ?,
                 trial1_days = ?, trial2_days = ?, general_observations = ?,
-                cpf = ?, birth_date = ?, email = ?, phone = ?, marital_status = ?, race_color = ?,
+                cpf = ?, birth_date = ?, email = ?, phone = ?, marital_status = ?, gender = ?, race_color = ?,
                 contract_type = ?,
+                status = 'RECTIFIED',
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(
@@ -560,7 +555,7 @@ export async function updateAdmission(formData: FormData) {
             hasVt, vtTarifaCents, vtLinha, vtQtdPorDia,
             hasAdv, advDay, advPeriodicity,
             trial1Days, trial2Days, generalObservations,
-            cpf, birthDate, email, phone, maritalStatus, raceColor,
+            cpf, birthDate, email, phone, maritalStatus, gender, raceColor,
             contractType,
             admissionId
         );
@@ -584,18 +579,19 @@ export async function updateAdmission(formData: FormData) {
         const pdfData = {
             protocol_number: existingAdmission.protocol_number,
             employee_full_name: existingAdmission.employee_full_name,
-            cpf, birth_date: birthDate, mother_name: motherName, email, phone,
-            marital_status: maritalStatus, education_level: educationLevel, race_color: raceColor,
-            zip_code: zipCode, address_street: addressStreet, address_number: addressNumber,
-            address_complement: addressComplement, address_neighborhood: addressNeighborhood,
-            address_city: addressCity, address_state: addressState,
-            job_role: jobRole, cbo, admission_date: admissionDate,
-            salary: (salaryCents / 100).toFixed(2).replace('.', ','),
+            cpf, birth_date: birthDate, email, phone,
+            marital_status: maritalStatus, gender, education_level: educationLevel, race_color: raceColor,
+            job_role: jobRole, admission_date: admissionDate,
+            salary_cents: salaryCents,
             contract_type: contractType,
-            experience_days_1: trial1Days, experience_days_2: trial2Days,
-            working_hours: workSchedule,
-            has_vt: hasVt, vt_tarifa_brl: (vtTarifaCents / 100).toFixed(2).replace('.', ','),
-            vt_linha: vtLinha, has_adv: hasAdv, general_observations: generalObservations,
+            trial1_days: trial1Days, trial2_days: trial2Days,
+            work_schedule: workSchedule,
+            has_vt: hasVt, 
+            vt_tarifa_cents: vtTarifaCents,
+            vt_linha: vtLinha, vt_qtd_por_dia: vtQtdPorDia,
+            has_adv: hasAdv, 
+            adv_day: advDay, adv_periodicity: advPeriodicity,
+            general_observations: generalObservations,
             changes // Pass changes to highlight in PDF if supported
         };
 
@@ -627,10 +623,14 @@ export async function updateAdmission(formData: FormData) {
     }
 }
 
-export async function completeAdmission(admissionId: string) {
+export async function completeAdmission(admissionId: string, data?: { employeeCode: string; esocialRegistration: string }) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
+    }
+
+    if (!data?.employeeCode || !data?.esocialRegistration) {
+        return { error: 'Código do funcionário e matrícula eSocial são obrigatórios.' };
     }
 
     try {
@@ -642,6 +642,22 @@ export async function completeAdmission(admissionId: string) {
 
         if (admission.status === 'COMPLETED') {
             return { error: 'Admissão já concluída.' };
+        }
+
+        // Check for duplicates (Employee Code and eSocial Registration) within the same company
+        const duplicateCheck = await db.prepare(`
+            SELECT code, esocial_registration 
+            FROM employees 
+            WHERE company_id = ? AND (code = ? OR esocial_registration = ?)
+        `).get(admission.company_id, data.employeeCode, data.esocialRegistration) as { code: string; esocial_registration: string } | undefined;
+
+        if (duplicateCheck) {
+            if (duplicateCheck.code === data.employeeCode) {
+                return { error: `O Código do Funcionário "${data.employeeCode}" já existe nesta empresa. Por favor, utilize outro código.` };
+            }
+            if (duplicateCheck.esocial_registration === data.esocialRegistration) {
+                return { error: `A Matrícula eSocial "${data.esocialRegistration}" já existe nesta empresa. Por favor, utilize outra matrícula.` };
+            }
         }
 
         // Get creator info for email
@@ -656,15 +672,18 @@ export async function completeAdmission(admissionId: string) {
             await db.prepare(`
                 INSERT INTO employees (
                     id, company_id, name, admission_date, birth_date, cpf, 
+                    code, esocial_registration,
                     is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `).run(
                 employeeId, 
                 admission.company_id, 
                 admission.employee_full_name, 
                 admission.admission_date, 
                 admission.birth_date, 
-                admission.cpf
+                admission.cpf,
+                data.employeeCode,
+                data.esocialRegistration
             );
 
             // 2. Update Admission Status

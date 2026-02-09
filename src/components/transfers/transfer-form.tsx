@@ -40,6 +40,7 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
     const [sourceCompanyId, setSourceCompanyId] = useState<string>(initialData?.source_company_id || activeCompanyId || '');
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
     const [selectedEmployeeName, setSelectedEmployeeName] = useState<string>(initialData?.employee_name || '');
+    const [targetCompanyId, setTargetCompanyId] = useState<string>(initialData?.target_company_id || '');
 
     useEffect(() => {
         if (sourceCompanyId) {

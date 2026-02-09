@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { format } from 'date-fns';
 import { sendTransferNotification } from '@/lib/emails/notifications';
+import { generateTransferPDF } from '@/lib/pdf-generator';
 
 // Helper to generate Protocol Number
 function generateProtocolNumber() {
@@ -14,6 +15,8 @@ function generateProtocolNumber() {
     const randomPart = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
     return `${dateStr}${randomPart}`;
 }
+
+import { checkPendingRequests } from './employees';
 
 export async function createTransfer(formData: FormData) {
     const session = await getSession();
@@ -42,6 +45,20 @@ export async function createTransfer(formData: FormData) {
 
         if (!userCompanyData) {
             return { error: 'Você não tem permissão para esta empresa de origem.' };
+        }
+
+        // Attempt to find employee ID by name and company to check pending requests
+        const employee = await db.prepare('SELECT id FROM employees WHERE name = ? AND company_id = ?').get(employeeName, sourceCompanyId) as { id: string };
+        
+        if (employee) {
+            const pending = await checkPendingRequests(employee.id);
+            if (pending) {
+                return { error: `Este funcionário já possui uma solicitação de ${pending.type} em andamento.` };
+            }
+        } else {
+             // Fallback or error if employee not found? 
+             // Ideally we should require employee to exist.
+             return { error: 'Funcionário não encontrado na empresa de origem.' };
         }
 
         // Validate target company exists (and get name for redundancy/legacy)
@@ -77,6 +94,16 @@ export async function createTransfer(formData: FormData) {
 
         // Get Settings
         
+        const pdfBytes = await generateTransferPDF({
+            source_company_name: userCompanyData.nome,
+            target_company_name: targetCompany.nome,
+            employee_name: employeeName,
+            transfer_date: transferDate,
+            observations: observations,
+            protocol_number: protocolNumber
+        });
+        const pdfBuffer = Buffer.from(pdfBytes);
+
         await sendTransferNotification('NEW', {
             userName: session.name || session.email,
             sourceCompany: userCompanyData.nome,
@@ -84,7 +111,8 @@ export async function createTransfer(formData: FormData) {
             employeeName,
             transferDate: format(new Date(transferDate), 'dd/MM/yyyy'),
             observation: observations,
-            senderEmail: session.email
+            senderEmail: session.email,
+            pdfBuffer
         });
 
         revalidatePath('/app/transfers');
@@ -140,13 +168,15 @@ export async function updateTransfer(id: string, formData: FormData) {
 
         // Detect changes
         const changes: string[] = [];
-        if (transfer.target_company_id !== targetCompanyId) changes.push('target_company_id');
-        if (transfer.transfer_date !== transferDate) changes.push('transfer_date');
-        if (transfer.observations !== observations) changes.push('observation');
+        const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+
+        if (normalize(transfer.target_company_id) !== normalize(targetCompanyId)) changes.push('target_company_id');
+        if (normalize(transfer.transfer_date) !== normalize(transferDate)) changes.push('transfer_date');
+        if (normalize(transfer.observations) !== normalize(observations)) changes.push('observation');
 
         await db.prepare(`
             UPDATE transfer_requests 
-            SET target_company_id = ?, target_company_name = ?, transfer_date = ?, observations = ?, updated_at = datetime('now', '-03:00')
+            SET target_company_id = ?, target_company_name = ?, transfer_date = ?, observations = ?, status = 'RECTIFIED', updated_at = datetime('now', '-03:00')
             WHERE id = ?
         `).run(targetCompanyId, targetCompany.nome, transferDate, observations, id);
 
@@ -164,6 +194,17 @@ export async function updateTransfer(id: string, formData: FormData) {
         // Send Notification
         const sourceCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(transfer.source_company_id) as { nome: string };
         
+        const pdfBytes = await generateTransferPDF({
+            source_company_name: sourceCompany.nome,
+            target_company_name: targetCompany.nome,
+            employee_name: transfer.employee_name,
+            transfer_date: transferDate,
+            observations: observations,
+            protocol_number: transfer.protocol_number,
+            changes
+        });
+        const pdfBuffer = Buffer.from(pdfBytes);
+
         await sendTransferNotification('UPDATE', {
             userName: session.name || session.email,
             sourceCompany: sourceCompany.nome,
@@ -172,7 +213,8 @@ export async function updateTransfer(id: string, formData: FormData) {
             transferDate: format(new Date(transferDate), 'dd/MM/yyyy'),
             observation: observations,
             changes,
-            senderEmail: session.email
+            senderEmail: session.email,
+            pdfBuffer
         });
 
         revalidatePath('/app/transfers');
@@ -308,6 +350,17 @@ export async function approveTransfer(id: string) {
             success: true
         });
 
+        // Generate PDF
+        const pdfBytes = await generateTransferPDF({
+            source_company_name: sourceCompany.nome,
+            target_company_name: transfer.target_company_name,
+            employee_name: transfer.employee_name,
+            transfer_date: transfer.transfer_date,
+            observations: transfer.observations,
+            protocol_number: transfer.protocol_number
+        });
+        const pdfBuffer = Buffer.from(pdfBytes);
+
         // Send Notification to Creator
         await sendTransferNotification('COMPLETED', {
             userName: creator?.name || 'Cliente',
@@ -317,7 +370,8 @@ export async function approveTransfer(id: string) {
             employeeName: transfer.employee_name,
             transferDate: format(new Date(transfer.transfer_date), 'dd/MM/yyyy'),
             observation: transfer.observations,
-            senderEmail: session.email
+            senderEmail: session.email,
+            pdfBuffer
         });
 
         revalidatePath('/app/transfers');

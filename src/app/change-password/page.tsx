@@ -37,8 +37,9 @@ export default function ChangePasswordPage() {
             toast.success('Senha alterada com sucesso!');
             router.push('/');
         }
-    } catch (err) {
-        toast.error('Erro ao atualizar senha.');
+    } catch (err: any) {
+        console.error('Update password error:', err);
+        toast.error('Erro ao atualizar senha: ' + (err.message || String(err)));
     } finally {
         setLoading(false);
     }
@@ -65,7 +66,16 @@ export default function ChangePasswordPage() {
                 id="password" 
                 type="password" 
                 value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
+                onChange={(e) => {
+                  e.target.setCustomValidity('');
+                  setPassword(e.target.value);
+                }} 
+                onInvalid={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.validity.tooShort) {
+                    target.setCustomValidity('A senha deve ter no mínimo 6 caracteres.');
+                  }
+                }}
                 required 
                 placeholder="********"
                 disabled={loading}
@@ -78,7 +88,16 @@ export default function ChangePasswordPage() {
                 id="confirmPassword" 
                 type="password" 
                 value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
+                onChange={(e) => {
+                  e.target.setCustomValidity('');
+                  setConfirmPassword(e.target.value);
+                }} 
+                onInvalid={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.validity.tooShort) {
+                    target.setCustomValidity('A senha deve ter no mínimo 6 caracteres.');
+                  }
+                }}
                 required 
                 placeholder="********"
                 disabled={loading}

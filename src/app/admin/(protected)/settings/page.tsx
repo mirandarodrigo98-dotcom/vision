@@ -3,13 +3,11 @@ import { SettingsForm } from './settings-form';
 
 export default async function SettingsPage() {
   const emailSetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('NZD_DEST_EMAIL') as { value: string } | undefined;
-  const subjectSetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('EMAIL_SUBJECT') as { value: string } | undefined;
-  const bodySetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('EMAIL_BODY') as { value: string } | undefined;
+  const logoSetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('SYSTEM_LOGO_PATH') as { value: string } | undefined;
 
   const initialData = {
     email: emailSetting?.value || '',
-    subject: subjectSetting?.value || '',
-    body: bodySetting?.value || '',
+    logoUrl: logoSetting?.value || null,
   };
 
   return (

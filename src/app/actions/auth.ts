@@ -1,7 +1,7 @@
 'use server'
 
 import db from '@/lib/db';
-import { createSession, verifyPassword } from '@/lib/auth';
+import { createSession, verifyPassword, getSession, hashPassword } from '@/lib/auth';
 import { sendEmail } from '@/lib/email/resend';
 import { logAudit } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
@@ -230,23 +230,28 @@ export async function updatePassword(password: string) {
         return { error: 'A senha deve ter no mínimo 6 caracteres.' };
     }
 
-    const hash = await hashPassword(password);
-    
-    await db.prepare(`
-        UPDATE users 
-        SET password_hash = ?, password_temporary = 0, temp_password_expires_at = NULL, updated_at = datetime('now')
-        WHERE id = ?
-    `).run(hash, session.user_id);
+    try {
+        const hash = await hashPassword(password);
+        
+        await db.prepare(`
+            UPDATE users 
+            SET password_hash = ?, password_temporary = 0, temp_password_expires_at = NULL, updated_at = datetime('now')
+            WHERE id = ?
+        `).run(hash, session.user_id);
 
-    logAudit({
-        action: 'UPDATE_PASSWORD',
-        actor_user_id: session.user_id,
-        actor_email: session.email,
-        role: session.role,
-        success: true
-    });
+        logAudit({
+            action: 'UPDATE_PASSWORD',
+            actor_user_id: session.user_id,
+            actor_email: session.email,
+            role: session.role,
+            success: true
+        });
 
-    return { success: true };
+        return { success: true };
+    } catch (error: any) {
+        console.error('Failed to update password:', error);
+        return { error: 'Erro ao atualizar senha: ' + (error.message || 'Erro desconhecido') };
+    }
 }
 
 export async function logout() {

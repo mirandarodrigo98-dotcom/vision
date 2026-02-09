@@ -148,11 +148,13 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
                         ${dismissal.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${dismissal.status === 'RECTIFIED' ? 'bg-orange-100 text-orange-800' : ''}
                         ${dismissal.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
                         ${dismissal.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                       `}>
                         {
                           dismissal.status === 'SUBMITTED' ? 'Solicitado' : 
+                          dismissal.status === 'RECTIFIED' ? 'Retificado' :
                           dismissal.status === 'COMPLETED' ? 'Concluído' :
                           dismissal.status === 'CANCELLED' ? 'Cancelado' : 
                           dismissal.status

@@ -15,7 +15,11 @@ export default async function ViewAdmissionPage({ params }: { params: Promise<{ 
         redirect('/app/admissions');
     }
 
-    if (admission.created_by_user_id !== session.user_id) {
+    // Access control: User must have access to the company of the admission
+    const userCompany = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, admission.company_id);
+    const hasAccess = userCompany || session.active_company_id === admission.company_id;
+
+    if (!hasAccess) {
         redirect('/app/admissions');
     }
 

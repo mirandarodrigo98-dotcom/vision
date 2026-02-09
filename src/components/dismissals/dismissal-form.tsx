@@ -40,6 +40,10 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     const [employeeId, setEmployeeId] = useState<string>(initialData?.employee_id || '');
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
     
+    // Controlled Selects
+    const [noticeType, setNoticeType] = useState<string>(initialData?.notice_type || '');
+    const [dismissalCause, setDismissalCause] = useState<string>(initialData?.dismissal_cause || '');
+    
     const [dismissalDate, setDismissalDate] = useState<Date | undefined>(
         initialData?.dismissal_date ? new Date(initialData.dismissal_date) : undefined
     );
@@ -114,24 +118,25 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                                 disabled 
                              />
                          ) : (
-                            <Select 
-                                name="employee_id" 
-                                required 
-                                value={employeeId}
-                                onValueChange={setEmployeeId}
-                                disabled={!companyId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder={companyId ? "Selecione o funcionário" : "Selecione a empresa primeiro"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {employees.map(employee => (
-                                        <SelectItem key={employee.id} value={employee.id}>
-                                            {employee.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <>
+                                <input type="hidden" name="employee_id" value={employeeId} />
+                                <Select 
+                                    value={employeeId}
+                                    onValueChange={setEmployeeId}
+                                    disabled={!companyId}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder={companyId ? "Selecione o funcionário" : "Selecione a empresa primeiro"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {employees.map(employee => (
+                                            <SelectItem key={employee.id} value={employee.id}>
+                                                {employee.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </>
                          )}
                          {isEditing && <input type="hidden" name="employee_id" value={initialData.employee_id} />}
                     </div>
@@ -140,7 +145,8 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                         {/* Tipo de Aviso */}
                         <div className="space-y-2">
                             <Label htmlFor="notice_type">Tipo de Aviso *</Label>
-                            <Select name="notice_type" required defaultValue={initialData?.notice_type}>
+                            <input type="hidden" name="notice_type" value={noticeType} />
+                            <Select value={noticeType} onValueChange={setNoticeType}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione o tipo" />
                                 </SelectTrigger>
@@ -156,7 +162,8 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                         {/* Causa Demissão */}
                         <div className="space-y-2">
                             <Label htmlFor="dismissal_cause">Causa Demissão *</Label>
-                            <Select name="dismissal_cause" required defaultValue={initialData?.dismissal_cause}>
+                            <input type="hidden" name="dismissal_cause" value={dismissalCause} />
+                            <Select value={dismissalCause} onValueChange={setDismissalCause}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione a causa" />
                                 </SelectTrigger>

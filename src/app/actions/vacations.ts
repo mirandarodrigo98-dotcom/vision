@@ -1,6 +1,8 @@
 'use server';
 
 import { getSession } from '@/lib/auth';
+import { checkPendingRequests } from './employees';
+
 import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { randomUUID } from 'crypto';
@@ -128,6 +130,7 @@ export async function getVacation(id: string) {
 // ----------------------------------------------------------------------
 // CREATE VACATION
 // ----------------------------------------------------------------------
+
 export async function createVacation(formData: FormData) {
     const session = await getSession();
     if (!session) return { error: 'Unauthorized' };
@@ -152,6 +155,12 @@ export async function createVacation(formData: FormData) {
 
         if (!companyId || !employeeId || !startDate || isNaN(daysQuantity)) {
             return { error: 'Campos obrigatórios faltando.' };
+        }
+
+        // Check for pending requests
+        const pending = await checkPendingRequests(employeeId);
+        if (pending) {
+            return { error: `Este funcionário já possui uma solicitação de ${pending.type} em andamento.` };
         }
 
         // Validate company access for client_user
@@ -247,6 +256,17 @@ export async function updateVacation(id: string, formData: FormData) {
         const existingVacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
         if (!existingVacation) return { error: 'Férias não encontradas.' };
 
+        // Validate company access for client_user
+        if (session.role === 'client_user') {
+            const hasAccess = await db.prepare(`
+                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, existingVacation.company_id);
+            
+            if (!hasAccess && existingVacation.created_by_user_id !== session.user_id) {
+                return { error: 'Sem permissão para editar estas férias.' };
+            }
+        }
+
         const startDate = formData.get('start_date') as string;
         const daysQuantity = parseInt(formData.get('days_quantity') as string);
         const allowanceDays = parseInt(formData.get('allowance_days') as string || '0');
@@ -261,16 +281,18 @@ export async function updateVacation(id: string, formData: FormData) {
 
         // Detect changes
         const changes: string[] = [];
-        if (existingVacation.start_date !== startDate) changes.push('start_date');
-        if (existingVacation.days_quantity !== daysQuantity) changes.push('days_count');
-        if (existingVacation.allowance_days !== allowanceDays) changes.push('allowance_days');
-        if (existingVacation.return_date !== returnDateStr) changes.push('return_date');
-        if (existingVacation.observations !== observations) changes.push('observations');
+        const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+        
+        if (normalize(existingVacation.start_date) !== normalize(startDate)) changes.push('start_date');
+        if (normalize(existingVacation.days_quantity) !== normalize(daysQuantity)) changes.push('days_count');
+        if (normalize(existingVacation.allowance_days) !== normalize(allowanceDays)) changes.push('allowance_days');
+        if (normalize(existingVacation.return_date) !== normalize(returnDateStr)) changes.push('return_date');
+        if (normalize(existingVacation.observations) !== normalize(observations)) changes.push('observations');
 
         await db.prepare(`
             UPDATE vacations 
             SET start_date = ?, days_quantity = ?, allowance_days = ?, return_date = ?, 
-                observations = ?, updated_at = datetime('now', '-03:00')
+                observations = ?, status = 'RECTIFIED', updated_at = datetime('now', '-03:00')
             WHERE id = ?
         `).run(startDate, daysQuantity, allowanceDays, returnDateStr, observations, id);
 
@@ -337,6 +359,17 @@ export async function cancelVacation(id: string) {
     try {
         const vacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
         if (!vacation) return { error: 'Férias não encontradas.' };
+
+        // Validate company access for client_user
+        if (session.role === 'client_user') {
+            const hasAccess = await db.prepare(`
+                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, vacation.company_id);
+            
+            if (!hasAccess && vacation.created_by_user_id !== session.user_id) {
+                return { error: 'Sem permissão para cancelar estas férias.' };
+            }
+        }
 
         await db.prepare(`
             UPDATE vacations 

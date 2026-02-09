@@ -134,24 +134,25 @@ export function VacationForm({ companies, activeCompanyId, initialData, isEditin
                                 disabled 
                              />
                          ) : (
-                            <Select 
-                                name="employee_id" 
-                                required 
-                                value={employeeId}
-                                onValueChange={setEmployeeId}
-                                disabled={!companyId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder={companyId ? "Selecione o funcionário" : "Selecione a empresa primeiro"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {employees.map(employee => (
-                                        <SelectItem key={employee.id} value={employee.id}>
-                                            {employee.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <>
+                                <input type="hidden" name="employee_id" value={employeeId} />
+                                <Select 
+                                    value={employeeId}
+                                    onValueChange={setEmployeeId}
+                                    disabled={!companyId}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder={companyId ? "Selecione o funcionário" : "Selecione a empresa primeiro"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {employees.map(employee => (
+                                            <SelectItem key={employee.id} value={employee.id}>
+                                                {employee.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </>
                          )}
                          {isEditing && <input type="hidden" name="employee_id" value={initialData.employee_id} />}
                     </div>

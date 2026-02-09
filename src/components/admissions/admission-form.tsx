@@ -50,6 +50,16 @@ const DEFAULT_SCHEDULE = [
     { day: 'Sábado', active: false, isDSR: false, isFolga: false, isCPS: false, start: '', breakStart: '', breakEnd: '', end: '' },
 ];
 
+const parseDate = (dateStr: string) => {
+    if (!dateStr) return undefined;
+    // Handle YYYY-MM-DD explicitly to avoid timezone shifts (treat as local date)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+};
+
 export function AdmissionForm({ companies, activeCompanyId, initialData, isEditing = false, isAdmin = false, readOnly = false }: AdmissionFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -62,14 +72,21 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
         initialData ? `${initialData.trial1_days}+${initialData.trial2_days}` : '30+30'
     );
     const [date, setDate] = useState<Date | undefined>(
-        initialData?.admission_date ? new Date(initialData.admission_date) : undefined
+        initialData?.admission_date ? parseDate(initialData.admission_date) : undefined
     );
     const [birthDate, setBirthDate] = useState<Date | undefined>(
-        initialData?.birth_date ? new Date(initialData.birth_date) : undefined
+        initialData?.birth_date ? parseDate(initialData.birth_date) : undefined
     );
+
+    // Controlled Selects to ensure FormData capture
+    const [gender, setGender] = useState(initialData?.gender || '');
+    const [maritalStatus, setMaritalStatus] = useState(initialData?.marital_status || '');
+    const [educationLevel, setEducationLevel] = useState(initialData?.education_level || 'medio_completo');
+    const [raceColor, setRaceColor] = useState(initialData?.race_color || '');
+    const [contractType, setContractType] = useState(initialData?.contract_type || 'clt');
     
     // File handling
-    const [fileName, setFileName] = useState(isEditing ? 'Arquivo atual mantido (selecione para alterar)' : '');
+    const [fileName, setFileName] = useState(isEditing ? (readOnly ? 'Arquivo anexado' : 'Arquivo atual mantido (selecione para alterar)') : '');
     const [fileError, setFileError] = useState<string | null>(null);
     const [cpfError, setCpfError] = useState('');
     
@@ -500,9 +517,9 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                      // Suppress email warning for user, or make it less scary
                      // Actually, I already forced emailSuccess=true in the server action to avoid this.
                      // But just in case, let's improve the message.
-                     toast.success(isEditing ? 'Admissão atualizada com sucesso!' : `Admissão criada com sucesso! Protocolo: ${result.protocolNumber}`);
+                     toast.success(isEditing ? 'Retificação realizada com sucesso!' : `Admissão criada com sucesso! Protocolo: ${result.protocolNumber}`);
                 } else {
-                    toast.success(isEditing ? 'Admissão atualizada com sucesso!' : `Admissão criada com sucesso! Protocolo: ${result.protocolNumber}`);
+                    toast.success(isEditing ? 'Retificação realizada com sucesso!' : `Admissão criada com sucesso! Protocolo: ${result.protocolNumber}`);
                 }
                 
                 if (isAdmin) {
@@ -525,7 +542,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
         <TooltipProvider>
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                 <fieldset disabled={readOnly} className="contents">
-                {isEditing && (
+                {isEditing && !readOnly && (
         <div className="bg-primary/10 border border-primary/20 text-primary p-4 rounded-md flex items-start gap-3 mb-6">
           <AlertTriangle className="h-5 w-5 mt-0.5 text-primary" />
           <div>
@@ -554,7 +571,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                             className={isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}
                             onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()}
                         />
-                        {isEditing && <p className="text-xs text-gray-500">O nome não pode ser alterado em retificações.</p>}
+                        {isEditing && !readOnly && <p className="text-xs text-gray-500">O nome não pode ser alterado em retificações.</p>}
                     </div>
                     
                     {/* Other fields with defaultValue */}
@@ -607,7 +624,8 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="marital_status">Estado Civil <span className="text-red-500">*</span></Label>
-                            <Select name="marital_status" required defaultValue={initialData?.marital_status} disabled={readOnly}>
+                            <input type="hidden" name="marital_status" value={maritalStatus} />
+                            <Select value={maritalStatus} onValueChange={setMaritalStatus} disabled={readOnly}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
@@ -626,7 +644,8 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="education_level">Grau de Instrução <span className="text-red-500">*</span></Label>
-                            <Select name="education_level" required defaultValue={initialData?.education_level || "medio_completo"} disabled={readOnly}>
+                            <input type="hidden" name="education_level" value={educationLevel} />
+                            <Select value={educationLevel} onValueChange={setEducationLevel} disabled={readOnly}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
@@ -643,7 +662,8 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="gender">Sexo <span className="text-red-500">*</span></Label>
-                            <Select name="gender" required defaultValue={initialData?.gender} disabled={readOnly}>
+                            <input type="hidden" name="gender" value={gender} />
+                            <Select value={gender} onValueChange={setGender} disabled={readOnly}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
@@ -656,7 +676,8 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="race_color">Cor/Raça <span className="text-red-500">*</span></Label>
-                            <Select name="race_color" required defaultValue={initialData?.race_color} disabled={readOnly}>
+                            <input type="hidden" name="race_color" value={raceColor} />
+                            <Select value={raceColor} onValueChange={setRaceColor} disabled={readOnly}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
@@ -780,7 +801,8 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="contract_type">Tipo de Contrato <span className="text-red-500">*</span></Label>
-                            <Select name="contract_type" required defaultValue={initialData?.contract_type || "clt"} disabled={readOnly}>
+                            <input type="hidden" name="contract_type" value={contractType} />
+                            <Select value={contractType} onValueChange={setContractType} disabled={readOnly}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
@@ -1174,7 +1196,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                             <li>CTPS Digital (Print)</li>
                             <li>Título de Eleitor</li>
                             <li>Comprovante de Residência</li>
-                            <li>Termo étnico-racial</li>
+                            <li>Termo étnico-racial - Disponível no menu Relatórios</li>
                             <li>CPF dependentes (&gt;8 anos)</li>
                             <li>Ofício de pensão (se houver)</li>
                             <li>Certidão de nascimento (filhos)</li>

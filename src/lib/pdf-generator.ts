@@ -1,6 +1,28 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import db from '@/lib/db';
+
+async function addLogo(doc: jsPDF): Promise<number> {
+    try {
+        const logoSetting = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+        
+        if (logoSetting?.value) {
+            const logoPath = join(process.cwd(), 'public', logoSetting.value);
+            const logoData = await readFile(logoPath);
+            const ext = logoSetting.value.split('.').pop()?.toUpperCase();
+            const format = (ext === 'JPG' || ext === 'JPEG') ? 'JPEG' : 'PNG';
+            
+            doc.addImage(logoData, format, 14, 10, 30, 30);
+            return 50; // New Y start
+        }
+    } catch (e) {
+        console.error('Error adding logo to PDF:', e);
+    }
+    return 22; // Default Y start
+}
 
 // Helper functions for time calculation
 const calculateMinutes = (time: string) => {
@@ -32,42 +54,100 @@ const formatMinutes = (mins: number) => {
     return `${h}:${m.toString().padStart(2, '0')}`;
 };
 
+const getLabel = (value: string, type: 'gender' | 'marital' | 'education' | 'race' | 'contract') => {
+    if (!value) return '-';
+    
+    const maps: any = {
+        gender: {
+            'M': 'Masculino',
+            'F': 'Feminino',
+            'O': 'Outro'
+        },
+        marital: {
+            'single': 'Solteiro(a)',
+            'married': 'Casado(a)',
+            'divorced': 'Divorciado(a)',
+            'widowed': 'Viúvo(a)',
+            'separated': 'Separado(a)',
+            'stable_union': 'União Estável'
+        },
+        education: {
+            'fundamental_incompleto': 'Fundamental Incompleto',
+            'fundamental_completo': 'Fundamental Completo',
+            'medio_incompleto': 'Médio Incompleto',
+            'medio_completo': 'Médio Completo',
+            'superior_incompleto': 'Superior Incompleto',
+            'superior_completo': 'Superior Completo',
+            'pos_graduacao': 'Pós-Graduação'
+        },
+        race: {
+            'white': 'Branca',
+            'black': 'Preta',
+            'pardo': 'Parda',
+            'yellow': 'Amarela',
+            'indigenous': 'Indígena',
+            'branca': 'Branca',
+            'preta': 'Preta',
+            'parda': 'Parda',
+            'amarela': 'Amarela',
+            'indigena': 'Indígena'
+        },
+        contract: {
+            'clt': 'CLT (Indeterminado)',
+            'determined': 'Prazo Determinado',
+            'temporary': 'Temporário',
+            'internship': 'Estágio',
+            'apprentice': 'Menor Aprendiz',
+            'intermittent': 'Intermitente'
+        }
+    };
+
+    return maps[type][value] || value;
+};
+
+// Helper to style cell if changed
+const getCell = (label: string, value: string, keys: string[], changes: string[]) => {
+    const isChanged = keys.some(k => changes && changes.includes(k));
+    if (isChanged) {
+        return [
+            { content: label, styles: { fillColor: [255, 255, 224] } }, // Light yellow background
+            { content: value, styles: { fillColor: [255, 255, 224], fontStyle: 'bold', textColor: [220, 38, 38] } } // Red text
+        ];
+    }
+    return [label, value];
+};
+
 export async function generateAdmissionPDF(data: any): Promise<Buffer> {
     const doc = new jsPDF();
+    const startY = await addLogo(doc);
     const changes = data.changes || []; // Array of field keys that changed
-
-    // Helper to style cell if changed
-    const getCell = (label: string, value: string, keys: string[]) => {
-        const isChanged = keys.some(k => changes.includes(k));
-        if (isChanged) {
-            return [
-                { content: label, styles: { fillColor: [255, 255, 224] } }, // Light yellow background
-                { content: value, styles: { fillColor: [255, 255, 224], fontStyle: 'bold', textColor: [220, 38, 38] } } // Red text
-            ];
-        }
-        return [label, value];
-    };
 
     // Title
     doc.setFontSize(18);
-    doc.text('Relatório de Admissão', 14, 22);
+    doc.text('Relatório de Admissão', 14, startY);
     
     doc.setFontSize(11);
-    doc.text(`Protocolo: ${data.protocol_number || 'N/A'}`, 14, 30);
-    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 36);
+    doc.text(`Protocolo: ${data.protocol_number || 'N/A'}`, 14, startY + 8);
+    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startY + 14);
 
     // Employee Info
     doc.setFontSize(14);
-    doc.text('Dados do Funcionário', 14, 48);
+    doc.text('Dados da Empresa e Funcionário', 14, startY + 26);
 
     const employeeData = [
-        getCell('Nome Completo', data.employee_full_name, ['employee_full_name']),
-        getCell('CPF', data.cpf || '-', ['cpf']),
-        getCell('Data de Nascimento', data.birth_date ? format(new Date(data.birth_date), 'dd/MM/yyyy') : '-', ['birth_date']),
+        getCell('Nome Completo', data.employee_full_name, ['employee_full_name'], changes),
+        getCell('CPF', data.cpf || '-', ['cpf'], changes),
+        getCell('Data de Nascimento', data.birth_date ? format(new Date(data.birth_date), 'dd/MM/yyyy') : '-', ['birth_date'], changes),
+        getCell('E-mail', data.email || '-', ['email'], changes),
+        getCell('Telefone', data.phone || '-', ['phone'], changes),
+        getCell('Estado Civil', getLabel(data.marital_status, 'marital'), ['marital_status'], changes),
+        getCell('Grau de Instrução', getLabel(data.education_level, 'education'), ['education_level'], changes),
+        getCell('Cor/Raça', getLabel(data.race_color, 'race'), ['race_color'], changes),
+        getCell('Sexo', getLabel(data.gender, 'gender'), ['gender'], changes),
     ];
 
     autoTable(doc, {
-        startY: 52,
+        startY: startY + 30,
         head: [['Campo', 'Valor']],
         body: employeeData as any,
         theme: 'grid',
@@ -76,14 +156,21 @@ export async function generateAdmissionPDF(data: any): Promise<Buffer> {
 
     // Job Info
     let finalY = (doc as any).lastAutoTable.finalY;
-    doc.text('Dados da Vaga', 14, finalY + 15);
+    doc.text('Dados Contratuais', 14, finalY + 15);
+
+    const formatCurrency = (cents: number | string) => {
+        if (!cents && cents !== 0) return '-';
+        const value = typeof cents === 'string' ? parseInt(cents, 10) : cents;
+        if (isNaN(value)) return '-';
+        return (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
 
     const jobData = [
-        getCell('Função / Cargo', data.job_role, ['job_role']),
-        getCell('Tipo de Contrato', data.contract_type || '-', ['contract_type']),
-        getCell('Data de Admissão', data.admission_date ? format(new Date(data.admission_date), 'dd/MM/yyyy') : '', ['admission_date']),
-        getCell('Salário', `R$ ${data.salary}`, ['salary_cents']),
-        getCell('Contrato de Experiência', `${data.experience_days_1} + ${data.experience_days_2} dias`, ['trial1_days', 'trial2_days']),
+        getCell('Tipo de Contrato', getLabel(data.contract_type, 'contract'), ['contract_type'], changes),
+        getCell('Data de Admissão', data.admission_date ? format(new Date(data.admission_date), 'dd/MM/yyyy') : '', ['admission_date'], changes),
+        getCell('Contrato de Experiência', `${data.trial1_days || '30'} + ${data.trial2_days || '30'} dias`, ['trial1_days', 'trial2_days'], changes),
+        getCell('Salário (R$)', formatCurrency(data.salary_cents), ['salary_cents'], changes),
+        getCell('Função / Cargo', data.job_role, ['job_role'], changes),
     ];
 
     autoTable(doc, {
@@ -95,7 +182,7 @@ export async function generateAdmissionPDF(data: any): Promise<Buffer> {
     });
 
     // Working Hours (Schedule)
-    if (data.working_hours) {
+    if (data.work_schedule) {
         finalY = (doc as any).lastAutoTable.finalY;
         doc.text('Jornada de Trabalho', 14, finalY + 15);
 
@@ -110,8 +197,8 @@ export async function generateAdmissionPDF(data: any): Promise<Buffer> {
         let formattedTotalWeekly = '';
 
         try {
-            if (data.working_hours.trim().startsWith('[')) {
-                const schedule = JSON.parse(data.working_hours);
+            if (data.work_schedule.trim().startsWith('[')) {
+                const schedule = JSON.parse(data.work_schedule);
                 
                 scheduleBody = schedule
                     .filter((day: any) => day.active || day.isDSR || day.isFolga || day.isCPS)
@@ -157,14 +244,14 @@ export async function generateAdmissionPDF(data: any): Promise<Buffer> {
                 isJson = true;
             } else {
                 // Fallback for old string format
-                const parts = data.working_hours.split(';').map((p: string) => p.trim()).filter((p: string) => p);
+                const parts = data.work_schedule.split(';').map((p: string) => p.trim()).filter((p: string) => p);
                 scheduleBody = parts.map((part: string) => {
                     return [isScheduleChanged ? { content: part, styles: textStyle } : part];
                 });
             }
         } catch (e) {
             console.error('Error parsing schedule:', e);
-            scheduleBody = [[isScheduleChanged ? { content: data.working_hours, styles: textStyle } : data.working_hours]];
+            scheduleBody = [[isScheduleChanged ? { content: data.work_schedule, styles: textStyle } : data.work_schedule]];
         }
 
         if (isJson) {
@@ -191,23 +278,22 @@ export async function generateAdmissionPDF(data: any): Promise<Buffer> {
         }
     }
 
-    // Benefits & Observations
+    // Benefits
     finalY = (doc as any).lastAutoTable.finalY;
-    doc.text('Benefícios e Observações', 14, finalY + 15);
+    doc.text('Benefícios e Adiantamentos', 14, finalY + 15);
 
     const benefitsData = [
-        getCell('Vale Transporte', data.has_vt ? 'Sim' : 'Não', ['has_vt']),
+        getCell('Vale Transporte', data.has_vt ? 'Sim' : 'Não', ['has_vt'], changes),
         ...(data.has_vt ? [
-            getCell('VT Tarifa', data.vt_tarifa_brl ? `R$ ${data.vt_tarifa_brl}` : '-', ['vt_tarifa_cents']),
-            getCell('VT Linha', data.vt_linha || '-', ['vt_linha']),
-            getCell('VT Qtd/Dia', data.vt_qtd_por_dia ? data.vt_qtd_por_dia.toString() : '-', ['vt_qtd_por_dia'])
+            getCell('Tarifa (R$)', formatCurrency(data.vt_tarifa_cents), ['vt_tarifa_cents'], changes),
+            getCell('Linha / Operadora', data.vt_linha || '-', ['vt_linha'], changes),
+            getCell('Qtd. por Dia', data.vt_qtd_por_dia ? data.vt_qtd_por_dia.toString() : '-', ['vt_qtd_por_dia'], changes)
         ] : []),
-        getCell('Adiantamento Salarial', data.has_adv ? 'Sim' : 'Não', ['has_adv']),
+        getCell('Adiantamento Salarial', data.has_adv ? 'Sim' : 'Não', ['has_adv'], changes),
         ...(data.has_adv ? [
-            getCell('Dia do Adiantamento', data.adv_day ? data.adv_day.toString() : '-', ['adv_day']),
-            getCell('Periodicidade', data.adv_periodicity || '-', ['adv_periodicity'])
+            getCell('Dia do Mês', data.adv_day ? data.adv_day.toString() : '-', ['adv_day'], changes),
+            getCell('Periodicidade', data.adv_periodicity ? (data.adv_periodicity.charAt(0).toUpperCase() + data.adv_periodicity.slice(1)) : '-', ['adv_periodicity'], changes)
         ] : []),
-        getCell('Observações', data.general_observations || '-', ['general_observations']),
     ];
 
     autoTable(doc, {
@@ -218,42 +304,48 @@ export async function generateAdmissionPDF(data: any): Promise<Buffer> {
         headStyles: { fillColor: [66, 66, 66] },
     });
 
+    // General Observations
+    finalY = (doc as any).lastAutoTable.finalY;
+    doc.text('Observações Gerais', 14, finalY + 15);
+
+    const observationsData = [
+        getCell('Observações', data.general_observations || '-', ['general_observations'], changes),
+    ];
+
+    autoTable(doc, {
+        startY: finalY + 20,
+        head: [['Campo', 'Valor']],
+        body: observationsData as any,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 66, 66] },
+    });
+
     return Buffer.from(doc.output('arraybuffer'));
 }
 
 export async function generateVacationPDF(data: any): Promise<Buffer> {
     const doc = new jsPDF();
+    const startY = await addLogo(doc);
     const changes = data.changes || []; 
 
-    const getCell = (label: string, value: string, keys: string[]) => {
-        const isChanged = keys.some(k => changes.includes(k));
-        if (isChanged) {
-            return [
-                { content: label, styles: { fillColor: [255, 255, 224] } }, 
-                { content: value, styles: { fillColor: [255, 255, 224], fontStyle: 'bold', textColor: [220, 38, 38] } } 
-            ];
-        }
-        return [label, value];
-    };
-
     doc.setFontSize(18);
-    doc.text('Solicitação de Férias', 14, 22);
+    doc.text('Solicitação de Férias', 14, startY);
     
     doc.setFontSize(11);
-    doc.text(`Empresa: ${data.company_name || 'N/A'}`, 14, 30);
-    doc.text(`Funcionário: ${data.employee_name || 'N/A'}`, 14, 36);
-    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 42);
+    doc.text(`Empresa: ${data.company_name || 'N/A'}`, 14, startY + 8);
+    doc.text(`Funcionário: ${data.employee_name || 'N/A'}`, 14, startY + 14);
+    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startY + 20);
 
     const vacationData = [
-        getCell('Data Inicial', data.start_date ? format(new Date(data.start_date), 'dd/MM/yyyy') : '-', ['start_date']),
-        getCell('Dias de Férias', data.days_count?.toString() || '0', ['days_count']),
-        getCell('Dias de Abono', data.allowance_days?.toString() || '0', ['allowance_days']),
-        getCell('Data de Retorno', data.return_date ? format(new Date(data.return_date), 'dd/MM/yyyy') : '-', ['return_date']),
-        getCell('Observações', data.observations || '-', ['observations']),
+        getCell('Data Inicial', data.start_date ? format(new Date(data.start_date), 'dd/MM/yyyy') : '-', ['start_date'], changes),
+        getCell('Dias de Férias', data.days_count?.toString() || '0', ['days_count'], changes),
+        getCell('Dias de Abono', data.allowance_days?.toString() || '0', ['allowance_days'], changes),
+        getCell('Data de Retorno', data.return_date ? format(new Date(data.return_date), 'dd/MM/yyyy') : '-', ['return_date'], changes),
+        getCell('Observações', data.observations || '-', ['observations'], changes),
     ];
 
     autoTable(doc, {
-        startY: 50,
+        startY: startY + 28,
         head: [['Campo', 'Valor']],
         body: vacationData as any,
         theme: 'grid',
@@ -265,37 +357,27 @@ export async function generateVacationPDF(data: any): Promise<Buffer> {
 
 export async function generateDismissalPDF(data: any): Promise<Buffer> {
     const doc = new jsPDF();
+    const startY = await addLogo(doc);
     const changes = data.changes || []; 
 
-    const getCell = (label: string, value: string, keys: string[]) => {
-        const isChanged = keys.some(k => changes.includes(k));
-        if (isChanged) {
-            return [
-                { content: label, styles: { fillColor: [255, 255, 224] } }, 
-                { content: value, styles: { fillColor: [255, 255, 224], fontStyle: 'bold', textColor: [220, 38, 38] } } 
-            ];
-        }
-        return [label, value];
-    };
-
     doc.setFontSize(18);
-    doc.text('Solicitação de Rescisão', 14, 22);
+    doc.text('Solicitação de Rescisão', 14, startY);
     
     doc.setFontSize(11);
-    doc.text(`Empresa: ${data.company_name || 'N/A'}`, 14, 30);
-    doc.text(`Funcionário: ${data.employee_name || 'N/A'}`, 14, 36);
-    doc.text(`Protocolo: ${data.protocol_number || 'N/A'}`, 14, 42);
-    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 48);
+    doc.text(`Empresa: ${data.company_name || 'N/A'}`, 14, startY + 8);
+    doc.text(`Funcionário: ${data.employee_name || 'N/A'}`, 14, startY + 14);
+    doc.text(`Protocolo: ${data.protocol_number || 'N/A'}`, 14, startY + 20);
+    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startY + 26);
 
     const dismissalData = [
-        getCell('Data de Desligamento', data.dismissal_date ? format(new Date(data.dismissal_date), 'dd/MM/yyyy') : '-', ['dismissal_date']),
-        getCell('Tipo de Aviso', data.notice_type || '-', ['notice_type']),
-        getCell('Causa da Demissão', data.reason || '-', ['reason']),
-        getCell('Observações', data.observations || '-', ['observations']),
+        getCell('Data de Desligamento', data.dismissal_date ? format(new Date(data.dismissal_date), 'dd/MM/yyyy') : '-', ['dismissal_date'], changes),
+        getCell('Tipo de Aviso', data.notice_type || '-', ['notice_type'], changes),
+        getCell('Causa da Demissão', data.reason || '-', ['reason'], changes),
+        getCell('Observações', data.observations || '-', ['observations'], changes),
     ];
 
     autoTable(doc, {
-        startY: 56,
+        startY: startY + 35,
         head: [['Campo', 'Valor']],
         body: dismissalData as any,
         theme: 'grid',
@@ -305,8 +387,42 @@ export async function generateDismissalPDF(data: any): Promise<Buffer> {
     return Buffer.from(doc.output('arraybuffer'));
 }
 
+export async function generateTransferPDF(data: any): Promise<Buffer> {
+    const doc = new jsPDF();
+    const startY = await addLogo(doc);
+    const changes = data.changes || []; 
+
+    doc.setFontSize(18);
+    doc.text('Relatório de Transferência', 14, startY);
+    
+    doc.setFontSize(11);
+    doc.text(`Empresa Origem: ${data.source_company_name || 'N/A'}`, 14, startY + 8);
+    doc.text(`Empresa Destino: ${data.target_company_name || 'N/A'}`, 14, startY + 14);
+    doc.text(`Funcionário: ${data.employee_name || 'N/A'}`, 14, startY + 20);
+    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startY + 26);
+
+    const transferData = [
+        getCell('Empresa de Origem', data.source_company_name || '-', ['source_company_id'], changes),
+        getCell('Empresa de Destino', data.target_company_name || '-', ['target_company_id'], changes),
+        getCell('Funcionário', data.employee_name || '-', ['employee_name'], changes),
+        getCell('Data da Transferência', data.transfer_date ? format(new Date(data.transfer_date), 'dd/MM/yyyy') : '-', ['transfer_date'], changes),
+        getCell('Observações', data.observations || '-', ['observation'], changes),
+    ];
+
+    autoTable(doc, {
+        startY: startY + 35,
+        head: [['Campo', 'Valor']],
+        body: transferData as any,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 66, 66] },
+    });
+
+    return Buffer.from(doc.output('arraybuffer'));
+}
+
 export async function generateEthnicRacialSelfDeclarationPDF(companyData: any): Promise<Buffer> {
     const doc = new jsPDF();
+    const startY = await addLogo(doc);
     const pageWidth = 210;
     const margin = 10;
     const maxWidth = pageWidth - (margin * 2);
@@ -314,13 +430,13 @@ export async function generateEthnicRacialSelfDeclarationPDF(companyData: any): 
     // Title
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Termo de Autodeclaração Étnico-Racial', pageWidth / 2, 20, { align: 'center' });
+    doc.text('Termo de Autodeclaração Étnico-Racial', pageWidth / 2, startY, { align: 'center' });
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     
     // Header
-    let y = 40;
+    let y = startY + 20;
     let x = margin;
     
     // Line 1: À [Name] CNPJ sob o n.º [CNPJ]

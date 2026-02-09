@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { cancelAdmission, completeAdmission } from '@/app/actions/admissions';
 import { toast } from 'sonner';
 import { AdmissionHistory } from './admission-history';
+import { CompleteAdmissionDialog } from './complete-admission-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -31,12 +32,23 @@ interface AdmissionActionsProps {
   status: string;
   employeeName: string;
   isAdmin?: boolean;
+  createdByUserId?: string;
+  currentUserId?: string;
 }
 
-export function AdmissionActions({ admissionId, admissionDate, status, employeeName, isAdmin = false }: AdmissionActionsProps) {
+export function AdmissionActions({ 
+  admissionId, 
+  admissionDate, 
+  status, 
+  employeeName, 
+  isAdmin = false,
+  createdByUserId,
+  currentUserId
+}: AdmissionActionsProps) {
   const router = useRouter();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
 
   // Check deadline: 1 day before admission date
   // Fix: Parse YYYY-MM-DD manually to ensure local time is used and avoid UTC timezone shifts
@@ -54,9 +66,16 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
   const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
+  
+  // Permission checks
+  // User should have access if they have permissions, regardless of ownership
+  // Ownership check removed as requested
+  const hasPermission = isAdmin || true; 
+
   const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && !isCanceled && !isCompleted;
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  const canView = true; // View is allowed for anyone with access to the list
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -75,10 +94,10 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
     }
   };
 
-  const handleApprove = async () => {
+  const handleApprove = async (data: { employeeCode: string; esocialRegistration: string }) => {
     setIsApproving(true);
     try {
-      const result = await completeAdmission(admissionId);
+      const result = await completeAdmission(admissionId, data);
       if (result.success) {
         toast.success('Admissão concluída com sucesso!');
         router.refresh();
@@ -121,46 +140,34 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
     <div className="flex items-center gap-2 justify-center">
        {/* History is always visible */}
        <AdmissionHistory admissionId={admissionId} />
+       
+       <CompleteAdmissionDialog 
+          isOpen={showCompleteDialog} 
+          onOpenChange={setShowCompleteDialog}
+          onConfirm={handleApprove}
+          employeeName={employeeName}
+       />
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
           {isAdmin && (
             canApprove ? (
-            <AlertDialog>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                      <AlertDialogTrigger asChild>
                         <Button 
                           variant="outline" 
                           size="sm" 
                           disabled={isApproving}
+                          onClick={() => setShowCompleteDialog(true)}
                           className="text-blue-600 border-blue-200 hover:bg-blue-50"
                         >
                           {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                         </Button>
-                      </AlertDialogTrigger>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Concluir/Aprovar Admissão</p>
                   </TooltipContent>
                 </Tooltip>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Concluir Admissão</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Confirma a aprovação da admissão de <strong>{employeeName}</strong>?
-                      <br/>
-                      Um novo cadastro de funcionário será criado automaticamente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleApprove} className="bg-blue-600 hover:bg-blue-700">
-                      Concluir
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -190,14 +197,15 @@ export function AdmissionActions({ admissionId, admissionDate, status, employeeN
                   variant="outline" 
                   size="sm" 
                   onClick={handleView} 
-                  className="text-primary border-primary/20 hover:bg-primary/10"
+                  disabled={!canView}
+                  className={!canView ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Visualizar Detalhes</p>
+              <p>{!canView ? "Sem permissão para visualizar" : "Visualizar Detalhes"}</p>
             </TooltipContent>
           </Tooltip>
 

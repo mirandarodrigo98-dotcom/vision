@@ -42,7 +42,8 @@ export type AuditAction =
   | 'CANCEL_TRANSFER'
   | 'APPROVE_TRANSFER'
   | 'CANCEL_ADMISSION'
-  | 'UPDATE_ADMISSION';
+  | 'UPDATE_ADMISSION'
+  | 'UPDATE_PASSWORD';
 
 interface AuditLogParams {
   actor_user_id?: string;

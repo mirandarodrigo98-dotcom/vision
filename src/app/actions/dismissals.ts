@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { getRolePermissions } from './permissions';
 import { sendDismissalNotification } from '@/lib/emails/notifications';
 import { generateDismissalPDF } from '@/lib/pdf-generator';
+import { checkPendingRequests } from './employees';
 
 // Helper to generate Protocol Number (YYYYMMDD + 8 digits)
 function generateProtocolNumber() {
@@ -167,6 +168,12 @@ export async function createDismissal(formData: FormData) {
         return { error: 'Empresa ou funcionário não encontrados.' };
     }
 
+    // Check for pending requests
+    const pending = await checkPendingRequests(employee_id);
+    if (pending) {
+        return { error: `Este funcionário já possui uma solicitação de ${pending.type} em andamento.` };
+    }
+
     try {
         const id = randomUUID();
         const protocol_number = generateProtocolNumber();
@@ -262,7 +269,7 @@ export async function updateDismissal(id: string, formData: FormData) {
     try {
         await db.prepare(`
             UPDATE dismissals 
-            SET notice_type = ?, dismissal_cause = ?, dismissal_date = ?, observations = ?, updated_at = CURRENT_TIMESTAMP
+            SET notice_type = ?, dismissal_cause = ?, dismissal_date = ?, observations = ?, status = 'RECTIFIED', updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).run(notice_type, dismissal_cause, dismissal_date, observations, id);
 
@@ -280,13 +287,15 @@ export async function updateDismissal(id: string, formData: FormData) {
         const company = await db.prepare('SELECT cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
 
         // Detect changes
-        const changes: string[] = [];
-        if (dismissal.notice_type !== notice_type) changes.push('notice_type');
-        if (dismissal.dismissal_cause !== dismissal_cause) changes.push('dismissal_cause');
-        if (dismissal.dismissal_date !== dismissal_date) changes.push('dismissal_date');
-        if (dismissal.observations !== observations) changes.push('observations');
+    const changes: string[] = [];
+    const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
 
-        // Send Email Notification
+    if (normalize(dismissal.notice_type) !== normalize(notice_type)) changes.push('notice_type');
+    if (normalize(dismissal.dismissal_cause) !== normalize(dismissal_cause)) changes.push('reason'); // Key must match PDF generator
+    if (normalize(dismissal.dismissal_date) !== normalize(dismissal_date)) changes.push('dismissal_date');
+    if (normalize(dismissal.observations) !== normalize(observations)) changes.push('observations');
+
+    // Send Email Notification
         if (company) {
             const pdfBytes = await generateDismissalPDF({
                 company_name: dismissal.company_name,
@@ -472,5 +481,37 @@ export async function approveDismissal(id: string) {
     } catch (error) {
         console.error('Error approving dismissal:', error);
         return { error: 'Erro ao aprovar rescisão.' };
+    }
+}
+
+// ----------------------------------------------------------------------
+// COMPLETE DISMISSAL (Update dismissal date in employees)
+// ----------------------------------------------------------------------
+export async function completeDismissal(id: string) {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return { error: 'Unauthorized' };
+    }
+
+    const dismissal = await db.prepare('SELECT * FROM dismissals WHERE id = ?').get(id) as any;
+    if (!dismissal) return { error: 'Rescisão não encontrada.' };
+
+    try {
+        const txn = db.transaction(async () => {
+             // Update dismissal status
+             await db.prepare("UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+             
+             // Update employee dismissal date
+             await db.prepare("UPDATE employees SET dismissal_date = ? WHERE id = ?").run(dismissal.dismissal_date, dismissal.employee_id);
+        });
+
+        await txn();
+
+        revalidatePath('/admin/dismissals');
+        revalidatePath('/admin/employees');
+        return { success: true };
+    } catch (error) {
+        console.error('Error completing dismissal:', error);
+        return { error: 'Erro ao concluir rescisão.' };
     }
 }
