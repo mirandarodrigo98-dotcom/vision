@@ -15,9 +15,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
-import { cancelTransfer, approveTransfer } from '@/app/actions/transfers';
+import { cancelLeave, approveLeave } from '@/app/actions/leaves';
 import { toast } from 'sonner';
-import { TransferHistory } from './transfer-history';
+import { LeaveHistory } from './leave-history';
 import {
   Tooltip,
   TooltipContent,
@@ -25,61 +25,60 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-interface TransferActionsProps {
-  transferId: string;
-  transferDate: string;
+interface LeaveActionsProps {
+  leaveId: string;
+  startDate: string;
   status: string;
   employeeName: string;
   isAdmin?: boolean;
-  basePath?: string;
 }
 
-export function TransferActions({ transferId, transferDate, status, employeeName, isAdmin = false, basePath = '/app' }: TransferActionsProps) {
+export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin = false }: LeaveActionsProps) {
   const router = useRouter();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
-  // Check deadline: 1 day before transfer date (Assuming same rule as admission)
-  // Parse YYYY-MM-DD manually to ensure local time is used and avoid UTC timezone shifts
-  let trDate: Date;
-  const cleanTransferDate = typeof transferDate === 'string' ? transferDate.trim().split('T')[0] : '';
-
-  if (cleanTransferDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanTransferDate)) {
-      const [year, month, day] = cleanTransferDate.split('-').map(Number);
-      trDate = new Date(year, month - 1, day);
+  // Check deadline: 1 day before start date
+  // Parse YYYY-MM-DD string as local date to avoid timezone issues
+  let stDate: Date;
+  const cleanStartDate = typeof startDate === 'string' ? startDate.trim().split('T')[0] : '';
+  
+  if (cleanStartDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanStartDate)) {
+      const [year, month, day] = cleanStartDate.split('-').map(Number);
+      stDate = new Date(year, month - 1, day);
   } else {
-      trDate = new Date(transferDate);
+      stDate = new Date(startDate);
   }
 
-  const deadline = new Date(trDate);
+  const deadline = new Date(stDate);
   deadline.setDate(deadline.getDate() - 1);
   
   // Reset time for comparison
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  // No need to reset deadline hours as it was created from year/month/day (00:00 local)
+  deadline.setHours(0, 0, 0, 0);
   
   const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
-  // Admin/Operator CAN cancel. Client can cancel even if expired.
-  const canCancel = !isCanceled && !isCompleted;
+  // Admin/Operator CAN cancel. Client can cancel if not expired.
+  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && (status === 'SUBMITTED' || status === 'RECTIFIED');
 
   const handleCancel = async () => {
     setIsCancelling(true);
     try {
-      const result = await cancelTransfer(transferId);
+      const result = await cancelLeave(leaveId);
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success('Transferência cancelada com sucesso.');
+        toast.success('Solicitação de afastamento cancelada com sucesso.');
         router.refresh();
       }
     } catch (error) {
-      toast.error('Erro ao cancelar transferência.');
+      toast.error('Erro ao cancelar solicitação.');
     } finally {
       setIsCancelling(false);
     }
@@ -88,15 +87,15 @@ export function TransferActions({ transferId, transferDate, status, employeeName
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      const result = await approveTransfer(transferId);
+      const result = await approveLeave(leaveId);
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success('Transferência aprovada com sucesso.');
+        toast.success('Solicitação de afastamento aprovada com sucesso.');
         router.refresh();
       }
     } catch (error) {
-      toast.error('Erro ao aprovar transferência.');
+      toast.error('Erro ao aprovar solicitação.');
     } finally {
       setIsApproving(false);
     }
@@ -104,17 +103,17 @@ export function TransferActions({ transferId, transferDate, status, employeeName
 
   const handleView = () => {
     if (isAdmin) {
-      router.push(`/admin/transfers/${transferId}/view`);
+      router.push(`/admin/leaves/${leaveId}/view`);
     } else {
-      router.push(`/app/transfers/${transferId}/view`);
+      router.push(`/app/leaves/${leaveId}/view`);
     }
   };
 
   const handleEdit = () => {
     if (isAdmin) {
-      router.push(`/admin/transfers/${transferId}/edit`);
+      router.push(`/admin/leaves/${leaveId}/edit`);
     } else {
-      router.push(`/app/transfers/${transferId}/edit`);
+      router.push(`/app/leaves/${leaveId}/edit`);
     }
   };
 
@@ -130,7 +129,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
   return (
     <div className="flex items-center gap-2 justify-center">
        
-       <TransferHistory transferId={transferId} />
+       <LeaveHistory leaveId={leaveId} />
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
@@ -144,26 +143,26 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                             variant="outline" 
                             size="sm" 
                             disabled={isApproving}
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            className="text-green-600 border-green-200 hover:bg-green-50"
                           >
                             {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
                       </AlertDialogTrigger>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Concluir/Aprovar Transferência</p>
+                    <p>Concluir/Aprovar Solicitação</p>
                   </TooltipContent>
                 </Tooltip>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Concluir Transferência</AlertDialogTitle>
+                    <AlertDialogTitle>Concluir Afastamento</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Confirma a aprovação da transferência de <strong>{employeeName}</strong>?
+                      Confirma a aprovação do afastamento de <strong>{employeeName}</strong>?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleApprove} className="bg-blue-600 hover:bg-blue-700">
+                    <AlertDialogAction onClick={handleApprove} className="bg-green-600 hover:bg-green-700">
                       Concluir
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -184,7 +183,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{isCanceled ? "Transferência cancelada" : isCompleted ? "Transferência já concluída" : "Ação indisponível"}</p>
+                  <p>{isCanceled ? "Solicitação cancelada" : isCompleted ? "Solicitação já concluída" : "Ação indisponível"}</p>
                 </TooltipContent>
               </Tooltip>
             )
@@ -253,24 +252,24 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                         </AlertDialogTrigger>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Cancelar Transferência</p>
+                        <p>Cancelar Solicitação</p>
                     </TooltipContent>
                 </Tooltip>
                 <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Cancelar Transferência</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Tem certeza que deseja cancelar a solicitação de transferência de <strong>{employeeName}</strong>?
-                            <br/><br/>
-                            Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
-                            Confirmar Cancelamento
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Cancelar Solicitação</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          Tem certeza que deseja cancelar o afastamento de <strong>{employeeName}</strong>?
+                          <br/><br/>
+                          Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                          Confirmar Cancelamento
+                      </AlertDialogAction>
+                  </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
           ) : (

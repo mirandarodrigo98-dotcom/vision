@@ -16,9 +16,6 @@ export default async function TransfersListPage() {
   if (!session) redirect('/login');
 
   if (session.role === 'admin' || session.role === 'operator') {
-    // Admin dashboard for transfers? Or redirect to admin dashboard?
-    // For now redirect to admin dashboard, assuming admin sees transfers there or we need to create admin view.
-    // The prompt focuses on Client ("seguindo o layout da tela de admissões na tela de transferencias").
     redirect('/admin/dashboard');
   }
 
@@ -32,12 +29,18 @@ export default async function TransfersListPage() {
   const activeCompanyId = session.active_company_id;
   if (!activeCompanyId) return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa.</div>;
 
-  const canCreateTransfer = userCompanies.length > 1;
+  const hasCreatePermission = await hasPermission(session.role, 'transfers.create');
+  const hasMultipleCompanies = userCompanies.length > 1;
+  const canCreate = hasCreatePermission && hasMultipleCompanies;
 
   const transfers = await db.prepare(`
-    SELECT t.*, c.nome as source_company_name
+    SELECT t.id, t.employee_name, t.status, t.protocol_number, t.created_at,
+           c.nome as source_company_name,
+           tc.nome as target_company_name,
+           to_char(t.transfer_date::date, 'YYYY-MM-DD') as transfer_date
     FROM transfer_requests t
     JOIN client_companies c ON t.source_company_id = c.id
+    LEFT JOIN client_companies tc ON t.target_company_id = tc.id
     WHERE t.source_company_id = ?
     ORDER BY t.created_at DESC
   `).all(activeCompanyId) as Array<{
@@ -55,7 +58,7 @@ export default async function TransfersListPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Transferências</h1>
-        {canCreateTransfer ? (
+        {canCreate ? (
           <Link href="/app/transfers/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" /> Nova Transferência
@@ -87,11 +90,11 @@ export default async function TransfersListPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Funcionário</TableHead>
-              <TableHead>Empresa Destino</TableHead>
-              <TableHead>Data Transferência</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Protocolo</TableHead>
-              <TableHead>Criado em</TableHead>
+              <TableHead className="text-center">Empresa Destino</TableHead>
+              <TableHead className="text-center">Data Transferência</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-center">Protocolo</TableHead>
+              <TableHead className="text-center">Data Inclusão</TableHead>
               <TableHead className="text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -106,9 +109,9 @@ export default async function TransfersListPage() {
                 transfers.map((tr) => (
                 <TableRow key={tr.id}>
                     <TableCell className="font-medium">{tr.employee_name}</TableCell>
-                    <TableCell>{tr.target_company_name}</TableCell>
-                    <TableCell>{tr.transfer_date ? format(new Date(tr.transfer_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">{tr.target_company_name || '-'}</TableCell>
+                    <TableCell className="text-center">{tr.transfer_date ? tr.transfer_date.split('-').reverse().join('/') : '-'}</TableCell>
+                    <TableCell className="text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
                         ${tr.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
                         ${tr.status === 'RECTIFIED' ? 'bg-orange-100 text-orange-800' : ''}
@@ -128,11 +131,11 @@ export default async function TransfersListPage() {
                         }
                       </span>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{tr.protocol_number || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="font-mono text-xs text-center">{tr.protocol_number || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm text-center">
                         {format(new Date(tr.created_at), 'dd/MM/yyyy HH:mm')}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                         <TransferActions 
                             transferId={tr.id} 
                             transferDate={tr.transfer_date} 

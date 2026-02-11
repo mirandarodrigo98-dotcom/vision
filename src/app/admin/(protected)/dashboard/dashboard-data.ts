@@ -16,6 +16,7 @@ export interface DashboardStats {
     dismissals?: SubBlockStats;
     vacations?: SubBlockStats;
     transfers?: SubBlockStats;
+    leaves?: SubBlockStats;
   };
 }
 
@@ -228,6 +229,11 @@ export async function getDashboardData(): Promise<DashboardStats> {
   // Sub-block 4: Transfers
   if (isAdmin || permissions.includes('transfers.view')) {
     stats.dp.transfers = await getSubBlockStats('transfer_requests');
+  }
+
+  // Sub-block 5: Leaves
+  if (isAdmin || permissions.includes('leaves.view')) {
+    stats.dp.leaves = await getSubBlockStats('leaves');
   }
 
   return stats;

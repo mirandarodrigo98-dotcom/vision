@@ -52,8 +52,15 @@ export function AdmissionActions({
 
   // Check deadline: 1 day before admission date
   // Fix: Parse YYYY-MM-DD manually to ensure local time is used and avoid UTC timezone shifts
-  const [year, month, day] = admissionDate.split('-').map(Number);
-  const admDate = new Date(year, month - 1, day);
+  let admDate: Date;
+  const cleanAdmissionDate = typeof admissionDate === 'string' ? admissionDate.trim().split('T')[0] : '';
+
+  if (cleanAdmissionDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanAdmissionDate)) {
+      const [year, month, day] = cleanAdmissionDate.split('-').map(Number);
+      admDate = new Date(year, month - 1, day);
+  } else {
+      admDate = new Date(admissionDate);
+  }
   
   const deadline = new Date(admDate);
   deadline.setDate(deadline.getDate() - 1);
@@ -72,7 +79,7 @@ export function AdmissionActions({
   // Ownership check removed as requested
   const hasPermission = isAdmin || true; 
 
-  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  const canCancel = !isCanceled && !isCompleted;
   const canApprove = isAdmin && !isCanceled && !isCompleted;
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canView = true; // View is allowed for anyone with access to the list
@@ -130,7 +137,7 @@ export function AdmissionActions({
   const getTooltipMessage = () => {
     if (isAdmin) return "Ações administrativas";
     if (isCanceled) return "Admissão cancelada";
-    if (isExpired) return "Prazo de cancelamento expirado";
+    if (isExpired) return "Prazo de retificação expirado";
     return null;
   };
 

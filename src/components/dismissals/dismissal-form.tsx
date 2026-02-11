@@ -31,6 +31,16 @@ interface DismissalFormProps {
     redirectPath?: string;
 }
 
+const parseDate = (dateStr: string) => {
+    if (!dateStr) return undefined;
+    const cleanDate = dateStr.trim().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+        const [y, m, d] = cleanDate.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+};
+
 export function DismissalForm({ companies, activeCompanyId, initialData, isEditing = false, readOnly = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -45,7 +55,7 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     const [dismissalCause, setDismissalCause] = useState<string>(initialData?.dismissal_cause || '');
     
     const [dismissalDate, setDismissalDate] = useState<Date | undefined>(
-        initialData?.dismissal_date ? new Date(initialData.dismissal_date) : undefined
+        initialData?.dismissal_date ? parseDate(initialData.dismissal_date) : undefined
     );
 
     // Fetch employees when company changes

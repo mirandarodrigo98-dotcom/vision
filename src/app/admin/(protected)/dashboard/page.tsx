@@ -9,7 +9,8 @@ import {
   UserMinus, 
   Plane, 
   Briefcase,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Stethoscope
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -109,6 +110,15 @@ export default async function AdminDashboard() {
               title="Transferências" 
               icon={ArrowRightLeft} 
               stats={stats.dp.transfers} 
+            />
+          )}
+
+          {/* Subbloco 5: Afastamentos */}
+          {stats.dp.leaves && (
+            <SubBlock 
+              title="Afastamentos" 
+              icon={Stethoscope} 
+              stats={stats.dp.leaves} 
             />
           )}
         </section>

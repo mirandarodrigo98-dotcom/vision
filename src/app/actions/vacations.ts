@@ -283,10 +283,31 @@ export async function updateVacation(id: string, formData: FormData) {
         const changes: string[] = [];
         const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
         
-        if (normalize(existingVacation.start_date) !== normalize(startDate)) changes.push('start_date');
-        if (normalize(existingVacation.days_quantity) !== normalize(daysQuantity)) changes.push('days_count');
-        if (normalize(existingVacation.allowance_days) !== normalize(allowanceDays)) changes.push('allowance_days');
-        if (normalize(existingVacation.return_date) !== normalize(returnDateStr)) changes.push('return_date');
+        // Helper to compare dates avoiding timezone issues
+        const areDatesEqual = (dbVal: any, formVal: string) => {
+            if (!dbVal && !formVal) return true;
+            if (!dbVal || !formVal) return false;
+            
+            const formDate = String(formVal).trim().replace(/\uFEFF/g, '');
+            const dbStr = String(dbVal).trim().replace(/\uFEFF/g, '');
+            
+            if (dbStr === formDate) return true;
+
+            if (dbVal instanceof Date) {
+                const utc = dbVal.toISOString().split('T')[0];
+                const local = format(dbVal, 'yyyy-MM-dd');
+                return utc === formDate || local === formDate;
+            }
+            
+            if (dbStr.split('T')[0] === formDate) return true;
+            if (dbStr.split(' ')[0] === formDate) return true;
+            
+            return false;
+        };
+
+        if (!areDatesEqual(existingVacation.start_date, startDate)) changes.push('start_date');
+        if (existingVacation.days_quantity !== daysQuantity) changes.push('days_quantity');
+        if (existingVacation.allowance_days !== allowanceDays) changes.push('allowance_days');
         if (normalize(existingVacation.observations) !== normalize(observations)) changes.push('observations');
 
         await db.prepare(`
@@ -371,6 +392,22 @@ export async function cancelVacation(id: string) {
             }
         }
 
+        // Removed deadline check for cancellation to allow cancelling expired requests
+        // The original logic was:
+        /*
+        const startDate = new Date(vacation.start_date);
+        const deadline = new Date(startDate);
+        deadline.setDate(deadline.getDate() - 1);
+        
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        deadline.setHours(0, 0, 0, 0);
+
+        if (session.role !== 'admin' && now > deadline) {
+             return { error: 'Prazo para cancelamento expirado.' };
+        }
+        */
+
         await db.prepare(`
             UPDATE vacations 
             SET status = 'CANCELLED', updated_at = datetime('now', '-03:00')
@@ -438,8 +475,8 @@ export async function approveVacation(id: string) {
         const vacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
         if (!vacation) return { error: 'Férias não encontradas.' };
 
-        if (vacation.status !== 'SUBMITTED') {
-             return { error: 'Apenas solicitações pendentes podem ser aprovadas.' };
+        if (vacation.status !== 'SUBMITTED' && vacation.status !== 'RECTIFIED') {
+             return { error: 'Apenas solicitações pendentes ou retificadas podem ser aprovadas.' };
         }
 
         // Get creator info

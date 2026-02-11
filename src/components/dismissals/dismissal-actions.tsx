@@ -40,7 +40,17 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const [isApproving, setIsApproving] = useState(false);
 
   // Check deadline: 1 day before dismissal date
-  const disDate = new Date(dismissalDate);
+  // Parse YYYY-MM-DD string as local date to avoid timezone issues
+  let disDate: Date;
+  const cleanDismissalDate = typeof dismissalDate === 'string' ? dismissalDate.trim().split('T')[0] : '';
+
+  if (cleanDismissalDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDismissalDate)) {
+      const [year, month, day] = cleanDismissalDate.split('-').map(Number);
+      disDate = new Date(year, month - 1, day);
+  } else {
+      disDate = new Date(dismissalDate);
+  }
+
   const deadline = new Date(disDate);
   deadline.setDate(deadline.getDate() - 1);
   
@@ -52,8 +62,8 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
-  // Admin/Operator CAN cancel. Client can cancel if not expired.
-  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  // Admin/Operator CAN cancel. Client can cancel even if expired.
+  const canCancel = !isCanceled && !isCompleted;
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canApprove = isAdmin && status === 'SUBMITTED';
 
@@ -110,7 +120,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const getTooltipMessage = () => {
     if (isCanceled) return "Rescisão cancelada";
     if (isCompleted) return "Rescisão concluída";
-    if (isExpired && !isAdmin) return "Prazo de retificação/cancelamento expirado";
+    if (isExpired && !isAdmin) return "Prazo de retificação expirado";
     return null;
   };
 

@@ -169,9 +169,31 @@ export async function updateTransfer(id: string, formData: FormData) {
         // Detect changes
         const changes: string[] = [];
         const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+        
+        // Helper to compare dates avoiding timezone issues
+        const areDatesEqual = (dbVal: any, formVal: string) => {
+            if (!dbVal && !formVal) return true;
+            if (!dbVal || !formVal) return false;
+            
+            const formDate = String(formVal).trim().replace(/\uFEFF/g, '');
+            const dbStr = String(dbVal).trim().replace(/\uFEFF/g, '');
+            
+            if (dbStr === formDate) return true;
+
+            if (dbVal instanceof Date) {
+                const utc = dbVal.toISOString().split('T')[0];
+                const local = format(dbVal, 'yyyy-MM-dd');
+                return utc === formDate || local === formDate;
+            }
+            
+            if (dbStr.split('T')[0] === formDate) return true;
+            if (dbStr.split(' ')[0] === formDate) return true;
+            
+            return false;
+        };
 
         if (normalize(transfer.target_company_id) !== normalize(targetCompanyId)) changes.push('target_company_id');
-        if (normalize(transfer.transfer_date) !== normalize(transferDate)) changes.push('transfer_date');
+        if (!areDatesEqual(transfer.transfer_date, transferDate)) changes.push('transfer_date');
         if (normalize(transfer.observations) !== normalize(observations)) changes.push('observation');
 
         await db.prepare(`
@@ -307,8 +329,8 @@ export async function approveTransfer(id: string) {
         const transfer = await db.prepare('SELECT * FROM transfer_requests WHERE id = ?').get(id) as any;
         if (!transfer) return { error: 'Transferência não encontrada.' };
 
-        if (transfer.status !== 'SUBMITTED') {
-             return { error: 'Apenas transferências pendentes podem ser aprovadas.' };
+        if (transfer.status !== 'SUBMITTED' && transfer.status !== 'RECTIFIED') {
+             return { error: 'Apenas transferências pendentes ou retificadas podem ser aprovadas.' };
         }
 
         // Get creator info
@@ -330,9 +352,8 @@ export async function approveTransfer(id: string) {
             const employee = await db.prepare('SELECT id FROM employees WHERE name = ? AND company_id = ?').get(transfer.employee_name, transfer.source_company_id) as { id: string };
             
             if (employee) {
-                // Update company and set status to 'Transferido'
-                // Note: 'status' column must exist in employees table
-                await db.prepare(`UPDATE employees SET company_id = ?, status = 'Transferido', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(transfer.target_company_id, employee.id);
+                // Update company
+                await db.prepare(`UPDATE employees SET company_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(transfer.target_company_id, employee.id);
             } else {
                  throw new Error('Funcionário não encontrado na empresa de origem.');
             }

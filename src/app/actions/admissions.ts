@@ -318,9 +318,10 @@ export async function cancelAdmission(admissionId: string) {
         now.setHours(0, 0, 0, 0);
         deadline.setHours(0, 0, 0, 0);
 
-        if (session.role !== 'admin' && now > deadline) {
-            return { error: 'O prazo para cancelamento expirou (até 1 dia antes da admissão).' };
-        }
+        // Cancel is allowed even if expired, as long as it's not completed
+        // if (session.role !== 'admin' && now > deadline) {
+        //    return { error: 'O prazo para cancelamento expirou (até 1 dia antes da admissão).' };
+        // }
 
         await db.prepare("UPDATE admission_requests SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(admissionId);
 
@@ -432,6 +433,9 @@ export async function updateAdmission(formData: FormData) {
         const raceColor = formData.get('race_color') as string || '';
         const contractType = formData.get('contract_type') as string || '';
 
+        // Change Detection
+        const changes: string[] = [];
+
         // Handle File Upload (Client-side or Server-side)
         const fileKey = formData.get('file_key') as string;
         const file = formData.get('file') as File;
@@ -491,23 +495,33 @@ export async function updateAdmission(formData: FormData) {
             }
         }
 
-        // Change Detection
-        const changes: string[] = [];
         const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
         const normalizeBool = (val: any) => Boolean(val);
-        const normalizeDate = (val: any) => {
-            if (!val) return '';
-            if (val instanceof Date) {
-                 return val.toISOString().split('T')[0];
+        
+        // Helper to compare dates avoiding timezone issues
+        const areDatesEqual = (dbVal: any, formVal: string) => {
+            if (!dbVal && !formVal) return true;
+            if (!dbVal || !formVal) return false;
+            
+            const formDate = String(formVal).trim().replace(/\uFEFF/g, '');
+            const dbStr = String(dbVal).trim().replace(/\uFEFF/g, '');
+            
+            if (dbStr === formDate) return true;
+
+            if (dbVal instanceof Date) {
+                const utc = dbVal.toISOString().split('T')[0];
+                const local = format(dbVal, 'yyyy-MM-dd');
+                return utc === formDate || local === formDate;
             }
-            const str = String(val).trim();
-            if (str.includes('T')) return str.split('T')[0];
-            if (str.match(/^\d{4}-\d{2}-\d{2}\s/)) return str.split(' ')[0];
-            return str;
+            
+            if (dbStr.split('T')[0] === formDate) return true;
+            if (dbStr.split(' ')[0] === formDate) return true;
+            
+            return false;
         };
 
         if (normalize(existingAdmission.education_level) !== normalize(educationLevel)) changes.push('education_level');
-        if (normalizeDate(existingAdmission.admission_date) !== normalizeDate(admissionDate)) changes.push('admission_date');
+        if (!areDatesEqual(existingAdmission.admission_date, admissionDate)) changes.push('admission_date');
         if (normalize(existingAdmission.job_role) !== normalize(jobRole)) changes.push('job_role');
         if (existingAdmission.salary_cents !== salaryCents) changes.push('salary_cents');
         if (normalize(existingAdmission.work_schedule) !== normalize(workSchedule)) changes.push('work_schedule');
@@ -530,7 +544,7 @@ export async function updateAdmission(formData: FormData) {
         if (normalize(existingAdmission.general_observations) !== normalize(generalObservations)) changes.push('general_observations');
         
         if (normalize(existingAdmission.cpf) !== normalize(cpf)) changes.push('cpf');
-        if (normalizeDate(existingAdmission.birth_date) !== normalizeDate(birthDate)) changes.push('birth_date');
+        if (!areDatesEqual(existingAdmission.birth_date, birthDate)) changes.push('birth_date');
         if (normalize(existingAdmission.email) !== normalize(email)) changes.push('email');
         if (normalize(existingAdmission.phone) !== normalize(phone)) changes.push('phone');
         if (normalize(existingAdmission.marital_status) !== normalize(maritalStatus)) changes.push('marital_status');

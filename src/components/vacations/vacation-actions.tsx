@@ -40,7 +40,17 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
   const [isApproving, setIsApproving] = useState(false);
 
   // Check deadline: 1 day before start date
-  const stDate = new Date(startDate);
+  // Parse YYYY-MM-DD string as local date to avoid timezone issues
+  let stDate: Date;
+  const cleanStartDate = typeof startDate === 'string' ? startDate.trim().split('T')[0] : '';
+
+  if (cleanStartDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanStartDate)) {
+      const [year, month, day] = cleanStartDate.split('-').map(Number);
+      stDate = new Date(year, month - 1, day);
+  } else {
+      stDate = new Date(startDate);
+  }
+
   const deadline = new Date(stDate);
   deadline.setDate(deadline.getDate() - 1);
   
@@ -53,10 +63,10 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
-  // Admin/Operator CAN cancel. Client can cancel if not expired.
-  const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  // Admin/Operator CAN cancel. Client can cancel even if expired.
+  const canCancel = !isCanceled && !isCompleted;
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
-  const canApprove = isAdmin && status === 'SUBMITTED';
+  const canApprove = isAdmin && (status === 'SUBMITTED' || status === 'RECTIFIED');
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -111,7 +121,7 @@ export function VacationActions({ vacationId, startDate, status, employeeName, i
   const getTooltipMessage = () => {
     if (isCanceled) return "Solicitação cancelada";
     if (isCompleted) return "Solicitação concluída";
-    if (isExpired && !isAdmin) return "Prazo de retificação/cancelamento expirado";
+    if (isExpired && !isAdmin) return "Prazo de retificação expirado";
     return null;
   };
 

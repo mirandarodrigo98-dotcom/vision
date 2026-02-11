@@ -247,7 +247,15 @@ export async function updateDismissal(id: string, formData: FormData) {
     }
 
     // Check deadline (1 day before)
-    const disDate = new Date(dismissal.dismissal_date);
+    // Parse YYYY-MM-DD string as local date to avoid timezone issues
+    let disDate: Date;
+    if (typeof dismissal.dismissal_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dismissal.dismissal_date)) {
+        const [year, month, day] = dismissal.dismissal_date.split('-').map(Number);
+        disDate = new Date(year, month - 1, day);
+    } else {
+        disDate = new Date(dismissal.dismissal_date);
+    }
+
     const deadline = new Date(disDate);
     deadline.setDate(deadline.getDate() - 1);
     
@@ -290,9 +298,31 @@ export async function updateDismissal(id: string, formData: FormData) {
     const changes: string[] = [];
     const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
 
+    // Helper to compare dates avoiding timezone issues
+    const areDatesEqual = (dbVal: any, formVal: string) => {
+        if (!dbVal && !formVal) return true;
+        if (!dbVal || !formVal) return false;
+        
+        const formDate = String(formVal).trim().replace(/\uFEFF/g, '');
+        const dbStr = String(dbVal).trim().replace(/\uFEFF/g, '');
+        
+        if (dbStr === formDate) return true;
+
+        if (dbVal instanceof Date) {
+            const utc = dbVal.toISOString().split('T')[0];
+            const local = format(dbVal, 'yyyy-MM-dd');
+            return utc === formDate || local === formDate;
+        }
+        
+        if (dbStr.split('T')[0] === formDate) return true;
+        if (dbStr.split(' ')[0] === formDate) return true;
+        
+        return false;
+    };
+
     if (normalize(dismissal.notice_type) !== normalize(notice_type)) changes.push('notice_type');
     if (normalize(dismissal.dismissal_cause) !== normalize(dismissal_cause)) changes.push('reason'); // Key must match PDF generator
-    if (normalize(dismissal.dismissal_date) !== normalize(dismissal_date)) changes.push('dismissal_date');
+    if (!areDatesEqual(dismissal.dismissal_date, dismissal_date)) changes.push('dismissal_date');
     if (normalize(dismissal.observations) !== normalize(observations)) changes.push('observations');
 
     // Send Email Notification
@@ -355,9 +385,10 @@ export async function cancelDismissal(id: string) {
     now.setHours(0,0,0,0);
     deadline.setHours(0,0,0,0);
 
-    if (session.role !== 'admin' && now > deadline) {
-        return { error: 'Prazo para cancelamento expirado.' };
-    }
+    // Cancel is allowed even if expired, as long as it's not completed
+    // if (session.role !== 'admin' && now > deadline) {
+    //    return { error: 'Prazo para cancelamento expirado.' };
+    // }
 
     try {
         db.prepare(`
@@ -429,6 +460,19 @@ export async function approveDismissal(id: string) {
         const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
         const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(dismissal.employee_id) as any;
 
+        // Generate PDF first (fail fast)
+        const pdfBytes = await generateDismissalPDF({
+            company_name: company.nome,
+            companyCNPJ: company.cnpj,
+            employee_name: employee.name,
+            notice_type: dismissal.notice_type,
+            reason: dismissal.dismissal_cause,
+            dismissal_date: dismissal.dismissal_date,
+            observations: dismissal.observations,
+            protocol_number: dismissal.protocol_number
+        });
+        const pdfBuffer = Buffer.from(pdfBytes);
+
         const txn = db.transaction(async () => {
             // Update dismissal status
             await db.prepare(`
@@ -436,7 +480,7 @@ export async function approveDismissal(id: string) {
             `).run(id);
 
             // Update employee status to inactive
-            await db.prepare(`UPDATE employees SET is_active = 0, status = 'Desligado', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(dismissal.employee_id);
+            await db.prepare(`UPDATE employees SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(dismissal.employee_id);
         });
         await txn();
 
@@ -450,37 +494,28 @@ export async function approveDismissal(id: string) {
             success: true
         });
 
-        // Generate PDF for completion record (optional but good for consistency)
-        const pdfBytes = await generateDismissalPDF({
-            company_name: company.nome,
-            companyCNPJ: company.cnpj,
-            employee_name: employee.name,
-            notice_type: dismissal.notice_type,
-            reason: dismissal.dismissal_cause,
-            dismissal_date: dismissal.dismissal_date,
-            observations: dismissal.observations,
-            protocol_number: dismissal.protocol_number
-        });
-        const pdfBuffer = Buffer.from(pdfBytes);
-
-        // Send Email to Creator
-        await sendDismissalNotification('COMPLETED', {
-            userName: creator?.name || 'Cliente',
-            recipientEmail: creator?.email,
-            companyName: company.nome,
-            cnpj: company.cnpj,
-            employeeName: employee.name,
-            pdfBuffer: pdfBuffer,
-            senderEmail: session.email
-        });
+        // Send Email to Creator (catch error to not fail the whole process)
+        try {
+            await sendDismissalNotification('COMPLETED', {
+                userName: creator?.name || 'Cliente',
+                recipientEmail: creator?.email,
+                companyName: company.nome,
+                cnpj: company.cnpj,
+                employeeName: employee.name,
+                pdfBuffer: pdfBuffer,
+                senderEmail: session.email
+            });
+        } catch (emailError) {
+            console.error('Error sending dismissal approval email:', emailError);
+        }
 
         revalidatePath('/admin/dismissals');
         revalidatePath('/app/dismissals');
 
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error approving dismissal:', error);
-        return { error: 'Erro ao aprovar rescisão.' };
+        return { error: `Erro ao aprovar rescisão: ${error.message || 'Erro desconhecido'}` };
     }
 }
 

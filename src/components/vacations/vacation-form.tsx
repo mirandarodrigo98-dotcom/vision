@@ -32,6 +32,16 @@ interface VacationFormProps {
     readOnly?: boolean;
 }
 
+const parseDate = (dateStr: string) => {
+    if (!dateStr) return undefined;
+    const cleanDate = dateStr.trim().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+        const [y, m, d] = cleanDate.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+};
+
 export function VacationForm({ companies, activeCompanyId, initialData, isEditing = false, redirectPath = '/admin/vacations', readOnly = false }: VacationFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -42,12 +52,12 @@ export function VacationForm({ companies, activeCompanyId, initialData, isEditin
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
     
     const [startDate, setStartDate] = useState<Date | undefined>(
-        initialData?.start_date ? new Date(initialData.start_date) : undefined
+        initialData?.start_date ? parseDate(initialData.start_date) : undefined
     );
     const [daysQuantity, setDaysQuantity] = useState<string>(initialData?.days_quantity?.toString() || '');
     const [allowanceDays, setAllowanceDays] = useState<string>(initialData?.allowance_days?.toString() || '');
     const [returnDate, setReturnDate] = useState<Date | undefined>(
-        initialData?.return_date ? new Date(initialData.return_date) : undefined
+        initialData?.return_date ? parseDate(initialData.return_date) : undefined
     );
 
     // Fetch employees when company changes

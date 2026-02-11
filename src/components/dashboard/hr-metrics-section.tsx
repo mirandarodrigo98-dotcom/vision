@@ -40,6 +40,25 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   );
 };
 
+const renderLegend = (props: any) => {
+  const { payload } = props;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-1.5 mt-1 w-full px-0.5">
+      {payload.map((entry: any, index: number) => (
+        <div key={`item-${index}`} className="flex items-center gap-0.5">
+          <div 
+            className="w-1.5 h-1.5 rounded-full shrink-0" 
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-[9px] sm:text-[10px] text-gray-600 whitespace-nowrap leading-none font-medium tracking-tight">
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 interface MetricPieProps {
   data: {
     admissions: number;
@@ -91,7 +110,7 @@ function MetricPie({ data, title }: MetricPieProps) {
               formatter={(value: number) => [value, 'Quantidade']}
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
-            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+            <Legend content={renderLegend} verticalAlign="bottom" />
           </PieChart>
         </ResponsiveContainer>
       </div>

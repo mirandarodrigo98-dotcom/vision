@@ -53,26 +53,26 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
     // Admissions
     const admissions = await db.prepare(`
       SELECT COUNT(*) as total FROM admission_requests 
-      WHERE company_id = ? AND ${dateFilter} AND status NOT IN ('DRAFT', 'ERROR')
+      WHERE company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
     `).get(...params) as { total: number };
 
     // Dismissals
     const dismissals = await db.prepare(`
       SELECT COUNT(*) as total FROM dismissals 
-      WHERE company_id = ? AND ${dateFilter} AND status NOT IN ('DRAFT')
+      WHERE company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
     `).get(...params) as { total: number };
 
     // Vacations
     const vacations = await db.prepare(`
       SELECT COUNT(*) as total FROM vacations 
-      WHERE company_id = ? AND ${dateFilter} AND status NOT IN ('DRAFT')
+      WHERE company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
     `).get(...params) as { total: number };
 
     // Transfers (Source Company)
     // Counting transfers initiated by this company
     const transfers = await db.prepare(`
       SELECT COUNT(*) as total FROM transfer_requests 
-      WHERE source_company_id = ? AND ${dateFilter} AND status NOT IN ('DRAFT')
+      WHERE source_company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
     `).get(...params) as { total: number };
 
     return {

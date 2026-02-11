@@ -345,6 +345,111 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
     });
 }
 
+interface LeaveEmailData {
+    userName: string;
+    companyName: string;
+    cnpj: string;
+    employeeName: string;
+    leaveType: string;
+    startDate: string;
+    observation: string;
+    changes?: string[];
+    recipientEmail?: string;
+    senderEmail?: string;
+    pdfBuffer?: Buffer;
+    downloadLink?: string;
+}
+
+export async function sendLeaveNotification(type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN', data: LeaveEmailData) {
+    let to = '';
+    
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        to = await getDestEmail() || ''; 
+        
+        console.log(`[Email Debug] Leave Type: ${type}, To: ${to}, Sender: ${data.senderEmail}`);
+
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        to = data.recipientEmail || ''; 
+    }
+
+    if (!to) {
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
+        return { success: false, error: 'Destination email not configured' };
+    }
+
+    let subject = '';
+    let html = '';
+    const attachments: any[] = [];
+
+    // Button Style
+    const btnStyle = "display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;";
+
+    if (type === 'NEW') {
+        subject = 'Novo Afastamento Solicitado';
+        html = `
+            <p>Uma solicitação de afastamento foi solicitada pelo usuário <strong>“${data.userName}”</strong>.</p>
+            <p><strong>EMPRESA:</strong> "${data.companyName}"</p>
+            <p><strong>CNPJ:</strong> "${data.cnpj}"</p>
+            <p><strong>FUNCIONÁRIO:</strong> "${data.employeeName}"</p>
+            <p><strong>DATA DO AFASTAMENTO:</strong> "${data.startDate}"</p>
+            <p><strong>OBSERVAÇÃO:</strong> "${data.observation}"</p>
+            <p>Segue o link para download da documentação do afastamento.</p>
+            ${data.downloadLink ? `<p><a href="${data.downloadLink}" style="${btnStyle}">Baixar Documento Anexo</a></p>` : ''}
+        `;
+        if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Afastamento.pdf', content: data.pdfBuffer });
+    } else if (type === 'UPDATE') {
+        subject = `Afastamento de “${data.employeeName}” foi retificado.`;
+        const changes = data.changes || [];
+        html = `
+            <p>Você está recebendo uma retificação de afastamento da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
+            <p>Confira as alterações solicitadas abaixo.</p>
+            <p><strong>EMPRESA:</strong> "${data.companyName}"</p>
+            <p><strong>CNPJ:</strong> "${data.cnpj}"</p>
+            ${formatField('FUNCIONÁRIO', `"${data.employeeName}"`, 'employee_id', changes)}
+            ${formatField('DATA DO AFASTAMENTO', `"${data.startDate}"`, 'start_date', changes)}
+            ${formatField('OBSERVAÇÃO', `"${data.observation}"`, 'observations', changes)}
+            ${changes.includes('attachment') ? `
+                <p>Segue o link para download da documentação do afastamento.</p>
+                ${data.downloadLink ? `<p><a href="${data.downloadLink}">Baixar Documento Atualizado</a></p>` : ''}
+            ` : ''}
+            <p>Confira as alterações no relatório anexo.</p>
+        `;
+        if (data.pdfBuffer) attachments.push({ filename: 'Relatorio_Afastamento_Retificado.pdf', content: data.pdfBuffer });
+    } else if (type === 'CANCEL') {
+        subject = `Solicitação de Afastamento de “${data.employeeName}” foi cancelada.`;
+        html = `
+            <p>A solicitação de afastamento de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong> foi CANCELADA.</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Afastamento de “${data.employeeName}” foi cancelada.`;
+        html = `
+            <p>A solicitação de afastamento de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CANCELADA.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
+        `;
+    } else if (type === 'COMPLETED') {
+        subject = `Afastamento de “${data.employeeName}” foi concluída.`;
+        html = `
+            <p>A solicitação de afastamento de <strong>“${data.employeeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> foi CONCLUÍDA.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
+        `;
+    }
+
+    return await resend.emails.send({
+        from: FROM_EMAIL,
+        to: [to],
+        subject,
+        html: await wrapHtml(html),
+        attachments
+    });
+}
+
+
 // --- DISMISSAL ---
 
 interface DismissalEmailData {

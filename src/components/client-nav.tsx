@@ -14,6 +14,7 @@ import {
   UserMinus,
   Plane,
   ArrowRightLeft,
+  Stethoscope,
   ChevronDown,
   ChevronRight,
   FileBarChart
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
       { href: '/app/dismissals', label: 'Demissões', icon: UserMinus },
       { href: '/app/vacations', label: 'Férias', icon: Plane },
       { href: '/app/transfers', label: 'Transferências', icon: ArrowRightLeft },
+      { href: '/app/leaves', label: 'Afastamentos', icon: Stethoscope },
       { 
         label: 'Relatórios', 
         icon: FileBarChart,

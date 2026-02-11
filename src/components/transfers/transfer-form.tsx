@@ -31,11 +31,21 @@ interface TransferFormProps {
     readOnly?: boolean;
 }
 
+const parseDate = (dateStr: string) => {
+    if (!dateStr) return undefined;
+    const cleanDate = dateStr.trim().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+        const [y, m, d] = cleanDate.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+};
+
 export function TransferForm({ companies, activeCompanyId, initialData, isEditing = false, redirectPath = '/app/transfers', readOnly = false }: TransferFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState<Date | undefined>(
-        initialData?.transfer_date ? new Date(initialData.transfer_date) : undefined
+        initialData?.transfer_date ? parseDate(initialData.transfer_date) : undefined
     );
     const [sourceCompanyId, setSourceCompanyId] = useState<string>(initialData?.source_company_id || activeCompanyId || '');
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
@@ -162,6 +172,7 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
                                 </SelectContent>
                             </Select>
                          )}
+                         {isEditing && <input type="hidden" name="target_company_id" value={initialData.target_company_id} />}
                     </div>
 
                     {/* Transfer Date */}
@@ -186,6 +197,7 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
                                     selected={date}
                                     onSelect={setDate}
                                     initialFocus
+                                    locale={ptBR}
                                 />
                             </PopoverContent>
                         </Popover>

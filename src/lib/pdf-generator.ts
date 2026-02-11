@@ -420,6 +420,38 @@ export async function generateTransferPDF(data: any): Promise<Buffer> {
     return Buffer.from(doc.output('arraybuffer'));
 }
 
+export async function generateLeavePDF(data: any): Promise<Buffer> {
+    const doc = new jsPDF();
+    const startY = await addLogo(doc);
+    const changes = data.changes || []; 
+
+    doc.setFontSize(18);
+    doc.text('Relatório de Afastamento', 14, startY);
+    
+    doc.setFontSize(11);
+    doc.text(`Empresa: ${data.company_name || 'N/A'}`, 14, startY + 8);
+    doc.text(`Funcionário: ${data.employee_name || 'N/A'}`, 14, startY + 14);
+    doc.text(`Protocolo: ${data.protocol_number || 'N/A'}`, 14, startY + 20);
+    doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startY + 26);
+
+    const leaveData = [
+        getCell('Funcionário', data.employee_name || '-', ['employee_id'], changes),
+        getCell('Tipo de Afastamento', data.type || '-', ['type'], changes),
+        getCell('Data de Início', data.start_date ? format(new Date(data.start_date), 'dd/MM/yyyy') : '-', ['start_date'], changes),
+        getCell('Observações', data.observations || '-', ['observations'], changes),
+    ];
+
+    autoTable(doc, {
+        startY: startY + 35,
+        head: [['Campo', 'Valor']],
+        body: leaveData as any,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 66, 66] },
+    });
+
+    return Buffer.from(doc.output('arraybuffer'));
+}
+
 export async function generateEthnicRacialSelfDeclarationPDF(companyData: any): Promise<Buffer> {
     const doc = new jsPDF();
     const startY = await addLogo(doc);

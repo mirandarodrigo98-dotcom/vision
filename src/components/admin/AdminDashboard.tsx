@@ -46,6 +46,7 @@ const navigation = [
       { name: 'Demissões', href: '/admin/dismissals' },
       { name: 'Férias', href: '/admin/vacations' },
       { name: 'Transferências', href: '/admin/transfers' },
+      { name: 'Afastamentos', href: '/admin/leaves' },
     ]
   },
   { name: 'Equipe', href: '/admin/team', icon: ShieldCheckIcon },

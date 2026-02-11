@@ -58,6 +58,57 @@ export async function getAdmissionHistory(admissionId: string) {
   }
 }
 
+export async function getLeaveHistory(leaveId: string) {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'Unauthorized' };
+  }
+
+  const leave = await db.prepare('SELECT created_by_user_id, company_id FROM leaves WHERE id = ?').get(leaveId) as any;
+  
+  if (!leave) {
+    return { error: 'Afastamento não encontrado.' };
+  }
+
+  if (session.role === 'client_user') {
+      const hasAccess = await db.prepare(`
+          SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
+      `).get(session.user_id, leave.company_id);
+
+      if (!hasAccess && leave.created_by_user_id !== session.user_id) {
+          return { error: 'Unauthorized' };
+      }
+  }
+
+  try {
+    const logs = await db.prepare(`
+      SELECT 
+        al.id,
+        al.action,
+        al.timestamp as created_at,
+        al.metadata,
+        u.name as user_name,
+        al.actor_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.actor_user_id = u.id
+      WHERE al.entity_id = ?
+      ORDER BY al.timestamp DESC
+    `).all(leaveId) as Array<{
+      id: string;
+      action: string;
+      created_at: string;
+      metadata: string;
+      user_name: string;
+      actor_email: string;
+    }>;
+
+    return { success: true, logs };
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    return { error: 'Erro ao buscar histórico.' };
+  }
+}
+
 export async function getDismissalHistory(dismissalId: string) {
   const session = await getSession();
   if (!session) {
