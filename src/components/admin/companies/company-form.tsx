@@ -12,7 +12,7 @@ import { ChevronLeft, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Popover,
   PopoverContent,
@@ -196,29 +196,11 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Data de Abertura</label>
             <div className="w-[18ch]">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal px-3",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione...</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePicker 
+                date={date} 
+                setDate={setDate} 
+                placeholder="Selecione..." 
+              />
               <input type="hidden" name="data_abertura" value={date ? format(date, 'yyyy-MM-dd') : ''} />
             </div>
           </div>

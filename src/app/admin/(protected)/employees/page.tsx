@@ -1,27 +1,34 @@
 import Link from 'next/link';
 import db from '@/lib/db';
-import { getCompanies } from '@/app/actions/companies';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { EmployeeImportDialog } from '@/components/admin/employees/employee-import-dialog';
 import { EmployeeActions } from '@/components/admin/employees/employee-actions';
+import { EmployeeFilters } from '@/components/admin/employees/employee-filters';
 
 interface EmployeesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
+  // Force re-render comment to fix ReferenceError cache
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'code';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'asc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filters
+  const name = typeof resolvedSearchParams.name === 'string' ? resolvedSearchParams.name : '';
+  const company = typeof resolvedSearchParams.company === 'string' ? resolvedSearchParams.company : '';
+  const cpf = typeof resolvedSearchParams.cpf === 'string' ? resolvedSearchParams.cpf : '';
+  const admissionStart = typeof resolvedSearchParams.admission_start === 'string' ? resolvedSearchParams.admission_start : '';
+  const admissionEnd = typeof resolvedSearchParams.admission_end === 'string' ? resolvedSearchParams.admission_end : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
 
   // Whitelist allowed sort columns to prevent SQL injection
-  const allowedSorts = ['code', 'name', 'company_name', 'cpf', 'admission_date', 'created_at'];
+  const allowedSorts = ['code', 'name', 'company_name', 'cpf', 'admission_date', 'created_at', 'status'];
   const safeSort = allowedSorts.includes(sort) ? sort : 'code';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
@@ -30,14 +37,39 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     SELECT e.*, c.nome as company_name 
     FROM employees e
     JOIN client_companies c ON e.company_id = c.id
+    WHERE 1=1
   `;
   
   const params: any[] = [];
   
-  if (q) {
-    query += ` WHERE (e.name LIKE ? OR e.cpf LIKE ? OR e.code LIKE ?)`;
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ);
+  if (name) {
+    query += ` AND e.name LIKE ?`;
+    params.push(`%${name}%`);
+  }
+  
+  if (company && company.length >= 3) {
+    query += ` AND c.razao_social LIKE ?`;
+    params.push(`%${company}%`);
+  }
+
+  if (cpf) {
+    query += ` AND e.cpf LIKE ?`;
+    params.push(`%${cpf}%`);
+  }
+  
+  if (admissionStart) {
+    query += ` AND e.admission_date >= ?`;
+    params.push(admissionStart);
+  }
+  
+  if (admissionEnd) {
+    query += ` AND e.admission_date <= ?`;
+    params.push(admissionEnd);
+  }
+
+  if (status && status !== 'all') {
+    query += ` AND e.status = ?`;
+    params.push(status);
   }
 
   // Handle special case for company_name sorting and numeric code sorting
@@ -60,9 +92,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     admission_date: string;
     created_at: string;
     is_active: number;
+    status: string;
   }>;
-
-  const companies = await getCompanies();
 
   return (
     <div className="space-y-6">
@@ -78,9 +109,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <SearchInput placeholder="Buscar por nome, CPF ou código..." />
-      </div>
+      <EmployeeFilters />
 
       <div className="border rounded-md bg-white">
         <Table>
@@ -102,6 +131,9 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                 <ColumnHeader column="admission_date" title="Admissão" />
               </TableHead>
               <TableHead>
+                <ColumnHeader column="status" title="Status" />
+              </TableHead>
+              <TableHead>
                 <ColumnHeader column="created_at" title="Criado em" />
               </TableHead>
               <TableHead className="w-[100px] text-center">Ações</TableHead>
@@ -110,8 +142,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           <TableBody>
             {employees.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Nenhum funcionário cadastrado.
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  Nenhum funcionário encontrado com os filtros selecionados.
                 </TableCell>
               </TableRow>
             ) : (
@@ -144,6 +176,18 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                   <TableCell>{employee.cpf || '-'}</TableCell>
                   <TableCell suppressHydrationWarning>
                     {admissionDate}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      employee.status === 'Admitido' ? 'bg-green-100 text-green-800' :
+                      employee.status === 'Desligado' ? 'bg-red-100 text-red-800' :
+                      employee.status === 'Transferido' ? 'bg-blue-100 text-blue-800' :
+                      employee.status === 'Férias' ? 'bg-yellow-100 text-yellow-800' :
+                      employee.status === 'Afastado' ? 'bg-orange-100 text-orange-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {employee.status || 'Admitido'}
+                    </span>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm" suppressHydrationWarning>
                     {createdAt}

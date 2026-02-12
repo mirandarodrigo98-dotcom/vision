@@ -687,8 +687,8 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
                 INSERT INTO employees (
                     id, company_id, name, admission_date, birth_date, cpf, 
                     code, esocial_registration,
-                    is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    is_active, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'Admitido', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `).run(
                 employeeId, 
                 admission.company_id, 

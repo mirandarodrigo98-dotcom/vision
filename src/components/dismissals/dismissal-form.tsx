@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Popover,
   PopoverContent,
@@ -191,29 +191,12 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                     {/* Data de Desligamento */}
                     <div className="space-y-2 flex flex-col">
                         <Label>Data de Desligamento *</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !dismissalDate && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dismissalDate ? format(dismissalDate, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione uma data</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="single"
-                                    selected={dismissalDate}
-                                    onSelect={setDismissalDate}
-                                    initialFocus
-                                    locale={ptBR}
-                                />
-                            </PopoverContent>
-                        </Popover>
+                        <DatePicker
+                            date={dismissalDate}
+                            setDate={setDismissalDate}
+                            disabled={readOnly}
+                            placeholder="Selecione uma data"
+                        />
                     </div>
 
                     {/* Observações */}

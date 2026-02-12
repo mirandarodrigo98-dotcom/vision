@@ -346,16 +346,116 @@ export async function approveTransfer(id: string) {
                 WHERE id = ?
             `).run(id);
 
-            // 2. Update Employee Company
-            // Find employee by name and source company (to be safe)
+            // 2. Find Source Employee
             // Ideally we should have stored employee_id, but name+company is the key used in creation
-            const employee = await db.prepare('SELECT id FROM employees WHERE name = ? AND company_id = ?').get(transfer.employee_name, transfer.source_company_id) as { id: string };
+            const sourceEmployee = await db.prepare('SELECT * FROM employees WHERE name = ? AND company_id = ?').get(transfer.employee_name, transfer.source_company_id) as any;
             
-            if (employee) {
-                // Update company
-                await db.prepare(`UPDATE employees SET company_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(transfer.target_company_id, employee.id);
-            } else {
+            if (!sourceEmployee) {
                  throw new Error('Funcionário não encontrado na empresa de origem.');
+            }
+
+            // 3. Update Source Employee (Transferido, Inactive)
+            // Keep company_id as source company, set status to Transferido, mark as inactive
+            await db.prepare(`
+                UPDATE employees 
+                SET status = 'Transferido', is_active = 0, transfer_date = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            `).run(transfer.transfer_date, sourceEmployee.id);
+
+            // 4. Create Target Employee (Admitido, Active)
+            const newEmployeeId = randomUUID();
+            
+            // We copy most fields, but reset specific ones
+            await db.prepare(`
+                INSERT INTO employees (
+                    id, company_id, code, employee_code, name, 
+                    admission_date, birth_date, gender, pis, cpf, 
+                    esocial_registration, is_active, status, created_at, updated_at
+                ) VALUES (
+                    ?, ?, ?, ?, ?, 
+                    ?, ?, ?, ?, ?, 
+                    ?, 1, 'Admitido', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                )
+            `).run(
+                newEmployeeId, 
+                transfer.target_company_id, 
+                sourceEmployee.code, 
+                sourceEmployee.employee_code, 
+                sourceEmployee.name,
+                sourceEmployee.admission_date, // Keep original admission date for history
+                sourceEmployee.birth_date,
+                sourceEmployee.gender,
+                sourceEmployee.pis,
+                sourceEmployee.cpf,
+                sourceEmployee.esocial_registration
+            );
+
+            // 5. Copy Vacations
+            const vacations = await db.prepare('SELECT * FROM vacations WHERE employee_id = ?').all(sourceEmployee.id) as any[];
+            for (const v of vacations) {
+                const newVacationId = randomUUID();
+                const newProtocol = generateProtocolNumber(); // Generate new protocol to avoid unique constraint violation
+                
+                await db.prepare(`
+                    INSERT INTO vacations (
+                        id, company_id, employee_id, start_date, days_quantity, 
+                        allowance_days, return_date, observations, status, 
+                        protocol_number, created_by_user_id, created_at, updated_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, 
+                        ?, ?, ?, ?, 
+                        ?, ?, ?, CURRENT_TIMESTAMP
+                    )
+                `).run(
+                    newVacationId,
+                    transfer.target_company_id,
+                    newEmployeeId,
+                    v.start_date,
+                    v.days_quantity,
+                    v.allowance_days,
+                    v.return_date,
+                    v.observations,
+                    v.status,
+                    newProtocol,
+                    v.created_by_user_id,
+                    v.created_at
+                );
+            }
+
+            // 6. Copy Leaves
+            const leaves = await db.prepare('SELECT * FROM leaves WHERE employee_id = ?').all(sourceEmployee.id) as any[];
+            for (const l of leaves) {
+                const newLeaveId = randomUUID();
+                // Protocol number in leaves is not unique, but good practice to generate new or keep?
+                // If we generate new, we lose the reference to the original request if that matters.
+                // But since it's a new company record, a new protocol makes sense.
+                // However, "leaves" table doesn't have unique constraint on protocol_number, so we *could* keep it.
+                // Let's generate new to be consistent with vacations.
+                const newProtocol = generateProtocolNumber(); 
+
+                await db.prepare(`
+                    INSERT INTO leaves (
+                        id, company_id, employee_id, start_date, type, 
+                        observations, attachment_key, status, protocol_number, 
+                        created_by_user_id, created_at, updated_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, 
+                        ?, ?, ?, ?, 
+                        ?, ?, CURRENT_TIMESTAMP
+                    )
+                `).run(
+                    newLeaveId,
+                    transfer.target_company_id,
+                    newEmployeeId,
+                    l.start_date,
+                    l.type,
+                    l.observations,
+                    l.attachment_key,
+                    l.status,
+                    newProtocol,
+                    l.created_by_user_id,
+                    l.created_at
+                );
             }
         });
 

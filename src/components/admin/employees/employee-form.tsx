@@ -10,15 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Employee {
   id: string;
@@ -31,15 +31,37 @@ interface Employee {
   pis?: string | null;
   cpf?: string | null;
   esocial_registration?: string | null;
+  status?: string | null;
+  dismissal_date?: string | null;
+  transfer_date?: string | null;
+}
+
+interface Vacation {
+  id: string;
+  start_date: string;
+  end_date?: string;
+  days: number;
+  status: string;
+}
+
+interface Leave {
+  id: string;
+  start_date: string;
+  end_date?: string;
+  days?: number;
+  type?: string; // motivo/tipo
+  status: string;
 }
 
 interface EmployeeFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
     initialData?: Employee;
     readOnly?: boolean;
+    vacations?: Vacation[];
+    leaves?: Leave[];
 }
 
-export function EmployeeForm({ companies, initialData, readOnly }: EmployeeFormProps) {
+export function EmployeeForm({ companies, initialData, readOnly, vacations = [], leaves = [] }: EmployeeFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [admissionDate, setAdmissionDate] = useState<Date | undefined>(
@@ -48,6 +70,66 @@ export function EmployeeForm({ companies, initialData, readOnly }: EmployeeFormP
     const [birthDate, setBirthDate] = useState<Date | undefined>(
         initialData?.birth_date ? new Date(initialData.birth_date) : undefined
     );
+
+    // Calculate dynamic status
+    let displayStatus = initialData?.status || 'Admitido';
+    
+    // Normalize status strings from DB if necessary
+    if (displayStatus === 'ACTIVE') displayStatus = 'Admitido';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const parseDateStr = (dateStr?: string | null) => {
+        if (!dateStr) return null;
+        // Handle T separator
+        const cleanDate = dateStr.split('T')[0];
+        const [y, m, d] = cleanDate.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    };
+
+    // Check for active Vacation
+    // User said: "Férias = o período em que o funcionário está de férias"
+    // Only if status is NOT 'Desligado'
+    if (displayStatus !== 'Desligado') {
+        const activeVacation = vacations.find(v => {
+            if (v.status !== 'COMPLETED') return false; 
+            const start = parseDateStr(v.start_date);
+            if (!start) return false;
+            
+            // Calculate end date based on days if end_date not present, or use end_date
+            let end = v.end_date ? parseDateStr(v.end_date) : null;
+            if (!end) {
+                end = new Date(start);
+                end.setDate(end.getDate() + (v.days || 0) - 1);
+            }
+            
+            return today >= start && today <= end;
+        });
+
+        if (activeVacation) {
+            displayStatus = 'Férias';
+        }
+
+        // Check for active Leave
+        const activeLeave = leaves.find(l => {
+             if (l.status !== 'COMPLETED') return false;
+             const start = parseDateStr(l.start_date);
+             if (!start) return false;
+             
+             const end = l.end_date ? parseDateStr(l.end_date) : null;
+             
+             // If no end date (open leave), assume active if started in past/today
+             if (!end) return today >= start;
+             return today >= start && today <= end;
+        });
+
+        if (activeLeave) {
+            displayStatus = 'Afastamento';
+        }
+    }
+
+    // Determine status color/badge style could be nice, but user just asked for the field.
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -91,7 +173,14 @@ export function EmployeeForm({ companies, initialData, readOnly }: EmployeeFormP
         }
     }
 
+    const formatDateDisplay = (dateStr?: string | null) => {
+        const date = parseDateStr(dateStr);
+        if (!date) return '-';
+        return format(date, 'dd/MM/yyyy');
+    };
+
     return (
+        <div className="space-y-6">
         <Card>
             <CardHeader>
                 <CardTitle>
@@ -102,140 +191,250 @@ export function EmployeeForm({ companies, initialData, readOnly }: EmployeeFormP
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <fieldset disabled={readOnly} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="company_id">Empresa *</Label>
-                            <Select name="company_id" required defaultValue={initialData?.company_id}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione a empresa" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {companies.map(company => (
-                                        <SelectItem key={company.id} value={company.id}>
-                                            {company.nome}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    <div className="flex flex-col space-y-4">
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="company_id" className="text-right font-medium">Empresa:</Label>
+                            {readOnly ? (
+                                <Input 
+                                    value={companies.find(c => c.id === initialData?.company_id)?.nome || ''} 
+                                    readOnly 
+                                    disabled
+                                    className="max-w-[600px]"
+                                />
+                            ) : (
+                                <Select name="company_id" defaultValue={initialData?.company_id} required>
+                                    <SelectTrigger className="max-w-[600px]">
+                                        <SelectValue placeholder="Selecione a empresa" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {companies.map((company) => (
+                                            <SelectItem key={company.id} value={company.id}>
+                                                {company.nome} ({company.cnpj})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="code">Código *</Label>
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="code" className="text-right font-medium">Código:</Label>
                             <Input 
                                 id="code" 
                                 name="code" 
-                                type="number" 
-                                required
-                                placeholder="Código do funcionário" 
                                 defaultValue={initialData?.code || ''} 
-                                min="1"
-                                step="1"
+                                placeholder="Código" 
+                                readOnly={readOnly}
+                                disabled={readOnly}
+                                className="w-32"
                             />
                         </div>
 
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="name">Nome Completo *</Label>
-                            <Input id="name" name="name" required placeholder="Nome do funcionário" defaultValue={initialData?.name || ''} />
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="name" className="text-right font-medium">Nome:</Label>
+                            <Input 
+                                id="name" 
+                                name="name" 
+                                defaultValue={initialData?.name} 
+                                required 
+                                placeholder="Nome completo" 
+                                readOnly={readOnly}
+                                disabled={readOnly}
+                                className="max-w-[600px]"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Data de Admissão *</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !admissionDate && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {admissionDate ? format(admissionDate, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={admissionDate}
-                                        onSelect={setAdmissionDate}
-                                        initialFocus
-                                        locale={ptBR}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="esocial_registration" className="text-right font-medium">Matrícula eSocial:</Label>
+                            <Input 
+                                id="esocial_registration" 
+                                name="esocial_registration" 
+                                defaultValue={initialData?.esocial_registration || ''} 
+                                required 
+                                placeholder="Matrícula" 
+                                readOnly={readOnly}
+                                disabled={readOnly}
+                                className="w-48"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Data de Nascimento *</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !birthDate && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {birthDate ? format(birthDate, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={birthDate}
-                                        onSelect={setBirthDate}
-                                        initialFocus
-                                        locale={ptBR}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label className="text-right font-medium">Data de Admissão:</Label>
+                            <DatePicker
+                                date={admissionDate}
+                                setDate={setAdmissionDate}
+                                disabled={readOnly}
+                                className="w-[240px]"
+                                placeholder="Selecione"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="gender">Sexo *</Label>
-                            <Select name="gender" required defaultValue={initialData?.gender || undefined}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione o sexo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="M">Masculino</SelectItem>
-                                    <SelectItem value="F">Feminino</SelectItem>
-                                    <SelectItem value="O">Outro</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label className="text-right font-medium">Data de Desligamento:</Label>
+                            <Input 
+                                value={initialData?.dismissal_date ? formatDateDisplay(initialData.dismissal_date) : ''} 
+                                readOnly 
+                                disabled 
+                                placeholder="-"
+                                className="w-[240px]"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="pis">PIS</Label>
-                            <Input id="pis" name="pis" placeholder="000.00000.00-0" defaultValue={initialData?.pis || ''} />
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label className="text-right font-medium">Data de Nascimento:</Label>
+                            <DatePicker
+                                date={birthDate}
+                                setDate={setBirthDate}
+                                disabled={readOnly}
+                                className="w-[240px]"
+                                placeholder="Selecione"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="cpf">CPF *</Label>
-                            <Input id="cpf" name="cpf" required placeholder="000.000.000-00" defaultValue={initialData?.cpf || ''} />
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="cpf" className="text-right font-medium">CPF:</Label>
+                            <Input 
+                                id="cpf" 
+                                name="cpf" 
+                                defaultValue={initialData?.cpf || ''} 
+                                required 
+                                placeholder="000.000.000-00" 
+                                readOnly={readOnly}
+                                disabled={readOnly}
+                                className="w-48"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="esocial_registration">e-Social *</Label>
-                            <Input id="esocial_registration" name="esocial_registration" required placeholder="Matrícula e-Social" defaultValue={initialData?.esocial_registration || ''} />
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="pis" className="text-right font-medium">PIS:</Label>
+                            <Input 
+                                id="pis" 
+                                name="pis" 
+                                defaultValue={initialData?.pis || ''} 
+                                placeholder="000.00000.00-0" 
+                                readOnly={readOnly}
+                                disabled={readOnly}
+                                className="w-64"
+                            />
                         </div>
-                    </div>
-                </fieldset>
 
-                    <div className="flex justify-end gap-4 pt-4">
-                        <Button type="button" variant="outline" onClick={() => router.back()}>
-                            {readOnly ? 'Voltar' : 'Cancelar'}
-                        </Button>
-                        {!readOnly && (
-                            <Button type="submit" disabled={loading}>
-                                {loading ? 'Salvando...' : (initialData ? 'Atualizar Funcionário' : 'Salvar Funcionário')}
-                            </Button>
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label htmlFor="gender" className="text-right font-medium">Sexo:</Label>
+                            {readOnly ? (
+                                <Input value={initialData?.gender || ''} readOnly disabled className="w-48" />
+                            ) : (
+                                <Select name="gender" defaultValue={initialData?.gender || undefined} required>
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Masculino">Masculino</SelectItem>
+                                        <SelectItem value="Feminino">Feminino</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                            <Label className="text-right font-medium">Status:</Label>
+                            <Input 
+                                value={displayStatus} 
+                                readOnly 
+                                disabled 
+                                className="w-48 font-semibold"
+                            />
+                        </div>
+
+                        {initialData?.transfer_date && (
+                            <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+                                <Label className="text-right font-medium">Data de Transferência:</Label>
+                                <Input 
+                                    value={formatDateDisplay(initialData.transfer_date)} 
+                                    readOnly 
+                                    disabled 
+                                    className="w-[240px]"
+                                />
+                            </div>
                         )}
                     </div>
+
+                    {!readOnly && (
+                        <div className="flex justify-end space-x-2 pt-4">
+                            <Button type="button" variant="outline" onClick={() => router.back()}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={loading}>
+                                {loading ? 'Salvando...' : (initialData ? 'Atualizar' : 'Criar')}
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </CardContent>
         </Card>
+
+        {/* Histórico de Férias - Somente Visualização */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Histórico de Férias</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {vacations.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de férias concluído.</p>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Início</TableHead>
+                                <TableHead>Fim</TableHead>
+                                <TableHead>Dias</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {vacations.map((vacation) => (
+                                <TableRow key={vacation.id}>
+                                    <TableCell>{formatDateDisplay(vacation.start_date)}</TableCell>
+                                    <TableCell>{formatDateDisplay(vacation.end_date)}</TableCell>
+                                    <TableCell>{vacation.days}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
+
+        {/* Histórico de Afastamentos - Somente Visualização */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Histórico de Afastamentos</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {leaves.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de afastamento concluído.</p>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Início</TableHead>
+                                <TableHead>Fim</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>Dias</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {leaves.map((leave) => (
+                                <TableRow key={leave.id}>
+                                    <TableCell>{formatDateDisplay(leave.start_date)}</TableCell>
+                                    <TableCell>{formatDateDisplay(leave.end_date)}</TableCell>
+                                    <TableCell>{leave.type || '-'}</TableCell>
+                                    <TableCell>{leave.days || '-'}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
+        </div>
     );
 }

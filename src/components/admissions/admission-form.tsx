@@ -13,15 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Copy, AlertTriangle, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Copy, AlertTriangle, Loader2 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Tooltip,
   TooltipContent,
@@ -578,31 +571,11 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="birth_date">Data de Nascimento <span className="text-red-500">*</span></Label>
-                             <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !birthDate && "text-muted-foreground"
-                                        )}
-                                        disabled={readOnly}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {birthDate ? format(birthDate, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione...</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={birthDate}
-                                        onSelect={setBirthDate}
-                                        initialFocus
-                                        locale={ptBR}
-                                        defaultMonth={birthDate || new Date(2000, 0, 1)}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <DatePicker 
+                                date={birthDate} 
+                                setDate={setBirthDate} 
+                                disabled={readOnly}
+                            />
                             <input type="hidden" name="birth_date" value={birthDate ? format(birthDate, 'yyyy-MM-dd') : ''} required />
                         </div>
                         <div className="space-y-2">
@@ -819,30 +792,11 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
 
                         <div className="space-y-2">
                             <Label htmlFor="admission_date">Data de Admissão <span className="text-red-500">*</span></Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !date && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date ? format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Selecione uma data</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={date}
-                                        onSelect={setDate}
-                                        initialFocus
-                                        locale={ptBR}
-                                        defaultMonth={date || new Date()}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <DatePicker 
+                                date={date} 
+                                setDate={setDate} 
+                                disabled={readOnly}
+                            />
                             <input type="hidden" name="admission_date" value={date ? format(date, 'yyyy-MM-dd') : ''} required />
                         </div>
 

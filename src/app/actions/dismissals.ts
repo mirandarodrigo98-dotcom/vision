@@ -479,8 +479,12 @@ export async function approveDismissal(id: string) {
                 UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?
             `).run(id);
 
-            // Update employee status to inactive
-            await db.prepare(`UPDATE employees SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(dismissal.employee_id);
+            // Update employee status to inactive and Desligado
+            await db.prepare(`
+                UPDATE employees 
+                SET is_active = 0, status = 'Desligado', dismissal_date = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            `).run(dismissal.dismissal_date, dismissal.employee_id);
         });
         await txn();
 
@@ -536,8 +540,12 @@ export async function completeDismissal(id: string) {
              // Update dismissal status
              await db.prepare("UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
              
-             // Update employee dismissal date
-             await db.prepare("UPDATE employees SET dismissal_date = ? WHERE id = ?").run(dismissal.dismissal_date, dismissal.employee_id);
+             // Update employee dismissal date and status
+             await db.prepare(`
+                 UPDATE employees 
+                 SET dismissal_date = ?, status = 'Desligado', is_active = 0, updated_at = CURRENT_TIMESTAMP 
+                 WHERE id = ?
+             `).run(dismissal.dismissal_date, dismissal.employee_id);
         });
 
         await txn();
