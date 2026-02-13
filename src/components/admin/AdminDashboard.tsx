@@ -18,7 +18,8 @@ import {
   UserGroupIcon,
   ChevronRightIcon,
   BriefcaseIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  PuzzlePieceIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
@@ -53,6 +54,7 @@ const navigation = [
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon },
   { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon },
+  { name: 'Integrações', href: '/admin/integrations', icon: PuzzlePieceIcon },
 ]
 
 const userNavigation = [

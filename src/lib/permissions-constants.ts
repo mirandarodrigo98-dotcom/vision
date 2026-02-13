@@ -38,6 +38,11 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     // Empresas
     { code: 'companies.view', label: 'Visualizar Empresas', category: 'Empresas' },
     
+    // Integrações
+    { code: 'integrations.view', label: 'Acessar Integrações', category: 'Integrações' },
+    { code: 'integrations.enuves', label: 'Acessar Enuves', category: 'Integrações' },
+    { code: 'integrations.eklesia', label: 'Acessar Eklesia', category: 'Integrações' },
+
     // Usuários/Equipe
     { code: 'users.view', label: 'Visualizar Usuários', category: 'Usuários' },
 ];

@@ -23,6 +23,7 @@ export async function createCompany(data: FormData) {
   const address_street = data.get('address_street') as string;
   const address_number = data.get('address_number') as string;
   const address_complement = data.get('address_complement') as string;
+  const address_neighborhood = data.get('address_neighborhood') as string;
   const address_zip_code = data.get('address_zip_code') as string;
 
   if (!nome || !cnpj || !code) {
@@ -34,13 +35,13 @@ export async function createCompany(data: FormData) {
     await db.prepare(`
       INSERT INTO client_companies (
         id, nome, razao_social, cnpj, telefone, email_contato, code,
-        address_type, address_street, address_number, address_complement, address_zip_code,
+        address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code,
         created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).run(
       id, nome, razao_social, cnpj, telefone, email_contato, code,
-      address_type, address_street, address_number, address_complement, address_zip_code
+      address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code
     );
 
     logAudit({
@@ -87,6 +88,7 @@ export async function updateCompany(id: string, data: FormData) {
   const address_street = data.get('address_street') as string;
   const address_number = data.get('address_number') as string;
   const address_complement = data.get('address_complement') as string;
+  const address_neighborhood = data.get('address_neighborhood') as string;
   const address_zip_code = data.get('address_zip_code') as string;
 
   if (!code) {
@@ -119,13 +121,13 @@ export async function updateCompany(id: string, data: FormData) {
       UPDATE client_companies 
       SET nome = ?, razao_social = ?, cnpj = ?, telefone = ?, email_contato = ?, code = ?, 
           filial = ?, municipio = ?, uf = ?, data_abertura = ?,
-          address_type = ?, address_street = ?, address_number = ?, address_complement = ?, address_zip_code = ?,
+          address_type = ?, address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?, address_zip_code = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       nome, razao_social, cnpj, telefone, email_contato, code, 
       filial, municipio, uf, data_abertura, 
-      address_type, address_street, address_number, address_complement, address_zip_code,
+      address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code,
       id
     );
 

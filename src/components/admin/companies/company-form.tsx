@@ -241,6 +241,12 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
             <Input name="address_complement" defaultValue={company?.address_complement || ''} className="w-[20ch]" />
           </div>
 
+          {/* Bairro */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Bairro</label>
+            <Input name="address_neighborhood" defaultValue={company?.address_neighborhood || ''} className="w-[30ch]" />
+          </div>
+
           {/* Município */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Município</label>

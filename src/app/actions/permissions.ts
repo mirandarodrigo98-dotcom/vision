@@ -3,6 +3,7 @@
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { AVAILABLE_PERMISSIONS } from '@/lib/permissions-constants';
 
 export async function getRolePermissions(role: string) {
     const session = await getSession();
@@ -13,6 +14,10 @@ export async function getRolePermissions(role: string) {
     
     if (!session) {
         throw new Error('Unauthorized');
+    }
+
+    if (role === 'admin') {
+        return AVAILABLE_PERMISSIONS.map(p => p.code);
     }
 
     try {
