@@ -7,9 +7,11 @@ import { PdfImportDialog } from './pdf-import-dialog';
 import { TransactionFilters } from './transaction-filters';
 import { TransactionEditDialog } from './transaction-edit-dialog';
 import { Loader2, Trash2, Pencil } from 'lucide-react';
-import { getTransactions, deleteTransaction, getCategories, getAccounts } from '@/app/actions/integrations/enuves';
+import { getTransactions, deleteTransaction, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/enuves';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Download } from 'lucide-react';
 
 interface TransactionsManagerProps {
   companyId: string;
@@ -22,6 +24,10 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({});
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  
+  // Export state
+  const [isExporting, setIsExporting] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -72,16 +78,16 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
             console.error(error);
             toast.error('Erro ao carregar categorias e contas');
         }
-        // Fetch initial transactions
-        await fetchTransactions();
     };
     init();
+    // Reset filters when company changes (optional, but safer)
+    setFilters({});
   }, [companyId]);
 
-  // Re-fetch transactions when filters change
+  // Re-fetch transactions when filters or company changes
   useEffect(() => {
     fetchTransactions();
-  }, [filters]);
+  }, [filters, companyId]);
 
   const handleDelete = async (id: string) => {
       try {
@@ -93,12 +99,78 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
       }
   }
 
+  const handleExport = async () => {
+    setShowExportDialog(true);
+    setIsExporting(true);
+    
+    try {
+      const result = await exportTransactionsCsv(companyId, filters);
+      
+      if (result.error) {
+        toast.error(result.error);
+        setIsExporting(false);
+        setShowExportDialog(false);
+        return;
+      }
+      
+      if (result.csv) {
+        // Create a blob and download
+        const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `enuves_export_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success('Arquivo gerado com sucesso!');
+      }
+    } catch (error) {
+      console.error('Error exporting:', error);
+      toast.error('Erro ao gerar exportação');
+    } finally {
+      setIsExporting(false);
+      // Keep dialog open for a moment or close it immediately?
+      // User asked for "popup com progresso... até a chamada da tela para salvar".
+      // Since browser handles "save as" dialog, we can close our progress dialog now.
+      setShowExportDialog(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Lançamentos Importados</h3>
-        <PdfImportDialog companyId={companyId} onSuccess={fetchTransactions} />
+        <div className="flex gap-2">
+            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting}>
+                <Download className="mr-2 h-4 w-4" />
+                Exportar CSV
+            </Button>
+            <PdfImportDialog companyId={companyId} onSuccess={fetchTransactions} />
+        </div>
       </div>
+
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Gerando Arquivo de Exportação</DialogTitle>
+                <DialogDescription>
+                    Por favor, aguarde enquanto o sistema processa os lançamentos e gera o arquivo CSV.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                {isExporting ? (
+                    <>
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Processando dados...</p>
+                    </>
+                ) : (
+                    <p className="text-sm text-green-600 font-medium">Arquivo gerado!</p>
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
 
       <TransactionFilters
         filters={filters}

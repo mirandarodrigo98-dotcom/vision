@@ -595,6 +595,155 @@ export async function deleteAccount(id: string, companyId: string) {
   }
 }
 
+export async function exportTransactionsCsv(companyId: string, filters?: any) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  try {
+    // 1. Fetch transactions with filters (reusing query logic)
+    let query = `
+      SELECT t.*, c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
+             a.description as account_name, a.code as account_code, a.integration_code as account_integration_code
+      FROM enuves_transactions t
+      LEFT JOIN enuves_categories c ON t.category_id = c.id
+      LEFT JOIN enuves_accounts a ON t.account_id = a.id
+      WHERE t.company_id = ?
+    `;
+    const params: any[] = [targetCompanyId];
+
+    if (filters) {
+      if (filters.startDate) {
+        query += ` AND t.date >= ?`;
+        params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
+      }
+      if (filters.endDate) {
+        query += ` AND t.date <= ?`;
+        params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
+      }
+      if (filters.categoryId && filters.categoryId !== 'all') {
+        query += ` AND t.category_id = ?`;
+        params.push(filters.categoryId);
+      }
+      if (filters.accountId && filters.accountId !== 'all') {
+        query += ` AND t.account_id = ?`;
+        params.push(filters.accountId);
+      }
+      if (filters.description) {
+        query += ` AND t.description LIKE ?`;
+        params.push(`%${filters.description}%`);
+      }
+      if (filters.minValue !== undefined && filters.minValue !== null && filters.minValue !== '') {
+        query += ` AND t.value >= ?`;
+        params.push(filters.minValue);
+      }
+      if (filters.maxValue !== undefined && filters.maxValue !== null && filters.maxValue !== '') {
+        query += ` AND t.value <= ?`;
+        params.push(filters.maxValue);
+      }
+    }
+
+    query += ` ORDER BY t.date ASC`; // Export usually sorted by date ascending
+
+    const transactions = await db.prepare(query).all(...params) as any[];
+
+    // Validate Integration Codes
+    const missingIntegrationCode: string[] = [];
+
+    transactions.forEach(t => {
+        // Check Category Integration Code
+        if (!t.category_integration_code) {
+            const label = `Categoria: ${t.category_name || 'Sem nome'}`;
+            if (!missingIntegrationCode.includes(label)) {
+                missingIntegrationCode.push(label);
+            }
+        }
+        // Check Account Integration Code (if account exists)
+        if (t.account_id && !t.account_integration_code) {
+             const label = `Conta: ${t.account_name || 'Sem nome'}`;
+             if (!missingIntegrationCode.includes(label)) {
+                 missingIntegrationCode.push(label);
+             }
+        }
+    });
+
+    if (missingIntegrationCode.length > 0) {
+        // Limit the number of items shown in error message
+        const limit = 5;
+        const shown = missingIntegrationCode.slice(0, limit);
+        const remaining = missingIntegrationCode.length - limit;
+        
+        let message = `Exportação bloqueada! As seguintes categorias/contas não possuem Código de Integração: ${shown.join(', ')}`;
+        if (remaining > 0) {
+            message += ` e mais ${remaining} itens.`;
+        }
+        message += ' Por favor, adicione os códigos de integração antes de exportar.';
+        
+        return { error: message };
+    }
+
+    // 2. Generate CSV Content
+    const header = 'DATA;DÉBITO;CRÉDITO;HISTÓRICO;DESCRIÇÃO; VALOR';
+    const rows = transactions.map(t => {
+      const date = new Date(t.date);
+      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      
+      const value = parseFloat(t.value);
+      const absValue = Math.abs(value);
+      const formattedValue = absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Determine Debit/Credit codes
+      const categoryCode = t.category_integration_code;
+      const accountCode = t.account_integration_code || '';
+
+      let debit = '';
+      let credit = '';
+
+      if (value > 0) {
+        // Entrada (Positive)
+        // Debit: Account (Bank/Cash increases)
+        // Credit: Category (Revenue increases)
+        debit = accountCode;
+        credit = categoryCode;
+      } else {
+        // Saída (Negative)
+        // Debit: Category (Expense increases)
+        // Credit: Account (Bank/Cash decreases)
+        debit = categoryCode;
+        credit = accountCode;
+      }
+
+      const historicoCode = '0'; // Fixed value
+
+      // Description logic: 
+      // "Descrição, se o valor de categoria for igual ao do histórico vai pegar só a categoria; 
+      // se não vai pegar categoria mais o histórico"
+      // Note: "histórico" in user prompt likely refers to transaction description.
+      // t.category_name vs t.description
+      let description = '';
+      if (t.category_name === t.description) {
+        description = t.category_name || '';
+      } else {
+        description = `${t.category_name || ''} ${t.description || ''}`.trim();
+      }
+
+      // Sanitize description for CSV (remove semicolons/newlines)
+      description = description.replace(/;/g, ' ').replace(/(\r\n|\n|\r)/gm, ' ');
+
+      return `${formattedDate};${debit};${credit};${historicoCode};${description}; ${formattedValue}`;
+    });
+
+    const csvContent = [header, ...rows].join('\n');
+
+    return { csv: csvContent };
+  } catch (error) {
+    console.error('Error exporting transactions:', error);
+    return { error: 'Erro ao gerar arquivo de exportação' };
+  }
+}
+
 export async function parseEnuvesPdf(formData: FormData, companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
