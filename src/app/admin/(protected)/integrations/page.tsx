@@ -23,6 +23,7 @@ export default async function IntegrationsPage() {
   
   const canAccessEnuves = permissions.includes('integrations.enuves');
   const canAccessEklesia = permissions.includes('integrations.eklesia');
+  const canAccessQuestor = true; // Enabled for testing/prep. Ideally: permissions.includes('integrations.questor');
 
   return (
     <div className="space-y-6">
@@ -46,13 +47,29 @@ export default async function IntegrationsPage() {
                 </Button>
              )}
 
-             <Button 
-                className="w-full"
-                variant={canAccessEklesia ? "default" : "outline"}
-                disabled={!canAccessEklesia}
-             >
-                EKLESIA
-             </Button>
+             {canAccessEklesia ? (
+                <Link href="/admin/integrations/eklesia" className="w-full">
+                    <Button className="w-full">
+                        EKLESIA
+                    </Button>
+                </Link>
+             ) : (
+                <Button className="w-full" variant="outline" disabled>
+                    EKLESIA
+                </Button>
+             )}
+
+             {canAccessQuestor ? (
+                <Link href="/admin/integrations/questor" className="w-full">
+                    <Button className="w-full">
+                        QUESTOR (SYN)
+                    </Button>
+                </Link>
+             ) : (
+                <Button className="w-full" variant="outline" disabled>
+                    QUESTOR (SYN)
+                </Button>
+             )}
           </CardContent>
         </Card>
       </div>

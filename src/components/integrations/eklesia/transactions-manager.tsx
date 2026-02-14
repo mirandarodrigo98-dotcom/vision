@@ -6,9 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PdfImportDialog } from './pdf-import-dialog';
 import { TransactionFilters } from './transaction-filters';
 import { TransactionEditDialog } from './transaction-edit-dialog';
-import { Loader2, Trash2, Pencil, RefreshCw } from 'lucide-react';
-import { getTransactions, deleteTransaction, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/enuves';
-import { syncTransactionsToQuestor } from '@/app/actions/integrations/questor';
+import { Loader2, Trash2, Pencil } from 'lucide-react';
+import { getTransactions, deleteTransaction, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/eklesia';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,11 +28,6 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   // Export state
   const [isExporting, setIsExporting] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
-
-  // Sync state
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [showSyncDialog, setShowSyncDialog] = useState(false);
-  const [syncResult, setSyncResult] = useState<any>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -125,7 +119,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `enuves_export_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`);
+        link.setAttribute('download', `eklesia_export_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -144,90 +138,18 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     }
   };
 
-  const handleSync = async () => {
-    setShowSyncDialog(true);
-    setIsSyncing(true);
-    setSyncResult(null);
-    try {
-        const result = await syncTransactionsToQuestor(companyId, filters);
-        setSyncResult(result);
-        if (result.success) {
-            toast.success('Sincronização concluída');
-            fetchTransactions();
-        } else {
-            toast.error('Erro na sincronização');
-        }
-    } catch (e) {
-        setSyncResult({ error: 'Erro inesperado' });
-    } finally {
-        setIsSyncing(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Lançamentos Importados</h3>
         <div className="flex gap-2">
-            <Button onClick={handleSync} variant="outline" disabled={isLoading || isSyncing || isExporting}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                Sincronizar Questor
-            </Button>
-            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing}>
+            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
             </Button>
             <PdfImportDialog companyId={companyId} onSuccess={fetchTransactions} />
         </div>
       </div>
-
-      <Dialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-                <DialogTitle>Sincronização com Questor</DialogTitle>
-                <DialogDescription>
-                    Enviando lançamentos para o módulo Contábil...
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                {isSyncing ? (
-                     <div className="flex flex-col items-center gap-4">
-                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                         <p>Processando...</p>
-                     </div>
-                ) : syncResult ? (
-                    <div className="space-y-4">
-                        {syncResult.success ? (
-                            <div className="text-green-600 font-medium text-center">
-                                {syncResult.message || 'Sucesso!'}
-                            </div>
-                        ) : (
-                            <div className="text-red-600 text-sm">
-                                <p className="font-bold">Erro:</p>
-                                <p>{syncResult.error}</p>
-                                {syncResult.details && (
-                                    <ul className="list-disc pl-5 mt-2 max-h-[200px] overflow-y-auto">
-                                        {syncResult.details.map((d: string, i: number) => (
-                                            <li key={i}>{d}</li>
-                                        ))}
-                                    </ul>
-                                )}
-                                {syncResult.preview && (
-                                    <div className="mt-2 text-xs text-muted-foreground bg-muted p-2 rounded">
-                                        <p className="font-semibold">Preview (Simulação):</p>
-                                        <pre>{syncResult.preview.join('\n')}</pre>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <div className="flex justify-end">
-                            <Button onClick={() => setShowSyncDialog(false)}>Fechar</Button>
-                        </div>
-                    </div>
-                ) : null}
-            </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
         <DialogContent>

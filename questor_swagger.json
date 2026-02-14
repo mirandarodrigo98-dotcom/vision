@@ -1,0 +1,2017 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Questor SYN v2",
+    "version": "2"
+  },
+  "paths": {
+    "/api/v2/dados/inserir": {
+      "post": {
+        "tags": [
+          "Empresa | Dados [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/buscar": {
+      "get": {
+        "tags": [
+          "Escritorio | DadosEscritorio [Leiautes txt]",
+          "Escritório | Dados [Leiautes txt]",
+          "Escritório | DocFiscal [xml]"
+        ],
+        "parameters": [
+          {
+            "name": "Cnpj",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "GrupoLayout",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "DataInicial",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "DataFinal",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Skip",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ForcarBusca",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "TipoDadosBusca",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/FiltroBuscaDadoEscritorioEnum"
+            }
+          },
+          {
+            "name": "BuscaDadosInvalidos",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "DadosId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "nullable": true
+            }
+          },
+          {
+            "name": "DadosEscritorioId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "nullable": true
+            }
+          },
+          {
+            "name": "DocFiscalId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/confirmacaorecebimento": {
+      "post": {
+        "tags": [
+          "Escritório | Dados [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/substituir": {
+      "put": {
+        "tags": [
+          "Empresa | Dados [Leiautes txt]"
+        ],
+        "parameters": [
+          {
+            "name": "dadoId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubstituirDadosModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubstituirDadosModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubstituirDadosModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubstituirDadosModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/empresa/buscar": {
+      "get": {
+        "tags": [
+          "Empresa | DadosEscritorio [Leiautes txt]",
+          "Empresa | Dados [Leiautes txt]",
+          "Empresa | DocFiscal [xml]"
+        ],
+        "parameters": [
+          {
+            "name": "Cnpj",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TipoDadosBusca",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FiltroBuscaDadoEscritorioEnum"
+            }
+          },
+          {
+            "name": "GrupoLayout",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "DataInicial",
+            "in": "query",
+            "schema": {
+              "pattern": "^(0[1-9]|[12][0-9]|3[01])[\\/](0[1-9]|1[012])[\\/]([0-9]{4})$",
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "DataFinal",
+            "in": "query",
+            "schema": {
+              "pattern": "^(0[1-9]|[12][0-9]|3[01])[\\/](0[1-9]|1[012])[\\/]([0-9]{4})$",
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "BuscaDadosInvalidos",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "DadosId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "nullable": true
+            }
+          },
+          {
+            "name": "DocFiscalId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "nullable": true
+            }
+          },
+          {
+            "name": "DadosEscritorioId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "nullable": true
+            }
+          },
+          {
+            "name": "Skip",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Take",
+            "in": "query",
+            "schema": {
+              "maximum": 500,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/log-atualiza-status-dados": {
+      "post": {
+        "tags": [
+          "Escritório | Dados [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDadosModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDadosModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDadosModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDadosModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/buscar-log-e-status-dados": {
+      "get": {
+        "tags": [
+          "Empresa | Dados [Leiautes txt]",
+          "Escritório | Dados [Leiautes txt]"
+        ],
+        "parameters": [
+          {
+            "name": "DadoId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tipo",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogTipoEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dados/invalidarregistro": {
+      "post": {
+        "tags": [
+          "Empresa | Dados [Leiautes txt]",
+          "Escritório | Dados [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidarDadoModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidarDadoModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidarDadoModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidarDadoModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dadosescritorio/inserir": {
+      "post": {
+        "tags": [
+          "Escritorio | DadosEscritorio [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dadosescritorio": {
+      "delete": {
+        "tags": [
+          "Escritorio | DadosEscritorio [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioDeleteFilterModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioDeleteFilterModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioDeleteFilterModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DadosEscritorioDeleteFilterModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dadosescritorio/solicitaracesso": {
+      "post": {
+        "tags": [
+          "ERP | DadosEscritorio [Leiautes txt]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarAcessoDadosEscritorioFiltro"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarAcessoDadosEscritorioFiltro"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarAcessoDadosEscritorioFiltro"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarAcessoDadosEscritorioFiltro"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Escritorio | DadosEscritorio [Leiautes txt]"
+        ],
+        "parameters": [
+          {
+            "name": "dadosEscritorioSolicitacaoId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          },
+          {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dadosescritorio/erp/solicitaracesso/busca": {
+      "get": {
+        "tags": [
+          "ERP | DadosEscritorio [Leiautes txt]"
+        ],
+        "parameters": [
+          {
+            "name": "CnpjCliente",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "CnpjEscritorio",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "GrupoLayout",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Situacao",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/dadosescritorio/solicitaracesso/busca": {
+      "get": {
+        "tags": [
+          "Escritorio | DadosEscritorio [Leiautes txt]"
+        ],
+        "parameters": [
+          {
+            "name": "CnpjCliente",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "CnpjErp",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "GrupoLayout",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Situacao",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/debito-tributario/buscar-log-e-status": {
+      "get": {
+        "tags": [
+          "Empresa | Controle Tributos",
+          "Escritório | Controle Tributos"
+        ],
+        "parameters": [
+          {
+            "name": "DebitoTributarioId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tipo",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogDebitoTributarioTipoEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/docfiscal/inserir": {
+      "post": {
+        "tags": [
+          "Empresa | DocFiscal [xml]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocFiscalModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocFiscalModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocFiscalModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocFiscalModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/docfiscal/confirmacaorecebimento": {
+      "post": {
+        "tags": [
+          "Escritório | DocFiscal [xml]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/docfiscal/log": {
+      "post": {
+        "tags": [
+          "Escritório | DocFiscal [xml]"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InserirLogDocFiscalModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InserirLogDocFiscalModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InserirLogDocFiscalModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InserirLogDocFiscalModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/docfiscal/buscalog": {
+      "get": {
+        "tags": [
+          "Empresa | DocFiscal [xml]",
+          "Escritório | DocFiscal [xml]"
+        ],
+        "parameters": [
+          {
+            "name": "DocFiscalId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/empresa/opcaodebitostributarios": {
+      "post": {
+        "tags": [
+          "Empresa | Controle Tributos"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptouDebitoTributarioModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptouDebitoTributarioModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptouDebitoTributarioModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptouDebitoTributarioModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/empresa/buscardebitostributarios": {
+      "get": {
+        "tags": [
+          "Empresa | Controle Tributos"
+        ],
+        "parameters": [
+          {
+            "name": "InscricaoFederalCliente",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "DataEmissao",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "DataVencimento",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/empresa/debitotributariobaixado": {
+      "post": {
+        "tags": [
+          "Empresa | Controle Tributos"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaixarDebitoTributarioModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaixarDebitoTributarioModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaixarDebitoTributarioModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaixarDebitoTributarioModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/empresa/log-atualiza-status-debitostributarios": {
+      "post": {
+        "tags": [
+          "Empresa | Controle Tributos"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDebitoTributario"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDebitoTributario"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDebitoTributario"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizaStatusDebitoTributario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/erp/buscarerpporcnpj": {
+      "get": {
+        "tags": [
+          "ERP | Cadastros"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpModel"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpModel"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/erp/alterarcodigoacesso": {
+      "post": {
+        "tags": [
+          "ERP | Cadastros"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoAcessoModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoAcessoModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoAcessoModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoAcessoModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/erp/gerartoken": {
+      "post": {
+        "tags": [
+          "ERP | Cadastros"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/escritorio/gerartoken": {
+      "post": {
+        "tags": [
+          "Escritório | Cadastros"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenEscritorioModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenEscritorioModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenEscritorioModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenEscritorioModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/escritorio/buscaropcaodebitotributario": {
+      "get": {
+        "tags": [
+          "Escritório | Controle Tributos"
+        ],
+        "parameters": [
+          {
+            "name": "InscricaoFederalCliente",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/escritorio/enviodebitostributarios": {
+      "post": {
+        "tags": [
+          "Escritório | Controle Tributos"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/escritorio/substituirdebitostributarios": {
+      "put": {
+        "tags": [
+          "Escritório | Controle Tributos"
+        ],
+        "parameters": [
+          {
+            "name": "debitotributarioid",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalvarDebitoTributarioModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/escritorio/existeEscritorio": {
+      "get": {
+        "tags": [
+          "Escritório | Cadastros"
+        ],
+        "parameters": [
+          {
+            "name": "InscricaoFederal",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GrupoLayout": {
+        "enum": [
+          1,
+          100,
+          200,
+          201,
+          202,
+          203,
+          210,
+          300,
+          301
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "DadosModel": {
+        "type": "object",
+        "properties": {
+          "cnpjCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "versao": {
+            "type": "string",
+            "nullable": true
+          },
+          "grupoLayout": {
+            "$ref": "#/components/schemas/GrupoLayout"
+          },
+          "dataDocumentos": {
+            "type": "string",
+            "nullable": true
+          },
+          "dado": {
+            "type": "string",
+            "nullable": true
+          },
+          "cnpjContabilidade": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiltroBuscaDadoEscritorioEnum": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "SubstituirDadosModel": {
+        "type": "object",
+        "properties": {
+          "dado": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DadoStatusEnum": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "AtualizaStatusDadosModel": {
+        "type": "object",
+        "properties": {
+          "dadoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DadoStatusEnum"
+          },
+          "log": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LogTipoEnum": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "InvalidarDadoModel": {
+        "type": "object",
+        "properties": {
+          "dadosId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DadosEscritorioModel": {
+        "type": "object",
+        "properties": {
+          "cnpjCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "versao": {
+            "type": "string",
+            "nullable": true
+          },
+          "grupoLayout": {
+            "$ref": "#/components/schemas/GrupoLayout"
+          },
+          "dataDocumentos": {
+            "type": "string",
+            "nullable": true
+          },
+          "dado": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DadosEscritorioDeleteFilterModel": {
+        "type": "object",
+        "properties": {
+          "cnpjCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "grupoLayout": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitarAcessoDadosEscritorioFiltro": {
+        "type": "object",
+        "properties": {
+          "cnpjCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "cnpjEscritorio": {
+            "type": "string",
+            "nullable": true
+          },
+          "grupoLayout": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LogDebitoTributarioTipoEnum": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EntradaSaidaEnum": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "DocFiscalEnum": {
+        "enum": [
+          55,
+          57,
+          59,
+          65,
+          67
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "DocFiscalModel": {
+        "required": [
+          "cnpjCliente",
+          "dataDocumento",
+          "tipoDocFiscal"
+        ],
+        "type": "object",
+        "properties": {
+          "cnpjCliente": {
+            "type": "string"
+          },
+          "entradaSaidaEnum": {
+            "$ref": "#/components/schemas/EntradaSaidaEnum"
+          },
+          "tipoDocFiscal": {
+            "$ref": "#/components/schemas/DocFiscalEnum"
+          },
+          "dataDocumento": {
+            "type": "string"
+          },
+          "permissao": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "xmls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InserirLogDocFiscalModel": {
+        "type": "object",
+        "properties": {
+          "docFiscalId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "log": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OptouDebitoTributarioModel": {
+        "type": "object",
+        "properties": {
+          "cnpjCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "opcaoDebitoTributario": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BaixarDebitoTributarioModel": {
+        "type": "object",
+        "properties": {
+          "idsParaBaixa": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DebitoTributarioStatusEnum": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "AtualizaStatusDebitoTributario": {
+        "type": "object",
+        "properties": {
+          "debitoTributarioId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DebitoTributarioStatusEnum"
+          },
+          "log": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ErpModel": {
+        "required": [
+          "cnpj",
+          "email",
+          "razaoSocial"
+        ],
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "maxLength": 18,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "razaoSocial": {
+            "maxLength": 150,
+            "type": "string"
+          },
+          "nomeFantasia": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "rua": {
+            "maxLength": 150,
+            "type": "string",
+            "nullable": true
+          },
+          "bairro": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "codIBGECidade": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "optouDebitoTributario": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CodigoAcessoModel": {
+        "required": [
+          "cnpj",
+          "codigoAcessoAtual",
+          "codigoAcessoConfirmacao",
+          "codigoAcessoNovo"
+        ],
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "type": "string"
+          },
+          "codigoAcessoAtual": {
+            "type": "string"
+          },
+          "codigoAcessoNovo": {
+            "type": "string"
+          },
+          "codigoAcessoConfirmacao": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TokenModel": {
+        "required": [
+          "cnpj",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "maxLength": 18,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "codigoAcesso": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TokenEscritorioModel": {
+        "required": [
+          "cnpj",
+          "codigoAcesso",
+          "questorId",
+          "razaoSocial"
+        ],
+        "type": "object",
+        "properties": {
+          "codigoAcesso": {
+            "type": "string"
+          },
+          "cnpj": {
+            "type": "string"
+          },
+          "razaoSocial": {
+            "type": "string"
+          },
+          "questorId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "token": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContaPagarCategoriaEnum": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ContaPagarTipoDocumentoEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ContaPagarModel": {
+        "type": "object",
+        "properties": {
+          "beneficiado": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/ContaPagarCategoriaEnum"
+          },
+          "tipoDocumento": {
+            "$ref": "#/components/schemas/ContaPagarTipoDocumentoEnum"
+          },
+          "numDocumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "serie": {
+            "type": "string",
+            "nullable": true
+          },
+          "especie": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataEmissao": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataVencimento": {
+            "type": "string",
+            "nullable": true
+          },
+          "valorOriginal": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "observacao": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TipoInscricaoFederalEnum": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "TipoFornecedorEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          4,
+          5
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "FormaNumDuplicataEnum": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "PessoaDebTribModel": {
+        "type": "object",
+        "properties": {
+          "razaoSocial": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipInscFederal": {
+            "$ref": "#/components/schemas/TipoInscricaoFederalEnum"
+          },
+          "cpf_Cnpj": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataNascimento": {
+            "type": "string",
+            "nullable": true
+          },
+          "cep": {
+            "type": "string",
+            "nullable": true
+          },
+          "logradouro": {
+            "type": "string",
+            "nullable": true
+          },
+          "endereco": {
+            "type": "string",
+            "nullable": true
+          },
+          "numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "complemento": {
+            "type": "string",
+            "nullable": true
+          },
+          "bairro": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "codIbgeMunicipio": {
+            "type": "string",
+            "nullable": true
+          },
+          "ddd": {
+            "type": "string",
+            "nullable": true
+          },
+          "fone": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoFornecedor": {
+            "$ref": "#/components/schemas/TipoFornecedorEnum"
+          },
+          "agropecuario_ProdRural": {
+            "type": "boolean"
+          },
+          "inscProdutor": {
+            "type": "string",
+            "nullable": true
+          },
+          "inscEstadual": {
+            "type": "string",
+            "nullable": true
+          },
+          "inscMunicipal": {
+            "type": "string",
+            "nullable": true
+          },
+          "atividadeFederal": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "homePage": {
+            "type": "string",
+            "nullable": true
+          },
+          "formaNumeDuplicata": {
+            "$ref": "#/components/schemas/FormaNumDuplicataEnum"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SalvarDebitoTributarioModel": {
+        "type": "object",
+        "properties": {
+          "inscricaoFederalCliente": {
+            "maxLength": 18,
+            "type": "string",
+            "nullable": true
+          },
+          "contaPagar": {
+            "$ref": "#/components/schemas/ContaPagarModel"
+          },
+          "pessoaDebTrib": {
+            "$ref": "#/components/schemas/PessoaDebTribModel"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Entre com o JWT Bearer token",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}

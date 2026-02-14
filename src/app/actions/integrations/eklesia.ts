@@ -37,12 +37,11 @@ export async function getCategories(companyId: string) {
   const session = await getSession();
   if (!session) return [];
 
-  // If no companyId provided, try to fallback to session (though UI should enforce selection)
   const targetCompanyId = companyId || session.active_company_id;
   if (!targetCompanyId) return [];
 
   const categories = await db.prepare(`
-    SELECT * FROM enuves_categories 
+    SELECT * FROM eklesia_categories 
     WHERE company_id = ? 
     ORDER BY code ASC
   `).all(targetCompanyId) as Category[];
@@ -75,7 +74,7 @@ export async function getNextCode(nature: 'Saída' | 'Entrada' | 'Transferência
 
     const result = await db.prepare(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
-      FROM enuves_categories 
+      FROM eklesia_categories 
       WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
     `).get(targetCompanyId, minCode, maxCode) as { max_code: number | null };
 
@@ -128,7 +127,7 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
 
     const result = await db.prepare(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
-      FROM enuves_categories 
+      FROM eklesia_categories 
       WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
     `).get(targetCompanyId, minCode, maxCode) as { max_code: number | null };
 
@@ -145,7 +144,7 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
 
     const id = uuidv4();
     await db.prepare(`
-      INSERT INTO enuves_categories (id, company_id, code, description, integration_code, nature)
+      INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
       id,
@@ -156,7 +155,7 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
       data.nature
     );
 
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error: any) {
     if (error.message.includes('UNIQUE constraint failed') || error.message.includes('duplicate key value violates unique constraint') || error.code === '23505') {
@@ -181,7 +180,7 @@ export async function updateCategory(data: z.infer<typeof updateCategorySchema>,
 
   try {
     await db.prepare(`
-      UPDATE enuves_categories 
+      UPDATE eklesia_categories 
       SET description = ?, integration_code = ?
       WHERE id = ? AND company_id = ?
     `).run(
@@ -191,7 +190,7 @@ export async function updateCategory(data: z.infer<typeof updateCategorySchema>,
       targetCompanyId
     );
 
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error updating category:', error);
@@ -207,8 +206,8 @@ export async function deleteCategory(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM enuves_categories WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
-    revalidatePath('/admin/integrations/enuves');
+    await db.prepare('DELETE FROM eklesia_categories WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error deleting category:', error);
@@ -229,7 +228,7 @@ const SAIDA_CATEGORIES = [
   "Ofertas Alçadas", "Reembolso de despesas"
 ];
 
-const ENTRADA_CATEGORIES = [
+const ENTRADA_CATEGORIES: string[] = [
   // User didn't specify distinct list for Entrada in recent messages, but asked to separate.
   // Using generic or previously identified ones if any.
   // For now, keeping the old DEFAULT_CATEGORIES logic but separated.
@@ -252,7 +251,7 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
     let minCode = nature === 'Entrada' ? 800000 : 900000;
     
     // Check existing
-    const existing = await db.prepare('SELECT description FROM enuves_categories WHERE company_id = ?').all(targetCompanyId) as { description: string }[];
+    const existing = await db.prepare('SELECT description FROM eklesia_categories WHERE company_id = ?').all(targetCompanyId) as { description: string }[];
     const existingSet = new Set(existing.map(e => e.description));
 
     let count = 0;
@@ -261,7 +260,7 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
     // Optimization: fetch max code once
     const result = await db.prepare(`
         SELECT MAX(CAST(code AS INTEGER)) as max_code 
-        FROM enuves_categories 
+        FROM eklesia_categories 
         WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
     `).get(targetCompanyId, minCode, minCode + 99999) as { max_code: number | null };
 
@@ -271,7 +270,7 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
       if (!existingSet.has(desc)) {
         const id = uuidv4();
         await db.prepare(`
-          INSERT INTO enuves_categories (id, company_id, code, description, nature)
+          INSERT INTO eklesia_categories (id, company_id, code, description, nature)
           VALUES (?, ?, ?, ?, ?)
         `).run(id, targetCompanyId, String(nextCode), desc, nature);
         nextCode++;
@@ -279,7 +278,7 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
       }
     }
 
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true, count };
   } catch (error) {
     console.error('Error seeding categories:', error);
@@ -323,9 +322,9 @@ export async function getTransactions(
   try {
     let query = `
       SELECT t.*, c.description as category_name, c.code as category_code, a.description as account_name
-      FROM enuves_transactions t
-      LEFT JOIN enuves_categories c ON t.category_id = c.id
-      LEFT JOIN enuves_accounts a ON t.account_id = a.id
+      FROM eklesia_transactions t
+      LEFT JOIN eklesia_categories c ON t.category_id = c.id
+      LEFT JOIN eklesia_accounts a ON t.account_id = a.id
       WHERE t.company_id = ?
     `;
 
@@ -396,7 +395,7 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
 
   try {
     await db.prepare(`
-      UPDATE enuves_transactions
+      UPDATE eklesia_transactions
       SET date = ?, category_id = ?, account_id = ?, description = ?, value = ?
       WHERE id = ? AND company_id = ?
     `).run(
@@ -409,7 +408,7 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
       targetCompanyId
     );
 
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error updating transaction:', error);
@@ -425,8 +424,8 @@ export async function deleteTransaction(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM enuves_transactions WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
-    revalidatePath('/admin/integrations/enuves');
+    await db.prepare('DELETE FROM eklesia_transactions WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error deleting transaction:', error);
@@ -465,7 +464,7 @@ export async function getAccounts(companyId: string) {
 
   try {
     const accounts = await db.prepare(`
-      SELECT * FROM enuves_accounts 
+      SELECT * FROM eklesia_accounts 
       WHERE company_id = ? 
       ORDER BY CAST(code AS INTEGER) ASC
     `).all(targetCompanyId) as Account[];
@@ -487,7 +486,7 @@ export async function getNextAccountCode(companyId: string) {
   try {
     const result = await db.prepare(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
-      FROM enuves_accounts 
+      FROM eklesia_accounts 
       WHERE company_id = ?
     `).get(targetCompanyId) as { max_code: number | null };
 
@@ -524,7 +523,7 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
 
     const id = uuidv4();
     await db.prepare(`
-      INSERT INTO enuves_accounts (id, company_id, code, description, integration_code)
+      INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code)
       VALUES (?, ?, ?, ?, ?)
     `).run(
       id,
@@ -534,7 +533,7 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
       data.integration_code || null
     );
 
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error: any) {
     if (error.message && (error.message.includes('UNIQUE constraint failed') || error.message.includes('duplicate key'))) {
@@ -560,7 +559,7 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
 
   try {
     await db.prepare(`
-      UPDATE enuves_accounts 
+      UPDATE eklesia_accounts 
       SET description = ?, integration_code = ?
       WHERE id = ? AND company_id = ?
     `).run(
@@ -570,7 +569,7 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
       targetCompanyId
     );
 
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error updating account:', error);
@@ -586,8 +585,8 @@ export async function deleteAccount(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM enuves_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
-    revalidatePath('/admin/integrations/enuves');
+    await db.prepare('DELETE FROM eklesia_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error deleting account:', error);
@@ -607,9 +606,9 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
     let query = `
       SELECT t.*, c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
              a.description as account_name, a.code as account_code, a.integration_code as account_integration_code
-      FROM enuves_transactions t
-      LEFT JOIN enuves_categories c ON t.category_id = c.id
-      LEFT JOIN enuves_accounts a ON t.account_id = a.id
+      FROM eklesia_transactions t
+      LEFT JOIN eklesia_categories c ON t.category_id = c.id
+      LEFT JOIN eklesia_accounts a ON t.account_id = a.id
       WHERE t.company_id = ?
     `;
     const params: any[] = [targetCompanyId];
@@ -744,7 +743,7 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
   }
 }
 
-export async function parseEnuvesPdf(formData: FormData, companyId: string) {
+export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
 
@@ -794,7 +793,6 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
     // The new layout has explicit headers usually, but text extraction might vary.
     // We check for specific characteristics of the new layout (e.g. "Data" + "Descrição" + "Total" headers or tab structure)
     // Or simpler: The new layout uses dot for decimals (e.g. -619.13) while the old one uses comma (X.XXX,XX)
-    // But let's check for headers first as it's safer.
     // We relax the check to just Data and Descrição as Total/Contato might be missing or extracted differently.
     const isNewLayout = (text.includes('Data') && text.includes('Descrição')) || text.includes('Data \tDescrição');
 
@@ -1083,12 +1081,12 @@ export async function saveTransactions(transactions: any[], companyId: string) {
   }
 
   try {
-    const insertMany = db.transaction(async (txs: any[]) => {
-        const stmt = db.prepare(`
-            INSERT INTO enuves_transactions (id, company_id, category_id, account_id, date, description, original_description, value)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `);
+    const stmt = db.prepare(`
+        INSERT INTO eklesia_transactions (id, company_id, category_id, account_id, date, description, original_description, value)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
+    const insertMany = db.transaction(async (txs: any[]) => {
         for (const t of txs) {
             // Ensure we have a new ID if not provided (though parse generates it)
             const id = t.id || uuidv4();
@@ -1098,7 +1096,7 @@ export async function saveTransactions(transactions: any[], companyId: string) {
 
     await insertMany(transactions);
     
-    revalidatePath('/admin/integrations/enuves');
+    revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
     console.error('Error saving transactions:', error);

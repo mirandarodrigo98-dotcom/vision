@@ -54,7 +54,15 @@ const navigation = [
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon },
   { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon },
-  { name: 'Integrações', href: '/admin/integrations', icon: PuzzlePieceIcon },
+  {
+    name: 'Integrações',
+    icon: PuzzlePieceIcon,
+    children: [
+      { name: 'Geral', href: '/admin/integrations/questor' },
+      { name: 'Enuves', href: '/admin/integrations/enuves' },
+      { name: 'Eklesia', href: '/admin/integrations/eklesia' },
+    ]
+  },
 ]
 
 const userNavigation = [
