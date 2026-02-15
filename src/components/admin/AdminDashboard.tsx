@@ -37,6 +37,7 @@ import {
 const navigation = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon },
   { name: 'Empresas', href: '/admin/clients', icon: BuildingOfficeIcon },
+  { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon },
   { name: 'Funcionários', href: '/admin/employees', icon: BriefcaseIcon },
   { name: 'Usuários', href: '/admin/client-users', icon: UsersIcon },
   {
@@ -454,7 +455,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                 <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true" />
 
                 {/* Profile dropdown */}
-                <Menu as="div" className="relative">
+                <Menu as="div" className="relative" suppressHydrationWarning>
                   <Menu.Button className="-m-1.5 flex items-center p-1.5">
                     <span className="sr-only">Abrir menu de usuário</span>
                     <Avatar className="h-8 w-8">

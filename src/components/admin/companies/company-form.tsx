@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { createCompany, updateCompany } from '@/app/actions/companies';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ChevronLeft, CalendarIcon } from 'lucide-react';
+import { ChevronLeft, CalendarIcon, Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -53,9 +53,16 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
   const [cnpjValue, setCnpjValue] = useState(company?.cnpj || '');
   const [cnpjError, setCnpjError] = useState('');
   const [cepValue, setCepValue] = useState(company?.address_zip_code || '');
+  const [cepLoading, setCepLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(
     company?.data_abertura ? new Date(company.data_abertura + 'T12:00:00') : undefined
   );
+  const typeRef = useRef<HTMLInputElement>(null);
+  const streetRef = useRef<HTMLInputElement>(null);
+  const complementRef = useRef<HTMLInputElement>(null);
+  const neighborhoodRef = useRef<HTMLInputElement>(null);
+  const municipalityRef = useRef<HTMLInputElement>(null);
+  const ufRef = useRef<HTMLInputElement>(null);
 
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -86,6 +93,34 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
     }
     
     setCepValue(value);
+  };
+
+  const lookupCep = async () => {
+    const digits = cepValue.replace(/\D/g, '');
+    if (digits.length !== 8) {
+      toast.error('CEP inválido (precisa ter 8 dígitos)');
+      return;
+    }
+    try {
+      setCepLoading(true);
+      const res = await fetch(`/api/cep?cep=${digits}`);
+      const data = await res.json();
+      if (data && !data.error) {
+        if (typeRef.current) typeRef.current.value = data.tipo || '';
+        if (streetRef.current) streetRef.current.value = data.nome ? `${data.tipo ? data.tipo + ' ' : ''}${data.nome}` : (data.logradouro || '');
+        if (complementRef.current) complementRef.current.value = data.complemento || '';
+        if (neighborhoodRef.current) neighborhoodRef.current.value = data.bairro || '';
+        if (municipalityRef.current) municipalityRef.current.value = data.localidade || '';
+        if (ufRef.current) ufRef.current.value = data.uf || '';
+        toast.success('Endereço preenchido pelo CEP');
+      } else {
+        toast.error(data?.error || 'CEP não encontrado');
+      }
+    } catch (err) {
+      toast.error('Falha ao buscar CEP');
+    } finally {
+      setCepLoading(false);
+    }
   };
 
   const handleCnpjBlur = () => {
@@ -220,13 +255,13 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
           {/* Tipo Logradouro */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Tipo Logradouro</label>
-            <Input name="address_type" placeholder="Ex: Rua, Av, Alameda" defaultValue={company?.address_type || ''} className="w-[16ch]" />
+            <Input ref={typeRef} name="address_type" placeholder="Ex: Rua, Av, Alameda" defaultValue={company?.address_type || ''} className="w-[16ch]" />
           </div>
 
           {/* Logradouro */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Logradouro</label>
-            <Input name="address_street" defaultValue={company?.address_street || ''} className="w-[80ch]" />
+            <Input ref={streetRef} name="address_street" defaultValue={company?.address_street || ''} className="w-[80ch]" />
           </div>
 
           {/* Número */}
@@ -238,38 +273,49 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
           {/* Complemento */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Complemento</label>
-            <Input name="address_complement" defaultValue={company?.address_complement || ''} className="w-[20ch]" />
+            <Input ref={complementRef} name="address_complement" defaultValue={company?.address_complement || ''} className="w-[20ch]" />
           </div>
 
           {/* Bairro */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Bairro</label>
-            <Input name="address_neighborhood" defaultValue={company?.address_neighborhood || ''} className="w-[30ch]" />
+            <Input ref={neighborhoodRef} name="address_neighborhood" defaultValue={company?.address_neighborhood || ''} className="w-[30ch]" />
           </div>
 
           {/* Município */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Município</label>
-            <Input name="municipio" defaultValue={company?.municipio || ''} className="w-[50ch]" />
+            <Input ref={municipalityRef} name="municipio" defaultValue={company?.municipio || ''} className="w-[50ch]" />
           </div>
 
           {/* Estado */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Estado</label>
-            <Input name="uf" maxLength={2} defaultValue={company?.uf || ''} className="w-[8ch]" />
+            <Input ref={ufRef} name="uf" maxLength={2} defaultValue={company?.uf || ''} className="w-[8ch]" />
           </div>
 
           {/* CEP */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">CEP</label>
-            <Input 
-              name="address_zip_code" 
-              value={cepValue} 
-              onChange={handleCepChange}
-              placeholder="00000-000"
-              maxLength={9}
-              className="w-[15ch]"
-            />
+            <div className="relative w-[15ch]">
+              <Input 
+                name="address_zip_code" 
+                value={cepValue} 
+                onChange={handleCepChange}
+                placeholder="00000-000"
+                maxLength={9}
+                className="pr-9"
+              />
+              <button
+                type="button"
+                onClick={lookupCep}
+                className="absolute right-1 top-1.5 h-7 w-7 inline-flex items-center justify-center rounded border bg-white hover:bg-muted"
+                title="Buscar endereço"
+                disabled={cepLoading}
+              >
+                {cepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           {/* E-mail */}

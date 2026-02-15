@@ -38,6 +38,12 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     // Empresas
     { code: 'companies.view', label: 'Visualizar Empresas', category: 'Empresas' },
     
+    // Societário
+    { code: 'societario.view', label: 'Visualizar módulo Societário', category: 'Societário' },
+    { code: 'societario.edit', label: 'Editar dados Societários', category: 'Societário' },
+    { code: 'societario.processes.view', label: 'Visualizar Processos', category: 'Societário' },
+    { code: 'societario.processes.edit', label: 'Editar Processos', category: 'Societário' },
+    
     // Integrações
     { code: 'integrations.view', label: 'Acessar Integrações', category: 'Integrações' },
     { code: 'integrations.enuves', label: 'Acessar Enuves', category: 'Integrações' },
