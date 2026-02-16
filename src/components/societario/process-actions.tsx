@@ -19,21 +19,61 @@ import { toast } from 'sonner';
  import { useRouter } from 'next/navigation';
  import { concludeProcess, deleteProcess } from '@/app/actions/societario-processes';
 import Link from 'next/link';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
  
  interface ProcessActionsProps {
    processId: string;
    status: string;
+   type: string;
  }
  
- export function ProcessActions({ processId, status }: ProcessActionsProps) {
+ export function ProcessActions({ processId, status, type }: ProcessActionsProps) {
    const router = useRouter();
    const [isConcluding, setIsConcluding] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
+   const [contractDate, setContractDate] = useState<Date | undefined>();
+   const [baixaDate, setBaixaDate] = useState<Date | undefined>();
+   const [companyCode, setCompanyCode] = useState('');
+ 
+   const isConcluded = status === 'CONCLUIDO';
+   const isConstituicao = type === 'CONSTITUICAO';
+   const isBaixa = type === 'BAIXA';
  
    const handleConclude = async () => {
+     if (!contractDate) {
+       toast.error('Informe a data de registro do contrato.');
+       return;
+     }
+     if (isConstituicao && !companyCode.trim()) {
+       toast.error('Informe o código da empresa.');
+       return;
+     }
+     if (isBaixa && !baixaDate) {
+       toast.error('Informe a data da baixa.');
+       return;
+     }
+ 
+     const payload: {
+       contractDate: string;
+       companyCode?: string;
+       baixaDate?: string;
+     } = {
+       contractDate: format(contractDate, 'yyyy-MM-dd'),
+     };
+ 
+     if (isConstituicao) {
+       payload.companyCode = companyCode.trim();
+     }
+     if (isBaixa && baixaDate) {
+       payload.baixaDate = format(baixaDate, 'yyyy-MM-dd');
+     }
+ 
      setIsConcluding(true);
      try {
-       const result = await concludeProcess(processId);
+       const result = await concludeProcess(processId, payload);
        if (result?.error) toast.error(result.error);
        else {
          toast.success('Processo concluído com sucesso.');
@@ -61,8 +101,6 @@ import Link from 'next/link';
        setIsDeleting(false);
      }
    };
- 
-   const isConcluded = status === 'CONCLUIDO';
  
    return (
      <TooltipProvider>
@@ -146,8 +184,32 @@ import Link from 'next/link';
            <AlertDialogContent>
              <AlertDialogHeader>
                <AlertDialogTitle>Concluir processo</AlertDialogTitle>
-               <AlertDialogDescription>Confirma a conclusão deste processo?</AlertDialogDescription>
+               <AlertDialogDescription>
+                 Informe os dados para registrar a conclusão deste processo.
+               </AlertDialogDescription>
              </AlertDialogHeader>
+             <div className="space-y-4 py-2">
+               <div className="space-y-2">
+                 <Label>Data do registro do contrato</Label>
+                 <DatePicker date={contractDate} setDate={setContractDate} />
+               </div>
+               {isConstituicao && (
+                 <div className="space-y-2">
+                   <Label>Código da empresa</Label>
+                   <Input
+                     value={companyCode}
+                     onChange={(e) => setCompanyCode(e.target.value)}
+                     placeholder="Ex: 1"
+                   />
+                 </div>
+               )}
+               {isBaixa && (
+                 <div className="space-y-2">
+                   <Label>Data da baixa</Label>
+                   <DatePicker date={baixaDate} setDate={setBaixaDate} />
+                 </div>
+               )}
+             </div>
              <AlertDialogFooter>
                <AlertDialogCancel>Voltar</AlertDialogCancel>
                <AlertDialogAction onClick={handleConclude} className="bg-green-600 hover:bg-green-700">

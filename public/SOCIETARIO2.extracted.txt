@@ -1,0 +1,67 @@
+Se for selecionado Alteração abrirá esses campos para preenchimento:  
+ DADOS DA EMPRESA (NOME DO BLOCO)  
+ Vamos seguir as mesmas etapas do processo que desenvolvemos para quando o usuário 
+ escolhe o tipo Constituição com alguns ajustes que vou relatar abaixo: 
+ SELEÇÃO DE EMPRESAS: Aqui o usuário vai ter uma lista de empresas cadastradas para 
+ consultar. Utilizar o padrão da seleção de empresas que foi feita no módulo enuves. Importante: 
+ aqui não haverá ativação de empresas apenas a seleção da empresa para a criação do processo, 
+ campo alinhado à esquerda. 
+ Ao selecionar a empresa o sistema vai exibir todos os dados da empresa cadastrada abaixo 
+ como código, razão social, endereço, capital social, Etc.. serão apenas campos para visualização 
+ dos dados 
+ Ainda na primeira etapa haverão algumas perguntas as quais precisam ser respondidas para 
+ avançar para próxima etapa: 
+ 1)   	Qual   o   número   da   alteração?   Campo   será   habilitado   somente   se   não   for   uma 
+ transformação 
+ 2)   	Haverá alteração no quadro societário? Sim ou Não 
+ 3)   	Haverá alteração do capital social? Sim ou Não. Se sim o sistema irá exibir o campo 
+ “Novo Capital Social (R$)” e habilitar e permitir que o usuário defina o valor do novo 
+ capital social. Se não, não fará nada. 
+ 4)   	Selecione as alterações a serem realizadas. Exemplo abaixo 
+ Após o usuário selecionar as opções desejada o sistema irá se comportar da seguinte maneira: 
+ Se o usuário selecionou SIM para a pergunta “1)   	Haverá   	alteração   	no   	quadro 
+ societário?”, ao clicar para ir para a próxima etapa, irá para tela de movimentação de sócios com 
+ uma tela conforme essa abaixo:
+
+-- 1 of 4 --
+
+ao clicar em novo sócio / administrador será direcionado para a tela abaixo: 
+ O campo natureza do evento vai apresentar as seguintes opções: 
+ O campo qualificação do sócio/administrador vai apresentar as seguintes opções
+
+-- 2 of 4 --
+
+O campo pais só será habilitado caso seja selecionado a opção 37 no campo qualificação do 
+ sócio/administrador 
+ Ao lado do campo “Valor da Participação no Capital Social” haverá um campo chamado 
+ “Percentual Cotas %” onde deverá ser informado o percentual que o sócio terá de capital nesse 
+ processo de alteração. O campo “Valor da Participação no Capital Social” será preenchido 
+ automaticamente com o resultado da operação a seguir: 
+ Se a resposta para a pergunta “Haverá alteração do capital social?” for NÃO: 
+ “Valor da Participação no Capital Social” = “Capital Social (R$)” * “Percentual Cotas %” 
+ Se a resposta para a pergunta “Haverá alteração do capital social?” for SIM: 
+ “Valor da Participação no Capital Social” = “Novo Capital Social (R$)” * “Percentual Cotas %” 
+ O sistema só poderá permitir avançar para a próxima etapa se o quadro societário fechar em 
+ 100%. Sócios incluídos com campo natureza do evento = Saída de sócio/administrador não 
+ serão considerados para soma dos 100% de participação. 
+ Após o usuário cumprir a etapa de manutenção de sócios ele irá para a etapa de Dados 
+ Complementares: 
+ Se o usuário selecionou NÃO para a pergunta “1)   	Haverá   	alteração   	no   	quadro 
+ societário?”, ao clicar em avançar ele vai para a etapa de Dados Complementares. 
+ Estando na etapa de DADOS COMPLEMENTARES, dependendo do que for marcado nas 
+ opções de alterações comforme imagem acima o sistema irá habilitar ou não os campos abaixo 
+ para inserir as informações para quais a empresa em processo de legalização sofrerá a 
+ mudança. 
+ Abaixo listo algumas telas como exemplo do que será habilitado para opções que forem 
+ marcadas. Habilitar somente o que de fato tiver relação com as opções de mudança marcadas. 
+ Exemplo: se marcar tipo de unidade o bloco de opções de tipo de unidade será habilitado; se a 
+ opção forma de atuação for marcada, o bloco de opções forma de atuação seráa habilitado; se 
+ a opção de alteração de endereço for marcada o bloco para inserir o novo endereço será 
+ habilitado. Se for marcado transformação o campo tipo jurídico e natureza jurídica será habilitado
+
+-- 3 of 4 --
+
+
+
+-- 4 of 4 --
+

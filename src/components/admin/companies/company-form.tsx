@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,18 +8,11 @@ import { createCompany, updateCompany } from '@/app/actions/companies';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ChevronLeft, CalendarIcon, Search, Loader2 } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-
-import { validateCNPJ } from '@/lib/validators';
+import { validateCNPJ, validateCPF } from '@/lib/validators';
+import { findSocioByCpf } from '@/app/actions/societario';
 
 interface Company {
   id: string;
@@ -40,14 +33,50 @@ interface Company {
   address_zip_code: string | null;
   address_neighborhood: string | null;
   is_active: number;
+  capital_social_centavos?: number | null;
+}
+
+interface CompanySocioForm {
+  id: number;
+  nome: string;
+  cpf: string;
+  data_nascimento?: Date;
+  rg: string;
+  cnh: string;
+  participacao: number;
+  cep: string;
+  logradouro_tipo: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  uf: string;
 }
 
 interface CompanyFormProps {
   company?: Company | null;
   hasLinkedRecords?: boolean;
+  initialSocios?: {
+    id: string;
+    cpf: string;
+    nome: string;
+    data_nascimento?: string | null;
+    rg?: string | null;
+    cnh?: string | null;
+    participacao_percent: number;
+    cep?: string | null;
+    logradouro_tipo?: string | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+  }[];
 }
 
-export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormProps) {
+export function CompanyForm({ company, hasLinkedRecords = false, initialSocios = [] }: CompanyFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cnpjValue, setCnpjValue] = useState(company?.cnpj || '');
@@ -63,6 +92,226 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
   const neighborhoodRef = useRef<HTMLInputElement>(null);
   const municipalityRef = useRef<HTMLInputElement>(null);
   const ufRef = useRef<HTMLInputElement>(null);
+  const capitalHiddenRef = useRef<HTMLInputElement>(null);
+
+  const [socios, setSocios] = useState<CompanySocioForm[]>(() =>
+    initialSocios.map((s, index) => ({
+      id: index,
+      nome: s.nome || '',
+      cpf: s.cpf || '',
+      data_nascimento: s.data_nascimento ? new Date(s.data_nascimento + 'T12:00:00') : undefined,
+      rg: s.rg || '',
+      cnh: s.cnh || '',
+      participacao: typeof s.participacao_percent === 'number'
+        ? s.participacao_percent
+        : Number(s.participacao_percent || 0),
+      cep: s.cep || '',
+      logradouro_tipo: s.logradouro_tipo || '',
+      logradouro: s.logradouro || '',
+      numero: s.numero || '',
+      complemento: s.complemento || '',
+      bairro: s.bairro || '',
+      municipio: s.municipio || '',
+      uf: s.uf || '',
+    }))
+  );
+  const [nextSocioId, setNextSocioId] = useState(initialSocios.length);
+
+  const [currentSocioNome, setCurrentSocioNome] = useState('');
+  const [currentSocioBirthDate, setCurrentSocioBirthDate] = useState<Date | undefined>(undefined);
+  const [currentSocioCpf, setCurrentSocioCpf] = useState('');
+  const [currentSocioRg, setCurrentSocioRg] = useState('');
+  const [currentSocioCnh, setCurrentSocioCnh] = useState('');
+  const [currentSocioParticipacaoDisplay, setCurrentSocioParticipacaoDisplay] = useState('');
+  const [currentSocioParticipacao, setCurrentSocioParticipacao] = useState(0);
+  const [currentSocioCep, setCurrentSocioCep] = useState('');
+  const [currentSocioLogradouroTipo, setCurrentSocioLogradouroTipo] = useState('');
+  const [currentSocioLogradouro, setCurrentSocioLogradouro] = useState('');
+  const [currentSocioNumero, setCurrentSocioNumero] = useState('');
+  const [currentSocioComplemento, setCurrentSocioComplemento] = useState('');
+  const [currentSocioBairro, setCurrentSocioBairro] = useState('');
+  const [currentSocioMunicipio, setCurrentSocioMunicipio] = useState('');
+  const [currentSocioUf, setCurrentSocioUf] = useState('');
+  const [socioCepLoading, setSocioCepLoading] = useState(false);
+  const [cpfSocioError, setCpfSocioError] = useState('');
+
+  const totalParticipacao = useMemo(() => {
+    const total = socios.reduce((sum, socio) => sum + (socio.participacao || 0), 0);
+    return Math.round(total * 100) / 100;
+  }, [socios]);
+
+  const formatCPF = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  const handleSocioParticipacaoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const digits = value.replace(/\D/g, '');
+    if (!digits) {
+      setCurrentSocioParticipacaoDisplay('');
+      setCurrentSocioParticipacao(0);
+      return;
+    }
+    const limited = digits.slice(0, 5);
+    const intPart = limited.slice(0, Math.max(limited.length - 2, 0)) || '0';
+    const decPart = limited.slice(-2).padStart(2, '0');
+    let intNum = parseInt(intPart, 10);
+    if (isNaN(intNum)) intNum = 0;
+    if (intNum > 100) intNum = 100;
+    let decNum = parseInt(decPart, 10);
+    if (isNaN(decNum)) decNum = 0;
+    if (intNum === 100) decNum = 0;
+    const formattedDisplay = `${intNum.toString()},${decNum.toString().padStart(2, '0')}`;
+    setCurrentSocioParticipacaoDisplay(formattedDisplay);
+    const numeric = intNum + decNum / 100;
+    setCurrentSocioParticipacao(numeric);
+  };
+
+  const handleSocioCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let v = e.target.value.replace(/\D/g, '');
+    if (v.length > 8) v = v.slice(0, 8);
+    if (v.length > 5) v = v.replace(/^(\d{5})(\d{0,3})/, '$1-$2');
+    setCurrentSocioCep(v);
+  };
+
+  const lookupSocioCep = async () => {
+    const digits = currentSocioCep.replace(/\D/g, '');
+    if (digits.length !== 8) {
+      toast.error('CEP inválido (precisa ter 8 dígitos)');
+      return;
+    }
+    try {
+      setSocioCepLoading(true);
+      const res = await fetch(`/api/cep?cep=${digits}`);
+      const data = await res.json();
+      if (data && !data.error) {
+        const tipo = data.tipo || '';
+        const nome = data.nome || '';
+        setCurrentSocioLogradouroTipo(tipo);
+        setCurrentSocioLogradouro(nome || data.logradouro || '');
+        setCurrentSocioBairro(data.bairro || '');
+        setCurrentSocioMunicipio(data.localidade || '');
+        setCurrentSocioUf(data.uf || '');
+        setCurrentSocioComplemento(data.complemento || '');
+        toast.success('Endereço do sócio preenchido pelo CEP');
+      } else {
+        toast.error(data?.error || 'CEP não encontrado');
+      }
+    } catch (err) {
+      toast.error('Falha ao buscar CEP do sócio');
+    } finally {
+      setSocioCepLoading(false);
+    }
+  };
+
+  const handleRemoveSocio = (id: number) => {
+    setSocios((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleSocioCpfBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.currentTarget.value;
+    if (!value) {
+      setCpfSocioError('');
+      return;
+    }
+    const isValid = validateCPF(value);
+    if (!isValid) {
+      setCpfSocioError('CPF inválido');
+      toast.error('CPF inválido');
+      return;
+    }
+    setCpfSocioError('');
+    try {
+      const socio = await findSocioByCpf(value);
+      if (socio) {
+        setCurrentSocioNome((socio.nome || '').toUpperCase());
+        setCurrentSocioBirthDate(
+          socio.data_nascimento ? new Date(socio.data_nascimento + 'T12:00:00') : undefined
+        );
+        setCurrentSocioRg(socio.rg || '');
+        setCurrentSocioCnh(socio.cnh || '');
+        setCurrentSocioCep(socio.cep || '');
+        setCurrentSocioLogradouroTipo(socio.logradouro_tipo || '');
+        setCurrentSocioLogradouro(socio.logradouro || '');
+        setCurrentSocioNumero(socio.numero || '');
+        setCurrentSocioComplemento(socio.complemento || '');
+        setCurrentSocioBairro(socio.bairro || '');
+        setCurrentSocioMunicipio(socio.municipio || '');
+        setCurrentSocioUf(socio.uf || '');
+        toast.success('Dados do sócio preenchidos a partir do CPF cadastrado.');
+      }
+    } catch {
+      toast.error('Erro ao buscar dados do sócio pelo CPF.');
+    }
+  };
+
+  const handleAddSocio = () => {
+    if (!currentSocioNome.trim()) {
+      toast.error('Informe o nome do sócio');
+      return;
+    }
+    if (!currentSocioCpf || !validateCPF(currentSocioCpf)) {
+      toast.error('CPF inválido');
+      return;
+    }
+    const currentDigits = currentSocioCpf.replace(/\D/g, '');
+    const existsInList = socios.some((s) => s.cpf.replace(/\D/g, '') === currentDigits);
+    if (existsInList) {
+      toast.error('CPF já incluído na lista de sócios desta empresa');
+      return;
+    }
+    if (!currentSocioParticipacao || currentSocioParticipacao <= 0) {
+      toast.error('Informe a participação do sócio');
+      return;
+    }
+    const novoTotal = totalParticipacao + currentSocioParticipacao;
+    if (novoTotal > 100) {
+      toast.error('O total das participações não pode ultrapassar 100%');
+      return;
+    }
+    const novoId = nextSocioId;
+    setSocios((prev) => [
+      ...prev,
+      {
+        id: novoId,
+        nome: currentSocioNome,
+        cpf: currentSocioCpf,
+        data_nascimento: currentSocioBirthDate,
+        rg: currentSocioRg,
+        cnh: currentSocioCnh,
+        participacao: currentSocioParticipacao,
+        cep: currentSocioCep,
+        logradouro_tipo: currentSocioLogradouroTipo,
+        logradouro: currentSocioLogradouro,
+        numero: currentSocioNumero,
+        complemento: currentSocioComplemento,
+        bairro: currentSocioBairro,
+        municipio: currentSocioMunicipio,
+        uf: currentSocioUf,
+      },
+    ]);
+    setNextSocioId((prev) => prev + 1);
+    setCurrentSocioNome('');
+    setCurrentSocioCpf('');
+    setCurrentSocioBirthDate(undefined);
+    setCurrentSocioRg('');
+    setCurrentSocioCnh('');
+    setCurrentSocioParticipacaoDisplay('');
+    setCurrentSocioParticipacao(0);
+    setCurrentSocioCep('');
+    setCurrentSocioLogradouroTipo('');
+    setCurrentSocioLogradouro('');
+    setCurrentSocioNumero('');
+    setCurrentSocioComplemento('');
+    setCurrentSocioBairro('');
+    setCurrentSocioMunicipio('');
+    setCurrentSocioUf('');
+    setCpfSocioError('');
+  };
 
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -138,6 +387,11 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
     if (cnpjValue && !validateCNPJ(cnpjValue)) {
       setCnpjError('CNPJ inválido');
       toast.error('CNPJ inválido. Verifique o número digitado.');
+      return;
+    }
+
+    if (socios.length > 0 && totalParticipacao !== 100) {
+      toast.error('O total das participações dos sócios deve ser exatamente 100%.');
       return;
     }
 
@@ -324,12 +578,319 @@ export function CompanyForm({ company, hasLinkedRecords = false }: CompanyFormPr
             <Input name="email_contato" type="email" defaultValue={company?.email_contato || ''} className="w-[50ch]" />
           </div>
 
+          {/* Capital Social */}
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+            <label className="text-sm font-medium">Capital Social (R$)</label>
+            <div className="space-y-1">
+              <Input
+                name="capital_social_display"
+                defaultValue={
+                  company?.capital_social_centavos != null
+                    ? (company.capital_social_centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : ''
+                }
+                placeholder="0,00"
+                onInput={(e) => {
+                  const digits = e.currentTarget.value.replace(/\D/g, '');
+                  if (!digits) {
+                    e.currentTarget.value = '';
+                    if (capitalHiddenRef.current) capitalHiddenRef.current.value = '';
+                    return;
+                  }
+                  const intVal = parseInt(digits, 10);
+                  const formatted = (intVal / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  e.currentTarget.value = formatted;
+                  if (capitalHiddenRef.current) capitalHiddenRef.current.value = String(intVal);
+                }}
+                className="w-[18ch]"
+              />
+              <input
+                type="hidden"
+                name="capital_social_centavos"
+                ref={capitalHiddenRef}
+                defaultValue={
+                  company?.capital_social_centavos != null
+                    ? String(company.capital_social_centavos)
+                    : ''
+                }
+              />
+            </div>
+          </div>
+
           {/* Telefone */}
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
             <label className="text-sm font-medium">Telefone</label>
             <Input name="telefone" defaultValue={company?.telefone || ''} className="w-[20ch]" />
           </div>
-          
+
+          <div className="space-y-4 border rounded-md p-4">
+            <h2 className="text-lg font-semibold">Sócios</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nome completo do sócio</label>
+                <Input
+                  value={currentSocioNome}
+                  onChange={(e) => setCurrentSocioNome(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data de nascimento</label>
+                <DatePicker
+                  date={currentSocioBirthDate}
+                  setDate={(d) => setCurrentSocioBirthDate(d || undefined)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CPF</label>
+                <Input
+                  value={currentSocioCpf}
+                  onChange={(e) => setCurrentSocioCpf(formatCPF(e.currentTarget.value))}
+                  onBlur={handleSocioCpfBlur}
+                  maxLength={14}
+                />
+                {cpfSocioError && <p className="text-xs text-red-500">{cpfSocioError}</p>}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">RG</label>
+                <Input value={currentSocioRg} onChange={(e) => setCurrentSocioRg(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CNH</label>
+                <Input
+                  value={currentSocioCnh}
+                  onChange={(e) => setCurrentSocioCnh(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Percentual de Participação</label>
+                <Input
+                  placeholder="0,00"
+                  value={currentSocioParticipacaoDisplay}
+                  onChange={handleSocioParticipacaoChange}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CEP</label>
+                <div className="relative">
+                  <Input
+                    placeholder="00000-000"
+                    maxLength={9}
+                    value={currentSocioCep}
+                    onChange={handleSocioCepChange}
+                    className="pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={lookupSocioCep}
+                    className="absolute right-1 top-1.5 h-7 w-7 inline-flex items-center justify-center rounded border bg-white hover:bg-muted text-xs disabled:opacity-50"
+                    disabled={socioCepLoading}
+                    title="Buscar endereço"
+                  >
+                    {socioCepLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipo de Logradouro</label>
+                <Input
+                  value={currentSocioLogradouroTipo}
+                  onChange={(e) => setCurrentSocioLogradouroTipo(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Logradouro</label>
+                <Input
+                  value={currentSocioLogradouro}
+                  onChange={(e) => setCurrentSocioLogradouro(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Número</label>
+                <Input
+                  value={currentSocioNumero}
+                  onChange={(e) => setCurrentSocioNumero(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Complemento</label>
+                <Input
+                  value={currentSocioComplemento}
+                  onChange={(e) => setCurrentSocioComplemento(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Bairro</label>
+                <Input
+                  value={currentSocioBairro}
+                  onChange={(e) => setCurrentSocioBairro(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Município</label>
+                <Input
+                  value={currentSocioMunicipio}
+                  onChange={(e) => setCurrentSocioMunicipio(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">UF</label>
+                <Input
+                  value={currentSocioUf}
+                  onChange={(e) => setCurrentSocioUf(e.target.value)}
+                  maxLength={2}
+                />
+              </div>
+            </div>
+
+            <div className="mb-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddSocio}
+                disabled={totalParticipacao >= 100}
+              >
+                Adicionar sócio
+              </Button>
+            </div>
+
+            {socios.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold">Sócios incluídos</h3>
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left">CPF Sócio</th>
+                        <th className="px-3 py-2 text-left">Nome</th>
+                        <th className="px-3 py-2 text-left">Percentual de Participação</th>
+                        <th className="px-3 py-2 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {socios.map((socio, index) => (
+                        <tr key={socio.id} className="border-t">
+                          <td className="px-3 py-2 align-top">{socio.cpf || '-'}</td>
+                          <td className="px-3 py-2 align-top">{socio.nome || '-'}</td>
+                          <td className="px-3 py-2 align-top">
+                            {socio.participacao
+                              ? `${socio.participacao.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}%`
+                              : '-'}
+                          </td>
+                          <td className="px-3 py-2 align-top text-right">
+                            <button
+                              type="button"
+                              className="text-sm text-red-600 hover:underline"
+                              onClick={() => handleRemoveSocio(socio.id)}
+                            >
+                              Remover
+                            </button>
+                          </td>
+                          <td className="hidden">
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][nome]`}
+                              value={socio.nome}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][cpf]`}
+                              value={socio.cpf}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][data_nascimento]`}
+                              value={
+                                socio.data_nascimento
+                                  ? format(socio.data_nascimento as Date, 'yyyy-MM-dd')
+                                  : ''
+                              }
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][rg]`}
+                              value={socio.rg || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][cnh]`}
+                              value={socio.cnh || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][participacao_percent]`}
+                              value={socio.participacao}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][cep]`}
+                              value={socio.cep || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][logradouro_tipo]`}
+                              value={socio.logradouro_tipo || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][logradouro]`}
+                              value={socio.logradouro || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][numero]`}
+                              value={socio.numero || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][complemento]`}
+                              value={socio.complemento || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][bairro]`}
+                              value={socio.bairro || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][municipio]`}
+                              value={socio.municipio || ''}
+                            />
+                            <input
+                              type="hidden"
+                              name={`socio[${index}][uf]`}
+                              value={socio.uf || ''}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total das participações:{' '}
+                  {totalParticipacao.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                  %
+                </p>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/admin/clients">
               <Button variant="outline" type="button">Cancelar</Button>

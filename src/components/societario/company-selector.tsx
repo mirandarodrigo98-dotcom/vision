@@ -14,9 +14,15 @@ interface SocietarioCompanySelectorProps {
   name?: string;
   initialCompanyId?: string;
   disabled?: boolean;
+  onCompanySelected?: (company: { id: string; razao_social: string; cnpj?: string }) => void;
 }
  
-export function SocietarioCompanySelector({ name = 'company_id', initialCompanyId, disabled = false }: SocietarioCompanySelectorProps) {
+export function SocietarioCompanySelector({
+  name = 'company_id',
+  initialCompanyId,
+  disabled = false,
+  onCompanySelected,
+}: SocietarioCompanySelectorProps) {
    const [open, setOpen] = React.useState(false);
    const [selectedId, setSelectedId] = React.useState(initialCompanyId || '');
    const [search, setSearch] = React.useState('');
@@ -96,6 +102,9 @@ export function SocietarioCompanySelector({ name = 'company_id', initialCompanyI
                      key={company.id}
                      onClick={() => {
                        setSelectedId(company.id);
+                      if (onCompanySelected) {
+                        onCompanySelected(company);
+                      }
                        setOpen(false);
                      }}
                      className={cn(

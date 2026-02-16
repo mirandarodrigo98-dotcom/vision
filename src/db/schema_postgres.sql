@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS client_companies (
     municipio TEXT,
     uf TEXT,
     data_abertura TEXT,
+    capital_social_centavos INTEGER,
     address_type TEXT,
     address_street TEXT,
     address_number TEXT,

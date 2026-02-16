@@ -118,3 +118,17 @@ export async function upsertSocietarioProfile(formData: FormData) {
   revalidatePath('/admin/societario');
   return { success: true };
 }
+
+export async function findSocioByCpf(cpf: string) {
+  const session = await getSession();
+  if (!session) return null;
+  try {
+    const digits = String(cpf || '').replace(/\D/g, '');
+    const socio = await db
+      .prepare('SELECT * FROM societario_socios WHERE cpf = ?')
+      .get(digits);
+    return socio || null;
+  } catch {
+    return null;
+  }
+}

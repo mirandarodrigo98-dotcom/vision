@@ -96,7 +96,7 @@ export default async function SocietarioPage({ searchParams }: PageProps) {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <ProcessActions processId={p.id} status={p.status} />
+                        <ProcessActions processId={p.id} status={p.status} type={p.type} />
                       </TableCell>
                     </TableRow>
                   ))}

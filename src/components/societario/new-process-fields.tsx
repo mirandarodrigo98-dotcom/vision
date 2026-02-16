@@ -12,6 +12,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { getCompanyDetailsFull, getCompanySocios } from '@/app/actions/companies';
 
 interface ProcessInitialValues {
   id?: string;
@@ -161,9 +162,43 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
   const [debouncedCnaeSearch] = useDebounce(cnaeSearch, 400);
   const [capitalDisplay, setCapitalDisplay] = useState(
     typeof initialValues?.capital_social_centavos === 'number'
-      ? (initialValues.capital_social_centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      ? (initialValues.capital_social_centavos / 100).toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
       : ''
   );
+  const [isTransformacao, setIsTransformacao] = useState<'SIM' | 'NAO' | ''>('');
+  const [numeroAlteracao, setNumeroAlteracao] = useState('');
+  const [alteracaoQuadroSocietario, setAlteracaoQuadroSocietario] = useState<'SIM' | 'NAO' | ''>('');
+  const [alteracaoCapitalSocial, setAlteracaoCapitalSocial] = useState<'SIM' | 'NAO' | ''>('');
+  const [novoCapitalDisplay, setNovoCapitalDisplay] = useState('');
+  const [alteracaoEnderecoSocio, setAlteracaoEnderecoSocio] = useState<'SIM' | 'NAO' | ''>('');
+  const [alteracoesSelecionadas, setAlteracoesSelecionadas] = useState<string[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<{
+    id: string;
+    razao_social: string;
+    cnpj?: string;
+  } | null>(null);
+  type CompanyDetails = {
+    id: string;
+    code: string | null;
+    razao_social: string | null;
+    nome: string | null;
+    cnpj: string | null;
+    telefone: string | null;
+    email_contato: string | null;
+    address_type: string | null;
+    address_street: string | null;
+    address_number: string | null;
+    address_complement: string | null;
+    address_neighborhood: string | null;
+    address_zip_code: string | null;
+    municipio: string | null;
+    uf: string | null;
+    capital_social_centavos: number | null;
+  };
+  const [companyDetails, setCompanyDetails] = useState<CompanyDetails | null>(null);
   const [cepCompl, setCepCompl] = useState(initialValues?.compl_cep || '');
   const [currentSocioNome, setCurrentSocioNome] = useState('');
   const [currentSocioCpf, setCurrentSocioCpf] = useState('');
@@ -182,6 +217,10 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
   const [currentSocioUf, setCurrentSocioUf] = useState('');
   const [cpfError, setCpfError] = useState('');
   const [socioCepLoading, setSocioCepLoading] = useState(false);
+  const [editingSocioId, setEditingSocioId] = useState<number | null>(null);
+  const [currentSocioNatureza, setCurrentSocioNatureza] = useState<'ENTRADA' | 'SAIDA' | 'ALTERACAO' | ''>('');
+  const [currentSocioQualificacao, setCurrentSocioQualificacao] = useState<string>('');
+  const [currentSocioPais, setCurrentSocioPais] = useState<string>('');
   const complTipoRef = useRef<HTMLInputElement>(null);
   const complLogradouroRef = useRef<HTMLInputElement>(null);
   const complBairroRef = useRef<HTMLInputElement>(null);
@@ -190,13 +229,57 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
   const complComplementoRef = useRef<HTMLInputElement>(null);
 
   const isConstituicao = type === 'CONSTITUICAO';
+  const isAlteracao = type === 'ALTERACAO';
   const selectorDisabled = !(type === 'ALTERACAO' || type === 'BAIXA');
   const router = useRouter();
+  const canAlterarEnderecoSocio =
+    alteracaoQuadroSocietario === 'NAO' && alteracaoCapitalSocial === 'NAO';
+  const onlyDadosSocio =
+    alteracaoQuadroSocietario === 'NAO' &&
+    alteracaoCapitalSocial === 'NAO' &&
+    alteracaoEnderecoSocio === 'SIM';
+  const hasSociosStep =
+    alteracaoQuadroSocietario === 'SIM' || alteracaoEnderecoSocio === 'SIM';
+ 
+
+  useEffect(() => {
+    if (
+      alteracoesSelecionadas.includes('transformacao') &&
+      !alteracoesSelecionadas.includes('nome')
+    ) {
+      setAlteracoesSelecionadas((prev) => [...prev, 'nome']);
+    }
+  }, [alteracoesSelecionadas]);
+
+  useEffect(() => {
+    if (!canAlterarEnderecoSocio) {
+      setAlteracaoEnderecoSocio('');
+    }
+  }, [canAlterarEnderecoSocio]);
+
+  const parseCurrency = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return 0;
+    const cents = parseInt(digits, 10);
+    if (isNaN(cents)) return 0;
+    return cents / 100;
+  };
 
   const totalParticipacao = useMemo(() => {
-    const total = socios.reduce((sum, socio) => sum + (socio.participacao || 0), 0);
+    const total = socios.reduce((sum, socio) => {
+      const natureza = (socio as any).natureza_evento as string | undefined;
+      const conta = natureza === 'SAIDA' ? 0 : (socio.participacao || 0);
+      return sum + conta;
+    }, 0);
     return Math.round(total * 100) / 100;
   }, [socios]);
+
+  const capitalBaseForAlteracao =
+    isAlteracao && (capitalDisplay || novoCapitalDisplay)
+      ? parseCurrency(
+          alteracaoCapitalSocial === 'SIM' ? novoCapitalDisplay || capitalDisplay : capitalDisplay
+        )
+      : 0;
 
   const filteredNaturezas = useMemo(() => {
     if (naturezaSearch.trim().length < 3) return [];
@@ -208,6 +291,66 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
 
   const handleRemoveSocio = (id: number) => {
     setSocios((prev) => prev.filter((s) => s.id !== id));
+    if (editingSocioId === id) {
+      setEditingSocioId(null);
+      setCurrentSocioNome('');
+      setCurrentSocioCpf('');
+      setCurrentSocioBirthDate(undefined);
+      setCurrentSocioRg('');
+      setCurrentSocioCnh('');
+      setCurrentSocioParticipacaoDisplay('');
+      setCurrentSocioParticipacao(0);
+      setCurrentSocioCep('');
+      setCurrentSocioLogradouroTipo('');
+      setCurrentSocioLogradouro('');
+      setCurrentSocioNumero('');
+      setCurrentSocioComplemento('');
+      setCurrentSocioBairro('');
+      setCurrentSocioMunicipio('');
+      setCurrentSocioUf('');
+      setCpfError('');
+      setCurrentSocioNatureza('');
+      setCurrentSocioQualificacao('');
+      setCurrentSocioPais('');
+    }
+  };
+
+  const startEditSocio = (id: number) => {
+    const socio = socios.find((s) => s.id === id);
+    if (!socio) return;
+    setEditingSocioId(id);
+    setCurrentSocioNatureza((socio as any).natureza_evento || '');
+    setCurrentSocioQualificacao((socio as any).qualificacao || '');
+    setCurrentSocioPais((socio as any).pais || '');
+    setCurrentSocioNome(socio.nome || '');
+    setCurrentSocioCpf(socio.cpf || '');
+    setCurrentSocioBirthDate(
+      socio.data_nascimento instanceof Date
+        ? socio.data_nascimento
+        : socio.data_nascimento
+        ? new Date(socio.data_nascimento)
+        : undefined
+    );
+    setCurrentSocioRg(socio.rg || '');
+    setCurrentSocioCnh(socio.cnh || '');
+    setCurrentSocioParticipacao(socio.participacao || 0);
+    setCurrentSocioParticipacaoDisplay(
+      socio.participacao
+        ? socio.participacao.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        : ''
+    );
+    setCurrentSocioCep(socio.cep || '');
+    setCurrentSocioLogradouroTipo(socio.logradouro_tipo || '');
+    setCurrentSocioLogradouro(socio.logradouro || '');
+    setCurrentSocioNumero(socio.numero || '');
+    setCurrentSocioComplemento(socio.complemento || '');
+    setCurrentSocioBairro(socio.bairro || '');
+    setCurrentSocioMunicipio(socio.municipio || '');
+    setCurrentSocioUf(socio.uf || '');
+    setCpfError('');
   };
 
   const handleAddCnae = (cnae: { id: string; descricao: string }) => {
@@ -215,7 +358,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
       const exists = prev.some((item) => item.id === cnae.id && item.tipo === cnaeTipo);
       if (exists) return prev;
       const hasPrincipal = prev.some((item) => item.tipo === 'PRINCIPAL');
-      const tipo = hasPrincipal ? cnaeTipo : 'PRINCIPAL';
+      const tipo = hasPrincipal ? 'SECUNDARIA' : cnaeTipo;
       return [...prev, { ...cnae, tipo }];
     });
     setCnaeSearch('');
@@ -316,7 +459,26 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
     }
     const floatVal = cents / 100;
     setCapitalDisplay(
-      floatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      floatVal.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    );
+  };
+
+  const handleNovoCapitalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '');
+    const cents = parseInt(digits, 10);
+    if (!digits || isNaN(cents)) {
+      setNovoCapitalDisplay('');
+      return;
+    }
+    const floatVal = cents / 100;
+    setNovoCapitalDisplay(
+      floatVal.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
     );
   };
 
@@ -431,6 +593,47 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
     }
   };
 
+  const formatCEP = (value: string | null | undefined) => {
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 5) return digits;
+    return digits.replace(/^(\d{5})(\d{0,3})/, '$1-$2');
+  };
+  const formatCurrencyFromCentavos = (centavos: number | null | undefined) => {
+    const v = typeof centavos === 'number' ? centavos : 0;
+    const floatVal = v / 100;
+    return floatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  const composeAddress = (c: CompanyDetails) => {
+    const parts: string[] = [];
+    const streetLine = [c.address_type, c.address_street].filter(Boolean).join(' ');
+    if (streetLine) parts.push(streetLine);
+    if (c.address_number) parts.push(`Nº ${c.address_number}`);
+    if (c.address_complement) parts.push(c.address_complement);
+    const locality = [c.address_neighborhood, c.municipio, c.uf].filter(Boolean).join(' - ');
+    if (locality) parts.push(locality);
+    const cep = formatCEP(c.address_zip_code);
+    if (cep) parts.push(`CEP ${cep}`);
+    return parts.join(', ');
+  };
+
+  useEffect(() => {
+    if (initialCompanyId) {
+      getCompanyDetailsFull(initialCompanyId).then((c) => {
+        setCompanyDetails(c as any);
+      }).catch(() => {});
+    }
+  }, [initialCompanyId]);
+  
+  useEffect(() => {
+    const id = selectedCompany?.id;
+    if (!id) return;
+    getCompanyDetailsFull(id).then((c) => {
+      setCompanyDetails(c as any);
+    }).catch(() => {
+      setCompanyDetails(null);
+    });
+  }, [selectedCompany?.id]);
+
   if (isConstituicao) {
     return (
       <div className="space-y-6">
@@ -461,7 +664,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
           <span className={step === 3 ? 'font-semibold' : ''}>3. Dados Complementares</span>
         </div>
 
-        <div className="space-y-6 border rounded-md p-4" hidden={step !== 1}>
+        <div className="space-y-6 border rounded-md p-4" hidden={step !== 1} suppressHydrationWarning>
             <h2 className="text-lg font-semibold">Dados da Empresa</h2>
             <div className="space-y-2">
               <label className="text-sm font-medium">Razão Social</label>
@@ -537,13 +740,14 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
               </Button>
             </div>
           </div>
-        <div className="space-y-6 border rounded-md p-4" hidden={step !== 2}>
+        <div className="space-y-6 border rounded-md p-4" hidden={step !== 2} suppressHydrationWarning>
             <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nome completo do sócio</label>
                   <Input
                     value={currentSocioNome}
                     onChange={(e) => setCurrentSocioNome(e.target.value.toUpperCase())}
+                    disabled={alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM'}
                   />
                 </div>
                 <div className="space-y-2">
@@ -553,7 +757,9 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                     setDate={(date) => {
                       setCurrentSocioBirthDate(date || undefined);
                     }}
+                    disabled={alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM'}
                   />
+                </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">CPF</label>
@@ -567,6 +773,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                       if (!isValid) toast.error('CPF inválido');
                     }}
                     maxLength={14}
+                    disabled={alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM'}
                   />
                   {cpfError && <p className="text-xs text-red-500">{cpfError}</p>}
                 </div>
@@ -575,6 +782,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioRg}
                     onChange={(e) => setCurrentSocioRg(e.target.value.toUpperCase())}
+                    disabled={alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM'}
                   />
                 </div>
                 <div className="space-y-2">
@@ -582,6 +790,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioCnh}
                     onChange={(e) => setCurrentSocioCnh(e.target.value.toUpperCase())}
+                    disabled={alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM'}
                   />
                 </div>
                 <div className="space-y-2">
@@ -695,6 +904,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
               <Button
                 type="button"
                 variant="outline"
+                disabled={totalParticipacao >= 100}
                 onClick={() => {
                   if (!currentSocioNome.trim()) {
                     toast.error('Informe o nome do sócio');
@@ -929,105 +1139,16 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-6 border rounded-md p-4" hidden={step !== 3}>
+        <div className="space-y-6 border rounded-md p-4" hidden={step !== 3} suppressHydrationWarning>
             <h2 className="text-lg font-semibold">Dados Complementares</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Inscrição Imobiliária</label>
-                <Input name="inscricao_imobiliaria" defaultValue={initialValues?.inscricao_imobiliaria || ''} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">CEP</label>
-                <div className="relative">
-                  <Input
-                    name="compl_cep"
-                    value={cepCompl}
-                    onChange={handleCepComplChange}
-                    placeholder="00000-000"
-                    maxLength={9}
-                    className="pr-9"
-                  />
-                  <button
-                    type="button"
-                    onClick={lookupCepCompl}
-                    className="absolute right-1 top-1.5 h-7 w-7 inline-flex items-center justify-center rounded border bg-white hover:bg-muted text-xs"
-                    title="Buscar endereço"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo de Logradouro</label>
-                <Input name="compl_logradouro_tipo" ref={complTipoRef} defaultValue={initialValues?.compl_logradouro_tipo || ''} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Logradouro</label>
-                <Input name="compl_logradouro" ref={complLogradouroRef} defaultValue={initialValues?.compl_logradouro || ''} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Número</label>
-                <Input name="compl_numero" defaultValue={initialValues?.compl_numero || ''} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Complemento</label>
-                <Input name="compl_complemento" ref={complComplementoRef} defaultValue={initialValues?.compl_complemento || ''} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Bairro</label>
-                <Input name="compl_bairro" ref={complBairroRef} defaultValue={initialValues?.compl_bairro || ''} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Município</label>
-                <Input name="compl_municipio" ref={complMunicipioRef} defaultValue={initialValues?.compl_municipio || ''} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">UF</label>
-                <Input name="compl_uf" ref={complUfRef} defaultValue={initialValues?.compl_uf || ''} />
-              </div>
-            </div>
+ 
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Natureza Jurídica</label>
-                <Input
-                  value={naturezaSearch}
-                  onChange={(e) => {
-                    setNaturezaSearch(e.target.value.toUpperCase());
-                    setSelectedNatureza('');
-                  }}
-                  placeholder="Digite pelo menos 3 caracteres para buscar"
-                />
-                <input
-                  type="hidden"
-                  name="natureza_juridica"
-                  value={selectedNatureza || naturezaSearch}
-                />
-              </div>
-              {filteredNaturezas.length > 0 && (
-                <div className="border rounded-md max-h-40 overflow-y-auto text-sm">
-                  {filteredNaturezas.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-accent"
-                      onClick={() => {
-                        setSelectedNatureza(item);
-                        setNaturezaSearch(item);
-                      }}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+ 
+
+ 
+
+ 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1070,11 +1191,11 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium">Buscar CNAE por código ou descrição</label>
-                <Input
-                  value={cnaeSearch}
-                  onChange={(e) => setCnaeSearch(e.target.value)}
-                  placeholder="Digite pelo menos 3 caracteres"
-                />
+                  <Input
+                    value={cnaeSearch}
+                    onChange={(e) => setCnaeSearch(e.target.value)}
+                    placeholder="Digite pelo menos 3 caracteres"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Tipo de Atividade</label>
@@ -1086,7 +1207,12 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PRINCIPAL">Principal</SelectItem>
+                      <SelectItem
+                        value="PRINCIPAL"
+                        disabled={selectedCnaes.some((item) => item.tipo === 'PRINCIPAL')}
+                      >
+                        Principal
+                      </SelectItem>
                       <SelectItem value="SECUNDARIA">Secundária</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1146,21 +1272,9 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                             </Button>
                           </td>
                           <td className="hidden">
-                            <input
-                              type="hidden"
-                              name={`cnaes[${index}][code]`}
-                              value={item.id}
-                            />
-                            <input
-                              type="hidden"
-                              name={`cnaes[${index}][descricao]`}
-                              value={item.descricao}
-                            />
-                            <input
-                              type="hidden"
-                              name={`cnaes[${index}][tipo]`}
-                              value={item.tipo}
-                            />
+                            <input type="hidden" name={`cnaes[${index}][code]`} value={item.id} />
+                            <input type="hidden" name={`cnaes[${index}][descricao]`} value={item.descricao} />
+                            <input type="hidden" name={`cnaes[${index}][tipo]`} value={item.tipo} />
                           </td>
                         </tr>
                       ))}
@@ -1197,10 +1311,1162 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                 <Button type="submit">Concluir</Button>
               </div>
             </div>
-          </div>
+            </div>
         </div>
     );
-  } else {
+  }
+
+  if (isAlteracao) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Tipo de Processo</label>
+          <select
+            name="type"
+            className="border rounded h-10 px-3 w-full"
+            value={type}
+            onChange={(e) => handleTypeChange(e.target.value)}
+            disabled={readonlyType}
+          >
+            <option value="">Selecione</option>
+            <option value="CONSTITUICAO">Constituição</option>
+            <option value="ALTERACAO">Alteração</option>
+            <option value="BAIXA">Baixa</option>
+          </select>
+          {readonlyType && <input type="hidden" name="type" value={type} />}
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className={step === 1 ? 'font-semibold' : ''}>1. Dados da Empresa</span>
+          <span>›</span>
+          <span
+            className={
+              step === 2 && hasSociosStep
+                ? 'font-semibold'
+                : step !== 1 && !hasSociosStep
+                ? 'font-semibold'
+                : ''
+            }
+          >
+            {hasSociosStep ? '2. Movimentação de Sócios' : '2. Dados Complementares'}
+          </span>
+          {hasSociosStep && (
+            <>
+              <span>›</span>
+              <span className={step === 3 ? 'font-semibold' : ''}>3. Dados Complementares</span>
+            </>
+          )}
+        </div>
+
+        <div className="space-y-6 border rounded-md p-4" hidden={step !== 1} suppressHydrationWarning>
+          <h2 className="text-lg font-semibold">Dados da Empresa</h2>
+          <SocietarioCompanySelector
+            initialCompanyId={initialCompanyId}
+            disabled={selectorDisabled}
+            onCompanySelected={async (company) => {
+              setSelectedCompany(company);
+              try {
+                const details = await getCompanyDetailsFull(company.id);
+                setCompanyDetails(details as any);
+                if (type === 'ALTERACAO' && socios.length === 0) {
+                  const companySocios = await getCompanySocios(company.id);
+                  if (companySocios && companySocios.length > 0) {
+                    const mapped = companySocios.map((s, index) => ({
+                      id: index,
+                      nome: s.nome || '',
+                      cpf: s.cpf || '',
+                      data_nascimento: s.data_nascimento ? new Date(s.data_nascimento + 'T12:00:00') : undefined,
+                      rg: s.rg || '',
+                      cnh: s.cnh || '',
+                      participacao: typeof s.participacao_percent === 'number'
+                        ? s.participacao_percent
+                        : Number(s.participacao_percent || 0),
+                      cep: s.cep || '',
+                      logradouro_tipo: s.logradouro_tipo || '',
+                      logradouro: s.logradouro || '',
+                      numero: s.numero || '',
+                      complemento: s.complemento || '',
+                      bairro: s.bairro || '',
+                      municipio: s.municipio || '',
+                      uf: s.uf || '',
+                    }));
+                    setSocios(mapped);
+                    setNextSocioId(companySocios.length);
+                  }
+                }
+              } catch {
+                setCompanyDetails(null);
+              }
+            }}
+          />
+
+          {selectedCompany && (
+            <div className="rounded border p-4 text-sm space-y-1">
+              <div>Razão Social: {companyDetails?.razao_social || selectedCompany.razao_social || '-'}</div>
+              <div>CNPJ: {selectedCompany.cnpj || '-'}</div>
+              <div>Código: {companyDetails?.code || '-'}</div>
+              <div>Capital Social: R$ {formatCurrencyFromCentavos(companyDetails?.capital_social_centavos ?? null)}</div>
+              <div>Contato: {companyDetails?.telefone ? formatPhone(String(companyDetails.telefone)) : '-'} • {companyDetails?.email_contato || '-'}</div>
+              <div>Endereço: {companyDetails ? composeAddress(companyDetails) : '-'}</div>
+            </div>
+          )}
+
+          
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Haverá alteração no quadro societário?</label>
+            <select
+              name="alteracao_quadro_societario"
+              className="border rounded h-10 px-3 w-full"
+              value={alteracaoQuadroSocietario}
+              onChange={(e) =>
+                setAlteracaoQuadroSocietario(e.target.value as 'SIM' | 'NAO' | '')
+              }
+            >
+              <option value="">Selecione</option>
+              <option value="SIM">Sim</option>
+              <option value="NAO">Não</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Haverá alteração do capital social?</label>
+            <select
+              name="alteracao_capital_social"
+              className="border rounded h-10 px-3 w-full"
+              value={alteracaoCapitalSocial}
+              onChange={(e) =>
+                setAlteracaoCapitalSocial(e.target.value as 'SIM' | 'NAO' | '')
+              }
+            >
+              <option value="">Selecione</option>
+              <option value="SIM">Sim</option>
+              <option value="NAO">Não</option>
+            </select>
+          </div>
+          {alteracaoCapitalSocial === 'SIM' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Novo Capital Social (R$)</label>
+              <Input
+                name="novo_capital_social_display"
+                value={novoCapitalDisplay}
+                onChange={handleNovoCapitalChange}
+                placeholder="0,00"
+              />
+              <input
+                type="hidden"
+                name="novo_capital_social_centavos"
+                value={novoCapitalDisplay ? parseInt(novoCapitalDisplay.replace(/\D/g, ''), 10) : ''}
+              />
+              <input
+                type="hidden"
+                name="capital_social_centavos"
+                value={novoCapitalDisplay ? parseInt(novoCapitalDisplay.replace(/\D/g, ''), 10) : ''}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Haverá alteração de dados do sócio?
+            </label>
+            <select
+              name="alteracao_endereco_socio"
+              className="border rounded h-10 px-3 w-full"
+              value={alteracaoEnderecoSocio}
+              onChange={(e) =>
+                setAlteracaoEnderecoSocio(e.target.value as 'SIM' | 'NAO' | '')
+              }
+              disabled={!canAlterarEnderecoSocio}
+            >
+              <option value="">Selecione</option>
+              <option value="SIM">Sim</option>
+              <option value="NAO">Não</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Selecione as alterações a serem realizadas</label>
+            <div className="space-y-2 text-sm">
+              {[
+                { id: 'transformacao', label: 'Natureza Jurídica - Transformação' },
+                { id: 'nome', label: 'Nome' },
+                { id: 'alteracao_endereco', label: 'Alteração de endereço' },
+                { id: 'alteracao_objeto_social', label: 'Alteração de Objeto Social' },
+              ].map((opt) => (
+                <label key={opt.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={alteracoesSelecionadas.includes(opt.id)}
+                    disabled={opt.id === 'nome' && alteracoesSelecionadas.includes('transformacao')}
+                    onChange={(e) => {
+                      const checked = e.currentTarget.checked;
+                      setAlteracoesSelecionadas((prev) =>
+                        checked ? [...prev, opt.id] : prev.filter((v) => v !== opt.id)
+                      );
+                    }}
+                  />
+                  <span>{opt.label}</span>
+                  {opt.id === 'transformacao' &&
+                    alteracoesSelecionadas.includes('transformacao') && (
+                      <div className="ml-6 mt-2 w-full">
+                        <label className="text-sm font-medium">Número da Alteração</label>
+                        <Input
+                          name="numero_alteracao"
+                          value={numeroAlteracao}
+                          maxLength={6}
+                          onChange={(e) => setNumeroAlteracao(e.target.value)}
+                        />
+                      </div>
+                    )}
+                </label>
+              ))}
+            </div>
+            <input
+              type="hidden"
+              name="alteracoes_selecionadas"
+              value={alteracoesSelecionadas.join(',')}
+            />
+          </div>
+
+          <div className="flex justify-between">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="outline">
+                  Cancelar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancelar inclusão?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Você perderá todos os dados preenchidos. Deseja continuar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => router.push('/admin/societario?tab=processos')}
+                  >
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!selectedCompany && !initialCompanyId) {
+                  toast.error('Selecione uma empresa');
+                  return;
+                }
+                if (!alteracaoQuadroSocietario) {
+                  toast.error('Informe se haverá alteração no quadro societário');
+                  return;
+                }
+                if (!alteracaoCapitalSocial) {
+                  toast.error('Informe se haverá alteração do capital social');
+                  return;
+                }
+                if (alteracaoCapitalSocial === 'SIM' && !novoCapitalDisplay) {
+                  toast.error('Informe o novo capital social');
+                  return;
+                }
+                if (canAlterarEnderecoSocio && !alteracaoEnderecoSocio) {
+                  toast.error('Informe se haverá alteração do endereço do sócio');
+                  return;
+                }
+                if (hasSociosStep) {
+                  setStep(2);
+                } else {
+                  setStep(2);
+                }
+              }}
+            >
+              Avançar
+            </Button>
+          </div>
+        </div>
+
+        {hasSociosStep && (
+          <div className="space-y-6 border rounded-md p-4" hidden={step !== 2} suppressHydrationWarning>
+            <h2 className="text-lg font-semibold">Movimentação de Sócios</h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Natureza do evento</label>
+                  <select
+                    className="border rounded h-10 px-3 w-full"
+                    value={currentSocioNatureza}
+                    onChange={(e) =>
+                      setCurrentSocioNatureza(
+                        e.currentTarget.value as 'ENTRADA' | 'SAIDA' | 'ALTERACAO' | '',
+                      )
+                    }
+                    disabled={onlyDadosSocio}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="ENTRADA">Entrada de sócio/administrador</option>
+                    <option value="SAIDA">Saída de sócio/administrador</option>
+                    <option value="ALTERACAO">Alteração de dados do sócio/administrador</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Qualificação do sócio/administrador</label>
+                  <select
+                    className="border rounded h-10 px-3 w-full"
+                    value={currentSocioQualificacao}
+                    onChange={(e) => setCurrentSocioQualificacao(e.currentTarget.value)}
+                    disabled={onlyDadosSocio}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="5">5 Administrador</option>
+                    <option value="22">22 Sócio</option>
+                    <option value="29">29 Sócio Incapaz ou Relat.Incapaz (exceto menor)</option>
+                    <option value="30">30 Sócio Menor (Assistido/Representado)</option>
+                    <option value="37">37 Sócio Pessoa Jurídica Domiciliado no Exterior</option>
+                    <option value="38">38 Sócio Pessoa Física Residente no Exterior</option>
+                    <option value="49">49 Sócio-Administrador</option>
+                    <option value="63">63 Cotas em Tesouraria</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">País</label>
+                  <Input
+                    value={currentSocioPais}
+                    onChange={(e) => setCurrentSocioPais(e.target.value.toUpperCase())}
+                    disabled={
+                      currentSocioQualificacao !== '37' ||
+                      (alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM')
+                    }
+                    placeholder="Somente quando qualificação = 37"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nome completo do sócio</label>
+                <Input
+                  value={currentSocioNome}
+                  onChange={(e) => setCurrentSocioNome(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data de nascimento</label>
+                <DatePicker
+                  date={currentSocioBirthDate}
+                  setDate={(date) => {
+                    setCurrentSocioBirthDate(date || undefined);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CPF</label>
+                <Input
+                  value={currentSocioCpf}
+                  onChange={(e) => setCurrentSocioCpf(formatCPF(e.currentTarget.value))}
+                  onBlur={(e) => {
+                    const value = e.currentTarget.value;
+                    const isValid = validateCPF(value);
+                    setCpfError(isValid ? '' : 'CPF inválido');
+                    if (!isValid) toast.error('CPF inválido');
+                  }}
+                  maxLength={14}
+                />
+                {cpfError && <p className="text-xs text-red-500">{cpfError}</p>}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">RG</label>
+                <Input
+                  value={currentSocioRg}
+                  onChange={(e) => setCurrentSocioRg(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CNH</label>
+                <Input
+                  value={currentSocioCnh}
+                  onChange={(e) => setCurrentSocioCnh(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Percentual Cotas (%)</label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={currentSocioParticipacaoDisplay}
+                  disabled={onlyDadosSocio}
+                  onChange={(e) => {
+                    const raw = e.currentTarget.value;
+                    const digits = raw.replace(/\D/g, '');
+                    if (!digits) {
+                      setCurrentSocioParticipacaoDisplay('');
+                      setCurrentSocioParticipacao(0);
+                      return;
+                    }
+                    const limited = digits.slice(0, 5);
+                    const intPart = limited.slice(0, Math.max(limited.length - 2, 0)) || '0';
+                    const decPart = limited.slice(-2).padStart(2, '0');
+                    let intNum = parseInt(intPart, 10);
+                    if (isNaN(intNum)) intNum = 0;
+                    if (intNum > 100) intNum = 100;
+                    let decNum = parseInt(decPart, 10);
+                    if (isNaN(decNum)) decNum = 0;
+                    if (intNum === 100) decNum = 0;
+                    const formattedDisplay = `${intNum.toString()},${decNum
+                      .toString()
+                      .padStart(2, '0')}`;
+                    setCurrentSocioParticipacaoDisplay(formattedDisplay);
+                    const numeric = intNum + decNum / 100;
+                    setCurrentSocioParticipacao(numeric);
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">CEP</label>
+                  <div className="relative">
+                    <Input
+                      placeholder="00000-000"
+                      maxLength={9}
+                      value={currentSocioCep}
+                      onChange={handleSocioCepChange}
+                      className="pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={lookupSocioCep}
+                      className="absolute right-1 top-1.5 h-7 w-7 inline-flex items-center justify-center rounded border bg-white hover:bg-muted text-xs disabled:opacity-50"
+                      disabled={socioCepLoading}
+                      title="Buscar endereço"
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Logradouro</label>
+                  <Input
+                    value={currentSocioLogradouroTipo}
+                    onChange={(e) => setCurrentSocioLogradouroTipo(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Logradouro</label>
+                  <Input
+                    value={currentSocioLogradouro}
+                    onChange={(e) => setCurrentSocioLogradouro(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Número</label>
+                  <Input
+                    value={currentSocioNumero}
+                    onChange={(e) => setCurrentSocioNumero(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Complemento</label>
+                  <Input
+                    value={currentSocioComplemento}
+                    onChange={(e) => setCurrentSocioComplemento(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Bairro</label>
+                  <Input
+                    value={currentSocioBairro}
+                    onChange={(e) => setCurrentSocioBairro(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Município</label>
+                  <Input
+                    value={currentSocioMunicipio}
+                    onChange={(e) => setCurrentSocioMunicipio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">UF</label>
+                  <Input
+                    value={currentSocioUf}
+                    onChange={(e) => setCurrentSocioUf(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={
+                  (onlyDadosSocio && editingSocioId === null) ||
+                  (editingSocioId === null &&
+                    totalParticipacao >= 100 &&
+                    currentSocioNatureza !== 'SAIDA')
+                }
+                onClick={() => {
+                  if (onlyDadosSocio) {
+                    if (editingSocioId === null) {
+                      toast.error(
+                        'Nesta operação só é permitido editar endereço de sócio existente',
+                      );
+                      return;
+                    }
+                  }
+                  if (!currentSocioNatureza) {
+                    toast.error('Informe a natureza do evento');
+                    return;
+                  }
+                  if (!currentSocioQualificacao) {
+                    toast.error('Informe a qualificação do sócio/administrador');
+                    return;
+                  }
+                  if (currentSocioQualificacao === '37' && !currentSocioPais.trim()) {
+                    toast.error('Informe o país (qualificação 37)');
+                    return;
+                  }
+                  if (!currentSocioNome.trim()) {
+                    toast.error('Informe o nome do sócio');
+                    return;
+                  }
+                  if (!currentSocioCpf || !validateCPF(currentSocioCpf)) {
+                    toast.error('CPF inválido');
+                    return;
+                  }
+                  if (!currentSocioParticipacao || currentSocioParticipacao <= 0) {
+                    if (currentSocioNatureza !== 'SAIDA' && !onlyDadosSocio) {
+                      toast.error('Informe a participação do sócio');
+                      return;
+                    }
+                  }
+                  const socioExistente =
+                    editingSocioId !== null
+                      ? socios.find((s) => s.id === editingSocioId)
+                      : null;
+                  const baseTotal = (() => {
+                    if (!socioExistente) return totalParticipacao;
+                    const naturezaExistente = (socioExistente as any).natureza_evento;
+                    const partExistenteConsiderada =
+                      naturezaExistente === 'SAIDA' ? 0 : (socioExistente.participacao || 0);
+                    return totalParticipacao - partExistenteConsiderada;
+                  })();
+                  const partNovaConsiderada =
+                    currentSocioNatureza === 'SAIDA' ? 0 : currentSocioParticipacao;
+                  const novoTotal = baseTotal + partNovaConsiderada;
+                  if (novoTotal > 100) {
+                    toast.error('O total das participações não pode ultrapassar 100%');
+                    return;
+                  }
+                  if (editingSocioId !== null) {
+                    setSocios((prev) =>
+                      prev.map((s) =>
+                        s.id === editingSocioId
+                          ? {
+                              ...s,
+                              natureza_evento: currentSocioNatureza,
+                              qualificacao: currentSocioQualificacao,
+                              pais: currentSocioPais || '',
+                              nome: currentSocioNome,
+                              cpf: currentSocioCpf,
+                              data_nascimento: currentSocioBirthDate,
+                              rg: currentSocioRg,
+                              cnh: currentSocioCnh,
+                              participacao: currentSocioParticipacao,
+                              cep: currentSocioCep,
+                              logradouro_tipo: currentSocioLogradouroTipo,
+                              logradouro: currentSocioLogradouro,
+                              numero: currentSocioNumero,
+                              complemento: currentSocioComplemento,
+                              bairro: currentSocioBairro,
+                              municipio: currentSocioMunicipio,
+                              uf: currentSocioUf,
+                            }
+                          : s
+                      )
+                    );
+                  } else {
+                    const novoId = nextSocioId;
+                    setSocios((prev) => [
+                      ...prev,
+                      {
+                        id: novoId,
+                        natureza_evento: currentSocioNatureza,
+                        qualificacao: currentSocioQualificacao,
+                        pais: currentSocioPais || '',
+                        nome: currentSocioNome,
+                        cpf: currentSocioCpf,
+                        data_nascimento: currentSocioBirthDate,
+                        rg: currentSocioRg,
+                        cnh: currentSocioCnh,
+                        participacao: currentSocioParticipacao,
+                        cep: currentSocioCep,
+                        logradouro_tipo: currentSocioLogradouroTipo,
+                        logradouro: currentSocioLogradouro,
+                        numero: currentSocioNumero,
+                        complemento: currentSocioComplemento,
+                        bairro: currentSocioBairro,
+                        municipio: currentSocioMunicipio,
+                        uf: currentSocioUf,
+                      },
+                    ]);
+                    setNextSocioId((prev) => prev + 1);
+                  }
+                  setCurrentSocioNome('');
+                  setCurrentSocioCpf('');
+                  setCurrentSocioBirthDate(undefined);
+                  setCurrentSocioRg('');
+                  setCurrentSocioCnh('');
+                  setCurrentSocioParticipacaoDisplay('');
+                  setCurrentSocioParticipacao(0);
+                  setCurrentSocioCep('');
+                  setCurrentSocioLogradouroTipo('');
+                  setCurrentSocioLogradouro('');
+                  setCurrentSocioNumero('');
+                  setCurrentSocioComplemento('');
+                  setCurrentSocioBairro('');
+                  setCurrentSocioMunicipio('');
+                  setCurrentSocioUf('');
+                  setCpfError('');
+                  setEditingSocioId(null);
+                  setCurrentSocioNatureza('');
+                  setCurrentSocioQualificacao('');
+                  setCurrentSocioPais('');
+                }}
+              >
+                {editingSocioId === null ? 'Adicionar sócio' : 'Salvar alterações'}
+              </Button>
+            </div>
+
+            {socios.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold">Sócios incluídos</h3>
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left">CPF/CNPJ Sócio</th>
+                        <th className="px-3 py-2 text-left">Nome</th>
+                        <th className="px-3 py-2 text-left">Percentual de Participação</th>
+                        <th className="px-3 py-2 text-left">Valor da Participação</th>
+                        <th className="px-3 py-2 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {socios.map((socio) => {
+                        const valorParticipacao =
+                          capitalBaseForAlteracao > 0 && socio.participacao
+                            ? (capitalBaseForAlteracao * socio.participacao) / 100
+                            : 0;
+                        return (
+                          <tr key={socio.id} className="border-t">
+                            <td className="px-3 py-2 align-top">{socio.cpf || '-'}</td>
+                            <td className="px-3 py-2 align-top">{socio.nome || '-'}</td>
+                            <td className="px-3 py-2 align-top">
+                              {socio.participacao
+                                ? `${socio.participacao.toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}%`
+                                : '-'}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {valorParticipacao
+                                ? valorParticipacao.toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                                : '-'}
+                            </td>
+                            <td className="px-3 py-2 align-top text-right space-x-2">
+                              <button
+                                type="button"
+                                className="text-sm text-blue-600 hover:underline"
+                                onClick={() => startEditSocio(socio.id)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="text-sm text-red-600 hover:underline"
+                                disabled={onlyDadosSocio}
+                                onClick={() => {
+                                  if (onlyDadosSocio) return;
+                                  handleRemoveSocio(socio.id);
+                                }}
+                              >
+                                Remover
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total das participações:{' '}
+                  {totalParticipacao.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                  %
+                </p>
+                <div className="hidden">
+                  {socios.map((socio, index) => (
+                    <div key={socio.id}>
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][nome]`}
+                        value={socio.nome}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][cpf]`}
+                        value={socio.cpf}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][data_nascimento]`}
+                        value={
+                          socio.data_nascimento
+                            ? format(socio.data_nascimento as Date, 'yyyy-MM-dd')
+                            : ''
+                        }
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][rg]`}
+                        value={socio.rg || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][cnh]`}
+                        value={socio.cnh || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][participacao_percent]`}
+                        value={(socio as any).natureza_evento === 'SAIDA' ? 0 : socio.participacao}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][natureza_evento]`}
+                        value={(socio as any).natureza_evento || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][qualificacao]`}
+                        value={(socio as any).qualificacao || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][pais]`}
+                        value={(socio as any).pais || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][cep]`}
+                        value={socio.cep || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][logradouro_tipo]`}
+                        value={socio.logradouro_tipo || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][logradouro]`}
+                        value={socio.logradouro || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][numero]`}
+                        value={socio.numero || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][complemento]`}
+                        value={socio.complemento || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][bairro]`}
+                        value={socio.bairro || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][municipio]`}
+                        value={socio.municipio || ''}
+                      />
+                      <input
+                        type="hidden"
+                        name={`socio[${index}][uf]`}
+                        value={socio.uf || ''}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between">
+              <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                Voltar
+              </Button>
+              <div className="flex gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="outline">
+                      Cancelar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancelar inclusão?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Você perderá todos os dados preenchidos. Deseja continuar?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => router.push('/admin/societario?tab=processos')}
+                      >
+                        Confirmar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (socios.length === 0) {
+                      toast.error('Inclua pelo menos um sócio');
+                      return;
+                    }
+                    if (totalParticipacao !== 100) {
+                      toast.error(
+                        'A soma das participações deve ser exatamente 100%'
+                      );
+                      return;
+                    }
+                    setStep(3);
+                  }}
+                >
+                  Avançar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div
+          className="space-y-6 border rounded-md p-4"
+          suppressHydrationWarning
+          hidden={(hasSociosStep && step !== 3) || (!hasSociosStep && step !== 2)}
+        >
+          <h2 className="text-lg font-semibold">Dados Complementares</h2>
+
+          {alteracoesSelecionadas.includes('transformacao') && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nova Razão Social</label>
+                <Input name="nova_razao_social" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nova Natureza Jurídica</label>
+                <Select
+                  value={selectedNatureza}
+                  onValueChange={(value) => {
+                    setSelectedNatureza(value);
+                    setNaturezaSearch(value);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a natureza jurídica" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NATUREZA_JURIDICA_OPTIONS.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  name="natureza_juridica"
+                  value={selectedNatureza || ''}
+                />
+              </div>
+            </div>
+          )}
+
+          {alteracoesSelecionadas.includes('alteracao_endereco') && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Inscrição Imobiliária</label>
+                  <Input
+                    name="inscricao_imobiliaria"
+                    defaultValue={initialValues?.inscricao_imobiliaria || ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">CEP</label>
+                  <div className="relative">
+                    <Input
+                      name="compl_cep"
+                      value={cepCompl}
+                      onChange={handleCepComplChange}
+                      placeholder="00000-000"
+                      maxLength={9}
+                      className="pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={lookupCepCompl}
+                      className="absolute right-1 top-1.5 h-7 w-7 inline-flex items-center justify-center rounded border bg-white hover:bg-muted text-xs"
+                      title="Buscar endereço"
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Logradouro</label>
+                  <Input
+                    name="compl_logradouro_tipo"
+                    ref={complTipoRef}
+                    defaultValue={initialValues?.compl_logradouro_tipo || ''}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Logradouro</label>
+                  <Input
+                    name="compl_logradouro"
+                    ref={complLogradouroRef}
+                    defaultValue={initialValues?.compl_logradouro || ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Número</label>
+                  <Input
+                    name="compl_numero"
+                    defaultValue={initialValues?.compl_numero || ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Complemento</label>
+                  <Input
+                    name="compl_complemento"
+                    ref={complComplementoRef}
+                    defaultValue={initialValues?.compl_complemento || ''}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Bairro</label>
+                  <Input
+                    name="compl_bairro"
+                    ref={complBairroRef}
+                    defaultValue={initialValues?.compl_bairro || ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Município</label>
+                  <Input
+                    name="compl_municipio"
+                    ref={complMunicipioRef}
+                    defaultValue={initialValues?.compl_municipio || ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">UF</label>
+                  <Input
+                    name="compl_uf"
+                    ref={complUfRef}
+                    defaultValue={initialValues?.compl_uf || ''}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {alteracoesSelecionadas.includes('alteracao_objeto_social') && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Novo Objeto Social</label>
+                <textarea
+                  name="novo_objeto_social"
+                  className="border rounded w-full p-2 min-h-[100px]"
+                />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-md font-semibold">CNAE</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium">
+                      Buscar CNAE por código ou descrição
+                    </label>
+                    <Input
+                      value={cnaeSearch}
+                      onChange={(e) => setCnaeSearch(e.target.value)}
+                      placeholder="Digite pelo menos 3 caracteres"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipo de Atividade</label>
+                    <Select
+                      value={cnaeTipo}
+                      onValueChange={(val: 'PRINCIPAL' | 'SECUNDARIA') => setCnaeTipo(val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          value="PRINCIPAL"
+                          disabled={selectedCnaes.some((item) => item.tipo === 'PRINCIPAL')}
+                        >
+                          Principal
+                        </SelectItem>
+                        <SelectItem value="SECUNDARIA">Secundária</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {cnaeLoading && (
+                  <div className="text-sm text-muted-foreground">Buscando CNAE...</div>
+                )}
+                {cnaeError && !cnaeLoading && (
+                  <div className="text-sm text-red-600">{cnaeError}</div>
+                )}
+
+                {cnaeResults.length > 0 && !cnaeLoading && (
+                  <div className="border rounded-md max-h-56 overflow-y-auto text-sm">
+                    {cnaeResults.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="w-full flex justify-between items-center px-3 py-2 hover:bg-accent"
+                        onClick={() => handleAddCnae(item)}
+                      >
+                        <span className="font-mono mr-2">{item.id}</span>
+                        <span className="flex-1 text-left">{item.descricao}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedCnaes.length > 0 && (
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left">CNAE</th>
+                          <th className="px-3 py-2 text-left">Tipo</th>
+                          <th className="px-3 py-2 text-left">Descrição</th>
+                          <th className="px-3 py-2 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedCnaes.map((item, index) => (
+                          <tr
+                            key={`${item.id}-${item.tipo}`}
+                            className="border-t"
+                          >
+                            <td className="px-3 py-2 align-top font-mono">{item.id}</td>
+                            <td className="px-3 py-2 align-top">
+                              {item.tipo === 'PRINCIPAL' ? 'Principal' : 'Secundária'}
+                            </td>
+                            <td className="px-3 py-2 align-top">{item.descricao}</td>
+                            <td className="px-3 py-2 align-top text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRemoveCnae(item.id, item.tipo)}
+                              >
+                                Remover
+                              </Button>
+                            </td>
+                            <td className="hidden">
+                              <input
+                                type="hidden"
+                                name={`cnaes[${index}][code]`}
+                                value={item.id}
+                              />
+                              <input
+                                type="hidden"
+                                name={`cnaes[${index}][descricao]`}
+                                value={item.descricao}
+                              />
+                              <input
+                                type="hidden"
+                                name={`cnaes[${index}][tipo]`}
+                                value={item.tipo}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setStep(alteracaoQuadroSocietario === 'SIM' ? 2 : 1)
+              }
+            >
+              Voltar
+            </Button>
+            <div className="flex gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="outline">
+                    Cancelar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancelar inclusão?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Você perderá todos os dados preenchidos. Deseja continuar?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => router.push('/admin/societario?tab=processos')}
+                    >
+                      Confirmar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button type="submit">Concluir</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1218,131 +2484,10 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
           <option value="ALTERACAO">Alteração</option>
           <option value="BAIXA">Baixa</option>
         </select>
-        {readonlyType && (
-          <input type="hidden" name="type" value={type} />
-        )}
-      </div>
-
-      <SocietarioCompanySelector initialCompanyId={initialCompanyId} disabled={selectorDisabled} />
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Razão Social</label>
-        <Input name="razao_social" defaultValue={initialValues?.razao_social || ''} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); }} />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Nome Fantasia</label>
-        <Input name="nome_fantasia" defaultValue={initialValues?.nome_fantasia || ''} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); }} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Capital Social (R$)</label>
-          <Input
-            name="capital_social_display"
-            value={capitalDisplay}
-            onChange={handleCapitalChange}
-            placeholder="0,00"
-          />
-          <input
-            type="hidden"
-            name="capital_social_centavos"
-            value={capitalDisplay ? parseInt(capitalDisplay.replace(/\D/g, ''), 10) : ''}
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Sócio Administrador</label>
-          <Input name="socio_administrador" defaultValue={initialValues?.socio_administrador || ''} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); }} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Telefone</label>
-          <Input 
-            name="telefone" 
-            defaultValue={initialValues?.telefone || ''}
-            onInput={(e) => { e.currentTarget.value = formatPhone(e.currentTarget.value); }}
-            maxLength={15}
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">E-mail</label>
-        <Input name="email" defaultValue={initialValues?.email || ''} />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Objeto Social</label>
-        <Input name="objeto_social" defaultValue={initialValues?.objeto_social || ''} />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Observação</label>
-        <Input name="observacao" defaultValue={initialValues?.observacao || ''} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); }} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Natureza Jurídica</label>
-          <Input
-            value={naturezaSearch}
-            onChange={(e) => {
-              setNaturezaSearch(e.target.value.toUpperCase());
-              setSelectedNatureza('');
-            }}
-            placeholder="Digite pelo menos 3 caracteres para buscar"
-          />
-          <input
-            type="hidden"
-            name="natureza_juridica"
-            value={selectedNatureza || naturezaSearch}
-          />
-          {filteredNaturezas.length > 0 && (
-            <div className="border rounded-md max-h-40 overflow-y-auto text-sm">
-              {filteredNaturezas.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className="w-full text-left px-3 py-2 hover:bg-accent"
-                  onClick={() => {
-                    setSelectedNatureza(item);
-                    setNaturezaSearch(item);
-                  }}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Porte</label>
-          <Input name="porte" placeholder="MEI, ME, EPP, ..." defaultValue={initialValues?.porte || ''} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Tributação</label>
-          <Input name="tributacao" placeholder="SIMPLES, PRESUMIDO, REAL, ..." defaultValue={initialValues?.tributacao || ''} />
-        </div>
-      </div>
-      <div className="flex justify-between">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button type="button" variant="outline">Cancelar</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cancelar inclusão?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Você perderá todos os dados preenchidos. Deseja continuar?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Voltar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => router.push('/admin/societario?tab=processos')}>
-                Confirmar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <Button type="submit">Salvar</Button>
+        {readonlyType && <input type="hidden" name="type" value={type} />}
       </div>
     </div>
   );
-}
-
 }
 
 let cnaeCache: { id: string; descricao: string }[] | null = null;
