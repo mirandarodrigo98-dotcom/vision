@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "debug:counts": "tsx scripts/debug-counts.ts"
+    "debug:counts": "tsx scripts/debug-counts.ts",
+    "migrate:prod": "node scripts/apply_migration_030_societario_partners.js && node scripts/apply_migration_031_add_capital_social.js && node scripts/apply_migration_032_add_nqp.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.980.0",

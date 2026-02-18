@@ -1,0 +1,49 @@
+name: Deploy to Vercel and Run Prod Migrations
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy (Deploy Hook)
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "Missing secret VERCEL_DEPLOY_HOOK_URL"; exit 1;
+          fi
+          curl -fsSL -X POST "$HOOK"
+      - name: Optional wait for READY via Vercel API
+        if: ${{ secrets.VERCEL_TOKEN != '' && secrets.VERCEL_PROJECT_ID != '' && secrets.VERCEL_ORG_ID != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          echo "Polling Vercel for production deployment readiness..."
+          for i in {1..60}; do
+            STATUS=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&target=production&limit=1" | jq -r '.deployments[0].state // empty')
+            echo "Attempt $i: state=$STATUS"
+            if [ "$STATUS" = "READY" ]; then echo "Deployment READY"; exit 0; fi
+            sleep 10
+          done
+          echo "Timed out waiting for READY (proceeding anyway)."
+
+  migrate:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+      - name: Run production migrations
+        run: npm run migrate:prod
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+
