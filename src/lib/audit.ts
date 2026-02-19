@@ -43,6 +43,12 @@ export type AuditAction =
   | 'APPROVE_TRANSFER'
   | 'CANCEL_ADMISSION'
   | 'UPDATE_ADMISSION'
+  | 'CREATE_LEAVE'
+  | 'UPDATE_LEAVE'
+  | 'CANCEL_LEAVE'
+  | 'APPROVE_LEAVE'
+  | 'GENERATE_TEMP_PASSWORD'
+  | 'APPROVE_ADMISSION'
   | 'UPDATE_PASSWORD';
 
 interface AuditLogParams {

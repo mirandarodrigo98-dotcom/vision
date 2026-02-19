@@ -58,7 +58,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
       if (res.error) {
           toast.error(res.error);
       } else {
-          setTempPassword(res.password);
+          setTempPassword(res.password || null);
           setTempPasswordOpen(true);
           toast.success('Senha provisória gerada!');
       }

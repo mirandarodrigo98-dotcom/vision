@@ -105,7 +105,7 @@ export function PermissionsForm({ initialOperatorPermissions, initialClientPermi
                     <TabsTrigger value="operator">Operadores</TabsTrigger>
                 </TabsList>
                 <TabsContent value="client_user">
-                    {renderPermissionsList('client_user', clientPermissions)}
+                    {renderPermissionsList('client', clientPermissions)}
                 </TabsContent>
                 <TabsContent value="operator">
                     {renderPermissionsList('operator', operatorPermissions)}

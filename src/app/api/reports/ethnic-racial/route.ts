@@ -23,8 +23,9 @@ export async function GET(request: NextRequest) {
         }
         
         const pdfBuffer = await generateEthnicRacialSelfDeclarationPDF(company);
-        
-        return new NextResponse(pdfBuffer, {
+        const bytes = new Uint8Array(pdfBuffer.buffer, pdfBuffer.byteOffset, pdfBuffer.byteLength);
+        const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+        return new Response(arrayBuffer, {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': 'attachment; filename="autodeclaracao-etnico-racial.pdf"',

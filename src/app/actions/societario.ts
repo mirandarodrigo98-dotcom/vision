@@ -45,6 +45,11 @@ export async function getSocietarioLogs(companyId: string) {
   }
 }
 
+export async function listLogs(companyId: string) {
+  const logs = await getSocietarioLogs(companyId);
+  return { logs };
+}
+
 async function logEvent(companyId: string, tipo_evento: string, campo_alterado?: string, valor_anterior?: string, valor_novo?: string, motivo?: string, actor_user_id?: string) {
   const id = randomUUID();
   await db
@@ -108,7 +113,15 @@ export async function upsertSocietarioProfile(formData: FormData) {
       const afterVal = (data as any)[f] ?? null;
       const changed = String(beforeVal ?? '') !== String(afterVal ?? '');
       if (changed) {
-        await logEvent(data.company_id, 'UPDATE', f, beforeVal != null ? String(beforeVal) : null, afterVal != null ? String(afterVal) : null, undefined, session.user_id);
+        await logEvent(
+          data.company_id,
+          'UPDATE',
+          f,
+          beforeVal != null ? String(beforeVal) : undefined,
+          afterVal != null ? String(afterVal) : undefined,
+          undefined,
+          session.user_id
+        );
       }
     }
   } else {
@@ -131,4 +144,37 @@ export async function findSocioByCpf(cpf: string) {
   } catch {
     return null;
   }
+}
+
+export async function changeStatus(companyId: string, status: 'EM_REGISTRO' | 'ATIVA' | 'INATIVA', motivo: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+  let hasPermission = false;
+  if (session.role === 'admin') hasPermission = true;
+  else {
+    const perms = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
+    hasPermission = perms.map(p => p.permission).includes('societario.edit');
+  }
+  if (!hasPermission) return { error: 'Sem permissão' };
+
+  const existing = await db.prepare('SELECT status FROM societario_profiles WHERE company_id = ?').get(companyId) as { status: string } | undefined;
+
+  await db.prepare(`
+    UPDATE societario_profiles
+    SET status = ?, updated_at = datetime('now')
+    WHERE company_id = ?
+  `).run(status, companyId);
+
+  await logEvent(
+    companyId,
+    'STATUS_CHANGE',
+    'status',
+    existing?.status ?? undefined,
+    status,
+    motivo,
+    session.user_id
+  );
+
+  revalidatePath('/admin/societario');
+  return { success: true };
 }

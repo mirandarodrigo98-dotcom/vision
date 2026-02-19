@@ -12,9 +12,7 @@ import { pathToFileURL } from 'url';
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
   integration_code: z.string().max(20, 'O código de integração deve ter no máximo 20 caracteres').optional(),
-  nature: z.enum(['Saída', 'Entrada', 'Transferência'], {
-    errorMap: () => ({ message: 'Natureza inválida' }),
-  }),
+  nature: z.enum(['Saída', 'Entrada', 'Transferência'], { error: 'Natureza inválida' }),
 });
 
 const updateCategorySchema = z.object({
@@ -105,7 +103,8 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
 
   const validation = categorySchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -175,7 +174,8 @@ export async function updateCategory(data: z.infer<typeof updateCategorySchema>,
 
   const validation = updateCategorySchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -390,7 +390,8 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
 
   const validation = updateTransactionSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -511,7 +512,8 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
 
   const validation = accountSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -554,7 +556,8 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
 
   const validation = updateAccountSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {

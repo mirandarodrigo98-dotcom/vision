@@ -435,8 +435,8 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
       const mapped = initialValues.cnaes.map((c, idx) => ({
         id: c.id,
         descricao: c.descricao,
-        tipo: idx === 0 ? 'PRINCIPAL' : 'SECUNDARIA',
-      }));
+        tipo: (idx === 0 ? 'PRINCIPAL' : 'SECUNDARIA') as 'PRINCIPAL' | 'SECUNDARIA',
+      })) as { id: string; descricao: string; tipo: 'PRINCIPAL' | 'SECUNDARIA' }[];
       setSelectedCnaes(mapped);
     }
   }, []);

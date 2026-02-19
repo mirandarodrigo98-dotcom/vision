@@ -35,9 +35,7 @@ import { useRouter } from 'next/navigation';
 const categorySchema = z.object({
   description: z.string().max(50, 'Máximo 50 caracteres').min(1, 'Obrigatório'),
   integration_code: z.string().max(20, 'Máximo 20 caracteres').optional(),
-  nature: z.enum(['Saída', 'Entrada', 'Transferência'], {
-    required_error: 'Selecione a natureza',
-  }),
+  nature: z.enum(['Saída', 'Entrada', 'Transferência']),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;

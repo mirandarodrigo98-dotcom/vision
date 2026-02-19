@@ -15,9 +15,9 @@ export default async function NewContratoPage() {
     return <div className="p-6">Sem permissão</div>;
   }
 
-  async function action(data: FormData) {
+  async function action(data: FormData): Promise<void> {
     'use server';
-    return await createContract(data);
+    await createContract(data);
   }
 
   return (

@@ -23,9 +23,9 @@ export default async function EditProcessoPage({ params }: { params: Promise<{ i
   const displayRazao = process.razao_social || process.company_name || '-';
   const displayCnpj = process.company_cnpj || process.cnpj || '-';
 
-  async function action(data: FormData) {
+  async function action(data: FormData): Promise<void> {
     'use server';
-    return await updateProcess(data);
+    await updateProcess(data);
   }
 
   return (

@@ -66,12 +66,21 @@ export async function createAdmission(formData: FormData) {
         // Extra fields for PDF
         const cpf = formData.get('cpf') as string || '';
         const birthDate = formData.get('birth_date') as string || '';
+        const motherName = formData.get('mother_name') as string || '';
         const email = formData.get('email') as string || '';
         const phone = formData.get('phone') as string || '';
         const maritalStatus = formData.get('marital_status') as string || '';
         const gender = formData.get('gender') as string || '';
         const raceColor = formData.get('race_color') as string || '';
         const contractType = formData.get('contract_type') as string || '';
+        const zipCode = formData.get('zip_code') as string || '';
+        const addressStreet = formData.get('address_street') as string || '';
+        const addressNumber = formData.get('address_number') as string || '';
+        const addressComplement = formData.get('address_complement') as string || '';
+        const addressNeighborhood = formData.get('address_neighborhood') as string || '';
+        const addressCity = formData.get('address_city') as string || '';
+        const addressState = formData.get('address_state') as string || '';
+        const cbo = formData.get('cbo') as string || '';
 
         // Generate Protocol Number
         const dateStr = format(new Date(), 'yyyyMMdd');
@@ -238,10 +247,11 @@ export async function createAdmission(formData: FormData) {
                 downloadLink: downloadLink || undefined
             });
             
-            // Check if email was sent successfully (Resend returns data object with id)
-            emailSuccess = !!emailResult?.data?.id;
+            if ('data' in emailResult && emailResult.data) {
+                emailSuccess = !!emailResult.data.id;
+            }
 
-            if (emailResult.error) {
+            if ('error' in emailResult && emailResult.error) {
                  console.warn('Email sending failed:', emailResult.error);
             }
         }

@@ -3,7 +3,6 @@ import { getCompanies } from '@/app/actions/companies';
 import { getQuestorConfig } from '@/app/actions/integrations/questor';
 import db from '@/lib/db';
 import { QuestorManager } from '@/components/integrations/questor/questor-manager';
-import { PageHeader } from '@/components/ui/page-header'; // Assuming this exists or similar
 
 export const metadata: Metadata = {
   title: 'Integração Questor | Admin',
@@ -21,7 +20,7 @@ export default async function QuestorIntegrationPage() {
     getQuestorAuths(),
   ]);
 
-  const companies = companiesResult.companies || [];
+  const companies = companiesResult || [];
 
   return (
     <div className="space-y-6">

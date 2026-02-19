@@ -12,9 +12,7 @@ import { pathToFileURL } from 'url';
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
   integration_code: z.string().max(20, 'O código de integração deve ter no máximo 20 caracteres').optional(),
-  nature: z.enum(['Saída', 'Entrada', 'Transferência'], {
-    errorMap: () => ({ message: 'Natureza inválida' }),
-  }),
+  nature: z.enum(['Saída', 'Entrada', 'Transferência'], { error: 'Natureza inválida' }),
 });
 
 const updateCategorySchema = z.object({
@@ -106,7 +104,8 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
 
   const validation = categorySchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -176,7 +175,8 @@ export async function updateCategory(data: z.infer<typeof updateCategorySchema>,
 
   const validation = updateCategorySchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -229,10 +229,8 @@ const SAIDA_CATEGORIES = [
   "Ofertas Alçadas", "Reembolso de despesas"
 ];
 
-const ENTRADA_CATEGORIES = [
-  // User didn't specify distinct list for Entrada in recent messages, but asked to separate.
-  // Using generic or previously identified ones if any.
-  // For now, keeping the old DEFAULT_CATEGORIES logic but separated.
+const ENTRADA_CATEGORIES: string[] = [
+  // Lista atualmente vazia; pode ser preenchida futuramente com categorias padrão de Entrada.
 ];
 
 export async function seedDefaultCategories(companyId: string, nature: 'Entrada' | 'Saída' = 'Entrada') {
@@ -391,7 +389,8 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
 
   const validation = updateTransactionSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -512,7 +511,8 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
 
   const validation = accountSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
@@ -555,7 +555,8 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
 
   const validation = updateAccountSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    const message = validation.error.issues[0]?.message || 'Dados inválidos';
+    return { error: message };
   }
 
   try {
