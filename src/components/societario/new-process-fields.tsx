@@ -227,6 +227,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
   const complMunicipioRef = useRef<HTMLInputElement>(null);
   const complUfRef = useRef<HTMLInputElement>(null);
   const complComplementoRef = useRef<HTMLInputElement>(null);
+  const [hasSavedSocioEdit, setHasSavedSocioEdit] = useState(false);
 
   const isConstituicao = type === 'CONSTITUICAO';
   const isAlteracao = type === 'ALTERACAO';
@@ -240,6 +241,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
     alteracaoEnderecoSocio === 'SIM';
   const hasSociosStep =
     alteracaoQuadroSocietario === 'SIM' || alteracaoEnderecoSocio === 'SIM';
+  const formDisabled = onlyDadosSocio && editingSocioId === null;
  
 
   useEffect(() => {
@@ -319,6 +321,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
     const socio = socios.find((s) => s.id === id);
     if (!socio) return;
     setEditingSocioId(id);
+     setHasSavedSocioEdit(false);
     setCurrentSocioNatureza((socio as any).natureza_evento || '');
     setCurrentSocioQualificacao((socio as any).qualificacao || '');
     setCurrentSocioPais((socio as any).pais || '');
@@ -1592,62 +1595,60 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
           <div className="space-y-6 border rounded-md p-4" hidden={step !== 2} suppressHydrationWarning>
             <h2 className="text-lg font-semibold">Movimentação de Sócios</h2>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Natureza do evento</label>
-                  <select
-                    className="border rounded h-10 px-3 w-full"
-                    value={currentSocioNatureza}
-                    onChange={(e) =>
-                      setCurrentSocioNatureza(
-                        e.currentTarget.value as 'ENTRADA' | 'SAIDA' | 'ALTERACAO' | '',
-                      )
-                    }
-                    disabled={onlyDadosSocio}
-                  >
-                    <option value="">Selecione</option>
-                    <option value="ENTRADA">Entrada de sócio/administrador</option>
-                    <option value="SAIDA">Saída de sócio/administrador</option>
-                    <option value="ALTERACAO">Alteração de dados do sócio/administrador</option>
-                  </select>
+              {!onlyDadosSocio && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Natureza do evento</label>
+                    <select
+                      className="border rounded h-10 px-3 w-full"
+                      value={currentSocioNatureza}
+                      onChange={(e) =>
+                        setCurrentSocioNatureza(
+                          e.currentTarget.value as 'ENTRADA' | 'SAIDA' | 'ALTERACAO' | '',
+                        )
+                      }
+                    >
+                      <option value="">Selecione</option>
+                      <option value="ENTRADA">Entrada de sócio/administrador</option>
+                      <option value="SAIDA">Saída de sócio/administrador</option>
+                      <option value="ALTERACAO">Alteração de dados do sócio/administrador</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Qualificação do sócio/administrador</label>
+                    <select
+                      className="border rounded h-10 px-3 w-full"
+                      value={currentSocioQualificacao}
+                      onChange={(e) => setCurrentSocioQualificacao(e.currentTarget.value)}
+                    >
+                      <option value="">Selecione</option>
+                      <option value="5">5 Administrador</option>
+                      <option value="22">22 Sócio</option>
+                      <option value="29">29 Sócio Incapaz ou Relat.Incapaz (exceto menor)</option>
+                      <option value="30">30 Sócio Menor (Assistido/Representado)</option>
+                      <option value="37">37 Sócio Pessoa Jurídica Domiciliado no Exterior</option>
+                      <option value="38">38 Sócio Pessoa Física Residente no Exterior</option>
+                      <option value="49">49 Sócio-Administrador</option>
+                      <option value="63">63 Cotas em Tesouraria</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">País</label>
+                    <Input
+                      value={currentSocioPais}
+                      onChange={(e) => setCurrentSocioPais(e.target.value.toUpperCase())}
+                      disabled={currentSocioQualificacao !== '37'}
+                      placeholder="Somente quando qualificação = 37"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Qualificação do sócio/administrador</label>
-                  <select
-                    className="border rounded h-10 px-3 w-full"
-                    value={currentSocioQualificacao}
-                    onChange={(e) => setCurrentSocioQualificacao(e.currentTarget.value)}
-                    disabled={onlyDadosSocio}
-                  >
-                    <option value="">Selecione</option>
-                    <option value="5">5 Administrador</option>
-                    <option value="22">22 Sócio</option>
-                    <option value="29">29 Sócio Incapaz ou Relat.Incapaz (exceto menor)</option>
-                    <option value="30">30 Sócio Menor (Assistido/Representado)</option>
-                    <option value="37">37 Sócio Pessoa Jurídica Domiciliado no Exterior</option>
-                    <option value="38">38 Sócio Pessoa Física Residente no Exterior</option>
-                    <option value="49">49 Sócio-Administrador</option>
-                    <option value="63">63 Cotas em Tesouraria</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">País</label>
-                  <Input
-                    value={currentSocioPais}
-                    onChange={(e) => setCurrentSocioPais(e.target.value.toUpperCase())}
-                    disabled={
-                      currentSocioQualificacao !== '37' ||
-                      (alteracaoQuadroSocietario !== 'SIM' && alteracaoEnderecoSocio === 'SIM')
-                    }
-                    placeholder="Somente quando qualificação = 37"
-                  />
-                </div>
-              </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Nome completo do sócio</label>
                 <Input
                   value={currentSocioNome}
                   onChange={(e) => setCurrentSocioNome(e.target.value.toUpperCase())}
+                  disabled={formDisabled}
                 />
               </div>
               <div className="space-y-2">
@@ -1657,6 +1658,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   setDate={(date) => {
                     setCurrentSocioBirthDate(date || undefined);
                   }}
+                  disabled={formDisabled}
                 />
               </div>
               <div className="space-y-2">
@@ -1671,6 +1673,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                     if (!isValid) toast.error('CPF inválido');
                   }}
                   maxLength={14}
+                  disabled={formDisabled}
                 />
                 {cpfError && <p className="text-xs text-red-500">{cpfError}</p>}
               </div>
@@ -1679,6 +1682,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                 <Input
                   value={currentSocioRg}
                   onChange={(e) => setCurrentSocioRg(e.target.value.toUpperCase())}
+                  disabled={formDisabled}
                 />
               </div>
               <div className="space-y-2">
@@ -1686,6 +1690,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                 <Input
                   value={currentSocioCnh}
                   onChange={(e) => setCurrentSocioCnh(e.target.value.toUpperCase())}
+                  disabled={formDisabled}
                 />
               </div>
               <div className="space-y-2">
@@ -1732,12 +1737,13 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                       value={currentSocioCep}
                       onChange={handleSocioCepChange}
                       className="pr-9"
+                      disabled={formDisabled}
                     />
                     <button
                       type="button"
                       onClick={lookupSocioCep}
                       className="absolute right-1 top-1.5 h-7 w-7 inline-flex items-center justify-center rounded border bg-white hover:bg-muted text-xs disabled:opacity-50"
-                      disabled={socioCepLoading}
+                      disabled={socioCepLoading || formDisabled}
                       title="Buscar endereço"
                     >
                       <Search className="h-4 w-4" />
@@ -1749,6 +1755,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioLogradouroTipo}
                     onChange={(e) => setCurrentSocioLogradouroTipo(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1756,6 +1763,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioLogradouro}
                     onChange={(e) => setCurrentSocioLogradouro(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1763,6 +1771,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioNumero}
                     onChange={(e) => setCurrentSocioNumero(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
               </div>
@@ -1772,6 +1781,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioComplemento}
                     onChange={(e) => setCurrentSocioComplemento(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1779,6 +1789,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioBairro}
                     onChange={(e) => setCurrentSocioBairro(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1786,6 +1797,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioMunicipio}
                     onChange={(e) => setCurrentSocioMunicipio(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1793,6 +1805,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                   <Input
                     value={currentSocioUf}
                     onChange={(e) => setCurrentSocioUf(e.target.value)}
+                    disabled={formDisabled}
                   />
                 </div>
               </div>
@@ -1817,17 +1830,19 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                       return;
                     }
                   }
-                  if (!currentSocioNatureza) {
-                    toast.error('Informe a natureza do evento');
-                    return;
-                  }
-                  if (!currentSocioQualificacao) {
-                    toast.error('Informe a qualificação do sócio/administrador');
-                    return;
-                  }
-                  if (currentSocioQualificacao === '37' && !currentSocioPais.trim()) {
-                    toast.error('Informe o país (qualificação 37)');
-                    return;
+                  if (!onlyDadosSocio) {
+                    if (!currentSocioNatureza) {
+                      toast.error('Informe a natureza do evento');
+                      return;
+                    }
+                    if (!currentSocioQualificacao) {
+                      toast.error('Informe a qualificação do sócio/administrador');
+                      return;
+                    }
+                    if (currentSocioQualificacao === '37' && !currentSocioPais.trim()) {
+                      toast.error('Informe o país (qualificação 37)');
+                      return;
+                    }
                   }
                   if (!currentSocioNome.trim()) {
                     toast.error('Informe o nome do sócio');
@@ -1867,9 +1882,9 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                         s.id === editingSocioId
                           ? {
                               ...s,
-                              natureza_evento: currentSocioNatureza,
-                              qualificacao: currentSocioQualificacao,
-                              pais: currentSocioPais || '',
+                              natureza_evento: onlyDadosSocio ? (s as any).natureza_evento : currentSocioNatureza,
+                              qualificacao: onlyDadosSocio ? (s as any).qualificacao : currentSocioQualificacao,
+                              pais: onlyDadosSocio ? ((s as any).pais || '') : (currentSocioPais || ''),
                               nome: currentSocioNome,
                               cpf: currentSocioCpf,
                               data_nascimento: currentSocioBirthDate,
@@ -1914,6 +1929,9 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                       },
                     ]);
                     setNextSocioId((prev) => prev + 1);
+                  }
+                  if (editingSocioId !== null && onlyDadosSocio) {
+                    setHasSavedSocioEdit(true);
                   }
                   setCurrentSocioNome('');
                   setCurrentSocioCpf('');
@@ -2143,9 +2161,14 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                 </AlertDialog>
                 <Button
                   type="button"
+                  disabled={onlyDadosSocio && (editingSocioId !== null || !hasSavedSocioEdit)}
                   onClick={() => {
                     if (socios.length === 0) {
                       toast.error('Inclua pelo menos um sócio');
+                      return;
+                    }
+                    if (onlyDadosSocio && !hasSavedSocioEdit) {
+                      toast.error('Salve a edição de pelo menos um sócio antes de avançar');
                       return;
                     }
                     if (totalParticipacao !== 100) {

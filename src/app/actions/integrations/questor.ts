@@ -3,6 +3,9 @@
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import iconv from 'iconv-lite';
+import { getQuestorSynConfig, getQuestorSynRoutineBySystemCode, getQuestorSynTokenByModule } from './questor-syn';
+import { QuestorSynRoutine } from '@/types/questor-syn';
 
 const QUESTOR_API_URLS = {
   homologation: 'https://synhomologacao.questor.com.br',
@@ -18,12 +21,6 @@ const questorConfigSchema = z.object({
   access_token: z.string().optional(),
 });
 
-const accessRequestSchema = z.object({
-  company_id: z.string(),
-  external_company_cnpj: z.string().min(14),
-  layout_code: z.number().default(0), // 0 might mean "All" or we need specific codes?
-});
-
 // --- Actions ---
 
 export async function getQuestorConfig() {
@@ -31,12 +28,15 @@ export async function getQuestorConfig() {
 }
 
 export async function saveQuestorConfig(data: z.infer<typeof questorConfigSchema>) {
+  // Validate data
+  questorConfigSchema.parse(data);
+
   const existing = await getQuestorConfig();
   
   if (existing) {
     await db.prepare(
       `UPDATE questor_config 
-       SET environment = ?, erp_cnpj = ?, default_accountant_cnpj = ?, access_token = COALESCE(?, access_token), updated_at = NOW() 
+       SET environment = ?, erp_cnpj = ?, default_accountant_cnpj = ?, access_token = COALESCE(?, access_token), updated_at = datetime('now') 
        WHERE id = 1`
     ).run(data.environment, data.erp_cnpj, data.default_accountant_cnpj, data.access_token || null);
   } else {
@@ -55,128 +55,38 @@ export async function getQuestorCompanyStatus(companyId: string) {
   ).get(companyId);
 }
 
-// --- API Interactions (Placeholder / Structure) ---
+// --- API Interactions ---
 
-async function getBaseUrl() {
+export async function getBaseUrl() {
   const config = await getQuestorConfig();
   if (!config) throw new Error('Questor não configurado');
   return QUESTOR_API_URLS[config.environment as keyof typeof QUESTOR_API_URLS];
 }
 
-export async function requestAccess(companyId: string, companyCnpj: string) {
-  try {
-    const config = await getQuestorConfig();
-    if (!config) return { error: 'Configuração do Questor ausente' };
-    
-    const baseUrl = await getBaseUrl();
-    
-    // Payload structure based on documentation analysis (Inferred)
-    // Ref 2: "...CNPJ da empresa... CNPJ do Escritório Contábil..."
-    const payload = {
-      cnpjCliente: companyCnpj, // The company we want to manage
-      cnpjContabilidade: config.default_accountant_cnpj, // The accountant who will approve
-      cnpjErp: config.erp_cnpj, // Us (Vision)
-      // Other fields might be required like Razao Social, etc.
-    };
-
-    // NOTE: This is a simulation/placeholder until we have the exact payload structure
-    // from the full documentation or trial.
-    // For now, we will save the intent in the DB.
-
-    console.log('Sending Access Request to Questor:', payload);
-    
-    // Simulate API call
-    // const response = await fetch(`${baseUrl}/api/v2/dadosescritorio/solicitaracesso`, { ... });
-    // const data = await response.json();
-    
-    // Mock response
-    const mockRequestId = `REQ-${Date.now()}`;
-    
-    // Upsert auth status
-    const existing = await getQuestorCompanyStatus(companyId);
-    if (existing) {
-      await db.prepare(
-        `UPDATE questor_company_auth 
-         SET request_id = ?, status = 'pending', external_company_cnpj = ?, updated_at = NOW() 
-         WHERE company_id = ?`
-      ).run(mockRequestId, companyCnpj, companyId);
-    } else {
-      await db.prepare(
-        `INSERT INTO questor_company_auth (id, company_id, request_id, status, external_company_cnpj) 
-         VALUES (?, ?, ?, 'pending', ?)`
-      ).run(crypto.randomUUID(), companyId, mockRequestId, companyCnpj);
-    }
-
-    revalidatePath('/admin/integrations/questor');
-    return { success: true, requestId: mockRequestId, message: 'Solicitação enviada (Simulação)' };
-  } catch (error) {
-    console.error('Error requesting access:', error);
-    return { error: 'Erro ao solicitar acesso' };
-  }
+export async function requestAccess(_companyId: string, _companyCnpj: string) {
+    // Legacy implementation kept for reference or if user reverts
+    return { error: 'Funcionalidade migrada para SYN Privado. Configure no painel.' };
 }
 
-export async function checkRequestStatus(companyId: string) {
-  try {
-    const auth = await getQuestorCompanyStatus(companyId);
-    if (!auth || !auth.request_id) return { error: 'Solicitação não encontrada' };
-    
-    const config = await getQuestorConfig();
-    const baseUrl = await getBaseUrl();
-
-    // Call /api/v2/erp/gerartoken using the request_id?
-    // Or check status endpoint?
-    // Ref 2: "Após fazer o POST com esses dados [gerartoken], o ERP irá receber um código de acesso"
-    
-    // We try to generate token. If approved, we get it.
-    
-    console.log('Checking status/Generating token for:', auth.request_id);
-
-    // Mock Success
-    const mockToken = `TOKEN-${Date.now()}`;
-    
-    // If successful:
-    await db.prepare(
-      `UPDATE questor_config SET access_token = ? WHERE id = 1`
-    ).run(mockToken);
-    
-    await db.prepare(
-      `UPDATE questor_company_auth SET status = 'active', updated_at = NOW() WHERE company_id = ?`
-    ).run(companyId);
-
-    revalidatePath('/admin/integrations/questor');
-    return { success: true, status: 'active' };
-
-  } catch (error) {
-    console.error('Error checking status:', error);
-    return { error: 'Erro ao verificar status' };
-  }
+export async function checkRequestStatus(_companyId: string) {
+     // Legacy implementation kept for reference or if user reverts
+     return { error: 'Funcionalidade migrada para SYN Privado. Configure no painel.' };
 }
 
-export async function syncTransactionsToQuestor(companyId: string, filters: any) {
+export async function checkQuestorSyncStatus(companyId: string, filters: any) {
   try {
-    const config = await getQuestorConfig();
-    if (!config || !config.access_token) {
-      // Allow simulation if in dev or just return error
-      // return { error: 'Token de acesso Questor não configurado.' };
-      console.warn('Questor token missing. Proceeding in simulation mode if configured, or failing.');
-      // For now, we block real sync but we can return validation errors.
-      if (!config) return { error: 'Configuração do Questor ausente' };
-    }
-
-    // 1. Fetch Transactions with Integration Codes
-    // We replicate the query from exportTransactionsCsv to ensure we have all data
     let query = `
-      SELECT t.*, 
-             c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
-             a.description as account_name, a.code as account_code, a.integration_code as account_integration_code
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN questor_synced_at IS NOT NULL THEN 1 ELSE 0 END) as synced,
+        SUM(CASE WHEN questor_synced_at IS NULL THEN 1 ELSE 0 END) as pending,
+        MIN(date) as min_date,
+        MAX(date) as max_date
       FROM enuves_transactions t
-      LEFT JOIN enuves_categories c ON t.category_id = c.id
-      LEFT JOIN enuves_accounts a ON t.account_id = a.id
       WHERE t.company_id = ?
     `;
     const params: any[] = [companyId];
 
-    // Apply filters (reuse logic if possible, or simplified)
     if (filters) {
         if (filters.startDate) {
             query += ` AND t.date >= ?`;
@@ -186,12 +96,50 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
             query += ` AND t.date <= ?`;
             params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
         }
-        // Add other filters as needed
     }
+
+    const result = await db.prepare(query).get(...params) as any;
     
-    // Only sync pending? Or all matching filters?
-    // Usually we want to sync those not yet synced or force resync.
-    // For now, let's trust the filters.
+    return {
+      total: result.total || 0,
+      synced: result.synced || 0,
+      pending: result.pending || 0,
+      minDate: result.min_date,
+      maxDate: result.max_date,
+      hasPriorSync: (result.synced || 0) > 0
+    };
+  } catch (error) {
+    console.error('Error checking sync status:', error);
+    return { error: 'Erro ao verificar status da sincronização' };
+  }
+}
+
+export async function syncTransactionsToQuestor(companyId: string, filters: any) {
+  try {
+    // 1. Fetch Transactions (Common Logic)
+    let query = `
+      SELECT t.*, 
+             c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
+             a.description as account_name, a.code as account_code, a.integration_code as account_integration_code,
+             comp.code as company_code, comp.filial as company_filial
+      FROM enuves_transactions t
+      LEFT JOIN enuves_categories c ON t.category_id = c.id
+      LEFT JOIN enuves_accounts a ON t.account_id = a.id
+      LEFT JOIN client_companies comp ON t.company_id = comp.id
+      WHERE t.company_id = ? AND t.questor_synced_at IS NULL
+    `;
+    const params: any[] = [companyId];
+
+    if (filters) {
+        if (filters.startDate) {
+            query += ` AND t.date >= ?`;
+            params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
+        }
+        if (filters.endDate) {
+            query += ` AND t.date <= ?`;
+            params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
+        }
+    }
 
     const transactions = await db.prepare(query).all(...params) as any[];
 
@@ -201,7 +149,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
 
     // 2. Validate Integration Codes
     const errors: string[] = [];
-    transactions.forEach(t => {
+    transactions.forEach((t: any) => {
         const hasDebit = t.value > 0 ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
         const hasCredit = t.value > 0 ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
         
@@ -214,9 +162,18 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         return { error: 'Existem lançamentos com problemas de cadastro (Falta código de integração).', details: errors.slice(0, 5) };
     }
 
-    // 3. Generate Layout Content (Questor Standard CSV/TXT)
-    // Layout: DATA;DÉBITO;CRÉDITO;HISTÓRICO;DESCRIÇÃO; VALOR
-    const lines = transactions.map(t => {
+    // 3. Generate Content (Posicional CSV aligned with NLI Layout)
+    // Layout Identified: [Empty];[Empresa];[Estab];[Data];[Debito];[Credito];[Complemento];[Valor]
+    // Based on 'Coluna' property of NLI:
+    // Col 2: Empresa
+    // Col 3: Estab
+    // Col 4: Data
+    // Col 5: Debito
+    // Col 6: Credito
+    // Col 7: Complemento
+    // Col 8: Valor
+    
+    const lines = transactions.map((t: any) => {
       const date = new Date(t.date);
       const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
       
@@ -226,6 +183,8 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
 
       const categoryCode = t.category_integration_code || t.category_code || '';
       const accountCode = t.account_integration_code || t.account_code || '';
+      const companyCode = t.company_code || '';
+      const branchCode = t.company_filial || '1';
 
       let debit = '';
       let credit = '';
@@ -238,70 +197,132 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         credit = accountCode;
       }
 
-      const historicoCode = '1'; // Default history code
-      let description = t.category_name === t.description ? t.category_name : `${t.category_name} ${t.description}`.trim();
-      description = description.replace(/;/g, ' ').replace(/(\r\n|\n|\r)/gm, ' ').substring(0, 200);
+      // Logic for Description/History field
+      const categoryName = (t.category_name || '').trim();
+      const transactionDescription = (t.description || '').trim();
+      
+      let description = '';
+      
+      if (!transactionDescription) {
+          // 2) Se o histórico estiver em branco, leve o nome da categoria
+          description = categoryName;
+      } else if (categoryName.toLowerCase() === transactionDescription.toLowerCase()) {
+          // 1) Se categoria = histórico, leva apenas o histórico (evita duplicação)
+          description = transactionDescription;
+      } else {
+          // Mantém concatenação padrão: Categoria + Histórico
+          description = `${categoryName} ${transactionDescription}`;
+      }
 
-      return `${formattedDate};${debit};${credit};${historicoCode};${description};${formattedValue}`;
+      description = description.replace(/;/g, ' ').replace(/(\r\n|\n|\r)/gm, ' ').substring(0, 300);
+
+      // Posicional CSV array
+      const cols = [
+        '',                // 1. VAZIO (Para pular Coluna 1)
+        companyCode,       // 2. EMPRESA
+        branchCode,        // 3. ESTAB
+        formattedDate,     // 4. DATA
+        debit,             // 5. DEBITO
+        credit,            // 6. CREDITO
+        description,       // 7. COMPL
+        formattedValue     // 8. VALOR
+      ];
+
+      return cols.join(';');
     });
 
     const content = lines.join('\r\n');
 
-    // 4. Send to Questor
-    if (!config.access_token) {
-         return { error: 'Token Questor não configurado. (Simulação: Arquivo gerado com sucesso)', preview: lines.slice(0, 3) };
+    // 4. Try SYN Mode
+    const synConfig = await getQuestorSynConfig();
+    const synRoutine = await getQuestorSynRoutineBySystemCode('CONTABIL_IMPORT');
+
+    // Use Global Token
+    const tokenToUse = synConfig?.api_token;
+
+    if (synConfig?.base_url && synRoutine) {
+        if (!synRoutine.layout_content) {
+            return { error: 'Rotina CONTABIL_IMPORT encontrada, mas sem conteúdo de Layout (NLI) cadastrado.' };
+        }
+
+        const layoutName = synRoutine.action_name.toLowerCase().endsWith('.nli') 
+            ? synRoutine.action_name 
+            : `${synRoutine.action_name}.nli`;
+
+        const payload = {
+            Leiautes: [
+                {
+                    Nome: layoutName, 
+                    Arquivo: Buffer.from(synRoutine.layout_content).toString('base64')
+                }
+            ],
+            // Convert content to Windows-1252 (ANSI) before Base64 encoding
+            // Questor expects ANSI for accented characters to be displayed correctly
+            Dados: iconv.encode(content, 'win1252').toString('base64'),
+            PodeAlterarDados: true,
+            ExecutarValidacaoFinal: "Sim"
+        };
+
+        // Construct URL
+        let url = `${synConfig.base_url}/Integracao/Importar`;
+        
+        // Priority: Global Token
+        if (tokenToUse) {
+            url += `?TokenApi=${encodeURIComponent(tokenToUse)}`;
+        }
+
+        console.log('Sending to Questor SYN /Integracao/Importar...', { url: url.replace(tokenToUse || '', '***') });
+
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+        } catch (fetchError: any) {
+            console.error('Questor SYN Fetch Error:', fetchError);
+            if (fetchError.cause?.code === 'ECONNREFUSED') {
+                return { error: `Não foi possível conectar ao Questor SYN em ${synConfig.base_url}. Verifique se o serviço nWeb está rodando e acessível.` };
+            }
+            return { error: `Erro de conexão com Questor SYN: ${fetchError.message}` };
+        }
+
+        if (!response.ok) {
+             const errText = await response.text();
+             console.error('Questor SYN Error:', errText);
+             return { error: `Erro na API Questor SYN: ${response.status} - ${errText}` };
+        }
+        
+        // Success handling
+        const syncId = `SYNC-SYN-${Date.now()}`;
+        const now = new Date().toISOString();
+        const ids = transactions.map((t: any) => t.id);
+        const placeholders = ids.map(() => '?').join(',');
+        
+        await db.prepare(`
+            UPDATE enuves_transactions 
+            SET questor_synced_at = ?, questor_sync_id = ? 
+            WHERE id IN (${placeholders})
+        `).run(now, syncId, ...ids);
+
+        return { success: true, message: `${transactions.length} lançamentos enviados com sucesso via SYN.` };
     }
 
-    const baseUrl = await getBaseUrl();
-    const companyAuth = await getQuestorCompanyStatus(companyId);
+    // 5. Fallback to Legacy (or Error if SYN preferred)
+    // If SYN is not configured, we return error asking to configure it, 
+    // as the user explicitly asked to implement "this" (SYN) for the project.
     
-    // We need the company CNPJ from client_companies table
-    const company = await db.prepare('SELECT cnpj FROM client_companies WHERE id = ?').get(companyId) as { cnpj: string };
-    if (!company) return { error: 'Empresa não encontrada.' };
-
-    const payload = {
-        cnpjCliente: company.cnpj, // Target company
-        versao: "1.0",
-        grupoLayout: 200, // Assuming 200 for Accounting/Contábil based on standard
-        dataDocumentos: new Date().toISOString().split('T')[0],
-        dado: content,
-        cnpjContabilidade: [config.default_accountant_cnpj]
-    };
-
-    console.log('Sending to Questor /api/v2/dados/inserir...', { ...payload, dado: '...content...' });
-
-    const response = await fetch(`${baseUrl}/api/v2/dados/inserir`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.access_token}`
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        console.error('Questor API Error:', errText);
-        return { error: `Erro na API Questor: ${response.status} - ${errText}` };
+    if (!synConfig?.base_url) {
+        return { error: 'Integração Questor SYN não configurada. Acesse Configurações > Integrações > Questor.' };
+    }
+    if (!synRoutine) {
+        return { error: 'Rotina de Importação Contábil não encontrada. Cadastre uma rotina com Código do Sistema "CONTABIL_IMPORT" e o Layout NLI.' };
     }
 
-    // 5. Update Status
-    const syncId = `SYNC-${Date.now()}`; // Or get from response if available
-    const now = new Date().toISOString();
-    
-    // Bulk update status? Or just mark last sync?
-    // We can update the questor_synced_at for these transaction IDs.
-    // It's better to do this in a transaction.
-    const ids = transactions.map(t => t.id);
-    const placeholders = ids.map(() => '?').join(',');
-    
-    await db.prepare(`
-        UPDATE enuves_transactions 
-        SET questor_synced_at = ?, questor_sync_id = ? 
-        WHERE id IN (${placeholders})
-    `).run(now, syncId, ...ids);
-
-    return { success: true, message: `${transactions.length} lançamentos enviados com sucesso.` };
+    return { error: 'Erro desconhecido na integração.' };
 
   } catch (error: any) {
     console.error('Error syncing to Questor:', error);

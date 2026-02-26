@@ -380,7 +380,7 @@ export async function getEmployeesByCompany(companyId: string) {
     const employees = await db.prepare(`
       SELECT id, name, cpf
       FROM employees e
-      WHERE company_id = ? AND is_active = 1
+      WHERE company_id = ? AND is_active = true
       AND NOT EXISTS (
         SELECT 1 FROM dismissals d 
         WHERE d.employee_id = e.id 
@@ -417,7 +417,7 @@ export async function toggleEmployeeStatus(id: string, isActive: boolean) {
       UPDATE employees 
       SET is_active = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(isActive ? 1 : 0, id);
+    `).run(isActive, id);
 
     revalidatePath('/admin/employees');
     return { success: true };

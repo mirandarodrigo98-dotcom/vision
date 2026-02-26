@@ -5,9 +5,14 @@ import { getSession } from '@/lib/auth';
 
 export async function searchCompanies(query: string) {
   const session = await getSession();
-  if (!session) return [];
+  if (!session) {
+    console.log('searchCompanies: No session found');
+    return [];
+  }
 
-  if (!query || query.length < 3) return [];
+  if (!query) return [];
+
+  console.log('searchCompanies: Searching for', query);
 
   try {
     const companies = await db.prepare(`
@@ -18,6 +23,8 @@ export async function searchCompanies(query: string) {
       ORDER BY razao_social ASC
       LIMIT 10
     `).all(`%${query}%`, `%${query}%`);
+    
+    console.log('searchCompanies: Found', companies.length, 'companies');
     return companies as { id: string; razao_social: string }[];
   } catch (error) {
     console.error('Failed to search companies:', error);

@@ -13,7 +13,7 @@ export type TeamUser = {
   name: string;
   email: string;
   role: 'admin' | 'operator';
-  is_active: number;
+  is_active: boolean;
   last_login_at: string | null;
   created_at: string;
 };
@@ -96,7 +96,7 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   }
 }
 
-export async function toggleTeamUserStatus(userId: string, currentStatus: number) {
+export async function toggleTeamUserStatus(userId: string, currentStatus: boolean) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
@@ -107,7 +107,7 @@ export async function toggleTeamUserStatus(userId: string, currentStatus: number
       return { error: 'Você não pode desativar seu próprio usuário.' };
   }
 
-  const newStatus = currentStatus === 1 ? 0 : 1;
+  const newStatus = !currentStatus;
 
   try {
     await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, userId);

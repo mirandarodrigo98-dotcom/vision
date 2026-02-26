@@ -43,9 +43,13 @@ export async function getCategories(companyId: string) {
     SELECT * FROM enuves_categories 
     WHERE company_id = ? 
     ORDER BY code ASC
-  `).all(targetCompanyId) as Category[];
+  `).all(targetCompanyId) as any[];
 
-  return categories;
+  return categories.map(cat => ({
+    ...cat,
+    created_at: cat.created_at ? new Date(cat.created_at).toISOString() : null,
+    updated_at: cat.updated_at ? new Date(cat.updated_at).toISOString() : null
+  })) as Category[];
 }
 
 
@@ -396,7 +400,8 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
   try {
     await db.prepare(`
       UPDATE enuves_transactions
-      SET date = ?, category_id = ?, account_id = ?, description = ?, value = ?
+      SET date = ?, category_id = ?, account_id = ?, description = ?, value = ?,
+          questor_synced_at = NULL, questor_sync_id = NULL, questor_sync_error = NULL
       WHERE id = ? AND company_id = ?
     `).run(
       data.date,
@@ -467,9 +472,14 @@ export async function getAccounts(companyId: string) {
       SELECT * FROM enuves_accounts 
       WHERE company_id = ? 
       ORDER BY CAST(code AS INTEGER) ASC
-    `).all(targetCompanyId) as Account[];
+    `).all(targetCompanyId) as any[];
     
-    return accounts;
+    // Ensure dates are serialized as strings to avoid "Date object" issues in Client Components
+    return accounts.map(account => ({
+      ...account,
+      created_at: account.created_at ? new Date(account.created_at).toISOString() : null,
+      updated_at: account.updated_at ? new Date(account.updated_at).toISOString() : null
+    })) as Account[];
   } catch (error) {
     console.error('Error fetching accounts:', error);
     return [];

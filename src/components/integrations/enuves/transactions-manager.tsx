@@ -8,10 +8,20 @@ import { TransactionFilters } from './transaction-filters';
 import { TransactionEditDialog } from './transaction-edit-dialog';
 import { Loader2, Trash2, Pencil, RefreshCw } from 'lucide-react';
 import { getTransactions, deleteTransaction, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/enuves';
-import { syncTransactionsToQuestor } from '@/app/actions/integrations/questor';
+import { syncTransactionsToQuestor, checkQuestorSyncStatus } from '@/app/actions/integrations/questor';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Download } from 'lucide-react';
 
 interface TransactionsManagerProps {
@@ -34,6 +44,17 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncDialog, setShowSyncDialog] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
+  
+  // Sync Confirmation
+  const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
+  const [syncStats, setSyncStats] = useState<{ 
+    total: number, 
+    synced: number, 
+    pending: number, 
+    hasPriorSync: boolean,
+    minDate?: string,
+    maxDate?: string
+  } | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -144,7 +165,27 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     }
   };
 
-  const handleSync = async () => {
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    try {
+      const stats = await checkQuestorSyncStatus(companyId, filters);
+      if (stats.error) {
+        toast.error(stats.error);
+        setIsSyncing(false);
+        return;
+      }
+      setSyncStats(stats);
+      setIsSyncing(false); // Reset loading state before showing confirmation
+      setShowConfirmSyncDialog(true);
+    } catch (error) {
+        console.error(error);
+        toast.error('Erro ao verificar status da sincronização');
+        setIsSyncing(false);
+    }
+  };
+
+  const confirmSync = async () => {
+    setShowConfirmSyncDialog(false);
     setShowSyncDialog(true);
     setIsSyncing(true);
     setSyncResult(null);
@@ -155,7 +196,12 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
             toast.success('Sincronização concluída');
             fetchTransactions();
         } else {
-            toast.error('Erro na sincronização');
+            // Check if error is "no transactions" to show info instead of error
+            if (result.error && result.error.includes('Nenhum lançamento')) {
+                toast.info(result.error);
+            } else {
+                toast.error('Erro na sincronização');
+            }
         }
     } catch (e) {
         setSyncResult({ error: 'Erro inesperado' });
@@ -164,12 +210,26 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     }
   };
 
+  const getPeriodText = () => {
+    const f = filters as any;
+    if (f.startDate && f.endDate) {
+        return `${format(new Date(f.startDate), 'dd/MM/yyyy')} a ${format(new Date(f.endDate), 'dd/MM/yyyy')}`;
+    }
+    if (syncStats?.minDate && syncStats?.maxDate) {
+        // Parse dates which might come as strings from DB
+        const min = new Date(syncStats.minDate);
+        const max = new Date(syncStats.maxDate);
+        return `${format(min, 'dd/MM/yyyy')} a ${format(max, 'dd/MM/yyyy')}`;
+    }
+    return 'Todos os lançamentos filtrados';
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Lançamentos Importados</h3>
         <div className="flex gap-2">
-            <Button onClick={handleSync} variant="outline" disabled={isLoading || isSyncing || isExporting}>
+            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                 Sincronizar Questor
             </Button>
@@ -180,6 +240,51 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
             <PdfImportDialog companyId={companyId} onSuccess={fetchTransactions} />
         </div>
       </div>
+
+      <AlertDialog open={showConfirmSyncDialog} onOpenChange={(open) => {
+        setShowConfirmSyncDialog(open);
+        if (!open) setIsSyncing(false);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Sincronização</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div><strong>Período:</strong> {getPeriodText()}</div>
+                <div><strong>Total de lançamentos no período:</strong> {syncStats?.total}</div>
+                
+                {syncStats?.hasPriorSync && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800">
+                    <strong>Atenção:</strong> Já existem lançamentos integrados neste período.
+                    <br />
+                    Apenas os <strong>{syncStats?.pending}</strong> lançamentos novos ou modificados serão enviados para evitar duplicação.
+                  </div>
+                )}
+                
+                {!syncStats?.hasPriorSync && (
+                   <div>Serão enviados {syncStats?.pending} lançamentos.</div>
+                )}
+
+                {syncStats?.pending === 0 && (
+                   <div className="text-red-500 font-medium">Não há novos lançamentos para sincronizar.</div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSyncing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+                disabled={isSyncing || syncStats?.pending === 0} 
+                onClick={(e) => {
+                    e.preventDefault(); 
+                    confirmSync();
+                }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
         <DialogContent className="max-w-md">

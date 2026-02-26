@@ -17,9 +17,10 @@ import {
   ChevronDoubleRightIcon,
   UserGroupIcon,
   ChevronRightIcon,
-  BriefcaseIcon,
   LockClosedIcon,
-  PuzzlePieceIcon
+  PuzzlePieceIcon,
+  BanknotesIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
@@ -36,14 +37,23 @@ import {
 
 const navigation = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon },
-  { name: 'Empresas', href: '/admin/clients', icon: BuildingOfficeIcon },
+  {
+    name: 'Cadastro',
+    icon: BuildingOfficeIcon,
+    children: [
+      { name: 'Empresas', href: '/admin/clients' },
+      { name: 'Sócios', href: '/admin/socios' },
+      { name: 'Contadores', href: '/admin/accountants' },
+      { name: 'Usuários', href: '/admin/client-users' },
+      { name: 'Equipe', href: '/admin/team' },
+    ]
+  },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon },
-  { name: 'Funcionários', href: '/admin/employees', icon: BriefcaseIcon },
-  { name: 'Usuários', href: '/admin/client-users', icon: UsersIcon },
   {
     name: 'Pessoal',
     icon: UserGroupIcon,
     children: [
+      { name: 'Funcionários', href: '/admin/employees' },
       { name: 'Admissões', href: '/admin/admissions' },
       { name: 'Demissões', href: '/admin/dismissals' },
       { name: 'Férias', href: '/admin/vacations' },
@@ -51,7 +61,14 @@ const navigation = [
       { name: 'Afastamentos', href: '/admin/leaves' },
     ]
   },
-  { name: 'Equipe', href: '/admin/team', icon: ShieldCheckIcon },
+  { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon },
+  {
+    name: 'Contabilidade',
+    icon: CalculatorIcon,
+    children: [
+      { name: 'Faturamento', href: '/admin/contabilidade/faturamento' },
+    ]
+  },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon },
   { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon },

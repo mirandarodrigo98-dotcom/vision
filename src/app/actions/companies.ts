@@ -74,7 +74,7 @@ async function insertCompanyHistorySnapshot(companyId: string, source: string) {
       company.municipio || null,
       company.uf || null,
       company.data_abertura || null,
-      company.is_active === 1 ? 'ATIVA' : 'INATIVA',
+      company.is_active ? 'ATIVA' : 'INATIVA',
       company.capital_social_centavos ?? null,
       source
     );
@@ -393,7 +393,12 @@ export async function toggleCompanyStatus(id: string, isActive: boolean) {
     return { error: 'Unauthorized' };
   }
 
-  await db.prepare("UPDATE client_companies SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(isActive ? 1 : 0, id);
+  try {
+    await db.prepare("UPDATE client_companies SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(isActive ? 1 : 0, id);
+  } catch (error) {
+    console.error('Failed to toggle company status:', error);
+    return { error: 'Erro ao alterar status.' };
+  }
   
   logAudit({
     action: 'TOGGLE_CLIENT_STATUS',
@@ -622,7 +627,7 @@ export async function getCompanies() {
     const companies = await db.prepare(`
       SELECT id, nome 
       FROM client_companies 
-      WHERE is_active = 1
+      WHERE is_active = true
       ORDER BY nome ASC
     `).all();
     return companies as { id: string; nome: string }[];

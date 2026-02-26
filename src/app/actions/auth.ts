@@ -147,13 +147,13 @@ export async function verifyOtp(rawEmail: string, token: string) {
   
   // Se usuário não existe, só cria se for Admin (whitelist)
   if (!user) {
-     const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = 1').get(email);
+     const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = true').get(email);
      
      if (adminAllowed) {
         const userId = uuidv4();
         await db.prepare(`
           INSERT INTO users (id, name, email, role, is_active, created_at, updated_at)
-          VALUES (?, ?, ?, 'admin', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          VALUES (?, ?, ?, 'admin', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).run(userId, 'Admin', email);
         user = { id: userId, role: 'admin' };
      } else {
