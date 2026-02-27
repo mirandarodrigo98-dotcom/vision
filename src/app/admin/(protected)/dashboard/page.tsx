@@ -139,7 +139,9 @@ function StatCard({ title, value, icon: Icon, subtext }: { title: string, value:
         <Icon className="h-4 w-4 text-primary mt-1" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-primary">{Number(value)}</div>
+        <div className="text-2xl font-bold text-primary">
+          {isNaN(Number(value)) ? 0 : Number(value)}
+        </div>
         {subtext ? (
           <p className="text-xs text-muted-foreground mt-1">{subtext}</p>
         ) : (

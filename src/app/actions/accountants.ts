@@ -33,7 +33,7 @@ export async function getAccountants() {
   if (!session) return [];
   
   try {
-    const accountants = db.prepare('SELECT * FROM accountants WHERE is_active = true ORDER BY name ASC').all();
+    const accountants = db.prepare('SELECT * FROM accountants ORDER BY name ASC').all();
     return accountants;
   } catch (error) {
     console.error('Error fetching accountants:', error);

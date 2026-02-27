@@ -10,6 +10,7 @@ import { SocietarioCompanySelector } from '@/components/societario/company-selec
 import { useDebounce } from 'use-debounce';
 import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
+import { validateCPF } from '@/lib/validators';
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { getCompanyDetailsFull, getCompanySocios } from '@/app/actions/companies';
@@ -543,22 +544,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
       .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
   };
 
-  const validateCPF = (cpf: string) => {
-    const digits = cpf.replace(/\D/g, '');
-    if (digits.length !== 11) return false;
-    if (/^(\d)\1+$/.test(digits)) return false;
-    const calc = (factor: number) => {
-      let total = 0;
-      for (let i = 0; i < factor - 1; i++) {
-        total += parseInt(digits[i]) * (factor - i);
-      }
-      const rest = (total * 10) % 11;
-      return rest === 10 ? 0 : rest;
-    };
-    const d1 = calc(10);
-    const d2 = calc(11);
-    return d1 === parseInt(digits[9]) && d2 === parseInt(digits[10]);
-  };
+  // const validateCPF removed to use shared library
 
   const handleCepComplChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');

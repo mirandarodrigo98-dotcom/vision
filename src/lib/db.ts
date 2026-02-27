@@ -93,10 +93,11 @@ class PostgresAdapter implements DBClient {
     let convertedSql = convertSql(sql);
 
     // Create a prepared statement object
+    let pluckEnabled = false;
+
     const stmt = {
       pluck: (enable = true) => {
-        // In better-sqlite3, pluck affects how rows are returned.
-        // We can simulate this by post-processing results.
+        pluckEnabled = enable;
         return stmt; 
       },
       
@@ -121,7 +122,16 @@ class PostgresAdapter implements DBClient {
           const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
           
           const result = await client.query(finalSql, params);
-          return result.rows[0];
+          const row = result.rows[0];
+          
+          if (pluckEnabled && row) {
+             const keys = Object.keys(row);
+             if (keys.length > 0) {
+                 return row[keys[0]];
+             }
+          }
+          
+          return row;
         } finally {
           client.release();
         }
@@ -134,6 +144,14 @@ class PostgresAdapter implements DBClient {
           const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
           
           const result = await client.query(finalSql, params);
+          
+          if (pluckEnabled) {
+              return result.rows.map(row => {
+                  const keys = Object.keys(row);
+                  return keys.length > 0 ? row[keys[0]] : undefined;
+              });
+          }
+          
           return result.rows;
         } finally {
           client.release();

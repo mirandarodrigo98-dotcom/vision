@@ -11,7 +11,7 @@ async function debugUsers() {
     const count = await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client' AND is_active = 1").pluck().get();
     console.log('Count with role="client" and is_active=1:', count);
 
-    const countBoolean = await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client' AND is_active = true").pluck().get();
+    const countBoolean = await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client' AND is_active = 1").pluck().get();
     console.log('Count with role="client" and is_active=true:', countBoolean);
 
     const countAllClients = await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client'").pluck().get();

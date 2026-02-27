@@ -4,6 +4,7 @@ import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { validateCNPJ } from '@/lib/validators';
 import { revalidatePath } from 'next/cache';
 import * as Papa from 'papaparse';
 import { randomUUID } from 'crypto';
@@ -543,6 +544,12 @@ export async function importCompanies(formData: FormData) {
           continue;
         }
 
+        if (!validateCNPJ(cnpj)) {
+          console.warn('Skipping row with invalid CNPJ:', row);
+          errorCount++;
+          continue;
+        }
+
         // Convert date DD/MM/YYYY to YYYY-MM-DD
         let data_abertura = null;
         if (abertura) {
@@ -627,7 +634,7 @@ export async function getCompanies() {
     const companies = await db.prepare(`
       SELECT id, nome 
       FROM client_companies 
-      WHERE is_active = true
+      WHERE is_active = 1
       ORDER BY nome ASC
     `).all();
     return companies as { id: string; nome: string }[];

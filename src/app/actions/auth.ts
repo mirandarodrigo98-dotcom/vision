@@ -147,7 +147,7 @@ export async function verifyOtp(rawEmail: string, token: string) {
   
   // Se usuário não existe, só cria se for Admin (whitelist)
   if (!user) {
-     const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = true').get(email);
+     const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = 1').get(email);
      
      if (adminAllowed) {
         const userId = uuidv4();

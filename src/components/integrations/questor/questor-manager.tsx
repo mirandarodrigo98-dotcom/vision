@@ -44,6 +44,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 import { saveQuestorConfig, requestAccess, checkRequestStatus } from '@/app/actions/integrations/questor';
+import { validateCNPJ } from '@/lib/validators';
 // import { ClientCompany } from '@/lib/db';
 
 // --- Types ---
@@ -78,8 +79,8 @@ type Props = {
 
 const configSchema = z.object({
   environment: z.enum(['homologation', 'production']),
-  erp_cnpj: z.string().min(14, 'CNPJ inválido'),
-  default_accountant_cnpj: z.string().min(14, 'CNPJ inválido'),
+  erp_cnpj: z.string().refine((val) => validateCNPJ(val), { message: 'CNPJ inválido' }),
+  default_accountant_cnpj: z.string().refine((val) => validateCNPJ(val), { message: 'CNPJ inválido' }),
   access_token: z.string().optional(),
 });
 

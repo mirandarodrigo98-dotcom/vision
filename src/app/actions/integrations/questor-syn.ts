@@ -114,7 +114,7 @@ export async function executeQuestorReport(
   }
 
   const baseUrl = config.base_url.replace(/\/$/, ''); // Remove trailing slash
-  const url = new URL(`${baseUrl}/api/TnWebDMRelatorio/Executar`);
+  const url = new URL(`${baseUrl}/TnWebDMRelatorio/Executar`);
   
   // Add standard parameters
   url.searchParams.append('_AActionName', actionName);
@@ -129,40 +129,53 @@ export async function executeQuestorReport(
   }
 
   // Add report specific parameters
-  // Note: The docs say "Os parâmetros do Body devem ser ajustados de acordo com o relatório".
-  // But for GET requests, they might be query params?
-  // The example shows: http://.../Executar?_AActionName=...
-  // And "Body da Requisição". This implies a POST request might be better if there are many params.
-  // However, the endpoint is listed as GET.
-  // If GET, we append to query string.
+  // Use POST with JSON body for report parameters to avoid URL length issues and ensure proper parsing
   
-  Object.entries(params).forEach(([key, value]) => {
-    url.searchParams.append(key, value);
-  });
+  console.log(`[Questor] Executing Report: ${actionName}`);
+  console.log(`[Questor] URL (masked): ${url.toString().replace(/TokenApi=[^&]+/, 'TokenApi=***')}`);
+  console.log(`[Questor] Body Params:`, JSON.stringify(params));
 
   try {
     const response = await fetch(url.toString(), {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Accept': '*/*',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(params),
       cache: 'no-store',
     });
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[Questor] Error ${response.status}: ${text}`);
       return { error: `Erro na requisição: ${response.status} - ${text}` };
     }
 
     if (returnType === 'nrwexCSV') {
       const text = await response.text();
+      console.log(`[Questor] CSV Response Length: ${text.length}`);
+      
+      // Questor nWeb returns a JSON object with a "Data" field containing the CSV content
+      // Example: {"PageCount":1, "Size":123, "Data": "CSV_CONTENT..."}
+      try {
+          const json = JSON.parse(text);
+          if (json && json.Data) {
+              console.log(`[Questor] Extracted CSV from JSON Data field (Length: ${json.Data.length})`);
+              return { data: json.Data };
+          }
+      } catch (e) {
+          // Not JSON, return raw text
+          console.log('[Questor] Response is not JSON, returning raw text');
+      }
+
+      if (text.length < 100) console.log(`[Questor] CSV Preview: ${text}`); // Debug short responses
       return { data: text };
     } else {
       // For PDF/HTML, we might want blob or base64
-      // For now, let's assume we just need CSV for the data step.
       const buffer = await response.arrayBuffer();
-      // Convert to base64 for safe transport to client
       const base64 = Buffer.from(buffer).toString('base64');
+      console.log(`[Questor] Binary Response Size: ${buffer.byteLength}`);
       return { data: base64, isBase64: true };
     }
 

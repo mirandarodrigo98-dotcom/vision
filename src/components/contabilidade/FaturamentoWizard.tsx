@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Printer } from 'lucide-react';
-import { searchCompanies } from '@/app/actions/search-companies';
 import { getCompanySocios, getCompanyDetailsFull } from '@/app/actions/companies';
 import { executeQuestorReport } from '@/app/actions/integrations/questor-syn';
 import {
@@ -47,29 +46,29 @@ import autoTable from 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Papa from 'papaparse';
 
 // --- Step 1: Parameters Schema ---
 const paramsSchema = z.object({
-  initialCompetence: z.string().regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
-  finalCompetence: z.string().regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
-  companyId: z.string().min(1, 'Selecione uma empresa'),
-  accountantId: z.string().min(1, 'Selecione um contador'),
-  partnerId: z.string().optional(), // Optional per print "Imprimir Assinaturas dos Sócios: Nenhum"
-  printAccountantSignature: z.enum(['Sim', 'Não']),
+  initialCompetence: z.string({ required_error: 'Obrigatório' }).min(1, 'Obrigatório').regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
+  finalCompetence: z.string({ required_error: 'Obrigatório' }).min(1, 'Obrigatório').regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
+  companyId: z.string({ required_error: 'Selecione uma empresa' }).min(1, 'Selecione uma empresa'),
+  accountantId: z.string({ required_error: 'Selecione um contador' }).min(1, 'Selecione um contador'),
+  partnerId: z.string().optional(),
+  printAccountantSignature: z.enum(['Sim', 'Não'], { required_error: 'Obrigatório', invalid_type_error: 'Inválido' }),
   generateDigitalAccountantSignature: z.string().optional(),
-  printPartnerSignature: z.string().optional(),
+  printPartnerSignature: z.enum(['Sim', 'Não'], { required_error: 'Obrigatório', invalid_type_error: 'Inválido' }),
   generateDigitalPartnerSignature: z.string().optional(),
-  includeLogo: z.enum(['Sim', 'Não']),
 });
 
 interface FaturamentoWizardProps {
   accountants: any[];
+  companies: Array<{ id: string; razao_social: string; cnpj: string }>;
 }
 
-export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
+export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [partners, setPartners] = useState<any[]>([]);
@@ -80,32 +79,19 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
   
   // Company Search State
   const [openCompany, setOpenCompany] = useState(false);
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const form = useForm<z.infer<typeof paramsSchema>>({
     resolver: zodResolver(paramsSchema),
     defaultValues: {
       initialCompetence: '',
       finalCompetence: '',
+      companyId: '',
+      accountantId: '',
       printAccountantSignature: 'Não',
-      includeLogo: 'Não',
-      printPartnerSignature: 'Nenhum',
+      printPartnerSignature: 'Não',
     },
   });
-
-  // Fetch companies on search
-  useEffect(() => {
-    if (searchQuery.length >= 1) {
-      const timer = setTimeout(async () => {
-        const results = await searchCompanies(searchQuery);
-        setCompanies(results);
-      }, 300);
-      return () => clearTimeout(timer);
-    } else {
-      setCompanies([]);
-    }
-  }, [searchQuery]);
 
   // Fetch partners when company changes
   const selectedCompanyId = form.watch('companyId');
@@ -133,8 +119,14 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
     fetchCompanyData();
   }, [selectedCompanyId]);
 
+  // Removed debugLog state and addLog function as requested by user to clean up UI
+
   const onSubmitStep1 = async (values: z.infer<typeof paramsSchema>) => {
     setLoading(true);
+    // setDebugLog([]); // Removed
+    // addLog(`Iniciando importação para Empresa ID: ${selectedCompanyId}`); // Converted to console.log
+    console.log(`Iniciando importação para Empresa ID: ${selectedCompanyId}`);
+
     try {
       // Parse dates
       const [initMonth, initYear] = values.initialCompetence.split('/').map(Number);
@@ -143,104 +135,228 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
       // Calculate start and end dates for Questor (First day of start month, Last day of end month)
       const startDate = new Date(initYear, initMonth - 1, 1);
       const endDate = new Date(finalYear, finalMonth, 0); // Last day of previous month (which is current month here because month is 0-indexed in Date constructor but we pass month+1 effectively)
-      // Actually: new Date(year, month, 0) gives last day of previous month.
-      // If finalMonth is 12 (December), we want new Date(finalYear, 12, 0) -> Jan 0 of next year -> Dec 31 of current year.
-      // So finalMonth is correct index for next month in 0-indexed world? No.
-      // Month 1-12.
-      // new Date(2025, 1, 0) -> Jan 31, 2025. (Month 1 is Feb).
-      // So passing finalMonth directly works if it's 1-based.
       
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      console.log(`Período calculado: ${startDate.toLocaleDateString()} a ${endDate.toLocaleDateString()}`);
+
+      // Helper for DD/MM/YYYY format
+      const toBRDate = (date: Date) => {
+          const d = date.getDate().toString().padStart(2, '0');
+          const m = (date.getMonth() + 1).toString().padStart(2, '0');
+          const y = date.getFullYear();
+          return `${d}/${m}/${y}`;
+      };
+
+      const startDateStr = toBRDate(startDate);
+      const endDateStr = toBRDate(endDate);
       
+      // Competence Format: 01/MM/YYYY (First day of the competence month)
+      const compInicialStr = `01/${values.initialCompetence}`;
+      const compFinalStr = `01/${values.finalCompetence}`;
+
       // Try to fetch from Questor if we have a code
       let fetchedData: any[] = [];
       let usedQuestor = false;
       
       if (companyCode) {
           try {
-            // Note: These parameters are hypothetical based on standard Questor reports.
-            // Adjust 'Empresa', 'DataInicial', 'DataFinal' based on actual report definition.
-            const reportParams = {
-                Empresa: companyCode,
-                Filial: '1', // Default?
-                DataInicial: startDateStr,
-                DataFinal: endDateStr,
+            console.log(`Tentando buscar no Questor para código: ${companyCode}`);
+            // Updated parameters based on integration tests (Questor nWeb Report)
+            const reportParams: Record<string, string> = {
+                pModelo: '1', // Faturamento
+                pTipoFaturamento: '501', // Federal - Junto
+                pEmpresa: companyCode,
+                pFilial: '1',
+                pCompetInicial: values.initialCompetence, // MM/YYYY
+                pCompetFinal: values.finalCompetence, // MM/YYYY
+                pAssinCont: values.printAccountantSignature === 'Sim' ? '1' : '0',
+                pAssinSocio: values.printPartnerSignature === 'Sim' ? '1' : '3', // Responsável=1, Todos=2, Nenhum=3
+                pGerarAssinaturaSocio: '1', // Normal=1, Certificado=2
+                pIncluirLogo: '0'
             };
-            
+
+            console.log(`Parâmetros Questor: ${JSON.stringify(reportParams)}`);
+
             // Execute Report
             const result = await executeQuestorReport('nFisRRFaturamentoGrafico', reportParams, 'nrwexCSV');
             
-            if (result.data && !result.error) {
-                // Parse CSV result.data
-                const parsed = Papa.parse(result.data, { 
-                  header: true, 
-                  skipEmptyLines: true,
-                  dynamicTyping: true
+            if (result.error) {
+                console.error(`ERRO API Questor: ${result.error}`);
+                toast.error(`Erro Questor: ${result.error}`);
+            } else if (result.data) {
+                console.log(`Questor retornou dados. Tamanho bruto: ${result.data.length} chars`);
+                
+                let rawData = result.data;
+                // Double check if it's JSON (sometimes Server Action might return raw response if parsing failed there)
+                if (typeof rawData === 'string' && rawData.trim().startsWith('{')) {
+                    try {
+                        const json = JSON.parse(rawData);
+                        if (json && json.Data) {
+                            console.log('Detectado wrapper JSON no frontend, extraindo campo Data...');
+                            rawData = json.Data;
+                        } else if (json && (json.Erro || json.Exception)) {
+                            // Detect Questor specific errors returned as JSON 200 OK
+                            const errorMsg = json.Erro || json.Exception || "Erro desconhecido do Questor";
+                            console.error(`ERRO QUESTOR (JSON): ${errorMsg}`);
+                            toast.error(`Questor: ${errorMsg}`);
+                            // Stop processing here as it is an error
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (e) {
+                        // Not JSON, continue with rawData
+                    }
+                }
+                
+                console.log(`Dados para parsing (primeiros 100 chars): ${rawData.substring(0, 100)}...`);
+
+                // Parse CSV result.data without header assumption because Questor returns a complex report layout
+                const parsed = Papa.parse(rawData, { 
+                  header: false, 
+                  skipEmptyLines: false, // Need to see empty lines to separate blocks potentially
+                  dynamicTyping: false,
+                  delimiter: ';' // Force delimiter to semicolon
                 });
                 
+                console.log(`Linhas parseadas: ${parsed.data.length}`);
+
                 if (parsed.data && parsed.data.length > 0) {
-                   const rows = parsed.data as any[];
-                   // Mapping logic (Flexible)
-                   // Expected columns: Mes, Ano, Valor
-                   // Or Competencia, Valor
-                   
+                   const rows = parsed.data as any[][];
                    const mappedMonths: any[] = [];
                    
-                   // Helper to normalize keys
-                   const findKey = (keys: string[], candidates: string[]) => keys.find(k => candidates.some(c => k.toLowerCase().includes(c.toLowerCase())));
-                   const keys = Object.keys(rows[0]);
-                   
-                   const monthKey = findKey(keys, ['mes', 'month', 'competencia']);
-                   const yearKey = findKey(keys, ['ano', 'year']);
-                   const valueKey = findKey(keys, ['valor', 'faturamento', 'total']);
-                   
-                   if (monthKey && valueKey) {
-                       rows.forEach(row => {
-                           let m = row[monthKey];
-                           let y = yearKey ? row[yearKey] : initYear;
-                           let v = row[valueKey];
-                           
-                           // Handle "MM/YYYY" in monthKey
-                           if (typeof m === 'string' && m.includes('/')) {
-                               const parts = m.split('/');
-                               if (parts.length === 2) {
-                                   m = parseInt(parts[0]);
-                                   y = parseInt(parts[1]);
-                               }
-                           }
-                           
-                           if (m && !isNaN(Number(m)) && !isNaN(Number(v))) {
-                               mappedMonths.push({
-                                   month: Number(m),
-                                   year: Number(y),
-                                   faturado: Number(v),
-                                   complemento: 0
-                               });
-                           }
-                       });
-                       
-                       // Filter by range
-                       const validMonths = mappedMonths.filter(item => {
-                           const date = new Date(item.year, item.month - 1, 1);
-                           return date >= startDate && date <= endDate;
-                       });
+                   const targetCode = parseInt(companyCode);
+                   if (isNaN(targetCode)) {
+                       console.error(`ERRO: Código da empresa inválido para parsing: ${companyCode}`);
+                       toast.error('Código da empresa inválido para importação.');
+                       setLoading(false);
+                       return;
+                   }
 
-                       if (validMonths.length > 0) {
-                           setBillingData(validMonths);
-                           usedQuestor = true;
-                           toast.success('Dados importados do Questor com sucesso!');
+                   let targetCompanyFound = false;
+                   let capturingData = false;
+                   
+                   const monthMap: Record<string, number> = {
+                        'JANEIRO': 1, 'FEVEREIRO': 2, 'MARÇO': 3, 'ABRIL': 4, 'MAIO': 5, 'JUNHO': 6,
+                        'JULHO': 7, 'AGOSTO': 8, 'SETEMBRO': 9, 'OUTUBRO': 10, 'NOVEMBRO': 11, 'DEZEMBRO': 12
+                   };
+
+                   for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        const firstCol = typeof row[0] === 'string' ? row[0].trim() : '';
+                        
+                        // 1. Detect Company Block Start: "0097  NAME..."
+                        const companyMatch = firstCol.match(/^(\d+)\s+/);
+                        if (companyMatch) {
+                            const currentCode = parseInt(companyMatch[1]);
+                            if (currentCode === targetCode) {
+                                targetCompanyFound = true;
+                                capturingData = false; // Wait for table header
+                                console.log(`Bloco da empresa ${currentCode} ENCONTRADO na linha ${i}`);
+                            } else {
+                                if (targetCompanyFound) {
+                                     console.log(`Fim do bloco da empresa (nova empresa ${currentCode} encontrada) na linha ${i}`);
+                                }
+                                targetCompanyFound = false;
+                                capturingData = false;
+                            }
+                            continue;
+                        }
+
+                        // 2. Detect Table Header inside target block
+                        if (targetCompanyFound && !capturingData) {
+                            // Header row usually contains "MÊS" or "ANO"
+                            if (firstCol.toUpperCase().includes('MÊS') || (row[1] && String(row[1]).toUpperCase().includes('ANO'))) {
+                                capturingData = true;
+                                console.log(`Cabeçalho da tabela encontrado na linha ${i}, iniciando captura...`);
+                                continue;
+                            }
+                        }
+
+                        // 3. Capture Data Rows
+                        if (targetCompanyFound && capturingData) {
+                            // Stop at "TOTAL" or empty line (sometimes empty lines separate blocks)
+                            if (firstCol.toUpperCase().includes('TOTAL')) {
+                                console.log(`Linha de TOTAL encontrada na linha ${i}, parando captura.`);
+                                capturingData = false;
+                                targetCompanyFound = false; // Assume done
+                                continue;
+                            }
+                            
+                            // Expecting: [MONTH_NAME, YEAR, VALUE]
+                            // Example: ["JANEIRO", "2024", "0,00"] or ["JANEIRO", 2024, "0,00"]
+                            if (row.length >= 3) {
+                                const monthName = String(row[0]).toUpperCase().trim();
+                                const yearStr = String(row[1]).trim();
+                                const valueStr = String(row[2]).trim();
+                                
+                                const m = monthMap[monthName];
+                                const y = parseInt(yearStr);
+                                
+                                if (m && !isNaN(y)) {
+                                    // Parse Value (BRL: 1.000,00)
+                                    const cleanV = valueStr.replace(/\./g, '').replace(',', '.');
+                                    const numericValue = parseFloat(cleanV);
+                                    
+                                    if (!isNaN(numericValue)) {
+                                        mappedMonths.push({
+                                           month: m,
+                                           year: y,
+                                           faturado: numericValue,
+                                           complemento: 0
+                                        });
+                                        console.log(`Capturado: ${monthName}/${y} = ${numericValue}`);
+                                    }
+                                }
+                            }
+                        }
+                   }
+                       
+                   // Filter by range using numeric comparison (YearMonth) to avoid Timezone/Date object issues
+                   const startYm = initYear * 100 + initMonth;
+                   const endYm = finalYear * 100 + finalMonth;
+                   
+                   console.log(`Filtrando intervalo: ${startYm} a ${endYm}`);
+
+                   const validMonths = mappedMonths.filter(item => {
+                       const itemYm = item.year * 100 + item.month;
+                       const isValid = itemYm >= startYm && itemYm <= endYm;
+                       
+                       if (!isValid) {
+                           console.log(`Filtrado fora: ${item.month}/${item.year} (${itemYm})`);
                        }
+                       return isValid;
+                   });
+
+                   if (validMonths.length > 0) {
+                       setBillingData(validMonths);
+                       usedQuestor = true;
+                       toast.success('Dados importados do Questor com sucesso!');
+                       console.log(`Sucesso! ${validMonths.length} registros importados.`);
+                   } else if (mappedMonths.length > 0) {
+                       // Found data but outside range? Or maybe empty values?
+                       console.log('Dados encontrados mas filtrados (ou vazios). Usando dados brutos encontrados.');
+                       // If we found data (even if 0), we can use it.
+                       setBillingData(mappedMonths); // Use what we found if filter is too strict or range matches
+                       usedQuestor = true;
+                       toast.success('Dados importados do Questor com sucesso! (Filtro de data ajustado)');
+                   } else {
+                       console.log(`Nenhum dado válido encontrado para a empresa ${companyCode}`);
+                       // Don't show success if nothing found
                    }
                 }
             }
           } catch (e) {
-              console.error("Questor fetch failed, falling back to mock", e);
+              console.error(`Exceção ao buscar no Questor: ${e}`);
           }
+      } else {
+          console.log('Empresa sem código vinculado no cadastro.');
+          toast.error('Empresa selecionada não possui código vinculado.');
       }
       
       // Fallback Mock Data generation if Questor fails or is not enabled
       if (!usedQuestor) {
+          console.log('Usando Fallback (Mock/Zeros) pois Questor falhou ou não retornou dados.');
           const months = [];
           let currentMonth = initMonth;
           let currentYear = initYear;
@@ -264,6 +380,7 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
       
       setStep(2);
     } catch (error) {
+      console.error(`Exceção Geral: ${error}`);
       toast.error('Erro ao buscar dados do faturamento');
     } finally {
       setLoading(false);
@@ -343,7 +460,7 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
         doc.text(`CRC: ${accountant.crc_number}`, 50, finalY + 15, { align: 'center' });
     }
     
-    if (partner && form.getValues('printPartnerSignature') !== 'Nenhum') {
+    if (partner && form.getValues('printPartnerSignature') === 'Sim') {
          doc.text(partner.nome, 160, finalY, { align: 'center' });
          doc.text('Sócio/Administrador', 160, finalY + 5, { align: 'center' });
          doc.text(`CPF: ${partner.cpf}`, 160, finalY + 10, { align: 'center' });
@@ -366,57 +483,108 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
           {step === 1 && (
              <Form {...form}>
                <form onSubmit={form.handleSubmit(onSubmitStep1)} className="space-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="flex flex-col gap-4">
                    <div className="space-y-2">
-                     <FormLabel>Empresa</FormLabel>
-                     <Popover open={openCompany} onOpenChange={setOpenCompany}>
-                       <PopoverTrigger asChild>
-                         <Button
-                           variant="outline"
-                           role="combobox"
-                           aria-expanded={openCompany}
-                           className="w-full justify-between"
-                         >
-                           {form.watch('companyId')
-                             ? companies.find((company) => company.id === form.watch('companyId'))?.razao_social || 'Selecione a empresa...'
-                             : "Buscar empresa..."}
-                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                         </Button>
-                       </PopoverTrigger>
-                       <PopoverContent className="w-[400px] p-0">
-                         <Command shouldFilter={false}>
-                           <CommandInput placeholder="Buscar empresa..." onValueChange={setSearchQuery} />
-                           <CommandList>
-                             <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
-                             <CommandGroup>
-                               {companies.map((company) => (
-                                 <CommandItem
-                                   key={company.id}
-                                   value={company.razao_social}
-                                   onSelect={() => {
-                                     form.setValue('companyId', company.id);
-                                     setCompanyName(company.razao_social);
-                                     setOpenCompany(false);
-                                   }}
-                                 >
-                                   <Check
-                                     className={cn(
-                                       "mr-2 h-4 w-4",
-                                       form.watch('companyId') === company.id ? "opacity-100" : "opacity-0"
-                                     )}
-                                   />
-                                   {company.razao_social}
-                                 </CommandItem>
-                               ))}
-                             </CommandGroup>
-                           </CommandList>
-                         </Command>
-                       </PopoverContent>
-                     </Popover>
-                     {form.formState.errors.companyId && <p className="text-sm text-destructive">{form.formState.errors.companyId.message}</p>}
+                     <FormField
+                        control={form.control}
+                        name="companyId"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Empresa</FormLabel>
+                            <Popover open={openCompany} onOpenChange={setOpenCompany}>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={openCompany}
+                                    className={cn(
+                                      "w-full justify-between",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    {field.value
+                                      ? companies.find((company) => company.id === field.value)?.razao_social
+                                      : "Selecione a empresa"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                <div className="flex flex-col">
+                                  <div className="flex items-center border-b px-3">
+                                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                    <Input
+                                      placeholder="Digite 3 caracteres..."
+                                      value={searchTerm}
+                                      onChange={(e) => setSearchTerm(e.target.value)}
+                                      className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
+                                    />
+                                  </div>
+                                  
+                                  <ScrollArea className="max-h-[300px] overflow-y-auto">
+                                    <div className="p-1">
+                                      {searchTerm.length >= 3 ? (
+                                        <>
+                                          {companies
+                                            .filter(company => 
+                                              company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                              company.cnpj.includes(searchTerm)
+                                            )
+                                            .length === 0 && (
+                                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                                Nenhuma empresa encontrada.
+                                              </div>
+                                            )}
+
+                                          {companies
+                                            .filter(company => 
+                                              company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                              company.cnpj.includes(searchTerm)
+                                            )
+                                            .slice(0, 50)
+                                            .map((company) => (
+                                              <div
+                                                key={company.id}
+                                                onClick={() => {
+                                                  form.setValue("companyId", company.id);
+                                                  setCompanyName(company.razao_social);
+                                                  setOpenCompany(false);
+                                                }}
+                                                className={cn(
+                                                  "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                                  company.id === field.value && "bg-accent text-accent-foreground"
+                                                )}
+                                              >
+                                                <div className="w-full">
+                                                  <div className="flex w-full justify-between items-center">
+                                                    <span className="font-medium">{company.razao_social}</span>
+                                                    {company.id === field.value && <Check className="h-4 w-4" />}
+                                                  </div>
+                                                  <div className="flex gap-2 text-xs text-muted-foreground">
+                                                    <span>CNPJ: {company.cnpj}</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                        </>
+                                      ) : (
+                                        <div className="py-6 text-center text-sm text-muted-foreground">
+                                          Digite pelo menos 3 caracteres para pesquisar...
+                                        </div>
+                                      )}
+                                    </div>
+                                  </ScrollArea>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                    </div>
                    
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="flex flex-col gap-4">
                        <FormField
                          control={form.control}
                          name="initialCompetence"
@@ -424,7 +592,16 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
                            <FormItem>
                              <FormLabel>Comp. Inicial</FormLabel>
                              <FormControl>
-                               <Input placeholder="MM/AAAA" {...field} />
+                               <Input 
+                                 placeholder="MM/AAAA" 
+                                 maxLength={7}
+                                 {...field}
+                                 onChange={(e) => {
+                                   let value = e.target.value.replace(/\D/g, '');
+                                   if (value.length > 2) value = value.slice(0, 2) + '/' + value.slice(2, 6);
+                                   field.onChange(value);
+                                 }}
+                               />
                              </FormControl>
                              <FormMessage />
                            </FormItem>
@@ -437,36 +614,22 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
                            <FormItem>
                              <FormLabel>Comp. Final</FormLabel>
                              <FormControl>
-                               <Input placeholder="MM/AAAA" {...field} />
+                               <Input 
+                                 placeholder="MM/AAAA" 
+                                 maxLength={7}
+                                 {...field}
+                                 onChange={(e) => {
+                                   let value = e.target.value.replace(/\D/g, '');
+                                   if (value.length > 2) value = value.slice(0, 2) + '/' + value.slice(2, 6);
+                                   field.onChange(value);
+                                 }}
+                               />
                              </FormControl>
                              <FormMessage />
                            </FormItem>
                          )}
                        />
                    </div>
-                   
-                   <FormField
-                     control={form.control}
-                     name="accountantId"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Contador</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                           <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="Selecione" />
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             {accountants.map((acc) => (
-                               <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
                    
                    <FormField
                      control={form.control}
@@ -489,23 +652,26 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
                        </FormItem>
                      )}
                    />
-                   
+
                    <FormField
                      control={form.control}
-                     name="partnerId"
+                     name="accountantId"
                      render={({ field }) => (
                        <FormItem>
-                         <FormLabel>Sócio para Assinatura</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <FormLabel>Contador</FormLabel>
+                         <Select 
+                           onValueChange={field.onChange} 
+                           defaultValue={field.value}
+                           disabled={form.watch('printAccountantSignature') !== 'Sim'}
+                         >
                            <FormControl>
                              <SelectTrigger>
                                <SelectValue placeholder="Selecione" />
                              </SelectTrigger>
                            </FormControl>
                            <SelectContent>
-                             <SelectItem value="Nenhum">Nenhum</SelectItem>
-                             {partners.map((p, idx) => (
-                               <SelectItem key={idx} value={p.cpf}>{p.nome}</SelectItem>
+                             {accountants.map((acc) => (
+                               <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
                              ))}
                            </SelectContent>
                          </Select>
@@ -527,8 +693,8 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
                              </SelectTrigger>
                            </FormControl>
                            <SelectContent>
-                             <SelectItem value="Nenhum">Nenhum</SelectItem>
-                             <SelectItem value="Normal">Normal</SelectItem>
+                             <SelectItem value="Sim">Sim</SelectItem>
+                             <SelectItem value="Não">Não</SelectItem>
                            </SelectContent>
                          </Select>
                          <FormMessage />
@@ -538,19 +704,25 @@ export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
                    
                    <FormField
                      control={form.control}
-                     name="includeLogo"
+                     name="partnerId"
                      render={({ field }) => (
                        <FormItem>
-                         <FormLabel>Incluir Logotipo</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <FormLabel>Sócio para Assinatura</FormLabel>
+                         <Select 
+                           onValueChange={field.onChange} 
+                           defaultValue={field.value}
+                           disabled={form.watch('printPartnerSignature') !== 'Sim'}
+                         >
                            <FormControl>
                              <SelectTrigger>
                                <SelectValue placeholder="Selecione" />
                              </SelectTrigger>
                            </FormControl>
                            <SelectContent>
-                             <SelectItem value="Sim">Sim</SelectItem>
-                             <SelectItem value="Não">Não</SelectItem>
+                             <SelectItem value="Nenhum">Nenhum</SelectItem>
+                             {partners.map((p, idx) => (
+                               <SelectItem key={idx} value={p.cpf}>{p.nome}</SelectItem>
+                             ))}
                            </SelectContent>
                          </Select>
                          <FormMessage />

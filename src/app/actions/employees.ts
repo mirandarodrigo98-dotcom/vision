@@ -380,7 +380,7 @@ export async function getEmployeesByCompany(companyId: string) {
     const employees = await db.prepare(`
       SELECT id, name, cpf
       FROM employees e
-      WHERE company_id = ? AND is_active = true
+      WHERE company_id = ? AND is_active = 1
       AND NOT EXISTS (
         SELECT 1 FROM dismissals d 
         WHERE d.employee_id = e.id 
