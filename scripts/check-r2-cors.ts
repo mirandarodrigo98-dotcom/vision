@@ -1,7 +1,8 @@
 import { S3Client, GetBucketCorsCommand } from '@aws-sdk/client-s3';
 import dotenv from 'dotenv';
 
-dotenv.config();
+console.log('Starting script...');
+dotenv.config({ path: '.env.local' });
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;

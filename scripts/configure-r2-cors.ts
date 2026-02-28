@@ -1,55 +1,47 @@
+
 import { S3Client, PutBucketCorsCommand } from '@aws-sdk/client-s3';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: '.env.local' });
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 
-if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
-    console.error('Missing environment variables');
-    process.exit(1);
-}
-
 const S3 = new S3Client({
   region: 'auto',
   endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  forcePathStyle: true,
   credentials: {
-    accessKeyId: R2_ACCESS_KEY_ID,
-    secretAccessKey: R2_SECRET_ACCESS_KEY,
+    accessKeyId: R2_ACCESS_KEY_ID || '',
+    secretAccessKey: R2_SECRET_ACCESS_KEY || '',
   },
 });
-
-import * as fs from 'fs';
 
 async function main() {
     console.log(`Configuring CORS for bucket: ${R2_BUCKET_NAME}...`);
     
+    const corsRules = [
+        {
+            AllowedHeaders: ["*"],
+            AllowedMethods: ["PUT", "POST", "GET", "HEAD", "DELETE"],
+            AllowedOrigins: ["*", "http://localhost:3000", "https://vision-piloto.vercel.app"], // Adicionei localhost e domínio provável
+            ExposeHeaders: ["ETag"],
+            MaxAgeSeconds: 3600
+        }
+    ];
+
     try {
         await S3.send(new PutBucketCorsCommand({
             Bucket: R2_BUCKET_NAME,
             CORSConfiguration: {
-                CORSRules: [
-                    {
-                        AllowedHeaders: ['*'],
-                        AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD', 'DELETE'],
-                        AllowedOrigins: ['*'],
-                        ExposeHeaders: ['ETag'],
-                        MaxAgeSeconds: 3600
-                    }
-                ]
+                CORSRules: corsRules
             }
         }));
-        const msg = '✅ CORS configuration applied successfully!';
-        console.log(msg);
-        fs.writeFileSync('cors-result.txt', msg);
-    } catch (error: any) {
-        const msg = `❌ Error applying CORS configuration: ${error.message || error}`;
-        console.error(msg);
-        fs.writeFileSync('cors-result.txt', msg);
+        console.log('CORS configuration updated successfully!');
+        console.log('New Rules:', JSON.stringify(corsRules, null, 2));
+    } catch (error) {
+        console.error('Error configuring CORS:', error);
     }
 }
 
