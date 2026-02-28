@@ -90,7 +90,7 @@ class PostgresAdapter implements DBClient {
 
   prepare(sql: string) {
     // Basic SQLite to Postgres conversion
-    let convertedSql = convertSql(sql);
+    const convertedSql = convertSql(sql);
 
     // Create a prepared statement object
     let pluckEnabled = false;

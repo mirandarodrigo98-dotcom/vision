@@ -44,7 +44,7 @@ export function addDays(date: Date, days: number): Date {
 }
 
 export function getNextBusinessDay(date: Date): Date {
-    let current = new Date(date);
+    const current = new Date(date);
     while (isWeekend(current) || isHoliday(current)) {
         current.setDate(current.getDate() + 1);
     }

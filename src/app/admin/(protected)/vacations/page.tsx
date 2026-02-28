@@ -22,7 +22,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
 
   // Check view permission
   let hasViewPermission = false;
-  let isAdmin = session.role === 'admin' || session.role === 'operator';
+  const isAdmin = session.role === 'admin' || session.role === 'operator';
 
   if (isAdmin) {
       hasViewPermission = true;

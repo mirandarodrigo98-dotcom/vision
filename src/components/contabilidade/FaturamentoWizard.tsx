@@ -154,7 +154,7 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
       const compFinalStr = `01/${values.finalCompetence}`;
 
       // Try to fetch from Questor if we have a code
-      let fetchedData: any[] = [];
+      const fetchedData: any[] = [];
       let usedQuestor = false;
       
       if (companyCode) {
@@ -514,7 +514,7 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
     });
     
     // Signatures
-    let finalY = (doc as any).lastAutoTable.finalY + 40;
+    const finalY = (doc as any).lastAutoTable.finalY + 40;
     
     const accountantId = form.getValues('accountantId');
     const accountant = accountants.find(a => a.id === accountantId);

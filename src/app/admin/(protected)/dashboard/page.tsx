@@ -153,7 +153,7 @@ function StatCard({ title, value, icon: Icon, subtext }: { title: string, value:
 }
 
 function ChartCard({ title, data }: { title: string, data: { month: string, count: number }[] }) {
-  const max = Math.max(...data.map(d => d.count), 1);
+  const max = Math.max(...data.map(d => d.count || 0), 1);
   
   return (
     <Card className="border-primary/10 h-full flex flex-col">
@@ -171,11 +171,10 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
               <div key={item.month} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group min-w-0">
                 <div 
                   className="w-full max-w-[16px] bg-secondary/80 rounded-t-sm relative transition-all duration-500 hover:bg-secondary min-h-[4px]" 
-                  style={{ height: `${(item.count / max) * 100}%` }}
-                  suppressHydrationWarning
+                  style={{ height: `${((item.count || 0) / max) * 100}%` }}
                 >
                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                    {Number(item.count)}
+                    {Number(item.count || 0)}
                   </div>
                 </div>
                 <span className="text-[10px] text-muted-foreground whitespace-nowrap -rotate-45 origin-center translate-y-3">
