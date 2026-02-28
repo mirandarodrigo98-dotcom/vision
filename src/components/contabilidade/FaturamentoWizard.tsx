@@ -180,10 +180,25 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
             const result = await executeQuestorReport('nFisRRFaturamentoGrafico', reportParams, 'nrwexCSV');
             
             if (result.error) {
-                console.error(`ERRO API Questor: ${result.error}`);
-                toast.error(`Erro Questor: ${result.error}`);
+                // Check if it's a connection error or service unavailable
+                const isConnectionError = 
+                    (typeof result.error === 'string' && (
+                        result.error.includes('ECONNREFUSED') || 
+                        result.error.includes('fetch failed') ||
+                        result.error.includes('500') ||
+                        result.error.includes('404')
+                    ));
+
+                if (isConnectionError) {
+                    console.warn(`Questor inacessível: ${result.error}`);
+                    toast.warning('Serviço Questor indisponível. Alternando para modo manual.');
+                    // Don't throw, explicitly fall through to manual mode logic below
+                } else {
+                    console.error(`ERRO API Questor: ${result.error}`);
+                    toast.error(`Erro Questor: ${result.error}`);
+                }
             } else if (result.data) {
-                console.log(`Questor retornou dados. Tamanho bruto: ${result.data.length} chars`);
+                    console.log(`Questor retornou dados. Tamanho bruto: ${result.data.length} chars`);
                 
                 let rawData = result.data;
                 // Double check if it's JSON (sometimes Server Action might return raw response if parsing failed there)
@@ -392,7 +407,11 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
   
   const getMonthName = (month: number) => {
@@ -403,42 +422,93 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
   const handleGeneratePDF = () => {
     const doc = new jsPDF();
     
-    // Header
-    doc.setFontSize(10);
-    doc.text(`${companyName}`, 14, 15);
-    // doc.text(`CNPJ: ${companyCnpj}`, 14, 20); // We need CNPJ
-    
-    doc.text(`Período: ${form.getValues('initialCompetence')} a ${form.getValues('finalCompetence')}`, 150, 15);
+    // Header Layout to match Preview
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const centerX = pageWidth / 2;
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Demonstrativo Mensal do Faturamento', 105, 30, { align: 'center' });
+    doc.text(companyName.toUpperCase(), centerX, 20, { align: 'center' });
     
-    // Table
+    doc.setFontSize(12);
+    doc.text('Demonstrativo Mensal do Faturamento', centerX, 28, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100); // Gray
+    doc.text(`Período: ${form.getValues('initialCompetence')} a ${form.getValues('finalCompetence')}`, centerX, 35, { align: 'center' });
+    
+    doc.setTextColor(0); // Reset to black
+    
+    // Table Data Preparation
     const tableData = billingData.map(item => [
       getMonthName(item.month),
       item.year,
       formatCurrency(item.faturado + (item.complemento || 0))
     ]);
-    
+
     // Add Total Row
+    // We pass 3 columns. We will use didParseCell to merge the first two for "TOTAL" label.
     tableData.push(['TOTAL', '', formatCurrency(calculateTotal())]);
     
     autoTable(doc, {
-      startY: 40,
+      startY: 45,
       head: [['MÊS', 'ANO', 'FATURADO (R$)']],
       body: tableData,
-      theme: 'plain',
-      styles: { fontSize: 10, cellPadding: 2 },
-      headStyles: { fontStyle: 'bold' },
+      theme: 'plain', // Clean layout, we draw borders manually
+      styles: { 
+          fontSize: 10, 
+          cellPadding: 3,
+          textColor: [0, 0, 0]
+      },
+      headStyles: { 
+          fillColor: [255, 255, 255], 
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          halign: 'left' // Default left alignment
+      },
       columnStyles: {
-        0: { cellWidth: 80 },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 60, halign: 'right' }
+        0: { cellWidth: 80 }, // MÊS
+        1: { cellWidth: 40 }, // ANO
+        2: { cellWidth: 60, halign: 'right' } // FATURADO
       },
       didParseCell: (data) => {
-          if (data.row.index === billingData.length) {
+          // Total Row Styling
+          if (data.section === 'body' && data.row.index === billingData.length) {
               data.cell.styles.fontStyle = 'bold';
+              // Merge first two columns for "TOTAL" label
+              if (data.column.index === 0) {
+                  data.cell.colSpan = 2;
+                  data.cell.styles.halign = 'right';
+              }
+          }
+      },
+      didDrawCell: (data) => {
+          // Manually draw borders to match CSS: border-b-2 border-black, border-b border-gray-100, etc.
+          
+          // 1. Header Bottom Border (Thick Black)
+          if (data.section === 'head') {
+             // Draw line at bottom of cell
+             doc.setDrawColor(0, 0, 0); // Black
+             doc.setLineWidth(0.5); // Thick
+             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+          }
+          
+          // 2. Body Rows
+          if (data.section === 'body') {
+              const isTotalRow = data.row.index === billingData.length;
+              
+              if (isTotalRow) {
+                  // Total Row: Top Border (Thick Black)
+                  doc.setDrawColor(0, 0, 0); // Black
+                  doc.setLineWidth(0.5); // Thick
+                  doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width, data.cell.y);
+              } else {
+                  // Normal Rows: Bottom Border (Thin Gray)
+                  doc.setDrawColor(220, 220, 220); // Gray 100 approx
+                  doc.setLineWidth(0.1); // Thin
+                  doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+              }
           }
       }
     });
@@ -751,23 +821,30 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
                             <TableRow key={index}>
                                 <TableCell>{getMonthName(item.month)}</TableCell>
                                 <TableCell>{item.year}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(item.faturado)}</TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right">R$ {formatCurrency(item.faturado)}</TableCell>
+                            <TableCell className="text-right">
+                                <div className="flex items-center justify-end">
                                     <Input 
-                                        type="number" 
-                                        className="w-32 ml-auto text-right"
-                                        value={item.complemento}
+                                        type="text" 
+                                        value={formatCurrency(item.complemento)} 
                                         onChange={(e) => {
-                                            const newVal = Number(e.target.value);
+                                            // Parse BRL currency input back to number
+                                            // Remove all non-digits
+                                            const rawValue = e.target.value.replace(/\D/g, '');
+                                            // Convert to float (divide by 100 for cents)
+                                            const numericValue = rawValue ? parseFloat(rawValue) / 100 : 0;
+                                            
                                             const newData = [...billingData];
-                                            newData[index].complemento = newVal;
+                                            newData[index].complemento = numericValue;
                                             setBillingData(newData);
                                         }}
+                                        className="w-32 text-right h-8" 
                                     />
-                                </TableCell>
-                                <TableCell className="text-right font-bold">
-                                    {formatCurrency(item.faturado + (item.complemento || 0))}
-                                </TableCell>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-right font-bold">
+                                R$ {formatCurrency(item.faturado + item.complemento)}
+                            </TableCell>
                             </TableRow>
                         ))}
                         <TableRow className="bg-muted font-bold">

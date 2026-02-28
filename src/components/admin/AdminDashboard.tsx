@@ -296,7 +296,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
             onMouseLeave={() => setIsHovering(false)}
         >
           {/* Sidebar component */}
-          <div className="flex grow flex-col gap-y-5 bg-[#06276b]">
+          <div className="flex h-full grow flex-col gap-y-5 bg-[#06276b]">
             <div className="flex h-16 shrink-0 items-center px-6 mt-5">
               {!isExpanded ? (
                 <div className="w-full flex justify-center">
@@ -308,7 +308,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                 </div>
               )}
             </div>
-            <nav className="flex flex-1 flex-col overflow-y-auto px-6">
+            <nav className="flex flex-1 flex-col overflow-y-auto px-6 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40">
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
