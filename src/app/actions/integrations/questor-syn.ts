@@ -103,6 +103,64 @@ export async function deleteQuestorSynRoutine(id: string) {
   }
 }
 
+const QUESTOR_INTERNAL_URL = 'http://192.168.11.2:9001';
+const QUESTOR_EXTERNAL_URL = 'http://hcs08305ayy.sn.mynetname.net:9001';
+
+async function fetchWithFallback(
+  path: string, 
+  options: RequestInit, 
+  primaryBaseUrl: string
+): Promise<Response> {
+  const primaryUrl = `${primaryBaseUrl.replace(/\/$/, '')}${path}`;
+  
+  // Determine fallback URL
+  let fallbackBaseUrl = '';
+  if (primaryBaseUrl.includes('192.168')) {
+    fallbackBaseUrl = QUESTOR_EXTERNAL_URL;
+  } else if (primaryBaseUrl.includes('mynetname.net')) {
+    fallbackBaseUrl = QUESTOR_INTERNAL_URL;
+  }
+
+  // If no fallback logic matches, just try primary
+  if (!fallbackBaseUrl || fallbackBaseUrl === primaryBaseUrl) {
+    return fetch(primaryUrl, options);
+  }
+
+  const fallbackUrl = `${fallbackBaseUrl.replace(/\/$/, '')}${path}`;
+
+  console.log(`[Questor] Trying Primary URL: ${primaryUrl}`);
+
+  try {
+    // Try primary with a timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout for primary
+    
+    const response = await fetch(primaryUrl, {
+      ...options,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    // Check if it's a connection error or timeout
+    const isConnectionError = 
+      error.name === 'AbortError' || 
+      error.message?.includes('ECONNREFUSED') || 
+      error.message?.includes('fetch failed');
+
+    if (isConnectionError) {
+      console.warn(`[Questor] Primary URL failed (${error.message}). Switching to Fallback: ${fallbackUrl}`);
+      
+      // Try fallback
+      return fetch(fallbackUrl, options);
+    }
+    
+    // If it's another error (e.g. strict SSL, etc that isn't connection/timeout), throw it
+    throw error;
+  }
+}
+
 export async function executeQuestorReport(
   actionName: string,
   params: Record<string, string>,
@@ -113,30 +171,26 @@ export async function executeQuestorReport(
     return { error: 'Configuração do Questor SYN não encontrada' };
   }
 
-  const baseUrl = config.base_url.replace(/\/$/, ''); // Remove trailing slash
-  const url = new URL(`${baseUrl}/TnWebDMRelatorio/Executar`);
+  const path = '/TnWebDMRelatorio/Executar';
+  const urlParams = new URLSearchParams();
   
   // Add standard parameters
-  url.searchParams.append('_AActionName', actionName);
-  url.searchParams.append('_ABase64', 'False'); // We want raw content for CSV
-  url.searchParams.append('_ATipoRetorno', returnType);
+  urlParams.append('_AActionName', actionName);
+  urlParams.append('_ABase64', 'False'); // We want raw content for CSV
+  urlParams.append('_ATipoRetorno', returnType);
   
   if (config.api_token) {
-    // Some docs say TokenApi, others say Authorization header.
-    // The user's snippet says "TokenApi (Não obrigatório)".
-    // We'll try adding it if present.
-    url.searchParams.append('TokenApi', config.api_token);
+    urlParams.append('TokenApi', config.api_token);
   }
 
+  const fullPath = `${path}?${urlParams.toString()}`;
+
   // Add report specific parameters
-  // Use POST with JSON body for report parameters to avoid URL length issues and ensure proper parsing
-  
   console.log(`[Questor] Executing Report: ${actionName}`);
-  console.log(`[Questor] URL (masked): ${url.toString().replace(/TokenApi=[^&]+/, 'TokenApi=***')}`);
   console.log(`[Questor] Body Params:`, JSON.stringify(params));
 
   try {
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithFallback(fullPath, {
       method: 'POST',
       headers: {
         'Accept': '*/*',
@@ -144,7 +198,7 @@ export async function executeQuestorReport(
       },
       body: JSON.stringify(params),
       cache: 'no-store',
-    });
+    }, config.base_url);
 
     if (!response.ok) {
       const text = await response.text();
@@ -179,9 +233,11 @@ export async function executeQuestorReport(
       return { data: base64, isBase64: true };
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error executing report:', error);
-    return { error: 'Erro ao conectar com o serviço Questor SYN' };
+    // Return specific error message
+    const errorMessage = error.message || 'Erro desconhecido ao conectar com o serviço Questor SYN';
+    return { error: `Erro de conexão Questor SYN: ${errorMessage}` };
   }
 }
 

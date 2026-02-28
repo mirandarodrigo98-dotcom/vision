@@ -161,7 +161,7 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
         <CardTitle className="text-base font-semibold text-primary">{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1">
-        <div className="h-[240px] w-full flex items-end gap-1 pt-4 pb-8 px-2">
+        <div className="h-[240px] w-full flex items-end gap-1 pt-4 pb-8 px-2" suppressHydrationWarning>
           {data.length === 0 ? (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
               Sem dados
@@ -172,6 +172,7 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
                 <div 
                   className="w-full max-w-[16px] bg-secondary/80 rounded-t-sm relative transition-all duration-500 hover:bg-secondary min-h-[4px]" 
                   style={{ height: `${((item.count || 0) / max) * 100}%` }}
+                  suppressHydrationWarning
                 >
                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
                     {Number(item.count || 0)}
