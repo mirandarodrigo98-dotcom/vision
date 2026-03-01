@@ -90,7 +90,7 @@ class PostgresAdapter implements DBClient {
 
   prepare(sql: string) {
     // Basic SQLite to Postgres conversion
-    const convertedSql = convertSql(sql);
+    let convertedSql = convertSql(sql);
 
     // Create a prepared statement object
     let pluckEnabled = false;
@@ -109,7 +109,7 @@ class PostgresAdapter implements DBClient {
           const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
           
           const result = await client.query(finalSql, params);
-          return { changes: result.rowCount, lastInsertRowid: null }; // PG doesn't return lastID easily without RETURNING
+          return { changes: result.rowCount || 0, lastInsertRowid: null }; // PG doesn't return lastID easily without RETURNING
         } finally {
           client.release();
         }
@@ -161,34 +161,18 @@ class PostgresAdapter implements DBClient {
 
     return stmt;
   }
-}
 
-// Transaction wrapper that mimics better-sqlite3 but async
-// Returns a function that when called, executes the transaction
-// Note: This simplified version does not support nested transactions or shared clients across calls yet
-// to keep it simple and avoid "client has been released" errors.
-// For complex transactions, we might need a more robust solution.
-// But for now, we just execute the function directly since we are not using transactions heavily in the codebase.
-// If we need transactions, we should implement a proper transaction manager.
-// However, the current codebase usage of db.transaction is minimal.
-/*
-  transaction<T extends (...args: any[]) => any>(fn: T) {
-    return async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-      // ... implementation ...
-    };
-  }
-*/
-// Implementing a dummy transaction wrapper that just runs the function
-// This is because managing the client lifecycle across async boundaries is tricky
-// and the current implementation was causing issues.
-class PostgresAdapterWithTransaction extends PostgresAdapter {
   transaction<T extends (...args: any[]) => any>(fn: T) {
     return async (...args: Parameters<T>): Promise<ReturnType<T>> => {
       return await fn(...args);
     };
   }
+
+  pragma(sql: string) {
+    // No-op
+  }
 }
 
-const db = new PostgresAdapterWithTransaction(pool);
+const db = new PostgresAdapter(pool);
 
 export default db;

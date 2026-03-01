@@ -52,14 +52,14 @@ import Papa from 'papaparse';
 
 // --- Step 1: Parameters Schema ---
 const paramsSchema = z.object({
-  initialCompetence: z.string({ required_error: 'Obrigatório' }).min(1, 'Obrigatório').regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
-  finalCompetence: z.string({ required_error: 'Obrigatório' }).min(1, 'Obrigatório').regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
-  companyId: z.string({ required_error: 'Selecione uma empresa' }).min(1, 'Selecione uma empresa'),
-  accountantId: z.string({ required_error: 'Selecione um contador' }).min(1, 'Selecione um contador'),
+  initialCompetence: z.string({ message: 'Obrigatório' }).min(1, 'Obrigatório').regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
+  finalCompetence: z.string({ message: 'Obrigatório' }).min(1, 'Obrigatório').regex(/^\d{2}\/\d{4}$/, 'Formato MM/AAAA'),
+  companyId: z.string({ message: 'Selecione uma empresa' }).min(1, 'Selecione uma empresa'),
+  accountantId: z.string({ message: 'Selecione um contador' }).min(1, 'Selecione um contador'),
   partnerId: z.string().optional(),
-  printAccountantSignature: z.enum(['Sim', 'Não'], { required_error: 'Obrigatório', invalid_type_error: 'Inválido' }),
+  printAccountantSignature: z.enum(['Sim', 'Não'], { message: 'Obrigatório' }),
   generateDigitalAccountantSignature: z.string().optional(),
-  printPartnerSignature: z.enum(['Sim', 'Não'], { required_error: 'Obrigatório', invalid_type_error: 'Inválido' }),
+  printPartnerSignature: z.enum(['Sim', 'Não'], { message: 'Obrigatório' }),
   generateDigitalPartnerSignature: z.string().optional(),
 });
 
@@ -154,7 +154,7 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
       const compFinalStr = `01/${values.finalCompetence}`;
 
       // Try to fetch from Questor if we have a code
-      const fetchedData: any[] = [];
+      let fetchedData: any[] = [];
       let usedQuestor = false;
       
       if (companyCode) {
@@ -514,7 +514,7 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
     });
     
     // Signatures
-    const finalY = (doc as any).lastAutoTable.finalY + 40;
+    let finalY = (doc as any).lastAutoTable.finalY + 40;
     
     const accountantId = form.getValues('accountantId');
     const accountant = accountants.find(a => a.id === accountantId);

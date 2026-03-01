@@ -174,7 +174,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
         setIsSyncing(false);
         return;
       }
-      setSyncStats(stats);
+      setSyncStats(stats as any);
       setIsSyncing(false); // Reset loading state before showing confirmation
       setShowConfirmSyncDialog(true);
     } catch (error) {

@@ -19,7 +19,7 @@ async function getAllowed() {
   const perms = await getRolePermissions(session.role);
   const canView =
     session.role === 'admin' ||
-    perms.some((p) => p.permission === 'societario.view' || p.permission === 'societario.edit');
+    perms.includes('societario.view') || perms.includes('societario.edit');
   return canView;
 }
 

@@ -300,9 +300,9 @@ export function AccountantDialog({
                     <FormItem>
                       <FormLabel>Data CRC</FormLabel>
                       <FormControl>
-                        <DatePicker 
-                          date={field.value} 
-                          setDate={field.onChange} 
+                        <DatePicker
+                          date={field.value || undefined}
+                          setDate={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />

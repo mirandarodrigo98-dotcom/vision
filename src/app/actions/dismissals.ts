@@ -95,7 +95,7 @@ export async function getDismissal(id: string) {
     if (!session) return null;
 
     try {
-        const query = `
+        let query = `
             SELECT d.*, 
                    cc.nome as company_name, 
                    e.name as employee_name

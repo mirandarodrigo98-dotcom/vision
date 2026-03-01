@@ -133,7 +133,7 @@ export function QuestorManager({ initialConfig, companies, companyAuths }: Props
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success(result.message);
+        toast.success((result as any).message);
       }
     } catch (error) {
       toast.error('Erro na solicitação');
@@ -149,7 +149,7 @@ export function QuestorManager({ initialConfig, companies, companyAuths }: Props
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success('Status atualizado: ' + result.status);
+        toast.success('Status atualizado: ' + (result as any).status);
       }
     } catch (error) {
       toast.error('Erro ao verificar status');

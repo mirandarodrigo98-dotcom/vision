@@ -63,7 +63,7 @@ export async function createAccountant(data: z.infer<typeof accountantSchema>) {
   try {
     const result = accountantSchema.safeParse(data);
     if (!result.success) {
-      return { error: result.error.errors[0].message };
+      return { error: result.error.issues[0].message };
     }
     
     const { 
@@ -99,7 +99,7 @@ export async function updateAccountant(id: string, data: z.infer<typeof accounta
   try {
     const result = accountantSchema.safeParse(data);
     if (!result.success) {
-      return { error: result.error.errors[0].message };
+      return { error: result.error.issues[0].message };
     }
     
     const { 

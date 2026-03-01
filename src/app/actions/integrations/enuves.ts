@@ -251,7 +251,7 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
         return { success: true, message: 'Lista vazia' };
     }
 
-    const minCode = nature === 'Entrada' ? 800000 : 900000;
+    let minCode = nature === 'Entrada' ? 800000 : 900000;
     
     // Check existing
     const existing = await db.prepare('SELECT description FROM enuves_categories WHERE company_id = ?').all(targetCompanyId) as { description: string }[];
