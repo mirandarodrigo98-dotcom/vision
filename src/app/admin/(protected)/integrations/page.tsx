@@ -72,6 +72,19 @@ export default async function IntegrationsPage() {
              )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+             <CardTitle>Comunicação</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Link href="/admin/integrations/digisac" className="w-full">
+                <Button className="w-full">
+                    DIGISAC
+                </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

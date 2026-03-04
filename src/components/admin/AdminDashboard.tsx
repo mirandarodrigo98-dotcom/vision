@@ -79,6 +79,7 @@ const navigation = [
       { name: 'Geral', href: '/admin/integrations/questor' },
       { name: 'Enuves', href: '/admin/integrations/enuves' },
       { name: 'Eklesia', href: '/admin/integrations/eklesia' },
+      { name: 'Digisac', href: '/admin/integrations/digisac' },
     ]
   },
 ]

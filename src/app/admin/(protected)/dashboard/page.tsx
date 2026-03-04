@@ -139,7 +139,7 @@ function StatCard({ title, value, icon: Icon, subtext }: { title: string, value:
         <Icon className="h-4 w-4 text-primary mt-1" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-primary">
+        <div className="text-2xl font-bold text-primary" suppressHydrationWarning>
           {isNaN(Number(value)) ? 0 : Number(value)}
         </div>
         {subtext ? (
@@ -174,11 +174,17 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
                   style={{ height: `${(item.count / max) * 100}%` }}
                   suppressHydrationWarning
                 >
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                  <div 
+                    className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none"
+                    suppressHydrationWarning
+                  >
                     {Number(item.count)}
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap -rotate-45 origin-center translate-y-3">
+                <span 
+                  className="text-[10px] text-muted-foreground whitespace-nowrap -rotate-45 origin-center translate-y-3"
+                  suppressHydrationWarning
+                >
                   {(() => {
                     const [year, month] = item.month.split('-');
                     return `${month}/${year.slice(-2)}`;
@@ -212,7 +218,7 @@ function RankingCard({ title, data }: { title: string, data: { name: string, cou
                   </div>
                   <span className="text-sm font-medium truncate" title={item.name}>{item.name}</span>
                 </div>
-                <span className="text-sm font-bold text-secondary">{Number(item.count)}</span>
+                <span className="text-sm font-bold text-secondary" suppressHydrationWarning>{Number(item.count)}</span>
               </div>
             ))
           )}

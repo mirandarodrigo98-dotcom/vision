@@ -39,6 +39,7 @@ function extractSociosFromForm(data: FormData) {
       bairro: (v['bairro'] as string) || '',
       municipio: (v['municipio'] as string) || '',
       uf: (v['uf'] as string) || '',
+      is_representative: v['is_representative'] === 'true' || v['is_representative'] === 'on',
     }));
   return socios;
 }
@@ -108,10 +109,11 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
   `);
   const findSocioByCpfStmt = db.prepare(`SELECT id FROM societario_socios WHERE cpf = ?`);
   const upsertLinkStmt = db.prepare(`
-    INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, created_at, updated_at)
-    VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, is_representative, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     ON CONFLICT(company_id, socio_id) DO UPDATE SET
       participacao_percent = excluded.participacao_percent,
+      is_representative = excluded.is_representative,
       updated_at = datetime('now')
   `);
   const insertSocioHistoryStmt = db.prepare(`
@@ -140,7 +142,7 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
       s.municipio || null,
       s.uf || null
     );
-    await upsertLinkStmt.run(randomUUID(), companyId, socioId, s.participacao_percent || 0);
+    await upsertLinkStmt.run(randomUUID(), companyId, socioId, s.participacao_percent || 0, s.is_representative ? true : false);
     await insertSocioHistoryStmt.run(
       uuidv4(),
       socioId,

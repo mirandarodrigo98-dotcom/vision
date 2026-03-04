@@ -20,7 +20,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
 
   const initialSocios = await db.prepare(`
     SELECT scs.participacao_percent,
-           ss.id as socio_id,
+           ss.id,
            ss.nome,
            ss.cpf,
            ss.data_nascimento,
@@ -33,7 +33,8 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
            ss.complemento,
            ss.bairro,
            ss.municipio,
-           ss.uf
+           ss.uf,
+           scs.is_representative
     FROM societario_company_socios scs
     JOIN societario_socios ss ON ss.id = scs.socio_id
     WHERE scs.company_id = ?
