@@ -1,6 +1,6 @@
 import { DismissalForm } from '@/components/dismissals/dismissal-form';
 import { getSession } from '@/lib/auth';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 
@@ -11,7 +11,7 @@ export default async function AdminNewDismissalPage() {
   let hasPermission = false;
   if (session.role === 'admin') hasPermission = true;
   else {
-      const permissions = await getRolePermissions(session.role);
+      const permissions = await getUserPermissions();
       hasPermission = permissions.includes('dismissals.create');
   }
 

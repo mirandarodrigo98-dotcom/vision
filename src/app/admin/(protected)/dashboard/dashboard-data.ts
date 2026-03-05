@@ -1,6 +1,6 @@
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export interface DashboardStats {
   admin?: {
@@ -31,7 +31,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
   const session = await getSession();
   if (!session) return {};
 
-  const permissions = await getRolePermissions(session.role);
+  const permissions = await getUserPermissions();
   const isAdmin = session.role === 'admin';
 
   // Date ranges

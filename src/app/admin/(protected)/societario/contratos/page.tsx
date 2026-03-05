@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { getContracts } from '@/app/actions/societario-contracts';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Plus } from 'lucide-react';
 export default async function ContratosPage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  const perms = await getRolePermissions(session.role);
+  const perms = await getUserPermissions();
   if (!perms.includes('societario.view')) {
     return <div className="p-6">Sem permissão</div>;
   }

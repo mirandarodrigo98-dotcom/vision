@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,7 +19,7 @@ export default async function SocietarioPage({ searchParams }: PageProps) {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const permissions = await getRolePermissions(session.role);
+  const permissions = await getUserPermissions();
   if (!permissions.includes('societario.view')) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">

@@ -5,6 +5,34 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { AVAILABLE_PERMISSIONS } from '@/lib/permissions-constants';
 
+export async function getUserPermissions() {
+    const session = await getSession();
+    
+    if (!session) {
+        return [];
+    }
+
+    if (session.role === 'admin') {
+        return AVAILABLE_PERMISSIONS.map(p => p.code);
+    }
+
+    try {
+        if (session.role === 'client_user') {
+            if (!session.department_id) return [];
+            
+            const result = await db.prepare('SELECT permission_code FROM department_permissions WHERE department_id = ?').all(session.department_id) as { permission_code: string }[];
+            return result.map(r => r.permission_code);
+        } else {
+            // Operator or other roles fallback to role-based
+            const result = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
+            return result.map(r => r.permission);
+        }
+    } catch (error) {
+        console.error('Error fetching user permissions:', error);
+        return [];
+    }
+}
+
 export async function getRolePermissions(role: string) {
     const session = await getSession();
     // Allow any authenticated user to check their own role permissions, 

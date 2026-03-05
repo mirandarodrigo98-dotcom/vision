@@ -42,3 +42,65 @@ export async function updateSettings(settings: { key: string; value: string }[])
         return { error: e.message };
     }
 }
+
+export async function clearPersonnelMovements() {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') {
+        return { error: 'Acesso negado. Apenas administradores podem executar esta ação.' };
+    }
+
+    try {
+        const performClear = db.transaction(async () => {
+            // 1. Delete dependent records first (children)
+            
+            // Vacations (linked to employees)
+            await db.prepare('DELETE FROM vacations').run();
+            
+            // Leaves (linked to employees)
+            await db.prepare('DELETE FROM leaves').run();
+            
+            // Dismissals (linked to employees)
+            await db.prepare('DELETE FROM dismissals').run();
+            
+            // Admission Attachments (linked to admission_requests)
+            await db.prepare('DELETE FROM admission_attachments').run();
+            
+            // 2. Delete main records
+            
+            // Admission Requests
+            await db.prepare('DELETE FROM admission_requests').run();
+            
+            // Transfer Requests
+            await db.prepare('DELETE FROM transfer_requests').run();
+            
+            // Employees (linked to companies, but parent to vacations/leaves/dismissals)
+            await db.prepare('DELETE FROM employees').run();
+        });
+
+        await performClear();
+
+        await logAudit({
+            action: 'CLEAR_PERSONNEL_MOVEMENTS',
+            actor_user_id: session.user_id,
+            actor_email: session.email,
+            role: session.role,
+            entity_type: 'system',
+            entity_id: 'ALL',
+            metadata: { description: 'Limpeza completa de movimentações do módulo pessoal' },
+            success: true
+        });
+
+        revalidatePath('/admin/dashboard');
+        revalidatePath('/admin/employees');
+        revalidatePath('/admin/admissions');
+        revalidatePath('/admin/vacations');
+        revalidatePath('/admin/leaves');
+        revalidatePath('/admin/transfers');
+        revalidatePath('/admin/dismissals');
+        
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error clearing personnel movements:', error);
+        return { error: 'Erro ao limpar dados: ' + error.message };
+    }
+}

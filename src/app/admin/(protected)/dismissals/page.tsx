@@ -7,7 +7,7 @@ import { ColumnHeader } from '@/components/ui/column-header';
 import { DismissalActions } from '@/components/dismissals/dismissal-actions';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   if (isManager) {
       hasViewPermission = true;
   } else {
-      const permissions = await getRolePermissions(session.role);
+      const permissions = await getUserPermissions();
       hasViewPermission = permissions.includes('dismissals.view'); // Ensure this permission exists
   }
 

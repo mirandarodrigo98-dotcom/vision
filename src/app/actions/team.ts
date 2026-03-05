@@ -16,6 +16,10 @@ export type TeamUser = {
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
+  cpf?: string;
+  phone?: string;
+  department_id?: string;
+  department_name?: string;
 };
 
 export async function getTeamUsers() {
@@ -25,27 +29,36 @@ export async function getTeamUsers() {
   }
 
   const users = await db.prepare(`
-    SELECT id, name, email, role, is_active, last_login_at, created_at
-    FROM users 
-    WHERE role IN ('admin', 'operator') AND deleted_at IS NULL
-    ORDER BY name ASC
+    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.department_id, d.name as department_name
+    FROM users u
+    LEFT JOIN departments d ON u.department_id = d.id
+    WHERE u.role IN ('admin', 'operator') AND u.deleted_at IS NULL
+    ORDER BY u.name ASC
   `).all() as TeamUser[];
 
   return users;
 }
 
-export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator' }) {
+export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role } = data;
+  const { name, email, role, cpf, phone, department_id } = data;
 
   // Validate email unique
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) {
     return { error: 'E-mail já cadastrado.' };
+  }
+
+  // Validate CPF unique if provided
+  if (cpf) {
+    const existingCpf = await db.prepare('SELECT id FROM users WHERE cpf = ?').get(cpf);
+    if (existingCpf) {
+      return { error: 'CPF já cadastrado.' };
+    }
   }
 
   const id = uuidv4();
@@ -56,9 +69,9 @@ export async function createTeamUser(data: { name: string; email: string; role: 
 
   try {
     await db.prepare(`
-      INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary)
-      VALUES (?, ?, ?, ?, 1, ?, 1)
-    `).run(id, name, email, role, hash);
+      INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, department_id)
+      VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?)
+    `).run(id, name, email, role, hash, cpf || null, phone || null, department_id || null);
 
     // Send email with password
     await sendEmail({
@@ -93,6 +106,54 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   } catch (error) {
     console.error(error);
     return { error: 'Erro ao criar usuário.' };
+  }
+}
+
+export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string }) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') {
+    return { error: 'Não autorizado' };
+  }
+
+  const { name, email, role, cpf, phone, department_id } = data;
+
+  // Validate email unique (excluding current user)
+  const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
+  if (existing) {
+    return { error: 'E-mail já cadastrado.' };
+  }
+
+  // Validate CPF unique if provided
+  if (cpf) {
+    const existingCpf = await db.prepare('SELECT id FROM users WHERE cpf = ? AND id != ?').get(cpf, id);
+    if (existingCpf) {
+      return { error: 'CPF já cadastrado.' };
+    }
+  }
+
+  try {
+    await db.prepare(`
+      UPDATE users 
+      SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, department_id = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(name, email, role, cpf || null, phone || null, department_id || null, id);
+
+    logAudit({
+      action: 'UPDATE_TEAM_USER',
+      actor_user_id: session.user_id,
+      actor_email: session.email,
+      role: session.role,
+      entity_type: 'user',
+      entity_id: id,
+      success: true,
+      metadata: { updated_role: role, updated_email: email }
+    });
+
+    revalidatePath('/admin/team');
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Erro ao atualizar usuário.' };
   }
 }
 

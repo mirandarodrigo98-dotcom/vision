@@ -1,13 +1,13 @@
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { SocioForm } from '@/components/socios/socio-form';
 
 async function getAllowed() {
   const session = await getSession();
   if (!session) return { allowed: false, companies: [] as any[] };
-  const perms = await getRolePermissions(session.role);
+  const perms = await getUserPermissions();
   const canView =
     session.role === 'admin' ||
     perms.includes('societario.view') || perms.includes('societario.edit');

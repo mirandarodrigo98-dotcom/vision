@@ -17,12 +17,14 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   let query = `
-    SELECT u.id, u.name, u.email, u.phone, u.is_active, 
+    SELECT u.id, u.name, u.email, u.phone, u.is_active, u.department_id,
+           d.name as department_name,
            GROUP_CONCAT(c.id) as company_ids,
            GROUP_CONCAT(c.nome, ', ') as company_names
     FROM users u
     LEFT JOIN user_companies uc ON u.id = uc.user_id
     LEFT JOIN client_companies c ON uc.company_id = c.id
+    LEFT JOIN departments d ON u.department_id = d.id
     WHERE u.role = 'client_user'
   `;
 
@@ -34,15 +36,17 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     params.push(likeQ, likeQ);
   }
 
-  query += ` GROUP BY u.id ORDER BY u.${safeSort} ${safeOrder}`;
+  query += ` GROUP BY u.id, d.name, u.department_id ORDER BY u.${safeSort} ${safeOrder}`;
 
   const users = await db.prepare(query).all(...params) as any[];
 
-  const companies = await db.prepare('SELECT id, nome FROM client_companies WHERE is_active = 1 ORDER BY nome').all() as any[];
+  const companies = await db.prepare("SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1 AND nome IS NOT NULL AND nome != '' ORDER BY nome").all() as any[];
+  
+  const departments = await db.prepare("SELECT id, name FROM departments ORDER BY name").all() as any[];
 
   return (
     <div className="space-y-6">
-      <UserList users={users} companies={companies} />
+      <UserList users={users} companies={companies} departments={departments} />
     </div>
   );
 }

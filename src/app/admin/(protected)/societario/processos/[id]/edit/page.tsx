@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ export default async function EditProcessoPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const session = await getSession();
   if (!session) redirect('/login');
-  const perms = await getRolePermissions(session.role);
+  const perms = await getUserPermissions();
   if (!(perms.includes('societario.processes.edit') || perms.includes('societario.edit'))) {
     return <div className="p-6">Sem permissão</div>;
   }

@@ -53,10 +53,11 @@ export async function createClientUser(formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const phone = formData.get('phone') as string;
+  const departmentId = formData.get('department_id') as string;
   const companyIds = formData.getAll('company_ids') as string[];
 
-  if (!name || !email || companyIds.length === 0) {
-    return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
+  if (!name || !email || companyIds.length === 0 || !departmentId) {
+    return { error: 'Nome, email, departamento e pelo menos uma empresa são obrigatórios.' };
   }
 
   // Check if email exists
@@ -73,9 +74,9 @@ export async function createClientUser(formData: FormData) {
     const createUser = db.transaction(async () => {
       // Create user
       await db.prepare(`
-        INSERT INTO users (id, name, email, phone, password_hash, role, is_active, created_at)
-        VALUES (?, ?, ?, ?, ?, 'client_user', 1, NOW())
-      `).run(userId, name, email, phone, hashedPassword);
+        INSERT INTO users (id, name, email, phone, department_id, password_hash, role, is_active, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'client_user', 1, NOW())
+      `).run(userId, name, email, phone, departmentId, hashedPassword);
 
       // Link companies
       for (const companyId of companyIds) {
@@ -131,10 +132,11 @@ export async function updateClientUser(userId: string, formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const phone = formData.get('phone') as string;
+  const departmentId = formData.get('department_id') as string;
   const companyIds = formData.getAll('company_ids') as string[];
 
-  if (!name || !email || companyIds.length === 0) {
-    return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
+  if (!name || !email || companyIds.length === 0 || !departmentId) {
+    return { error: 'Nome, email, departamento e pelo menos uma empresa são obrigatórios.' };
   }
 
   // Check if email exists for other user
@@ -148,9 +150,9 @@ export async function updateClientUser(userId: string, formData: FormData) {
       // Update user details
       await db.prepare(`
         UPDATE users 
-        SET name = ?, email = ?, phone = ?, updated_at = NOW()
+        SET name = ?, email = ?, phone = ?, department_id = ?, updated_at = NOW()
         WHERE id = ?
-      `).run(name, email, phone, userId);
+      `).run(name, email, phone, departmentId, userId);
 
       // Update companies links
       // First delete all

@@ -7,7 +7,7 @@ import { ColumnHeader } from '@/components/ui/column-header';
 import { VacationActions } from '@/components/vacations/vacation-actions';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
   if (isAdmin) {
       hasViewPermission = true;
   } else {
-      const permissions = await getRolePermissions(session.role);
+      const permissions = await getUserPermissions();
       hasViewPermission = permissions.includes('vacations.view');
   }
 

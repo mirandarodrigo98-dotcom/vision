@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { createContract } from '@/app/actions/societario-contracts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import RichTextEditor from '@/components/ui/rich-text-editor';
 export default async function NewContratoPage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  const perms = await getRolePermissions(session.role);
+  const perms = await getUserPermissions();
   if (!perms.includes('societario.edit')) {
     return <div className="p-6">Sem permissão</div>;
   }

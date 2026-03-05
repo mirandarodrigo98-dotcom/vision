@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { format } from 'date-fns';
 import { calculateReturnDate } from '@/lib/holidays';
-import { getRolePermissions } from './permissions';
+import { getUserPermissions } from './permissions';
 import { sendVacationNotification } from '@/lib/emails/notifications';
 import { generateVacationPDF } from '@/lib/pdf-generator';
 
@@ -139,7 +139,7 @@ export async function createVacation(formData: FormData) {
     let hasPermission = false;
     if (session.role === 'admin') hasPermission = true;
     else {
-        const permissions = await getRolePermissions(session.role);
+        const permissions = await getUserPermissions();
         hasPermission = permissions.includes('vacations.create');
     }
 
@@ -246,7 +246,7 @@ export async function updateVacation(id: string, formData: FormData) {
     let hasPermission = false;
     if (session.role === 'admin') hasPermission = true;
     else {
-        const permissions = await getRolePermissions(session.role);
+        const permissions = await getUserPermissions();
         hasPermission = permissions.includes('vacations.create'); // Simplified
     }
     

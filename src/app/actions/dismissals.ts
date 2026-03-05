@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit';
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { format } from 'date-fns';
-import { getRolePermissions } from './permissions';
+import { getUserPermissions } from './permissions';
 import { sendDismissalNotification } from '@/lib/emails/notifications';
 import { generateDismissalPDF } from '@/lib/pdf-generator';
 import { checkPendingRequests } from './employees';
@@ -135,7 +135,7 @@ export async function createDismissal(formData: FormData) {
     let hasPermission = false;
     if (session.role === 'admin') hasPermission = true;
     else {
-        const permissions = await getRolePermissions(session.role);
+        const permissions = await getUserPermissions();
         hasPermission = permissions.includes('dismissals.create'); // Ensure this permission key exists or is added
     }
 

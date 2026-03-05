@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { getSocios } from '@/app/actions/socios';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ interface SociosListPageProps {
 async function getAllowed() {
   const session = await getSession();
   if (!session) return false;
-  const perms = await getRolePermissions(session.role);
+  const perms = await getUserPermissions();
   const canView =
     session.role === 'admin' ||
     perms.includes('societario.view') || perms.includes('societario.edit');
@@ -68,7 +68,7 @@ export default async function SociosListPage({ searchParams }: SociosListPagePro
               </TableRow>
             ) : (
               socios.map((socio: any) => (
-                <TableRow key={socio.id}>
+                <TableRow key={`${socio.id}-${socio.company_id || 'no-company'}`}>
                   <TableCell>{socio.company_name || '-'}</TableCell>
                   <TableCell>{socio.nome}</TableCell>
                   <TableCell>{socio.cpf}</TableCell>

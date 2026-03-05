@@ -2,7 +2,7 @@ import { VacationForm } from '@/components/vacations/vacation-form';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export default async function NewVacationPage() {
   const session = await getSession();
@@ -12,7 +12,7 @@ export default async function NewVacationPage() {
   let hasPermission = false;
   if (session.role === 'admin') hasPermission = true;
   else {
-      const permissions = await getRolePermissions(session.role);
+      const permissions = await getUserPermissions();
       hasPermission = permissions.includes('vacations.create');
   }
 

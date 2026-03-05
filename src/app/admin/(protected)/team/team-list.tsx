@@ -2,49 +2,38 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { createTeamUser, toggleTeamUserStatus, deleteTeamUser, generateTempPassword, sendPassword, TeamUser } from '@/app/actions/team';
+import { toggleTeamUserStatus, deleteTeamUser, generateTempPassword, sendPassword, TeamUser } from '@/app/actions/team';
+import { Department } from '@/app/actions/departments';
 import { toast } from 'sonner';
-import { Plus, Trash, Shield, User, Power, PowerOff, Clock, Key, Loader2, Copy } from 'lucide-react';
+import { Plus, Trash, Shield, User, Power, PowerOff, Clock, Key, Loader2, Copy, Edit } from 'lucide-react';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import TeamForm from './team-form';
 
-export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+export default function TeamManagementPage({ users, departments }: { users: TeamUser[], departments: Department[] }) {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<TeamUser | undefined>(undefined);
   
   const [tempPasswordOpen, setTempPasswordOpen] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
   const [generatingTemp, setGeneratingTemp] = useState<string | null>(null);
   const [sendingPassword, setSendingPassword] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'operator' as 'admin' | 'operator'
-  });
+  const handleCreate = () => {
+    setEditingUser(undefined);
+    setIsFormOpen(true);
+  };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleEdit = (user: TeamUser) => {
+    setEditingUser(user);
+    setIsFormOpen(true);
+  };
 
-    try {
-      const res = await createTeamUser(formData);
-      if (res.error) {
-        toast.error(res.error);
-      } else {
-        toast.success('Usuário criado com sucesso!');
-        setIsDialogOpen(false);
-        setFormData({ name: '', email: '', role: 'operator' });
-      }
-    } catch (error) {
-      toast.error('Erro ao criar usuário.');
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const handleSuccess = () => {
+    setIsFormOpen(false);
+    setEditingUser(undefined);
+  };
 
   async function handleToggleStatus(user: TeamUser) {
     try {
@@ -93,21 +82,30 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
   }
 
   async function handleSendPassword(userId: string) {
-      if (!confirm('Deseja gerar uma nova senha e enviar por e-mail? A senha atual será invalidada.')) return;
-      
       setSendingPassword(userId);
       try {
           const res = await sendPassword(userId);
           if (res.error) {
               toast.error(res.error);
           } else {
-              toast.success('Senha enviada por e-mail.');
+              toast.success('Nova senha enviada por e-mail.');
           }
       } catch (error) {
           toast.error('Erro ao enviar senha.');
       } finally {
           setSendingPassword(null);
       }
+  }
+
+  if (isFormOpen) {
+    return (
+      <TeamForm 
+        departments={departments}
+        initialData={editingUser}
+        onCancel={() => setIsFormOpen(false)}
+        onSuccess={handleSuccess}
+      />
+    );
   }
 
   return (
@@ -141,60 +139,9 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
 
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Gestão de Equipe</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Novo Membro
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Adicionar Membro da Equipe</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nome</label>
-                <Input 
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  placeholder="Nome completo"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">E-mail</label>
-                <Input 
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  placeholder="email@nzd.com.br"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Perfil</label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(val: 'admin' | 'operator') => setFormData({ ...formData, role: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="operator">Operador</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Admins têm acesso total. Operadores acessam empresas e admissões, mas não logs/configurações.
-                </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Salvando...' : 'Adicionar Membro'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleCreate}>
+          <Plus className="mr-2 h-4 w-4" /> Novo Membro
+        </Button>
       </div>
 
       <div className="border rounded-md bg-white">
@@ -203,7 +150,7 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
-              <TableHead>Perfil</TableHead>
+              <TableHead>Departamento</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Último Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -221,7 +168,9 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
                     ) : (
                       <User className="h-4 w-4 text-primary" />
                     )}
-                    <span className="capitalize">{user.role === 'admin' ? 'Administrador' : 'Operador'}</span>
+                    <span className="capitalize">
+                        {user.role === 'admin' ? 'Administrador' : (user.department_name || 'Sem Departamento')}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -236,6 +185,15 @@ export default function TeamManagementPage({ users }: { users: TeamUser[] }) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleEdit(user)}
+                      title="Editar"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 

@@ -1,9 +1,9 @@
-import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { getRolePermissions } from '@/app/actions/permissions';
-import { redirect } from 'next/navigation';
-import { DismissalForm } from '@/components/dismissals/dismissal-form';
+import db from '@/lib/db';
+import { notFound, redirect } from 'next/navigation';
 import { getDismissal } from '@/app/actions/dismissals';
+import { DismissalForm } from '@/components/dismissals/dismissal-form';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export default async function AdminEditDismissalPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
@@ -21,7 +21,7 @@ export default async function AdminEditDismissalPage({ params }: { params: Promi
     let hasPermission = false;
     if (session.role === 'admin') hasPermission = true;
     else {
-        const permissions = await getRolePermissions(session.role);
+        const permissions = await getUserPermissions();
         hasPermission = permissions.includes('dismissals.create');
     }
 

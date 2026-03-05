@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { createProcess } from '@/app/actions/societario-processes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ interface PageProps {
 export default async function NewProcessoPage({ searchParams }: PageProps) {
   const session = await getSession();
   if (!session) redirect('/login');
-  const perms = await getRolePermissions(session.role);
+  const perms = await getUserPermissions();
   if (!perms.includes('societario.edit')) {
     return <div className="p-6">Sem permissão</div>;
   }

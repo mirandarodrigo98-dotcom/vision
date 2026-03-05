@@ -4,10 +4,21 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateSettings } from '@/app/actions/settings';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { updateSettings, clearPersonnelMovements } from '@/app/actions/settings';
 import { uploadSystemLogo, removeSystemLogo } from '@/app/actions/upload-logo';
 import { toast } from 'sonner';
-import { Trash2, Upload } from 'lucide-react';
+import { Trash2, Upload, AlertTriangle } from 'lucide-react';
 
 interface SettingsFormProps {
     initialData: {
@@ -23,6 +34,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     // Logo state
     const [logoUrl, setLogoUrl] = useState<string | null>(initialData.logoUrl || null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [clearingPersonnel, setClearingPersonnel] = useState(false);
+    const [alertOpen, setAlertOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +198,79 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                             required
                         />
                         <p className="text-xs text-gray-500">Este é o e-mail que receberá as notificações do Pessoal.</p>
+                    </div>
+
+                    <div className="pt-4 border-t mt-6">
+                        <h4 className="text-sm font-medium text-red-600 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4" />
+                            Zona de Perigo
+                        </h4>
+                        <p className="text-xs text-gray-500 mb-4">
+                            Ações irreversíveis que afetam os dados do sistema.
+                        </p>
+                        
+                        <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+                            <AlertDialogTrigger asChild>
+                                <Button 
+                                    type="button" 
+                                    variant="destructive" 
+                                    disabled={clearingPersonnel}
+                                    className="w-full sm:w-auto"
+                                >
+                                    {clearingPersonnel ? 'Limpando...' : 'Limpar Movimentações do Pessoal'}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                                    <AlertDialogDescription asChild>
+                                        <div className="text-sm text-muted-foreground">
+                                            Esta ação irá excluir <strong>PERMANENTEMENTE</strong> todos os dados de movimentação do Módulo Pessoal, incluindo:
+                                            <ul className="list-disc pl-5 mt-2 mb-2">
+                                                <li>Admissões e anexos</li>
+                                                <li>Funcionários cadastrados</li>
+                                                <li>Férias e afastamentos</li>
+                                                <li>Demissões e transferências</li>
+                                            </ul>
+                                            Essa ação não pode ser desfeita. Isso geralmente é usado após testes ou para reiniciar o módulo.
+                                        </div>
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={clearingPersonnel}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                        disabled={clearingPersonnel}
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            
+                                            setClearingPersonnel(true);
+                                            try {
+                                                const res = await clearPersonnelMovements();
+                                                if (res.success) {
+                                                    toast.success('Dados de movimentação limpos com sucesso!');
+                                                    setAlertOpen(false);
+                                                } else {
+                                                    toast.error(res.error || 'Erro ao limpar dados.');
+                                                }
+                                            } catch (err) {
+                                                toast.error('Erro inesperado ao limpar dados.');
+                                            } finally {
+                                                setClearingPersonnel(false);
+                                                if (!clearingPersonnel) { // Just to be safe or just force close?
+                                                     // If error, we might want to keep it open or close?
+                                                     // Usually close on error too or let user retry.
+                                                     // But for now let's close it to avoid stuck state.
+                                                     setAlertOpen(false);
+                                                }
+                                            }
+                                        }}
+                                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                                    >
+                                        {clearingPersonnel ? 'Excluindo...' : 'Sim, excluir tudo'}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </section>
 

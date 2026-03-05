@@ -44,6 +44,7 @@ const navigation = [
       { name: 'Empresas', href: '/admin/clients' },
       { name: 'Sócios', href: '/admin/socios' },
       { name: 'Contadores', href: '/admin/accountants' },
+      { name: 'Departamentos', href: '/admin/registrations/departments' },
       { name: 'Usuários', href: '/admin/client-users' },
       { name: 'Equipe', href: '/admin/team' },
     ]

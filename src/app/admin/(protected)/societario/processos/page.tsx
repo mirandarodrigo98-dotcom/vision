@@ -1,17 +1,21 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { getProcesses } from '@/app/actions/societario-processes';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus } from 'lucide-react';
 
-export default async function ProcessosPage() {
+export default async function ProcessosPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const session = await getSession();
   if (!session) redirect('/login');
-  const perms = await getRolePermissions(session.role);
-  if (!perms.includes('societario.view')) {
+
+  const { search } = await searchParams;
+  
+  const permissions = await getUserPermissions();
+  const canView = permissions.includes('societario.processes.view');
+  if (!canView) {
     return <div className="p-6">Sem permissão</div>;
   }
 

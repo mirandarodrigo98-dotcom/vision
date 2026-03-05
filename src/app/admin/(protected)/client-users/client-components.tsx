@@ -13,6 +13,8 @@ import { Pencil, Power, PowerOff, Plus, Key, Loader2, Search, X, Clock } from 'l
 import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 interface User {
   id: string;
   name: string;
@@ -21,14 +23,22 @@ interface User {
   is_active: number;
   company_ids: string | null; // Comma separated IDs
   company_names: string | null; // Comma separated Names
+  department_id?: string;
+  department_name?: string;
 }
 
 interface Company {
     id: string;
     nome: string;
+    razao_social?: string;
 }
 
-export function UserList({ users, companies }: { users: User[], companies: Company[] }) {
+interface Department {
+    id: string;
+    name: string;
+}
+
+export function UserList({ users, companies, departments }: { users: User[], companies: Company[], departments: Department[] }) {
   const [editing, setEditing] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
   const [sendingPassword, setSendingPassword] = useState<string | null>(null);
@@ -87,7 +97,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
               <TableHead>
                 <ColumnHeader column="email" title="Email" />
               </TableHead>
-              <TableHead>Empresas</TableHead>
+              {/* <TableHead>Empresas</TableHead> */}
               <TableHead>
                 <ColumnHeader column="is_active" title="Status" />
               </TableHead>
@@ -104,7 +114,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                         <div className="flex flex-wrap gap-1">
                             {displayCompanies.map((name, i) => (
                                 <Badge key={i} variant="secondary" className="text-xs font-normal">
@@ -118,7 +128,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
                             )}
                             {companyList.length === 0 && <span className="text-muted-foreground text-sm">-</span>}
                         </div>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {user.is_active ? 'Ativo' : 'Inativo'}
@@ -191,6 +201,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
           <UserForm 
             user={editing} 
             companies={companies}
+            departments={departments}
             onSuccess={() => setOpen(false)} 
           />
         </DialogContent>
@@ -217,22 +228,36 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
   );
 }
 
-function UserForm({ user, companies, onSuccess }: { user: User | null, companies: Company[], onSuccess: () => void }) {
+function UserForm({ user, companies, departments, onSuccess }: { user: User | null, companies: Company[], departments: Department[], onSuccess: () => void }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(user?.department_id || '');
 
   // Initialize selectedIds when user prop changes
   useEffect(() => {
-    if (user && user.company_ids) {
-        setSelectedIds(user.company_ids.split(','));
+    if (user) {
+        if (user.company_ids) {
+            setSelectedIds(user.company_ids.split(','));
+        } else {
+            setSelectedIds([]);
+        }
+        setSelectedDepartment(user.department_id || '');
     } else {
         setSelectedIds([]);
+        setSelectedDepartment('');
     }
   }, [user]);
 
   const filteredCompanies = useMemo(() => {
-      if (!searchTerm) return companies;
-      return companies.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase()));
+      let filtered = companies.filter(c => c.nome && c.nome.trim() !== '');
+      
+      if (!searchTerm) return filtered;
+      
+      const term = searchTerm.toLowerCase();
+      return filtered.filter(c => 
+          (c.nome && c.nome.toLowerCase().includes(term)) || 
+          (c.razao_social && c.razao_social.toLowerCase().includes(term))
+      );
   }, [companies, searchTerm]);
 
   const toggleCompany = (id: string) => {
@@ -260,11 +285,19 @@ function UserForm({ user, companies, onSuccess }: { user: User | null, companies
         toast.error('Selecione pelo menos uma empresa.');
         return;
     }
+    
+    if (!selectedDepartment) {
+        toast.error('Selecione um departamento.');
+        return;
+    }
 
-    // Manually append selected company IDs to formData since they are not in standard inputs
-    // We can clear any existing 'company_ids' entries if any were added by accident (unlikely here)
+    // Manually append selected company IDs
     formData.delete('company_ids'); 
     selectedIds.forEach(id => formData.append('company_ids', id));
+    
+    // Ensure department_id is in formData (Select component might need hidden input if not using name prop correctly or if Select doesn't submit natively in some setups, but Radix UI Select requires hidden input usually)
+    // Actually, Radix UI Select with name prop works if inside a form, but let's be safe.
+    formData.set('department_id', selectedDepartment);
 
     let res;
     if (user) {
@@ -290,6 +323,25 @@ function UserForm({ user, companies, onSuccess }: { user: User | null, companies
       <div className="space-y-2">
         <label className="text-sm font-medium">Email (Login)</label>
         <Input name="email" type="email" defaultValue={user?.email} required />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Departamento</label>
+        <Select 
+            value={selectedDepartment} 
+            onValueChange={setSelectedDepartment}
+            name="department_id"
+        >
+            <SelectTrigger>
+                <SelectValue placeholder="Selecione um departamento" />
+            </SelectTrigger>
+            <SelectContent>
+                {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Telefone</label>
@@ -338,7 +390,7 @@ function UserForm({ user, companies, onSuccess }: { user: User | null, companies
                                 htmlFor={`comp-${c.id}`} 
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1 py-1"
                             >
-                                {c.nome}
+                                {c.nome || c.razao_social || 'Sem Nome'}
                             </label>
                         </div>
                     ))

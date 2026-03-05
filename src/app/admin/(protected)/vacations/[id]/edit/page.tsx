@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { VacationForm } from '@/components/vacations/vacation-form';
 import { getVacation } from '@/app/actions/vacations';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export default async function EditVacationPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
@@ -21,7 +21,7 @@ export default async function EditVacationPage({ params }: { params: Promise<{ i
     let hasPermission = false;
     if (session.role === 'admin') hasPermission = true;
     else {
-        const permissions = await getRolePermissions(session.role);
+        const permissions = await getUserPermissions();
         // Assuming edit permission uses 'vacations.create' or specific logic
         hasPermission = permissions.includes('vacations.create');
     }

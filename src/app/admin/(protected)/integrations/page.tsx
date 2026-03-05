@@ -1,6 +1,6 @@
 
 import { getSession } from '@/lib/auth';
-import { getRolePermissions } from '@/app/actions/permissions';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -10,7 +10,7 @@ export default async function IntegrationsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const permissions = await getRolePermissions(session.role);
+  const permissions = await getUserPermissions();
 
   if (!permissions.includes('integrations.view')) {
       return (
