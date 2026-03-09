@@ -144,7 +144,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                             variant="outline" 
                             size="sm" 
                             disabled={isApproving}
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            className="text-primary border-primary/20 hover:bg-primary/10"
                           >
                             {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
@@ -163,7 +163,7 @@ export function TransferActions({ transferId, transferDate, status, employeeName
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleApprove} className="bg-blue-600 hover:bg-blue-700">
+                    <AlertDialogAction onClick={handleApprove} className="bg-primary hover:bg-primary/90">
                       Concluir
                     </AlertDialogAction>
                   </AlertDialogFooter>

@@ -63,7 +63,7 @@ export function ClientHeader({ user, activeCompany, companies }: ClientHeaderPro
           </div>
 
           <DropdownMenuTrigger asChild>
-            <Avatar className="h-9 w-9 bg-blue-100 text-blue-700 border border-blue-200 cursor-pointer hover:opacity-80 transition-opacity">
+            <Avatar className="h-9 w-9 bg-primary/10 text-primary border border-primary/20 cursor-pointer hover:opacity-80 transition-opacity">
               <AvatarImage src={user.avatar_url} alt={user.name} />
               <AvatarFallback className="font-semibold">{getInitials(user.name)}</AvatarFallback>
             </Avatar>

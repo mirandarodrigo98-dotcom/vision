@@ -157,7 +157,7 @@ export function ContactsTab({ companyId }: ContactsTabProps) {
                     ) : (
                         phones.map(phone => (
                             <TableRow key={phone.id}>
-                                <TableCell className="font-medium text-blue-600">{phone.name}</TableCell>
+                                <TableCell className="font-medium text-primary">{phone.name}</TableCell>
                                 <TableCell>{phone.number}</TableCell>
                                 <TableCell>
                                     <span className="bg-gray-100 px-2 py-1 rounded text-xs">{phone.category_name}</span>
@@ -195,7 +195,7 @@ export function ContactsTab({ companyId }: ContactsTabProps) {
                     ) : (
                         emails.map(email => (
                             <TableRow key={email.id}>
-                                <TableCell className="font-medium text-blue-600">{email.name}</TableCell>
+                                <TableCell className="font-medium text-primary">{email.name}</TableCell>
                                 <TableCell>{email.email}</TableCell>
                                 <TableCell>
                                     <span className="bg-gray-100 px-2 py-1 rounded text-xs">{email.category_name}</span>

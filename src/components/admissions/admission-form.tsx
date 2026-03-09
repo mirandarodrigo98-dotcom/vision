@@ -864,7 +864,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                                 </thead>
                                 <tbody>
                                     {schedule.map((day, index) => (
-                                        <tr key={day.day} className={`border-b ${day.active ? 'bg-white' : (day.isDSR ? 'bg-blue-50' : (day.isFolga ? 'bg-gray-50' : (day.isCPS ? 'bg-orange-50' : 'bg-gray-100')))}`}>
+                                        <tr key={day.day} className={`border-b ${day.active ? 'bg-white' : (day.isDSR ? 'bg-primary/5' : (day.isFolga ? 'bg-gray-50' : (day.isCPS ? 'bg-orange-50' : 'bg-gray-100')))}`}>
                                             <td className="p-2 font-medium">{day.day.replace('-feira', '')}</td>
                                             <td className="p-2 text-center">
                                                 <Checkbox 
@@ -974,7 +974,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                                                     type="button"
                                                     variant={day.isDSR ? "default" : "outline"}
                                                     size="sm"
-                                                    className={day.isDSR ? "bg-blue-600 hover:bg-blue-700 h-8 text-[10px] px-1" : "h-8 text-[10px] px-1"}
+                                                    className={day.isDSR ? "bg-primary hover:bg-primary/90 h-8 text-[10px] px-1" : "h-8 text-[10px] px-1"}
                                                     onClick={() => handleDSRChange(index, !day.isDSR)}
                                                     disabled={readOnly || day.active || day.isFolga || day.isCPS || (schedule.some(d => d.isDSR) && !day.isDSR)}
                                                     title="Descanso Semanal Remunerado"

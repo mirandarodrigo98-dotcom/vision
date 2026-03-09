@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { EmployeeImportDialog } from '@/components/admin/employees/employee-import-dialog';
+import { QuestorEmployeeImport } from '@/components/admin/employees/questor-employee-import';
 import { EmployeeActions } from '@/components/admin/employees/employee-actions';
 import { EmployeeFilters } from '@/components/admin/employees/employee-filters';
 
@@ -100,6 +101,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Funcionários</h1>
         <div className="flex gap-2">
+          <QuestorEmployeeImport />
           <EmployeeImportDialog />
           <Link href="/admin/employees/new">
             <Button>
@@ -181,7 +183,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                       employee.status === 'Admitido' ? 'bg-green-100 text-green-800' :
                       employee.status === 'Desligado' ? 'bg-red-100 text-red-800' :
-                      employee.status === 'Transferido' ? 'bg-blue-100 text-blue-800' :
+                      employee.status === 'Transferido' ? 'bg-primary/10 text-primary' :
                       employee.status === 'Férias' ? 'bg-yellow-100 text-yellow-800' :
                       employee.status === 'Afastado' ? 'bg-orange-100 text-orange-800' :
                       'bg-gray-100 text-gray-800'

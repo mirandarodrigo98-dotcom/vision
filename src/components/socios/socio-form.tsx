@@ -14,6 +14,7 @@ import { validateCPF } from '@/lib/validators';
 import { saveSocio } from '@/app/actions/socios';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { QuestorImportDialog } from '@/components/admin/companies/questor-import-dialog';
 
 interface SocioFormProps {
   companies: any[];
@@ -106,6 +107,51 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
 
   const isFormValid = !!selectedCompanyId && !!filial.trim() && !!nome.trim() && !!cpf.trim() && validateCPF(cpf) && !!participacao;
 
+  const handleImport = (data: any) => {
+    const { company, socio } = data;
+    
+    // 1. Try to find and select company
+    if (company) {
+      const cnpj = (company.INSCRFEDERAL || company.CNPJ || '').replace(/\D/g, '');
+      const foundCompany = companies.find(c => c.cnpj.replace(/\D/g, '') === cnpj);
+      if (foundCompany) {
+        handleEmpresaChange(foundCompany.id);
+      } else {
+        toast.warning('Empresa importada não encontrada no sistema. Selecione manualmente.');
+      }
+    }
+
+    // 2. Fill socio fields
+    if (socio) {
+      if (socio.NOME) setNome(socio.NOME);
+      if (socio.CPF) {
+         let val = socio.CPF.replace(/\D/g, '');
+         if (val.length === 11) val = val.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+         setCpf(val);
+      }
+      if (socio.PERCENTUALPARTICIPACAO || socio.PARTICIPACAO) {
+        const p = parseFloat(socio.PERCENTUALPARTICIPACAO || socio.PARTICIPACAO);
+        if (!isNaN(p)) setParticipacao(p.toFixed(2));
+      }
+      if (socio.DATANASCIMENTO) setDataNascimento(new Date(socio.DATANASCIMENTO));
+      if (socio.RG) setRg(socio.RG);
+      if (socio.ORGAOEXPEDIDOR) setOrgaoExpedidor(socio.ORGAOEXPEDIDOR);
+      if (socio.UFORGAOEXPEDIDOR) setUfOrgaoExpedidor(socio.UFORGAOEXPEDIDOR);
+      if (socio.DATAEXPEDICAO) setDataExpedicao(new Date(socio.DATAEXPEDICAO));
+      
+      // Address
+      if (socio.CEP) setCep(socio.CEP);
+      if (socio.ENDERECO || socio.LOGRADOURO) setLogradouro(socio.ENDERECO || socio.LOGRADOURO);
+      if (socio.NUMERO) setNumero(socio.NUMERO);
+      if (socio.COMPLEMENTO) setComplemento(socio.COMPLEMENTO);
+      if (socio.BAIRRO) setBairro(socio.BAIRRO);
+      if (socio.NOMEMUNIC) setMunicipio(socio.NOMEMUNIC);
+      if (socio.SIGLAESTADO) setUf(socio.SIGLAESTADO);
+
+      toast.success('Dados do sócio preenchidos!');
+    }
+  };
+
   async function handleSave() {
     if (!isFormValid) return;
 
@@ -152,6 +198,7 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
         <h1 className="text-3xl font-bold tracking-tight">
           {initialData ? 'Editar Sócio' : 'Novo Sócio'}
         </h1>
+        <QuestorImportDialog mode="socio" onImport={handleImport} />
       </div>
 
       <Card>

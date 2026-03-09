@@ -43,7 +43,7 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
             <Button
               variant="outline"
               size="sm"
-              className="text-[#06276b] border-[#06276b]/20 hover:bg-[#06276b]/10"
+              className="text-primary border-primary/20 hover:bg-primary/10"
               onClick={() => router.push(`/admin/employees/${id}`)}
             >
               <Eye className="h-4 w-4" />
@@ -60,7 +60,7 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
             <Button
               variant="outline"
               size="sm"
-              className="text-[#06276b] border-[#06276b]/20 hover:bg-[#06276b]/10"
+              className="text-primary border-primary/20 hover:bg-primary/10"
               onClick={() => router.push(`/admin/employees/${id}/edit`)}
             >
               <Edit className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function EmployeeActions({ id, isActive }: EmployeeActionsProps) {
               size="sm"
               className={isActive 
                 ? "text-red-600 border-red-200 hover:bg-red-50" 
-                : "text-[#06276b] border-[#06276b]/20 hover:bg-[#06276b]/10"
+                : "text-primary border-primary/20 hover:bg-primary/10"
               }
               onClick={handleToggleStatus}
               disabled={isPending}

@@ -35,16 +35,20 @@ export async function createTransfer(formData: FormData) {
             return { error: 'Campos obrigatórios faltando.' };
         }
 
-        // Validate source company access
+        // Validate source company access and status
         const userCompanyData = await db.prepare(`
-            SELECT cc.id, cc.nome, cc.cnpj 
+            SELECT cc.id, cc.nome, cc.cnpj, cc.is_active
             FROM client_companies cc
             JOIN user_companies uc ON uc.company_id = cc.id
             WHERE uc.user_id = ? AND cc.id = ?
-        `).get(session.user_id, sourceCompanyId) as { id: string, nome: string, cnpj: string };
+        `).get(session.user_id, sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
 
         if (!userCompanyData) {
             return { error: 'Você não tem permissão para esta empresa de origem.' };
+        }
+
+        if (!userCompanyData.is_active) {
+            return { error: 'A empresa de origem está inativa e não pode realizar movimentações.' };
         }
 
         // Attempt to find employee ID by name and company to check pending requests
@@ -61,10 +65,13 @@ export async function createTransfer(formData: FormData) {
              return { error: 'Funcionário não encontrado na empresa de origem.' };
         }
 
-        // Validate target company exists (and get name for redundancy/legacy)
-        const targetCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(targetCompanyId) as { nome: string };
+        // Validate target company exists, is active (and get name for redundancy/legacy)
+        const targetCompany = await db.prepare('SELECT nome, is_active FROM client_companies WHERE id = ?').get(targetCompanyId) as { nome: string, is_active: number };
         if (!targetCompany) {
              return { error: 'Empresa destino inválida.' };
+        }
+        if (!targetCompany.is_active) {
+             return { error: 'A empresa de destino está inativa e não pode receber movimentações.' };
         }
 
         const protocolNumber = generateProtocolNumber();

@@ -25,7 +25,7 @@ export default async function AdminDashboard() {
       {stats.admin && (
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-secondary" />
+            <Building2 className="h-6 w-6 text-primary" />
             <h2 className="text-xl font-semibold text-primary">Administração</h2>
           </div>
           <Separator className="bg-primary/20" />
@@ -72,7 +72,7 @@ export default async function AdminDashboard() {
       {stats.dp && (
         <section className="space-y-6">
           <div className="flex items-center gap-2 mt-8">
-            <Briefcase className="h-6 w-6 text-secondary" />
+            <Briefcase className="h-6 w-6 text-primary" />
             <h2 className="text-xl font-semibold text-primary">Departamento Pessoal</h2>
           </div>
           <Separator className="bg-primary/20" />
@@ -170,7 +170,7 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
             data.map((item) => (
               <div key={item.month} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group min-w-0">
                 <div 
-                  className="w-full max-w-[16px] bg-secondary/80 rounded-t-sm relative transition-all duration-500 hover:bg-secondary min-h-[4px]" 
+                  className="w-full max-w-[16px] bg-primary/80 rounded-t-sm relative transition-all duration-500 hover:bg-primary min-h-[4px]" 
                   style={{ height: `${(item.count / max) * 100}%` }}
                   suppressHydrationWarning
                 >
@@ -218,7 +218,7 @@ function RankingCard({ title, data }: { title: string, data: { name: string, cou
                   </div>
                   <span className="text-sm font-medium truncate" title={item.name}>{item.name}</span>
                 </div>
-                <span className="text-sm font-bold text-secondary" suppressHydrationWarning>{Number(item.count)}</span>
+                <span className="text-sm font-bold text-primary" suppressHydrationWarning>{Number(item.count)}</span>
               </div>
             ))
           )}

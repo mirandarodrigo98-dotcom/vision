@@ -65,7 +65,7 @@ export function CompanySelector({ activeCompany, companies, className }: Company
             <span>•</span>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <button className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                <button className="text-primary hover:text-primary/80 hover:underline font-medium">
                   Trocar
                 </button>
               </DialogTrigger>
@@ -80,7 +80,7 @@ export function CompanySelector({ activeCompany, companies, className }: Company
                       variant="outline"
                       className={cn(
                         "justify-start h-auto py-3 px-4",
-                        activeCompany.id === company.id && "border-blue-500 bg-blue-50"
+                        activeCompany.id === company.id && "border-primary bg-primary/10"
                       )}
                       onClick={() => handleSwitch(company.id)}
                       disabled={loading}
@@ -91,7 +91,7 @@ export function CompanySelector({ activeCompany, companies, className }: Company
                         <span className="text-xs text-muted-foreground">{company.cnpj}</span>
                       </div>
                       {activeCompany.id === company.id && (
-                        <Check className="ml-auto h-4 w-4 text-blue-600" />
+                        <Check className="ml-auto h-4 w-4 text-primary" />
                       )}
                     </Button>
                   ))}

@@ -153,7 +153,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
                         ${vacation.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : ''}
                         ${vacation.status === 'RECTIFIED' ? 'bg-orange-100 text-orange-800' : ''}
-                        ${vacation.status === 'COMPLETED' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
+                        ${vacation.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
                         ${vacation.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
                       `}>
                         {

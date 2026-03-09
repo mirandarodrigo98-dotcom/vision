@@ -190,7 +190,7 @@ export default function TeamManagementPage({ users, departments }: { users: Team
                       size="sm" 
                       onClick={() => handleEdit(user)}
                       title="Editar"
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      className="text-primary border-primary/20 hover:bg-primary/10"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

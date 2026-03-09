@@ -162,14 +162,14 @@ export function AdmissionActions({
                 <Tooltip>
                   <TooltipTrigger asChild>
                         <Button 
-                          variant="outline" 
-                          size="sm" 
-                          disabled={isApproving}
-                          onClick={() => setShowCompleteDialog(true)}
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        >
-                          {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                        </Button>
+          variant="outline" 
+          size="sm" 
+          disabled={isApproving}
+          onClick={() => setShowCompleteDialog(true)}
+          className="text-primary border-primary/20 hover:bg-primary/10"
+        >
+          {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+        </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Concluir/Aprovar Admissão</p>

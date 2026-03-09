@@ -211,11 +211,11 @@ export default function TeamForm({ departments, initialData, onCancel, onSuccess
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="department">Departamento *</Label>
+                        <Label htmlFor="department_id">Departamento</Label>
                         <Select
                             value={formData.department_id}
                             onValueChange={(val) => handleChange('department_id', val)}
-                            disabled={isLoading}
+                            disabled={isLoading || formData.role === 'admin'}
                         >
                             <SelectTrigger className={errors.department_id ? 'border-red-500' : ''}>
                                 <SelectValue placeholder="Selecione o Departamento" />

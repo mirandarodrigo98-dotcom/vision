@@ -13,7 +13,8 @@ import {
   LogOut,
   ShieldCheck,
   Briefcase,
-  Lock
+  Lock,
+  Blocks
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -26,6 +27,7 @@ const navItems = [
   { href: '/admin/admissions', label: 'Admissões', icon: FileText },
   { href: '/admin/team', label: 'Equipe', icon: ShieldCheck },
   { href: '/admin/permissions', label: 'Permissões', icon: Lock },
+  { href: '/admin/integrations', label: 'Integrações', icon: Blocks },
   { href: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
   { href: '/admin/settings', label: 'Configurações', icon: Settings },
 ];

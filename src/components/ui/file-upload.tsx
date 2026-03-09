@@ -72,7 +72,7 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
           <span className="text-sm text-muted-foreground flex-1 truncate">
             {fileName ? (
                 <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-500" />
+                    <FileText className="h-4 w-4 text-primary" />
                     <span className="font-medium text-gray-700">{fileName}</span>
                 </div>
             ) : (

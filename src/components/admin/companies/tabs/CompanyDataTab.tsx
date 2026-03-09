@@ -70,8 +70,14 @@ export function CompanyDataTab({
 
       {/* Filial */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className="text-sm font-medium">Filial</label>
-        <Input name="filial" defaultValue={company?.filial || ''} className="w-[8ch]" />
+        <label className="text-sm font-medium">Filial *</label>
+        <Input 
+          name="filial" 
+          defaultValue={company?.filial || ''} 
+          required
+          className="w-[8ch]" 
+          placeholder="Ex: 1"
+        />
       </div>
 
       {/* CNPJ */}
@@ -150,7 +156,7 @@ export function CompanyDataTab({
               type="button"
               onClick={lookupCep}
               disabled={cepLoading}
-              className="text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 px-3 py-2 rounded-md disabled:opacity-50"
+              className="text-sm bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 rounded-md disabled:opacity-50"
             >
               {cepLoading ? 'Buscando...' : 'Buscar'}
             </button>

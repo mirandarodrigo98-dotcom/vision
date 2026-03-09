@@ -45,7 +45,7 @@ const navigation = [
       { name: 'Sócios', href: '/admin/socios' },
       { name: 'Contadores', href: '/admin/accountants' },
       { name: 'Departamentos', href: '/admin/registrations/departments' },
-      { name: 'Usuários', href: '/admin/client-users' },
+      { name: 'Usuário do Cliente', href: '/admin/client-users' },
       { name: 'Equipe', href: '/admin/team' },
     ]
   },
@@ -188,9 +188,9 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                   </Transition.Child>
 
                   {/* Sidebar component */}
-                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#06276b] px-6 pb-4 ring-1 ring-white/10">
+                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar px-6 pb-4 ring-1 ring-sidebar-border">
                     <div className="flex h-16 shrink-0 items-center gap-2">
-                      <span className="text-white font-bold text-xl">VISION Admin</span>
+                      <span className="text-primary font-bold text-xl">VISION Admin</span>
                     </div>
                     <nav className="flex flex-1 flex-col">
                       <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -211,14 +211,14 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                         onClick={() => toggleMenu(item.name)}
                                         className={classNames(
                                           isChildCurrent
-                                            ? 'bg-[#041a4a] text-white'
-                                            : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                           'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                         )}
                                       >
                                         <item.icon
                                           className={classNames(
-                                            isChildCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
+                                            isChildCurrent ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground',
                                             'h-6 w-6 shrink-0'
                                           )}
                                           aria-hidden="true"
@@ -226,7 +226,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                         <span className="flex-1 text-left">{item.name}</span>
                                         <ChevronRightIcon
                                           className={classNames(
-                                            isMenuExpanded ? 'rotate-90 text-white' : 'text-gray-400',
+                                            isMenuExpanded ? 'rotate-90 text-sidebar-accent-foreground' : 'text-muted-foreground',
                                             'h-5 w-5 shrink-0 transition-transform duration-200'
                                           )}
                                           aria-hidden="true"
@@ -241,8 +241,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={classNames(
                                                   pathname === child.href
-                                                    ? 'bg-[#041a4a] text-white'
-                                                    : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                                   'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
                                                 )}
                                               >
@@ -259,14 +259,14 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                       onClick={() => setSidebarOpen(false)}
                                       className={classNames(
                                         isCurrent
-                                          ? 'bg-[#041a4a] text-white'
-                                          : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                         'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                       )}
                                     >
                                       <item.icon
                                         className={classNames(
-                                          isCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
+                                          isCurrent ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground',
                                           'h-6 w-6 shrink-0'
                                         )}
                                         aria-hidden="true"
@@ -298,19 +298,19 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
             onMouseLeave={() => setIsHovering(false)}
         >
           {/* Sidebar component */}
-          <div className="flex h-full grow flex-col gap-y-5 bg-[#06276b]">
+          <div className="flex h-full grow flex-col gap-y-5 bg-sidebar border-r border-sidebar-border">
             <div className="flex h-16 shrink-0 items-center px-6 mt-5">
               {!isExpanded ? (
                 <div className="w-full flex justify-center">
-                   <span className="text-white font-bold text-xl">V</span>
+                   <span className="text-primary font-bold text-xl">V</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                   <span className="text-white font-bold text-xl whitespace-nowrap">VISION Admin</span>
+                   <span className="text-primary font-bold text-xl whitespace-nowrap">VISION Admin</span>
                 </div>
               )}
             </div>
-            <nav className="flex flex-1 flex-col overflow-y-auto px-6 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40">
+            <nav className="flex flex-1 flex-col overflow-y-auto px-6 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-sidebar-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-sidebar-foreground/40">
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
@@ -329,8 +329,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                 onClick={() => toggleMenu(item.name)}
                                 className={classNames(
                                   isChildCurrent
-                                    ? 'bg-[#041a4a] text-white'
-                                    : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                   'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
                                   !isExpanded ? 'justify-center' : ''
                                 )}
@@ -338,7 +338,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                               >
                                 <item.icon
                                   className={classNames(
-                                    isChildCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
+                                    isChildCurrent ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground',
                                     'h-6 w-6 shrink-0'
                                   )}
                                   aria-hidden="true"
@@ -348,7 +348,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                     <span className="flex-1 text-left">{item.name}</span>
                                     <ChevronRightIcon
                                       className={classNames(
-                                        isMenuExpanded ? 'rotate-90 text-white' : 'text-gray-400',
+                                        isMenuExpanded ? 'rotate-90 text-sidebar-primary-foreground' : 'text-muted-foreground',
                                         'h-5 w-5 shrink-0 transition-transform duration-200'
                                       )}
                                       aria-hidden="true"
@@ -364,8 +364,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                         href={child.href}
                                         className={classNames(
                                         pathname === child.href
-                                          ? 'bg-[#041a4a] text-white'
-                                          : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                         'block rounded-md py-2 pr-2 pl-9 text-sm leading-6 font-semibold'
                                       )}
                                       >
@@ -381,15 +381,15 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                       href={item.href!}
                                       className={classNames(
                                       isCurrent
-                                        ? 'bg-[#041a4a] text-white'
-                                        : 'text-gray-200 hover:text-white hover:bg-[#041a4a]',
+                                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                       'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold whitespace-nowrap',
                                       !isExpanded ? 'justify-center' : ''
                                     )}
                                     >
                                       <item.icon
                                         className={classNames(
-                                          isCurrent ? 'text-white' : 'text-gray-200 group-hover:text-white',
+                                          isCurrent ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground',
                                           'h-6 w-6 shrink-0'
                                         )}
                                         aria-hidden="true"
@@ -416,7 +416,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                                     setCollapsed(!collapsed)
                                 }}
                                 className={classNames(
-                                    "group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-400 hover:bg-gray-800 hover:text-white whitespace-nowrap",
+                                    "group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground whitespace-nowrap",
                                     !isExpanded ? 'justify-center' : ''
                                 )}
                             >
@@ -479,7 +479,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                     <span className="sr-only">Abrir menu de usuário</span>
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.avatar_path || ''} className="object-cover" />
-                        <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold text-xs">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
                             {getInitials(user?.name || 'Admin')}
                         </AvatarFallback>
                     </Avatar>

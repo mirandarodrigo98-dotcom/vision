@@ -7,6 +7,17 @@ import { toast } from 'sonner';
 import { Pencil, Power, PowerOff, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -87,33 +98,74 @@ export function CompanyList({ companies }: { companies: Company[] }) {
                     </Tooltip>
                   </TooltipProvider>
 
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="icon"
-                            disabled={company.has_movements === 1}
+                  {company.has_movements === 1 ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} className="inline-block">
+                            <Button 
+                                variant="ghost" 
+                                size="icon"
+                                disabled
+                                className="opacity-50 cursor-not-allowed"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Empresa possui movimentações e não pode ser excluída</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                     <AlertDialog>
+                       <TooltipProvider>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <AlertDialogTrigger asChild>
+                               <Button 
+                                   variant="ghost" 
+                                   size="icon"
+                                   className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                               >
+                                   <Trash2 className="h-4 w-4" />
+                               </Button>
+                             </AlertDialogTrigger>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <p>Excluir</p>
+                           </TooltipContent>
+                         </Tooltip>
+                       </TooltipProvider>
+                       <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir Empresa</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir a empresa <strong>{company.razao_social}</strong>?
+                            <br/><br/>
+                            Esta ação não pode ser desfeita e removerá permanentemente os dados da empresa.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
                             onClick={async () => {
-                                if (confirm('Tem certeza que deseja excluir esta empresa? Esta ação não pode ser desfeita.')) {
-                                    const res = await deleteCompany(company.id);
-                                    if (res.error) {
-                                        toast.error(res.error);
-                                    } else {
-                                        toast.success('Empresa excluída com sucesso');
-                                    }
-                                }
+                              const res = await deleteCompany(company.id);
+                              if (res.error) {
+                                toast.error(res.error);
+                              } else {
+                                toast.success('Empresa excluída com sucesso');
+                              }
                             }}
-                            className={company.has_movements === 1 ? "opacity-50 cursor-not-allowed" : "text-red-500 hover:text-red-700 hover:bg-red-50"}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{company.has_movements === 1 ? 'Empresa possui movimentações' : 'Excluir'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                   
                   <form action={async () => {
                      await toggleCompanyStatus(company.id, !company.is_active);

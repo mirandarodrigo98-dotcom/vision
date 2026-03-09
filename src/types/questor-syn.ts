@@ -3,7 +3,9 @@ import { z } from 'zod';
 // --- Schemas ---
 
 export const questorSynConfigSchema = z.object({
-  base_url: z.string().url('URL inválida'),
+  base_url: z.string().url('URL inválida').optional(), // Mantendo opcional para compatibilidade
+  internal_url: z.string().url('URL Interna inválida').optional().or(z.literal('')),
+  external_url: z.string().url('URL Externa inválida').optional().or(z.literal('')),
   api_token: z.string().optional(),
 });
 

@@ -81,7 +81,16 @@ async function simulateSync() {
     };
 
     // 4. Enviar
-    let url = `${config.base_url}/Integracao/Importar`;
+    let baseUrl = config.base_url;
+    if (!baseUrl && config.internal_url) baseUrl = config.internal_url;
+    if (!baseUrl && config.external_url) baseUrl = config.external_url;
+
+    if (!baseUrl) {
+        console.error("❌ Nenhuma URL configurada.");
+        return;
+    }
+
+    let url = `${baseUrl}/Integracao/Importar`;
     if (config.api_token) {
         url += `?TokenApi=${encodeURIComponent(config.api_token)}`;
     }

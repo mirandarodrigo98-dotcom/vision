@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { CompanyImportDialog } from '@/components/admin/companies/company-import-dialog';
+import { ClientsStatusFilter } from './clients-status-filter';
 
 interface ClientsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -15,6 +16,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'razao_social';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'asc';
   const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : 'all';
 
   // Whitelist allowed sort columns
   const allowedSorts = ['code', 'nome', 'razao_social', 'cnpj', 'email_contato', 'is_active', 'created_at'];
@@ -30,13 +32,20 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
       EXISTS(SELECT 1 FROM user_companies u WHERE u.company_id = c.id)
     ) as has_movements
     FROM client_companies c
+    WHERE 1=1
   `;
   const params: any[] = [];
 
   if (q) {
-    query += ' WHERE (c.nome LIKE ? OR c.razao_social LIKE ? OR c.cnpj LIKE ? OR c.email_contato LIKE ? OR c.code LIKE ?)';
+    query += ' AND (c.nome LIKE ? OR c.razao_social LIKE ? OR c.cnpj LIKE ? OR c.email_contato LIKE ? OR c.code LIKE ?)';
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ, likeQ, likeQ, likeQ);
+  }
+
+  if (status === 'active') {
+    query += ' AND c.is_active = 1';
+  } else if (status === 'inactive') {
+    query += ' AND c.is_active = 0';
   }
 
   // Use CAST to sort numerically if sorting by code
@@ -60,8 +69,9 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <SearchInput placeholder="Buscar por nome, CNPJ, email ou código..." />
+        <ClientsStatusFilter />
       </div>
 
       <CompanyList companies={companies} />

@@ -209,16 +209,28 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Base URL</Label>
-                <Input 
-                  value={config.base_url} 
-                  onChange={(e) => setConfig({ ...config, base_url: e.target.value })}
-                  placeholder="http://localhost:8080"
-                />
-                <p className="text-xs text-muted-foreground">Endereço onde o nWeb está rodando.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>URL Interna (Rede Local)</Label>
+                  <Input 
+                    value={config.internal_url || ''} 
+                    onChange={(e) => setConfig({ ...config, internal_url: e.target.value })}
+                    placeholder="http://192.168.x.x:8080"
+                  />
+                  <p className="text-xs text-muted-foreground">Prioridade 1: Acesso rápido na rede local.</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>URL Externa (DDNS/IP Fixo)</Label>
+                  <Input 
+                    value={config.external_url || ''} 
+                    onChange={(e) => setConfig({ ...config, external_url: e.target.value })}
+                    placeholder="http://meudominio.com:8080"
+                  />
+                  <p className="text-xs text-muted-foreground">Prioridade 2: Acesso remoto via internet.</p>
+                </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Token de API (Opcional)</Label>
                 <Input 
@@ -268,7 +280,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                     <TableRow key={routine.id}>
                       <TableCell className="font-medium">{routine.name}</TableCell>
                       <TableCell className="font-mono text-xs">{routine.action_name}</TableCell>
-                      <TableCell className="font-mono text-xs text-blue-600">{routine.system_code || '-'}</TableCell>
+                      <TableCell className="font-mono text-xs text-primary">{routine.system_code || '-'}</TableCell>
                       <TableCell>
                         <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
                           {routine.type}
@@ -403,13 +415,13 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                     value={currentRoutine.system_code || ''} 
                     onChange={(e) => setCurrentRoutine({...currentRoutine, system_code: e.target.value})}
                     placeholder="Ex: CONTABIL_IMPORT"
-                    className="font-mono text-blue-600"
+                    className="font-mono text-primary"
                   />
                   {currentRoutine.type === 'IMPORT' && currentRoutine.system_code !== 'CONTABIL_IMPORT' && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full text-[10px] text-blue-500 hover:text-blue-700"
+                      className="absolute right-0 top-0 h-full text-[10px] text-primary hover:text-primary/80"
                       onClick={() => setCurrentRoutine({...currentRoutine, system_code: 'CONTABIL_IMPORT'})}
                     >
                       Usar CONTABIL_IMPORT
@@ -434,7 +446,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                        />
                        <Label 
                          htmlFor="nli-upload" 
-                         className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-3 py-1"
+                         className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 py-1"
                        >
                          <Upload className="mr-2 h-3 w-3" />
                          Carregar Arquivo .nli

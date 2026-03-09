@@ -13,6 +13,60 @@ import {
   questorSynModuleTokenSchema
 } from '@/types/questor-syn';
 
+// --- Helper: URL Resolution ---
+
+export async function resolveQuestorUrl(config: QuestorSynConfig): Promise<string> {
+  const urlsToCheck = [];
+  
+  if (config.internal_url) urlsToCheck.push({ url: config.internal_url, type: 'internal' });
+  if (config.external_url) urlsToCheck.push({ url: config.external_url, type: 'external' });
+  
+  // Fallback to base_url if others are missing (legacy support)
+  if (urlsToCheck.length === 0 && config.base_url) {
+    urlsToCheck.push({ url: config.base_url, type: 'base' });
+  }
+
+  if (urlsToCheck.length === 0) {
+    throw new Error('Nenhuma URL do Questor configurada.');
+  }
+
+  // Try Internal First (Short Timeout)
+  for (const { url, type } of urlsToCheck) {
+    try {
+      const cleanUrl = url.replace(/\/$/, '');
+      let testUrl = `${cleanUrl}/TnWebDMDadosGerais/PegarVersaoQuestor`;
+      
+      // Add Token if exists for auth check
+      if (config.api_token) {
+        testUrl += `?TokenApi=${encodeURIComponent(config.api_token)}`;
+      }
+      
+      const controller = new AbortController();
+      // Use shorter timeout for Internal to fail fast (4s)
+      const timeoutId = setTimeout(() => controller.abort(), type === 'internal' ? 4000 : 10000);
+
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        console.log(`[Questor] Connected via ${type} URL: ${cleanUrl}`);
+        return cleanUrl;
+      }
+    } catch (e) {
+      console.warn(`[Questor] Failed to connect via ${type} URL (${url}):`, e);
+      // Continue to next URL
+    }
+  }
+
+  throw new Error('Não foi possível conectar ao Questor em nenhuma das URLs configuradas (Interna/Externa).');
+}
+
 // --- Actions: Config ---
 
 export async function getQuestorSynConfig() {
@@ -26,14 +80,14 @@ export async function saveQuestorSynConfig(data: QuestorSynConfig) {
   if (existing) {
     await db.prepare(
       `UPDATE questor_syn_config 
-       SET base_url = ?, api_token = ?, updated_at = datetime('now')
+       SET base_url = ?, internal_url = ?, external_url = ?, api_token = ?, updated_at = datetime('now')
        WHERE id = 1`
-    ).run(data.base_url, data.api_token || null);
+    ).run(data.base_url || null, data.internal_url || null, data.external_url || null, data.api_token || null);
   } else {
     await db.prepare(
-      `INSERT INTO questor_syn_config (id, base_url, api_token) 
-       VALUES (1, ?, ?)`
-    ).run(data.base_url, data.api_token || null);
+      `INSERT INTO questor_syn_config (id, base_url, internal_url, external_url, api_token) 
+       VALUES (1, ?, ?, ?, ?)`
+    ).run(data.base_url || null, data.internal_url || null, data.external_url || null, data.api_token || null);
   }
   revalidatePath('/admin/integrations/questor');
   return { success: true };
@@ -109,11 +163,17 @@ export async function executeQuestorReport(
   returnType: 'nrwexCSV' | 'nrwexPDF' | 'nrwexHTML' = 'nrwexCSV'
 ) {
   const config = await getQuestorSynConfig();
-  if (!config || !config.base_url) {
+  if (!config) {
     return { error: 'Configuração do Questor SYN não encontrada' };
   }
 
-  const baseUrl = config.base_url.replace(/\/$/, ''); // Remove trailing slash
+  let baseUrl: string;
+  try {
+    baseUrl = await resolveQuestorUrl(config);
+  } catch (e: any) {
+    return { error: e.message };
+  }
+
   const url = new URL(`${baseUrl}/TnWebDMRelatorio/Executar`);
   
   // Add standard parameters
@@ -122,9 +182,6 @@ export async function executeQuestorReport(
   url.searchParams.append('_ATipoRetorno', returnType);
   
   if (config.api_token) {
-    // Some docs say TokenApi, others say Authorization header.
-    // The user's snippet says "TokenApi (Não obrigatório)".
-    // We'll try adding it if present.
     url.searchParams.append('TokenApi', config.api_token);
   }
 
@@ -181,6 +238,83 @@ export async function executeQuestorReport(
 
   } catch (error) {
     console.error('Error executing report:', error);
+    return { error: 'Erro ao conectar com o serviço Questor SYN' };
+  }
+}
+
+export async function executeQuestorSQL(
+  sql: string,
+  returnType: 'nrwexCSV' | 'nrwexXML' | 'nrwexJSON' = 'nrwexJSON'
+) {
+  const config = await getQuestorSynConfig();
+  if (!config) {
+    return { error: 'Configuração do Questor SYN não encontrada' };
+  }
+
+  let baseUrl: string;
+  try {
+    baseUrl = await resolveQuestorUrl(config);
+  } catch (e: any) {
+    return { error: e.message };
+  }
+
+  const url = new URL(`${baseUrl}/TnWebDMSql/Executar`);
+  
+  // Add standard parameters
+  if (config.api_token) {
+    url.searchParams.append('TokenApi', config.api_token);
+  }
+
+  console.log(`[Questor] Executing SQL at ${url.toString().replace(/TokenApi=[^&]+/, 'TokenApi=***')}: ${sql}`);
+
+  try {
+    // Using URLSearchParams for x-www-form-urlencoded body
+    const params = new URLSearchParams();
+    params.append('_ASQL', sql);
+    params.append('_ABase64', 'False');
+    params.append('_ATipoRetorno', returnType);
+
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`[Questor] Error ${response.status}: ${text}`);
+      return { error: `Erro na requisição: ${response.status} - ${text}` };
+    }
+
+    const text = await response.text();
+    
+    // Parse JSON response if requested
+    if (returnType === 'nrwexJSON') {
+        try {
+            // Questor sometimes returns plain text even if JSON requested, or wrapped in "Data"
+            const json = JSON.parse(text);
+            if (json && json.Data && typeof json.Data === 'string') {
+                // Sometimes Data is a stringified JSON/CSV
+                try {
+                    return { data: JSON.parse(json.Data) };
+                } catch {
+                    return { data: json.Data };
+                }
+            }
+            return { data: json };
+        } catch (e) {
+            console.warn('[Questor] Failed to parse JSON response, returning text');
+            return { data: text };
+        }
+    }
+
+    return { data: text };
+
+  } catch (error) {
+    console.error('Error executing SQL:', error);
     return { error: 'Erro ao conectar com o serviço Questor SYN' };
   }
 }
@@ -265,19 +399,20 @@ export async function getQuestorSynRoutineByAction(actionName: string): Promise<
 export async function fetchQuestorRoutineParams(actionName: string) {
   try {
     const config = await getQuestorSynConfig();
-    if (!config?.base_url) return { error: 'Questor não configurado (Base URL)' };
+    if (!config) return { error: 'Questor não configurado' };
+
+    let baseUrl: string;
+    try {
+      baseUrl = await resolveQuestorUrl(config);
+    } catch (e: any) {
+      return { error: e.message };
+    }
 
     const token = await getQuestorSynTokenByModule('GERENCIADOR_EMPRESAS'); // Generic token or global
-    // Actually, discovery usually doesn't strictly need a module token if Global is set.
-    // Let's use getQuestorSynTokenByModule with a dummy or relevant key if needed, or just config.api_token
-    // The previous implementation of getQuestorSynTokenByModule handles fallback.
-    // Let's assume Discovery works with Global Token mainly, but we can try fetching.
     
     // Construct URL: /TnWebDMDadosObjetos/Pegar?_AActionName=...
-    let url = `${config.base_url}/TnWebDMDadosObjetos/Pegar?_AActionName=${actionName}`;
+    let url = `${baseUrl}/TnWebDMDadosObjetos/Pegar?_AActionName=${actionName}`;
     
-    // Add Token if exists
-    // Note: getQuestorSynTokenByModule handles fallback to global config.api_token
     const tokenToUse = await getQuestorSynTokenByModule('GERENCIADOR_EMPRESAS') || config.api_token; 
     
     if (tokenToUse) {
@@ -304,24 +439,40 @@ export async function fetchQuestorRoutineParams(actionName: string) {
   }
 }
 
-// --- Connectivity Test Action ---
-
-export async function testQuestorConnectivity() {
+export async function fetchQuestorData(
+  actionName: string,
+  params: Record<string, string>
+) {
   try {
     const config = await getQuestorSynConfig();
-    if (!config?.base_url) return { error: 'Questor não configurado (Base URL)' };
+    if (!config) return { error: 'Questor não configurado' };
 
-    // Use Global Token
-    const tokenToUse = config.api_token;
-
-    // Use PegarVersaoQuestor as a lightweight ping
-    let url = `${config.base_url}/TnWebDMDadosGerais/PegarVersaoQuestor`;
-    
-    if (tokenToUse) {
-      url += `?TokenApi=${encodeURIComponent(tokenToUse)}`;
+    let baseUrl: string;
+    try {
+      baseUrl = await resolveQuestorUrl(config);
+    } catch (e: any) {
+      return { error: e.message };
     }
 
-    const response = await fetch(url, {
+    const tokenToUse = config.api_token;
+
+    // Construct URL: /TnWebDMDadosObjetos/Pegar?_AActionName=...
+    const url = new URL(`${baseUrl}/TnWebDMDadosObjetos/Pegar`);
+    url.searchParams.append('_AActionName', actionName);
+    
+    // Add Token if exists
+    if (tokenToUse) {
+      url.searchParams.append('TokenApi', tokenToUse);
+    }
+
+    // Add other params
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.append(key, value);
+    });
+
+    console.log(`[Questor] Fetching Data: ${url.toString().replace(/TokenApi=[^&]+/, 'TokenApi=***')}`);
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store'
@@ -329,12 +480,79 @@ export async function testQuestorConnectivity() {
 
     if (!response.ok) {
       const text = await response.text();
-      return { error: `Falha na conexão: ${response.status} - ${text}` };
+      console.error(`[Questor] Error ${response.status}: ${text}`);
+      return { error: `Erro na requisição: ${response.status} - ${text}` };
     }
 
     const data = await response.json();
-    // Usually returns a version string or object
-    return { success: true, version: data, usedToken: !!tokenToUse };
+    return { data };
+
+  } catch (error: any) {
+    console.error('Error fetching Questor data:', error);
+    return { error: error.message || 'Erro desconhecido ao buscar dados' };
+  }
+}
+
+// --- Connectivity Test Action ---
+
+export async function testQuestorConnectivity() {
+  try {
+    const config = await getQuestorSynConfig();
+    if (!config) return { error: 'Questor não configurado' };
+
+    // Test both URLs individually to report status
+    const results = {
+      internal: { success: false, url: config.internal_url, message: '' },
+      external: { success: false, url: config.external_url, message: '' },
+      resolved: ''
+    };
+
+    if (config.internal_url) {
+      try {
+        let url = `${config.internal_url.replace(/\/$/, '')}/TnWebDMDadosGerais/PegarVersaoQuestor`;
+        if (config.api_token) url += `?TokenApi=${encodeURIComponent(config.api_token)}`;
+        
+        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+        if (res.ok) {
+          results.internal.success = true;
+          results.internal.message = 'OK';
+        } else {
+          results.internal.message = `Erro ${res.status}`;
+        }
+      } catch (e: any) {
+        results.internal.message = e.message;
+      }
+    }
+
+    if (config.external_url) {
+      try {
+        let url = `${config.external_url.replace(/\/$/, '')}/TnWebDMDadosGerais/PegarVersaoQuestor`;
+        if (config.api_token) url += `?TokenApi=${encodeURIComponent(config.api_token)}`;
+
+        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+        if (res.ok) {
+          results.external.success = true;
+          results.external.message = 'OK';
+        } else {
+          results.external.message = `Erro ${res.status}`;
+        }
+      } catch (e: any) {
+        results.external.message = e.message;
+      }
+    }
+
+    // Determine resolved
+    try {
+      results.resolved = await resolveQuestorUrl(config);
+    } catch {
+      results.resolved = 'Nenhuma disponível';
+    }
+
+    return { 
+      success: results.internal.success || results.external.success, 
+      details: results,
+      version: { internal: results.internal.message, external: results.external.message } 
+    };
 
   } catch (error: any) {
     console.error('Error testing connectivity:', error);

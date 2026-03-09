@@ -40,7 +40,7 @@ export default async function EditAdmissionPage({ params }: { params: Promise<{ 
              <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold text-red-600">Prazo Expirado</h1>
                 <p className="mt-4">O prazo para retificação desta admissão expirou (até 1 dia antes da data de admissão).</p>
-                <a href="/app/admissions" className="mt-6 inline-block text-blue-600 hover:underline">Voltar para a lista</a>
+                <a href="/app/admissions" className="mt-6 inline-block text-primary hover:underline">Voltar para a lista</a>
              </div>
         );
     }
@@ -50,7 +50,7 @@ export default async function EditAdmissionPage({ params }: { params: Promise<{ 
              <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold text-red-600">Admissão Cancelada</h1>
                 <p className="mt-4">Esta admissão foi cancelada e não pode ser editada.</p>
-                <a href="/app/admissions" className="mt-6 inline-block text-blue-600 hover:underline">Voltar para a lista</a>
+                <a href="/app/admissions" className="mt-6 inline-block text-primary hover:underline">Voltar para a lista</a>
              </div>
         );
     }

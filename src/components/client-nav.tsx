@@ -83,7 +83,7 @@ export function ClientNav() {
             onClick={() => toggleGroup(item.label)}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 rounded-md transition-colors text-sm font-medium",
-              hasActiveChild ? "text-white bg-[#041a4a]" : "text-blue-100 hover:text-white hover:bg-[#041a4a]/50"
+              hasActiveChild ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
           >
             <div className="flex items-center gap-3">
@@ -110,7 +110,7 @@ export function ClientNav() {
         <a 
           key={item.href} 
           href={item.href!}
-          className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium text-blue-100 hover:text-white hover:bg-[#041a4a]/50"
+          className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           download
         >
           <Icon size={18} />
@@ -126,8 +126,8 @@ export function ClientNav() {
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-medium",
           isActive 
-            ? "bg-[#041a4a] text-white" 
-            : "text-blue-100 hover:text-white hover:bg-[#041a4a]/50"
+            ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         )}
       >
         <Icon size={18} />
@@ -137,9 +137,9 @@ export function ClientNav() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-[#06276b] text-white border-r">
-      <div className="p-6 border-b border-[#103d8f]">
-        <h1 className="text-xl font-bold">VISION Client</h1>
+    <div className="flex flex-col h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+      <div className="p-6 border-b border-sidebar-border">
+        <h1 className="text-xl font-bold text-primary">VISION Client</h1>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">

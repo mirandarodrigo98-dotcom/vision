@@ -130,7 +130,14 @@ export function PermissionsForm({
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Permissões</h1>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Permissões por Departamento</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Gerencie o acesso dos operadores através dos departamentos. 
+                        Administradores possuem acesso total nativo. 
+                        Usuários de clientes são gerenciados individualmente.
+                    </p>
+                </div>
                 <Button onClick={handleSave} disabled={isSaving || !selectedDepartmentId}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Salvar Alterações

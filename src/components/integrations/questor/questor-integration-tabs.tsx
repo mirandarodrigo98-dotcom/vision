@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuestorManager } from '@/components/integrations/questor/questor-manager';
 import { QuestorSynManager } from '@/components/integrations/questor/questor-syn-manager';
+import { QuestorZenManager } from '@/components/integrations/questor/questor-zen-manager';
 
 interface QuestorIntegrationTabsProps {
   synConfig: any;
@@ -11,6 +12,7 @@ interface QuestorIntegrationTabsProps {
   config: any;
   companies: any;
   auths: any;
+  zenConfig: any;
 }
 
 export function QuestorIntegrationTabs({ 
@@ -18,7 +20,8 @@ export function QuestorIntegrationTabs({
   synRoutines, 
   config, 
   companies, 
-  auths 
+  auths,
+  zenConfig
 }: QuestorIntegrationTabsProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -31,12 +34,17 @@ export function QuestorIntegrationTabs({
   }
 
   return (
-    <Tabs defaultValue="syn" className="w-full">
+    <Tabs defaultValue="zen" className="w-full">
       <TabsList>
+          <TabsTrigger value="zen">Questor Zen (Novo)</TabsTrigger>
           <TabsTrigger value="syn">nWeb (SYN Privado)</TabsTrigger>
           <TabsTrigger value="legacy">Integração Cloud (Legado)</TabsTrigger>
       </TabsList>
       
+      <TabsContent value="zen" className="mt-4">
+          <QuestorZenManager initialConfig={zenConfig} />
+      </TabsContent>
+
       <TabsContent value="syn" className="mt-4">
           <QuestorSynManager 
               initialConfig={synConfig} 

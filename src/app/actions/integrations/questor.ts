@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import iconv from 'iconv-lite';
-import { getQuestorSynConfig, getQuestorSynRoutineBySystemCode, getQuestorSynTokenByModule } from './questor-syn';
+import { getQuestorSynConfig, getQuestorSynRoutineBySystemCode, getQuestorSynTokenByModule, resolveQuestorUrl } from './questor-syn';
 import { QuestorSynRoutine } from '@/types/questor-syn';
 
 const QUESTOR_API_URLS = {
@@ -126,9 +126,13 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
       LEFT JOIN enuves_categories c ON t.category_id = c.id
       LEFT JOIN enuves_accounts a ON t.account_id = a.id
       LEFT JOIN client_companies comp ON t.company_id = comp.id
-      WHERE t.company_id = ? AND t.questor_synced_at IS NULL
+      WHERE t.company_id = ?
     `;
     const params: any[] = [companyId];
+
+    if (!filters?.resync) {
+        query += ` AND t.questor_synced_at IS NULL`;
+    }
 
     if (filters) {
         if (filters.startDate) {
@@ -240,7 +244,17 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
     // Use Global Token
     const tokenToUse = synConfig?.api_token;
 
-    if (synConfig?.base_url && synRoutine) {
+    // Resolve URL (Internal -> External -> Base)
+    let resolvedUrl: string | null = null;
+    if (synConfig) {
+        try {
+            resolvedUrl = await resolveQuestorUrl(synConfig);
+        } catch (e) {
+            console.warn('Questor SYN URL resolution failed:', e);
+        }
+    }
+
+    if (resolvedUrl && synRoutine) {
         if (!synRoutine.layout_content) {
             return { error: 'Rotina CONTABIL_IMPORT encontrada, mas sem conteúdo de Layout (NLI) cadastrado.' };
         }
@@ -264,7 +278,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         };
 
         // Construct URL
-        let url = `${synConfig.base_url}/Integracao/Importar`;
+        let url = `${resolvedUrl}/Integracao/Importar`;
         
         // Priority: Global Token
         if (tokenToUse) {
@@ -285,7 +299,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         } catch (fetchError: any) {
             console.error('Questor SYN Fetch Error:', fetchError);
             if (fetchError.cause?.code === 'ECONNREFUSED') {
-                return { error: `Não foi possível conectar ao Questor SYN em ${synConfig.base_url}. Verifique se o serviço nWeb está rodando e acessível.` };
+                return { error: `Não foi possível conectar ao Questor SYN em ${resolvedUrl}. Verifique se o serviço nWeb está rodando e acessível.` };
             }
             return { error: `Erro de conexão com Questor SYN: ${fetchError.message}` };
         }
@@ -312,11 +326,9 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
     }
 
     // 5. Fallback to Legacy (or Error if SYN preferred)
-    // If SYN is not configured, we return error asking to configure it, 
-    // as the user explicitly asked to implement "this" (SYN) for the project.
     
-    if (!synConfig?.base_url) {
-        return { error: 'Integração Questor SYN não configurada. Acesse Configurações > Integrações > Questor.' };
+    if (!resolvedUrl) {
+        return { error: 'Integração Questor SYN não configurada. Acesse Configurações > Integrações > Questor e defina as URLs (Interna/Externa).' };
     }
     if (!synRoutine) {
         return { error: 'Rotina de Importação Contábil não encontrada. Cadastre uma rotina com Código do Sistema "CONTABIL_IMPORT" e o Layout NLI.' };

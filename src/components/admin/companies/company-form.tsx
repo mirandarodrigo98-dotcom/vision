@@ -12,8 +12,10 @@ import { validateCNPJ } from '@/lib/validators';
 import { CompanyDataTab } from './tabs/CompanyDataTab';
 import { LegalRepresentativeTab } from './tabs/LegalRepresentativeTab';
 import { ContactsTab } from './tabs/ContactsTab';
+import { QuestorImportDialog } from './questor-import-dialog';
 
 interface Company {
+  id: string;
   id: string;
   nome: string;
   razao_social: string;
@@ -130,7 +132,84 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
   }, [socios]);
 
   // Handlers for CompanyDataTab
-  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+   const [mergedCompany, setMergedCompany] = useState<Company | null | undefined>(company);
+   const [formKey, setFormKey] = useState(0);
+ 
+   const onImport = (data: any) => {
+     // Merge data into a temporary company object
+     const c = data.company || {};
+     const e = data.estab || {};
+     
+     const newCompany: any = {
+       ...mergedCompany,
+       id: mergedCompany?.id || '', // Preserve ID if exists
+       razao_social: c.NOME || c.RAZAOSOCIAL || mergedCompany?.razao_social || '',
+       nome: c.NOMEFANTASIA || c.FANTASIA || mergedCompany?.nome || '',
+       cnpj: c.INSCRFEDERAL || c.CNPJ || mergedCompany?.cnpj || '',
+       code: c.CODIGOEMPRESA || mergedCompany?.code || '',
+       filial: e.CODIGOESTAB || mergedCompany?.filial || '',
+       data_abertura: e.DATAINICIOATIV || mergedCompany?.data_abertura || '',
+       // Address
+       address_street: e.ENDERECO || e.LOGRADOURO || mergedCompany?.address_street || '',
+       address_number: e.NUMERO || mergedCompany?.address_number || '',
+       address_complement: e.COMPLEMENTO || mergedCompany?.address_complement || '',
+       address_neighborhood: e.BAIRRO || mergedCompany?.address_neighborhood || '',
+       address_zip_code: e.CEP || mergedCompany?.address_zip_code || '',
+       municipio: e.NOMEMUNIC || mergedCompany?.municipio || '',
+       uf: e.SIGLAESTADO || mergedCompany?.uf || '',
+       // Contact
+       telefone: (e.DDD && e.TELEFONE ? `${e.DDD}${e.TELEFONE}` : e.TELEFONE) || mergedCompany?.telefone || '',
+       email_contato: e.EMAIL || mergedCompany?.email_contato || '',
+     };
+     
+     setMergedCompany(newCompany);
+     
+     // Update individual states
+     if (newCompany.cnpj) {
+         let val = newCompany.cnpj.replace(/\D/g, '');
+         if (val.length === 14) val = val.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+         setCnpjValue(val);
+     }
+     if (newCompany.address_zip_code) {
+         let val = newCompany.address_zip_code.replace(/\D/g, '');
+         if (val.length === 8) val = val.replace(/^(\d{5})(\d{3})/, '$1-$2');
+         setCepValue(val);
+     }
+     if (newCompany.data_abertura) {
+         setDate(new Date(newCompany.data_abertura));
+     }
+ 
+     // Update Socios
+     if (data.socios && Array.isArray(data.socios)) {
+       const newSocios = data.socios.map((s: any, index: number) => ({
+         id: index, // Temporary ID
+         nome: s.NOME || '',
+         cpf: s.CPF || '', // Need to format? Input handles it?
+         participacao: parseFloat(s.PERCENTUALPARTICIPACAO || s.PARTICIPACAO || '0'),
+         is_representative: false, // Default
+         data_nascimento: s.DATANASCIMENTO ? new Date(s.DATANASCIMENTO) : undefined,
+         rg: s.RG || '',
+         orgao_expedidor: s.ORGAOEXPEDIDOR || '', // Need to check field name
+         uf_orgao_expedidor: s.UFORGAOEXPEDIDOR || '', // Need to check field name
+         data_expedicao: s.DATAEXPEDICAO ? new Date(s.DATAEXPEDICAO) : undefined,
+         // Address for socio
+         cep: s.CEP || '',
+         logradouro: s.ENDERECO || s.LOGRADOURO || '',
+         numero: s.NUMERO || '',
+         complemento: s.COMPLEMENTO || '',
+         bairro: s.BAIRRO || '',
+         municipio: s.NOMEMUNIC || '',
+         uf: s.SIGLAESTADO || '',
+       }));
+       setSocios(newSocios);
+     }
+ 
+     setFormKey(prev => prev + 1); // Force re-render of tabs
+     toast.success('Dados importados com sucesso!');
+   };
+ 
+   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 14) value = value.slice(0, 14);
     if (value.length > 12) value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
@@ -234,15 +313,22 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
       <CardContent>
         <form action={handleSubmit}>
           <Tabs defaultValue="dados" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="dados">Dados</TabsTrigger>
-              <TabsTrigger value="responsavel">Responsável Legal</TabsTrigger>
-              <TabsTrigger value="contatos">Contatos</TabsTrigger>
-            </TabsList>
+            <div className="flex justify-between items-center mb-4">
+              <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="responsavel">Responsável Legal</TabsTrigger>
+                <TabsTrigger value="contatos">Contatos</TabsTrigger>
+              </TabsList>
+              
+              <QuestorImportDialog 
+                mode="company" 
+                onImport={onImport} 
+              />
+            </div>
             
-            <TabsContent value="dados">
+            <TabsContent value="dados" key={formKey}>
               <CompanyDataTab 
-                company={company}
+                company={mergedCompany}
                 hasLinkedRecords={hasLinkedRecords}
                 cnpjValue={cnpjValue}
                 setCnpjValue={setCnpjValue}

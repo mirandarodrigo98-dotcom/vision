@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getQuestorSynConfig } from '@/app/actions/integrations/questor-syn';
+import { getQuestorSynConfig, resolveQuestorUrl } from '@/app/actions/integrations/questor-syn';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,11 +10,18 @@ export async function GET(request: NextRequest) {
   }
 
   const config = await getQuestorSynConfig();
-  if (!config || !config.base_url) {
+  if (!config) {
     return NextResponse.json({ error: 'Questor nWeb not configured' }, { status: 500 });
   }
 
-  const url = `${config.base_url}${path.startsWith('/') ? '' : '/'}${path}`;
+  let baseUrl: string;
+  try {
+    baseUrl = await resolveQuestorUrl(config);
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to resolve Questor URL' }, { status: 500 });
+  }
+
+  const url = `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
   
   try {
     const headers: HeadersInit = {};

@@ -18,14 +18,17 @@ export async function getUserPermissions() {
 
     try {
         if (session.role === 'client_user') {
+            // Client users have permissions assigned directly to them
+            const result = await db.prepare('SELECT permission_code FROM user_permissions WHERE user_id = ?').all(session.user_id) as { permission_code: string }[];
+            return result.map(r => r.permission_code);
+        } else if (session.role === 'operator') {
+            // Operators inherit permissions from their department
             if (!session.department_id) return [];
-            
             const result = await db.prepare('SELECT permission_code FROM department_permissions WHERE department_id = ?').all(session.department_id) as { permission_code: string }[];
             return result.map(r => r.permission_code);
         } else {
-            // Operator or other roles fallback to role-based
-            const result = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
-            return result.map(r => r.permission);
+            // Fallback (should not happen for admin as it's handled above)
+            return [];
         }
     } catch (error) {
         console.error('Error fetching user permissions:', error);

@@ -1988,7 +1988,7 @@ export function NewProcessFields({ initialCompanyId, initialValues, readonlyType
                             <td className="px-3 py-2 align-top text-right space-x-2">
                               <button
                                 type="button"
-                                className="text-sm text-blue-600 hover:underline"
+                                className="text-sm text-primary hover:underline"
                                 onClick={() => startEditSocio(socio.id)}
                               >
                                 Editar

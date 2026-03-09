@@ -64,8 +64,8 @@ export function DigisacConfigForm({ initialConfig }: DigisacConfigFormProps) {
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex items-center gap-2">
-                {isExpanded ? <ChevronUp className="h-5 w-5 text-blue-900" /> : <ChevronDown className="h-5 w-5 text-blue-900" />}
-                <h2 className="text-lg font-medium text-blue-900">Digisac - Criar Negócio</h2>
+                {isExpanded ? <ChevronUp className="h-5 w-5 text-primary" /> : <ChevronDown className="h-5 w-5 text-primary" />}
+                <h2 className="text-lg font-medium text-primary">Digisac - Criar Negócio</h2>
             </div>
             
             {/* Toggle ATIVO - Previne propagação do clique para não fechar o accordion ao clicar no switch */}
@@ -75,7 +75,7 @@ export function DigisacConfigForm({ initialConfig }: DigisacConfigFormProps) {
                   name="is_active"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                      <FormLabel className="font-bold text-white bg-blue-900 px-3 py-1 rounded-full text-xs">
+                      <FormLabel className="font-bold text-white bg-primary px-3 py-1 rounded-full text-xs">
                         {field.value ? 'ATIVO' : 'INATIVO'}
                       </FormLabel>
                       <FormControl>
@@ -135,7 +135,7 @@ export function DigisacConfigForm({ initialConfig }: DigisacConfigFormProps) {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={isSaving} className="bg-blue-900 hover:bg-blue-800 text-white">
+                  <Button type="submit" disabled={isSaving} className="bg-primary hover:bg-primary/90 text-white">
                       {isSaving ? 'Salvando...' : 'Salvar Alterações'}
                   </Button>
                 </div>

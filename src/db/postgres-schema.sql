@@ -4,6 +4,9 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     phone TEXT,
+    cell_phone TEXT,
+    notification_email INTEGER DEFAULT 0,
+    notification_whatsapp INTEGER DEFAULT 0,
     role TEXT NOT NULL CHECK(role IN ('admin', 'client_user', 'operator')),
     password_hash TEXT,
     password_temporary INTEGER DEFAULT 0,
@@ -195,6 +198,15 @@ CREATE TABLE IF NOT EXISTS transfer_requests (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (source_company_id) REFERENCES client_companies(id),
     FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+);
+
+-- User Permissions (Client User)
+CREATE TABLE IF NOT EXISTS user_permissions (
+    user_id TEXT NOT NULL,
+    permission_code TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, permission_code),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- Role Permissions

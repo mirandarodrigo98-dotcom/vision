@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PdfImportDialog } from './pdf-import-dialog';
 import { TransactionFilters } from './transaction-filters';
@@ -44,6 +46,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncDialog, setShowSyncDialog] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
+  const [resync, setResync] = useState(false);
   
   // Sync Confirmation
   const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
@@ -175,6 +178,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
         return;
       }
       setSyncStats(stats as any);
+      setResync(false);
       setIsSyncing(false); // Reset loading state before showing confirmation
       setShowConfirmSyncDialog(true);
     } catch (error) {
@@ -190,7 +194,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     setIsSyncing(true);
     setSyncResult(null);
     try {
-        const result = await syncTransactionsToQuestor(companyId, filters);
+        const result = await syncTransactionsToQuestor(companyId, { ...filters, resync });
         setSyncResult(result);
         if (result.success) {
             toast.success('Sincronização concluída');
@@ -268,13 +272,27 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                 {syncStats?.pending === 0 && (
                    <div className="text-red-500 font-medium">Não há novos lançamentos para sincronizar.</div>
                 )}
+
+                <div className="flex items-center space-x-2 pt-4 border-t mt-4">
+                  <Checkbox 
+                    id="resync" 
+                    checked={resync} 
+                    onCheckedChange={(checked) => setResync(checked === true)} 
+                  />
+                  <Label 
+                    htmlFor="resync" 
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Reenviar lançamentos já sincronizados (Forçar envio)
+                  </Label>
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSyncing}>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
-                disabled={isSyncing || syncStats?.pending === 0} 
+                disabled={isSyncing || (syncStats?.pending === 0 && !resync)} 
                 onClick={(e) => {
                     e.preventDefault(); 
                     confirmSync();

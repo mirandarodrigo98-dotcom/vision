@@ -261,14 +261,14 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
                                 />
                                 {initialData?.downloadLink && !file && (
                                     <p className="text-sm text-muted-foreground">
-                                        Arquivo atual: <a href={initialData.downloadLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Baixar documento existente</a>
+                                        Arquivo atual: <a href={initialData.downloadLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Baixar documento existente</a>
                                     </p>
                                 )}
                             </div>
                         ) : (
                             <div className="p-2 border rounded bg-gray-50">
                                 {initialData?.downloadLink ? (
-                                    <a href={initialData.downloadLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                                    <a href={initialData.downloadLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
                                         <Download className="h-4 w-4" />
                                         Baixar Documento Anexo
                                     </a>

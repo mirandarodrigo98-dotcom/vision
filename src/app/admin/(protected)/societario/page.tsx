@@ -83,7 +83,7 @@ export default async function SocietarioPage({ searchParams }: PageProps) {
                           className={`px-2 py-1 rounded-full text-xs font-semibold
                             ${p.status === 'NAO_INICIADO' ? 'bg-gray-100 text-gray-800' : ''}
                             ${p.status === 'EM_ANDAMENTO' ? 'bg-yellow-100 text-yellow-800' : ''}
-                            ${p.status === 'CONCLUIDO' ? 'bg-[#06276b]/10 text-[#06276b]' : ''}
+                            ${p.status === 'CONCLUIDO' ? 'bg-primary/10 text-primary' : ''}
                           `}
                         >
                           {p.status === 'NAO_INICIADO'

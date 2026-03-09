@@ -44,216 +44,226 @@ export async function switchCompany(companyId: string) {
   return { success: true };
 }
 
-export async function createClientUser(formData: FormData) {
+// Validate email for Step 2 of Wizard
+export async function validateUserEmail(email: string, currentUserId?: string) {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return { error: 'Unauthorized' };
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return { error: 'Email inválido.' };
+    }
+
+    let query = 'SELECT id, name FROM users WHERE email = ?';
+    const params = [email];
+
+    if (currentUserId) {
+        query += ' AND id != ?';
+        params.push(currentUserId);
+    }
+
+    const existing = await db.prepare(query).get(...params) as { id: string, name: string } | undefined;
+
+    if (existing) {
+        return { error: 'Email já está em uso.', existingUser: existing };
+    }
+
+    return { success: true };
+}
+
+interface SaveClientUserPayload {
+    id?: string;
+    name: string;
+    email: string;
+    cell_phone?: string;
+    notification_email: boolean;
+    notification_whatsapp: boolean;
+    company_ids: string[];
+    permissions: string[];
+}
+
+export async function getClientUserPermissions(userId: string) {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return [];
+    }
+
+    try {
+        const permissions = await db.prepare('SELECT permission_code FROM user_permissions WHERE user_id = ?').all(userId) as { permission_code: string }[];
+        return permissions.map(p => p.permission_code);
+    } catch (error) {
+        console.error('Error fetching client user permissions:', error);
+        return [];
+    }
+}
+
+export async function saveClientUser(data: SaveClientUserPayload) {
   const session = await getSession();
   if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
     return { error: 'Unauthorized' };
   }
 
-  const name = formData.get('name') as string;
-  const email = formData.get('email') as string;
-  const phone = formData.get('phone') as string;
-  const departmentId = formData.get('department_id') as string;
-  const companyIds = formData.getAll('company_ids') as string[];
+  const { id, name, email, cell_phone, notification_email, notification_whatsapp, company_ids, permissions } = data;
 
-  if (!name || !email || companyIds.length === 0 || !departmentId) {
-    return { error: 'Nome, email, departamento e pelo menos uma empresa são obrigatórios.' };
+  if (!name || !email || company_ids.length === 0) {
+    return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
   }
 
-  // Check if email exists
-  const existing = await db.prepare('SELECT 1 FROM users WHERE email = ?').get(email);
-  if (existing) {
-    return { error: 'Email já está em uso.' };
+  // Double check email uniqueness
+  const emailCheck = await validateUserEmail(email, id);
+  if (emailCheck.error) {
+      return { error: emailCheck.error };
   }
-
-  const tempPassword = Math.random().toString(36).slice(-8);
-  const hashedPassword = await hashPassword(tempPassword);
-  const userId = uuidv4();
 
   try {
-    const createUser = db.transaction(async () => {
-      // Create user
-      await db.prepare(`
-        INSERT INTO users (id, name, email, phone, department_id, password_hash, role, is_active, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, 'client_user', 1, NOW())
-      `).run(userId, name, email, phone, departmentId, hashedPassword);
+    const transaction = db.transaction(async () => {
+        let userId = id;
 
-      // Link companies
-      for (const companyId of companyIds) {
-        await db.prepare(`
-          INSERT INTO user_companies (user_id, company_id)
-          VALUES (?, ?)
-        `).run(userId, companyId);
-      }
+        if (userId) {
+            // Update
+            await db.prepare(`
+                UPDATE users 
+                SET name = ?, email = ?, cell_phone = ?, notification_email = ?, notification_whatsapp = ?, updated_at = NOW()
+                WHERE id = ?
+            `).run(name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, userId);
 
-      // Set first company as active
-      if (companyIds.length > 0) {
-        await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(companyIds[0], userId);
-      }
+            // Clear existing relations
+            await db.prepare('DELETE FROM user_companies WHERE user_id = ?').run(userId);
+            await db.prepare('DELETE FROM user_permissions WHERE user_id = ?').run(userId);
+
+        } else {
+            // Create
+            userId = uuidv4();
+            const tempPassword = Math.random().toString(36).slice(-8);
+            const hashedPassword = await hashPassword(tempPassword);
+
+            await db.prepare(`
+                INSERT INTO users (id, name, email, cell_phone, notification_email, notification_whatsapp, role, is_active, password_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'client_user', 1, ?, NOW())
+            `).run(userId, name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, hashedPassword);
+
+            // Send welcome email
+             await sendEmail({
+                to: email,
+                subject: 'Bem-vindo ao VISION',
+                html: `
+                  <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Bem-vindo ao VISION</h2>
+                    <p>Olá ${name},</p>
+                    <p>Sua conta de acesso foi criada com sucesso.</p>
+                    <p>Para acessar o sistema, utilize as credenciais abaixo:</p>
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                      <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
+                      <p style="margin: 5px 0;"><strong>Senha Provisória:</strong> ${tempPassword}</p>
+                    </div>
+                    <p>Recomendamos que altere sua senha após o primeiro acesso.</p>
+                    <p>Atenciosamente,<br>Equipe NZD</p>
+                  </div>
+                `,
+                category: 'user_created'
+              });
+        }
+
+        // Insert Companies
+        const insertCompany = db.prepare('INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)');
+        for (const companyId of company_ids) {
+            await insertCompany.run(userId, companyId);
+        }
+
+        // Set active company if needed (for new users or if active company was removed)
+        if (company_ids.length > 0) {
+            // Check if current active company is still valid
+            const currentActive = await db.prepare('SELECT active_company_id FROM users WHERE id = ?').get(userId) as { active_company_id: string };
+            if (!currentActive?.active_company_id || !company_ids.includes(currentActive.active_company_id)) {
+                 await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(company_ids[0], userId);
+            }
+        }
+
+        // Insert Permissions
+        const insertPermission = db.prepare('INSERT INTO user_permissions (user_id, permission_code) VALUES (?, ?)');
+        for (const perm of permissions) {
+            await insertPermission.run(userId, perm);
+        }
     });
 
-    await createUser();
-
-    // Send email
-    await sendEmail({
-      to: email,
-      subject: 'Bem-vindo ao VISION',
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Bem-vindo ao VISION</h2>
-          <p>Olá ${name},</p>
-          <p>Sua conta de acesso foi criada com sucesso.</p>
-          <p>Para acessar o sistema, utilize as credenciais abaixo:</p>
-          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-            <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
-            <p style="margin: 5px 0;"><strong>Senha Provisória:</strong> ${tempPassword}</p>
-          </div>
-          <p>Recomendamos que altere sua senha após o primeiro acesso.</p>
-          <p>Atenciosamente,<br>Equipe NZD</p>
-        </div>
-      `,
-      category: 'user_created'
-    });
-
+    await transaction();
     revalidatePath('/admin/client-users');
     return { success: true };
-  } catch (e: any) {
-    console.error(e);
-    return { error: 'Erro ao criar usuário: ' + e.message };
+
+  } catch (error: any) {
+      console.error('Error saving client user:', error);
+      return { error: 'Erro ao salvar usuário: ' + error.message };
   }
 }
 
-export async function updateClientUser(userId: string, formData: FormData) {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Unauthorized' };
-  }
-
-  const name = formData.get('name') as string;
-  const email = formData.get('email') as string;
-  const phone = formData.get('phone') as string;
-  const departmentId = formData.get('department_id') as string;
-  const companyIds = formData.getAll('company_ids') as string[];
-
-  if (!name || !email || companyIds.length === 0 || !departmentId) {
-    return { error: 'Nome, email, departamento e pelo menos uma empresa são obrigatórios.' };
-  }
-
-  // Check if email exists for other user
-  const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId);
-  if (existing) {
-    return { error: 'Email já está em uso por outro usuário.' };
-  }
-
-  try {
-    const updateUser = db.transaction(async () => {
-      // Update user details
-      await db.prepare(`
-        UPDATE users 
-        SET name = ?, email = ?, phone = ?, department_id = ?, updated_at = NOW()
-        WHERE id = ?
-      `).run(name, email, phone, departmentId, userId);
-
-      // Update companies links
-      // First delete all
-      await db.prepare('DELETE FROM user_companies WHERE user_id = ?').run(userId);
-
-      // Then re-insert
-      for (const companyId of companyIds) {
-        await db.prepare(`
-          INSERT INTO user_companies (user_id, company_id)
-          VALUES (?, ?)
-        `).run(userId, companyId);
-      }
-
-      // Check active company
-      const activeCompanyCheck = await db.prepare(`
-        SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = (SELECT active_company_id FROM users WHERE id = ?)
-      `).get(userId, userId);
-
-      if (!activeCompanyCheck && companyIds.length > 0) {
-        // If active company is no longer linked, set to first one
-        await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(companyIds[0], userId);
-      }
-    });
-
-    await updateUser();
-
-    revalidatePath('/admin/client-users');
-    return { success: true };
-  } catch (e: any) {
-    console.error(e);
-    return { error: 'Erro ao atualizar usuário: ' + e.message };
-  }
-}
-
-export async function toggleUserStatus(userId: string, isActive: boolean) {
+export async function toggleUserStatus(userId: string, currentStatus: number) {
   const session = await getSession();
   if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
     return { error: 'Unauthorized' };
   }
 
   try {
-    await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(isActive ? 1 : 0, userId);
+    await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(currentStatus === 1 ? 0 : 1, userId);
     revalidatePath('/admin/client-users');
     return { success: true };
-  } catch (e: any) {
-    return { error: e.message };
+  } catch (e) {
+    return { error: 'Erro ao alterar status.' };
   }
 }
 
 export async function sendPassword(userId: string) {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Unauthorized' };
-  }
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return { error: 'Unauthorized' };
+    }
 
-  try {
-    const user = await db.prepare('SELECT name, email FROM users WHERE id = ?').get(userId) as any;
-    if (!user) return { error: 'Usuário não encontrado' };
+    try {
+        const user = await db.prepare('SELECT name, email FROM users WHERE id = ?').get(userId) as { name: string, email: string };
+        if (!user) return { error: 'Usuário não encontrado.' };
 
-    const newPassword = Math.random().toString(36).slice(-8);
-    const hashedPassword = await hashPassword(newPassword);
+        const tempPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await hashPassword(tempPassword);
 
-    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashedPassword, userId);
+        await db.prepare('UPDATE users SET password_hash = ?, password_temporary = 1 WHERE id = ?').run(hashedPassword, userId);
 
-    await sendEmail({
-      to: user.email,
-      subject: 'Nova Senha de Acesso - VISION',
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Redefinição de Senha</h2>
-          <p>Olá ${user.name},</p>
-          <p>Uma nova senha foi gerada para seu acesso ao VISION.</p>
-          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-            <p style="margin: 5px 0;"><strong>Nova Senha:</strong> ${newPassword}</p>
-          </div>
-          <p>Recomendamos que altere sua senha após o acesso.</p>
-        </div>
-      `,
-      category: 'password_reset'
-    });
+        await sendEmail({
+            to: user.email,
+            subject: 'Redefinição de Senha - VISION',
+            html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Redefinição de Senha</h2>
+                    <p>Olá ${user.name},</p>
+                    <p>Sua senha foi redefinida pelo administrador.</p>
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                        <p style="margin: 5px 0;"><strong>Nova Senha Provisória:</strong> ${tempPassword}</p>
+                    </div>
+                    <p>Recomendamos que altere sua senha após o acesso.</p>
+                </div>
+            `,
+            category: 'password_reset'
+        });
 
-    return { success: true };
-  } catch (e: any) {
-    return { error: e.message };
-  }
+        return { success: true };
+    } catch (e) {
+        return { error: 'Erro ao enviar senha.' };
+    }
 }
 
 export async function generateTempPassword(userId: string) {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Unauthorized' };
-  }
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return { error: 'Unauthorized' };
+    }
 
-  try {
-    const tempPassword = Math.random().toString(36).slice(-8);
-    const hashedPassword = await hashPassword(tempPassword);
+    try {
+        const tempPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await hashPassword(tempPassword);
 
-    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashedPassword, userId);
+        await db.prepare('UPDATE users SET password_hash = ?, password_temporary = 1 WHERE id = ?').run(hashedPassword, userId);
 
-    return { success: true, password: tempPassword };
-  } catch (e: any) {
-    return { error: e.message };
-  }
+        return { success: true, password: tempPassword };
+    } catch (e) {
+        return { error: 'Erro ao gerar senha.' };
+    }
 }
