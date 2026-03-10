@@ -11,6 +11,7 @@ export interface SocioData {
   nome: string;
   cpf: string;
   participacao?: number;
+  isRepresentative?: boolean;
   dataNascimento?: string;
   rg?: string;
   orgaoExpedidor?: string;
@@ -66,6 +67,7 @@ export async function getSocio(id: string) {
         ss.*,
         scs.company_id,
         scs.participacao_percent,
+        scs.is_representative,
         cc.filial
       FROM societario_socios ss
       LEFT JOIN societario_company_socios scs ON scs.socio_id = ss.id
@@ -203,19 +205,24 @@ export async function saveSocio(data: SocioData) {
     // Check if link exists
     const existingLink = await db.prepare('SELECT id FROM societario_company_socios WHERE company_id = ? AND socio_id = ?').get(data.companyId, socioId);
     
+    // Enforce single representative rule: if this one is representative, unset others
+    if (data.isRepresentative) {
+      await db.prepare('UPDATE societario_company_socios SET is_representative = 0, updated_at = NOW() WHERE company_id = ? AND socio_id != ?').run(data.companyId, socioId);
+    }
+
     if (!existingLink) {
       const linkId = randomUUID();
       await db.prepare(`
-        INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, created_at, updated_at)
-        VALUES (?, ?, ?, ?, NOW(), NOW())
-      `).run(linkId, data.companyId, socioId, participacao);
+        INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, is_representative, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+      `).run(linkId, data.companyId, socioId, participacao, data.isRepresentative ? 1 : 0);
     } else {
-      // Update participation if link exists
+      // Update participation and representative status if link exists
       await db.prepare(`
         UPDATE societario_company_socios 
-        SET participacao_percent = ?, updated_at = NOW()
+        SET participacao_percent = ?, is_representative = ?, updated_at = NOW()
         WHERE id = ?
-      `).run(participacao, existingLink.id);
+      `).run(participacao, data.isRepresentative ? 1 : 0, existingLink.id);
     }
 
     revalidatePath('/admin/socios');

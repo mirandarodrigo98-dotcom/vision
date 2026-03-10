@@ -474,8 +474,8 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
                 <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true" />
 
                 {/* Profile dropdown */}
-                <Menu as="div" className="relative" suppressHydrationWarning>
-                  <Menu.Button className="-m-1.5 flex items-center p-1.5">
+                <Menu as="div" className="relative">
+                  <Menu.Button className="-m-1.5 flex items-center p-1.5" id="user-menu-button">
                     <span className="sr-only">Abrir menu de usuário</span>
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.avatar_path || ''} className="object-cover" />

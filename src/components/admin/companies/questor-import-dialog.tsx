@@ -16,8 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { RefreshCw, Check, AlertCircle } from 'lucide-react';
-import { fetchQuestorData } from '@/app/actions/integrations/questor-syn';
-import { fetchQuestorZenCompany } from '@/app/actions/integrations/questor-zen';
+import { fetchCompanyFromQuestor, QuestorCompanyData } from '@/app/actions/integrations/questor-companies';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface QuestorImportDialogProps {
@@ -31,7 +30,7 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'input' | 'confirm-socios' | 'select-socio' | 'preview'>('input');
   const [companyCode, setCompanyCode] = useState('');
-  const [fetchedData, setFetchedData] = useState<any>(null);
+  const [fetchedData, setFetchedData] = useState<QuestorCompanyData | null>(null);
   const [importSocios, setImportSocios] = useState(true);
   const [selectedSocioIndex, setSelectedSocioIndex] = useState<number | null>(null);
   const [source, setSource] = useState<'zen' | 'syn'>('zen');
@@ -59,18 +58,35 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
 
     setLoading(true);
     try {
-      if (source === 'zen') {
-          // Zen requires CNPJ
-          const cleanCode = companyCode.replace(/\D/g, '');
-          if (cleanCode.length < 11) {
-              toast.error('Para integração com Questor Zen, é necessário informar o CNPJ completo (14 dígitos).');
-              setLoading(false);
-              return;
-          }
-          await handleSyncZen();
-      } else {
-          await handleSyncSyn();
-      }
+        const result = await fetchCompanyFromQuestor(companyCode, source);
+        
+        if (result.error) {
+            toast.error(result.error);
+            return;
+        }
+
+        if (result.existing) {
+             toast.warning(`Atenção: Empresa já cadastrada no sistema (ID: ${result.existing.id}).`);
+        }
+
+        const data = result.data!;
+        setFetchedData(data);
+
+        if (mode === 'company') {
+            if (data.socios.length === 0) {
+                toast.info('Nenhum sócio retornado pela API. A empresa será importada sem sócios.');
+            }
+            setStep('confirm-socios');
+        } else {
+            // Socio mode
+            if (data.socios.length === 0) {
+                toast.warning('Nenhum sócio encontrado nesta empresa.');
+                setOpen(false);
+            } else {
+                setStep('select-socio');
+            }
+        }
+
     } catch (error: any) {
       toast.error(error.message || 'Erro ao buscar dados do Questor.');
     } finally {
@@ -78,272 +94,125 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
     }
   };
 
-  const handleSyncZen = async () => {
-      const result = await fetchQuestorZenCompany(companyCode);
-      
-      if (result.error) {
-          throw new Error(result.error);
-      }
-
-      const zenData = result.data;
-      console.log('Zen Data:', zenData);
-
-      // Normalization of Zen Data to Vision format (PascalCase keys observed in API)
-      const company = {
-          CODIGOEMPRESA: zenData.CompanyId || zenData.codigo || companyCode,
-          NOME: zenData.Nome || zenData.nome || zenData.razaoSocial || zenData.nomeFantasia, // Razão Social usually
-          RAZAOSOCIAL: zenData.Nome || zenData.razaoSocial || zenData.nome,
-          NOMEFANTASIA: zenData.NomeFantasia || zenData.nomeFantasia || zenData.Nome || zenData.nome, // Fallback to Name
-          INSCRFEDERAL: zenData.InscricaoFederal || zenData.cnpj || zenData.cpfCnpj,
-          // Add mapping for address if available in zenData
-      };
-
-      const estab = {
-          // Zen might return address directly in company object
-          CODIGOESTAB: zenData.CodigoEstab || zenData.codigoEstab || '1', // Default to 1 for Zen
-          LOGRADOURO: zenData.Logadouro || zenData.logradouro || zenData.endereco, // Note: Logadouro (sic) in Zen API
-          NUMERO: zenData.Numero || zenData.numero,
-          COMPLEMENTO: zenData.Complemento || zenData.complemento,
-          BAIRRO: zenData.Bairro || zenData.bairro,
-          CIDADE: zenData.Cidade || zenData.cidade,
-          NOMEMUNIC: zenData.Cidade || zenData.cidade, // Vision expects NOMEMUNIC
-          UF: zenData.Estado || zenData.uf || zenData.estado,
-          SIGLAESTADO: zenData.Estado || zenData.uf || zenData.estado, // Vision expects SIGLAESTADO
-          CEP: zenData.Cep || zenData.cep,
-          DATAINICIOATIV: zenData.DataInicioRegime || zenData.dataAbertura, // Try to find start date
-          TELEFONE: zenData.Telefone || zenData.telefone,
-          EMAIL: zenData.Email || zenData.email
-      };
-
-      // Socios in Zen
-      let socios: any[] = [];
-      // Check for socios in various possible keys (PascalCase or camelCase)
-      const rawSocios = zenData.Socios || zenData.socios || [];
-      
-      if (Array.isArray(rawSocios)) {
-          socios = rawSocios.map((s: any) => ({
-              NOME: s.Nome || s.nome,
-              CPF: s.Cpf || s.cpf || s.cpfCnpj || s.InscricaoFederal,
-              PERCENTUALPARTICIPACAO: s.Percentual || s.participacao || 0
-          }));
-      }
-
-      const data = {
-          company,
-          estab,
-          socios
-      };
-
-      setFetchedData(data);
-
-      if (mode === 'company') {
-        if (socios.length === 0) {
-            toast.info('Nota: Nenhum sócio retornado pela API Zen. A empresa será importada sem sócios.');
-        }
-        setStep('confirm-socios');
-      } else {
-        if (socios.length === 0) {
-            toast.warning('Nenhum sócio encontrado nesta empresa (Zen). A importação de sócios pode não estar disponível via Zen API.');
-            // Allow user to proceed or close?
-            // If mode is socio, we can't do much.
-            // Maybe offer to continue without socios if in company mode?
-            // But here we are in 'else' block which means mode != 'company' (so mode == 'socio')
-            // So we should close or show error.
-             setOpen(false);
-        } else {
-            setStep('select-socio');
-        }
-      }
-  };
-
-  const handleSyncSyn = async () => {
-      // 1. Fetch Company Data (TnGemDMEmpresa)
-      const companyResult = await fetchQuestorData('TnGemDMEmpresa', { CODIGOEMPRESA: companyCode });
-      
-      // Check for specific Permission/Visibility issue (API returns 200 OK but RegistroCarregado=false)
-      if (companyResult.data && companyResult.data.RegistroCarregado === false) {
-         throw new Error(`Permissão Negada: A empresa ${companyCode} existe, mas o Token da API não tem permissão para visualizá-la. Verifique as configurações de usuário/web no Questor.`);
-      }
-
-      let companyData = null;
-      if (Array.isArray(companyResult.data)) {
-        companyData = companyResult.data[0];
-      } else if (companyResult.data && (companyResult.data.RegistroCarregado === true || companyResult.data.RegistroCarregado === undefined)) {
-        // Handle single object response
-        companyData = companyResult.data;
-      }
-
-      // Fallback: Try Fetching Establishment 1 if Company fetch fails (sometimes TnGemDMEmpresa is restricted or fails)
-      if (!companyData) {
-        console.log('Company fetch failed, trying Establishment 1...');
-        try {
-          const estabResultFallback = await fetchQuestorData('TnGemDMEstab', { 
-            CODIGOEMPRESA: companyCode,
-            CODIGOESTAB: '1' 
-          });
-          
-          // Check for permission issue on Fallback too
-          if (estabResultFallback.data && estabResultFallback.data.RegistroCarregado === false) {
-             throw new Error(`Permissão Negada (Filial): A empresa ${companyCode} existe, mas o Token da API não tem permissão para visualizá-la.`);
-          }
-
-          const estabDataFallback = Array.isArray(estabResultFallback.data) ? estabResultFallback.data[0] : estabResultFallback.data;
-          
-          // Check if data is actually loaded (Questor specific check)
-          if (estabDataFallback && (estabDataFallback.RegistroCarregado === true || estabDataFallback.RegistroCarregado === undefined)) {
-            // Construct company data from establishment data
-            companyData = {
-              CODIGOEMPRESA: estabDataFallback.CODIGOEMPRESA,
-              NOME: estabDataFallback.NOMEESTAB, // Usually main estab name is company name
-              RAZAOSOCIAL: estabDataFallback.NOMEESTAB,
-              INSCRFEDERAL: estabDataFallback.INSCRFEDERAL, // CNPJ
-              // Add other fields if needed
-            };
-          }
-        } catch (err: any) {
-          console.warn('Fallback fetch failed:', err);
-          // If it was our explicit permission error, rethrow it
-          if (err.message && err.message.includes('Permissão Negada')) throw err;
-        }
-      }
-
-      if (!companyData) {
-         throw new Error(`Empresa não encontrada na API do Questor (Cód: ${companyCode}).\nVerifique se o código está correto e se a empresa está ativa para o usuário da API.`);
-      }
-
-      // 2. Fetch Establishment Data (TnGemDMEstab) - Usually Estab 1 is main
-      // If we already fetched it in fallback, use it
-      let estabData = null;
-      
-      const estabResult = await fetchQuestorData('TnGemDMEstab', { CODIGOEMPRESA: companyCode });
-      const rawEstabData = Array.isArray(estabResult.data) ? estabResult.data : [estabResult.data];
-      
-      estabData = rawEstabData.find((e: any) => e && (e.CODIGOESTAB == 1 || e.CODIGOESTAB == '1'));
-      if (!estabData && rawEstabData.length > 0 && rawEstabData[0]) estabData = rawEstabData[0];
-
-      // If still no estabData but we have companyData (from original fetch), try to use what we can
-      if (!estabData && companyData) {
-         // Try to fetch again with explicit CODIGOESTAB=1 if the list failed
-         const estabResultExplicit = await fetchQuestorData('TnGemDMEstab', { 
-            CODIGOEMPRESA: companyCode,
-            CODIGOESTAB: '1' 
-         });
-         estabData = Array.isArray(estabResultExplicit.data) ? estabResultExplicit.data[0] : estabResultExplicit.data;
-      }
-
-      const data = {
-        company: companyData,
-        estab: estabData || {} // Allow empty estab if strictly company import? But address comes from estab.
-      };
-
-      setFetchedData(data);
-
-      if (mode === 'company') {
-        // Ask for partners
-        setStep('confirm-socios');
-      } else {
-        // Direct to partners fetch if in socio mode
-        await fetchSociosSyn(data);
-      }
-  };
-
-  const fetchSociosSyn = async (currentData: any) => {
-    // ... logic for SYN socios fetching ...
-    // Reuse existing logic but extracted
-    setLoading(true);
-    try {
-      const sociosResult = await fetchQuestorData('TnGemDMSocio', { CODIGOEMPRESA: companyCode });
-      
-      if (sociosResult.error) {
-        console.warn('Erro ao buscar sócios:', sociosResult.error);
-        toast.warning(`Não foi possível buscar os sócios: ${sociosResult.error}`);
-      }
-
-      let sociosList: any[] = [];
-      
-      if (sociosResult.data && sociosResult.data.RegistroCarregado === false) {
-          console.warn('Permissão Negada para Sócios (RegistroCarregado=false)');
-      }
-
-      if (Array.isArray(sociosResult.data)) {
-        sociosList = sociosResult.data;
-      } else if (sociosResult.data && (sociosResult.data.RegistroCarregado === true || sociosResult.data.RegistroCarregado === undefined)) {
-        sociosList = [sociosResult.data];
-      }
-      
-      const newData = {
-        ...currentData,
-        socios: sociosList
-      };
-
-      setFetchedData(newData);
-      
-      if (mode === 'company') {
-        onImport(newData);
-        if (sociosList.length > 0) {
-            toast.success(`Empresa e ${sociosList.length} sócio(s) importados com sucesso!`);
-        } else {
-            toast.success('Empresa importada com sucesso! (Nenhum sócio encontrado)');
-        }
-        setOpen(false);
-      } else {
-        if (newData.socios.length === 0) {
-            toast.warning('Nenhum sócio encontrado para esta empresa.');
-            setOpen(false);
-        } else {
-            setStep('select-socio');
-        }
-      }
-
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao buscar sócios.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleConfirmSocios = async () => {
-    if (source === 'zen') {
-        // Zen already fetched everything in one go (usually)
-        // If socios are optional in Zen flow, we just use what we have
-        // Or if we need to fetch them separately in Zen, we would do it here.
-        // Assuming Zen returns everything for now.
-        
-        if (!importSocios) {
-            // Remove socios from data if user unchecked
-            const dataWithoutSocios = { ...fetchedData, socios: [] };
-            onImport(dataWithoutSocios);
-        } else {
-            onImport(fetchedData);
-        }
-        toast.success('Dados importados via Questor Zen!');
-        setOpen(false);
-    } else {
-        // SYN flow
-        if (importSocios) {
-            await fetchSociosSyn(fetchedData);
-        } else {
-            onImport(fetchedData);
-            toast.success('Dados da empresa importados!');
-            setOpen(false);
-        }
-    }
+    if (!fetchedData) return;
+
+    // Adapt data for onImport (Legacy format expected by company-form)
+    const adaptedData = adaptToFormFormat(fetchedData, importSocios);
+    
+    onImport(adaptedData);
+    toast.success('Dados importados com sucesso!');
+    setOpen(false);
   };
-
-  // ... rest of component ...
-
 
   const handleSelectSocio = () => {
     if (selectedSocioIndex === null || !fetchedData?.socios) return;
     
     const selectedSocio = fetchedData.socios[selectedSocioIndex];
-    onImport({
-        company: fetchedData.company,
-        estab: fetchedData.estab,
-        socio: selectedSocio // Return single selected socio
-    });
-    toast.success('Dados do sócio importados!');
+    
+    // Adapt single socio import
+    const adaptedData = {
+        socios: [{
+            NOME: selectedSocio.nome,
+            CPF: selectedSocio.cpf,
+            PERCENTUALPARTICIPACAO: selectedSocio.percentual,
+            DATANASCIMENTO: selectedSocio.data_nascimento,
+            RG: selectedSocio.rg,
+            ORGAOEXPEDIDOR: selectedSocio.orgao_expedidor,
+            UFORGAOEXPEDIDOR: selectedSocio.uf_orgao_expedidor,
+            DATAEXPEDICAO: selectedSocio.data_expedicao,
+            CEP: selectedSocio.cep,
+            ENDERECO: selectedSocio.logradouro,
+            NUMERO: selectedSocio.numero,
+            COMPLEMENTO: selectedSocio.complemento,
+            BAIRRO: selectedSocio.bairro,
+            NOMEMUNIC: selectedSocio.municipio,
+            SIGLAESTADO: selectedSocio.uf
+        }]
+    };
+
+    onImport(adaptedData);
+    toast.success('Sócio importado com sucesso!');
     setOpen(false);
+  };
+
+  // Helper to adapt new structure to old expected format
+  const adaptToFormFormat = (data: QuestorCompanyData, includeSocios: boolean) => {
+      // Create a robust data object that ensures keys match what company-form expects
+      const adapted = {
+          company: {
+              NOME: data.company.razao_social,
+              RAZAOSOCIAL: data.company.razao_social,
+              NOMEFANTASIA: data.company.name,
+              INSCRFEDERAL: data.company.cnpj,
+              CODIGOEMPRESA: data.company.code,
+              FANTASIA: data.company.name,
+              CAPITALSOCIAL: data.company.capital_social, // Legacy key
+              
+              // Direct properties (New format)
+              capital_social: data.company.capital_social,
+              email: data.company.email,
+              telefone: data.company.telefone,
+              razao_social: data.company.razao_social,
+              nome: data.company.name,
+              cnpj: data.company.cnpj,
+              code: data.company.code,
+              filial: data.company.filial,
+              data_abertura: data.company.data_abertura
+          },
+          estab: {
+              DATAINICIOATIV: data.company.data_abertura,
+              TIPOLOGRADOURO: data.address.tipo_logradouro, // Legacy key
+              LOGRADOURO: data.address.logradouro,
+              NUMERO: data.address.numero,
+              COMPLEMENTO: data.address.complemento,
+              BAIRRO: data.address.bairro,
+              CEP: data.address.cep,
+              NOMEMUNIC: data.address.cidade,
+              SIGLAESTADO: data.address.uf,
+              TELEFONE: data.company.telefone,
+              EMAIL: data.company.email,
+              CODIGOESTAB: '1', // Default
+
+              // Ensure these are also present in estab for legacy fallback
+              capital_social: data.company.capital_social,
+              CAPITALSOCIAL: data.company.capital_social
+          },
+          // Pass the clean address object directly
+          address: {
+              ...data.address,
+              // Redundant keys to ensure mapping success
+              tipo_logradouro: data.address.tipo_logradouro,
+              logradouro: data.address.logradouro,
+              numero: data.address.numero,
+              complemento: data.address.complemento,
+              bairro: data.address.bairro,
+              cep: data.address.cep,
+              cidade: data.address.cidade,
+              uf: data.address.uf,
+              municipio: data.address.cidade
+          },
+          socios: includeSocios ? data.socios.map(s => ({
+              NOME: s.nome,
+              CPF: s.cpf,
+              PERCENTUALPARTICIPACAO: s.percentual,
+              DATANASCIMENTO: s.data_nascimento,
+              RG: s.rg,
+              ORGAOEXPEDIDOR: s.orgao_expedidor,
+              UFORGAOEXPEDIDOR: s.uf_orgao_expedidor,
+              DATAEXPEDICAO: s.data_expedicao,
+              CEP: s.cep,
+              ENDERECO: s.logradouro,
+              NUMERO: s.numero,
+              COMPLEMENTO: s.complemento,
+              BAIRRO: s.bairro,
+              NOMEMUNIC: s.municipio,
+              SIGLAESTADO: s.uf
+          })) : []
+      };
+
+      console.log('Questor Import Data Adapted:', adapted);
+      return adapted;
   };
 
   return (
@@ -412,8 +281,25 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
             <div className="space-y-4">
               <div className="rounded-md bg-muted p-4">
                 <p className="text-sm font-medium">Empresa encontrada:</p>
-                <p className="text-lg font-bold">{fetchedData.company.NOME || fetchedData.company.RAZAOSOCIAL}</p>
-                <p className="text-sm text-muted-foreground">CNPJ: {fetchedData.company.INSCRFEDERAL || fetchedData.company.CNPJ}</p>
+                <p className="text-lg font-bold">{fetchedData.company.razao_social || fetchedData.company.name}</p>
+                <p className="text-sm text-muted-foreground">CNPJ: {fetchedData.company.cnpj}</p>
+                
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground border-t pt-2">
+                    <div>
+                        <p className="font-semibold text-foreground mb-1">Endereço:</p>
+                        <p>{fetchedData.address.tipo_logradouro} {fetchedData.address.logradouro}, {fetchedData.address.numero}</p>
+                        {fetchedData.address.complemento && <p>{fetchedData.address.complemento}</p>}
+                        <p>{fetchedData.address.bairro} - {fetchedData.address.cidade}/{fetchedData.address.uf}</p>
+                        <p>CEP: {fetchedData.address.cep}</p>
+                    </div>
+                    <div>
+                         <p className="font-semibold text-foreground mb-1">Outros Dados:</p>
+                         <p>Capital Social: {fetchedData.company.capital_social ? Number(fetchedData.company.capital_social).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Não informado'}</p>
+                         <p>Telefone: {fetchedData.company.telefone || '-'}</p>
+                         <p>Email: {fetchedData.company.email || '-'}</p>
+                         <p>Data Abertura: {fetchedData.company.data_abertura ? new Date(fetchedData.company.data_abertura).toLocaleDateString('pt-BR') : '-'}</p>
+                    </div>
+                </div>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -424,6 +310,15 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
                 />
                 <Label htmlFor="import-socios">Importar também os sócios vinculados?</Label>
               </div>
+
+              {fetchedData.raw && (
+                  <details className="text-xs text-muted-foreground">
+                      <summary className="cursor-pointer hover:text-foreground">Ver Dados Brutos (Debug)</summary>
+                      <pre className="mt-2 p-2 bg-slate-950 text-slate-50 rounded overflow-auto max-h-[200px]">
+                          {JSON.stringify(fetchedData.raw, null, 2)}
+                      </pre>
+                  </details>
+              )}
             </div>
           )}
 

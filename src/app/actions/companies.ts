@@ -4,10 +4,169 @@ import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { validateCNPJ } from '@/lib/validators';
 import { revalidatePath } from 'next/cache';
 import * as Papa from 'papaparse';
 import { randomUUID } from 'crypto';
+
+import { fetchQuestorData } from './integrations/questor-syn';
+
+export async function saveQuestorCompany(companyData: any) {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+      return { error: 'Não autorizado' };
+    }
+
+    try {
+        console.log('--- SAVING QUESTOR COMPANY ---');
+        console.log('Code:', companyData.code);
+        console.log('Capital Social:', companyData.capital_social_centavos);
+        console.log('Address Type:', companyData.address_type);
+
+        // Verifica se a empresa já existe para Atualizar ou Inserir
+        let existingId: string | null = null;
+        let existingNome: string | null = null;
+
+        if (companyData.cnpj) {
+            const existing = await db.prepare('SELECT id, nome FROM client_companies WHERE cnpj = ?').get(companyData.cnpj) as any;
+            if (existing) {
+                existingId = existing.id;
+                existingNome = existing.nome;
+            }
+        }
+        
+        // Se não achou por CNPJ, tenta por Código (mas cuidado, código pode duplicar em sistemas diferentes)
+        // O ideal é confiar no CNPJ. Se não tiver CNPJ, aí sim Código.
+        if (!existingId && companyData.code) {
+             const existing = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ?').get(companyData.code) as any;
+             if (existing) {
+                 existingId = existing.id;
+                 existingNome = existing.nome;
+             }
+        }
+
+        if (existingId) {
+            // ATUALIZAÇÃO (UPDATE)
+            await db.prepare(`
+                UPDATE client_companies SET
+                    code = ?, nome = ?, razao_social = ?, filial = ?, telefone = ?, email_contato = ?,
+                    address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?, address_zip_code = ?,
+                    municipio = ?, uf = ?, data_abertura = ?, capital_social_centavos = ?, address_type = ?,
+                    is_active = ?, updated_at = datetime('now')
+                WHERE id = ?
+            `).run(
+                companyData.code,
+                companyData.nome,
+                companyData.razao_social,
+                companyData.filial,
+                companyData.telefone,
+                companyData.email_contato,
+                companyData.address_street,
+                companyData.address_number,
+                companyData.address_complement,
+                companyData.address_neighborhood,
+                companyData.address_zip_code,
+                companyData.municipio,
+                companyData.uf,
+                companyData.data_abertura,
+                companyData.capital_social_centavos,
+                companyData.address_type,
+                companyData.is_active,
+                existingId
+            );
+
+            // Importar/Atualizar Sócios
+            if (companyData.socios && Array.isArray(companyData.socios) && companyData.socios.length > 0) {
+                 await upsertCompanySocios(existingId, companyData.socios, session.user_id);
+            }
+
+            await logAudit({
+                actor_user_id: session.user_id,
+                role: session.role,
+                action: 'UPDATE_CLIENT',
+                entity_type: 'client_companies',
+                entity_id: existingId,
+                metadata: { source: 'Questor Import Update', code: companyData.code, nome: companyData.nome },
+                success: true
+            });
+
+            revalidatePath('/admin/companies');
+            revalidatePath('/admin/clients');
+            return { success: true, message: `Empresa ${existingNome} atualizada com sucesso!` };
+        }
+
+        // INSERÇÃO (INSERT)
+        const id = uuidv4();
+        
+        await db.prepare(`
+            INSERT INTO client_companies (
+                id, code, nome, razao_social, cnpj, 
+                filial, telefone, email_contato, 
+                address_street, address_number, address_complement, address_neighborhood, address_zip_code, 
+                municipio, uf, data_abertura, capital_social_centavos, address_type,
+                is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        `).run(
+            id,
+            companyData.code,
+            companyData.nome,
+            companyData.razao_social,
+            companyData.cnpj,
+            companyData.filial,
+            companyData.telefone,
+            companyData.email_contato,
+            companyData.address_street,
+            companyData.address_number,
+            companyData.address_complement,
+            companyData.address_neighborhood,
+            companyData.address_zip_code,
+            companyData.municipio,
+            companyData.uf,
+            companyData.data_abertura,
+            companyData.capital_social_centavos,
+            companyData.address_type,
+            companyData.is_active
+        );
+
+        // Importar Sócios se houver
+        if (companyData.socios && Array.isArray(companyData.socios) && companyData.socios.length > 0) {
+            try {
+                await upsertCompanySocios(id, companyData.socios, session.user_id);
+            } catch (socioError: any) {
+                console.error('Erro ao importar sócios:', socioError);
+                // Não falha a importação da empresa, mas avisa
+                await logAudit({
+                    actor_user_id: session.user_id,
+                    role: session.role,
+                    action: 'CREATE_CLIENT_SOCIOS_ERROR',
+                    entity_type: 'client_companies',
+                    entity_id: id,
+                    metadata: { error: socioError.message },
+                    success: false
+                });
+                return { success: true, message: `Empresa importada, mas houve erro nos sócios: ${socioError.message}` };
+            }
+        }
+
+        await logAudit({
+            actor_user_id: session.user_id,
+            role: session.role,
+            action: 'CREATE_CLIENT',
+            entity_type: 'client_companies',
+            entity_id: id,
+            metadata: { source: 'Questor Import Single', code: companyData.code, nome: companyData.nome },
+            success: true
+        });
+
+        revalidatePath('/admin/companies');
+        revalidatePath('/admin/clients');
+
+        return { success: true, message: 'Empresa importada com sucesso!' };
+
+    } catch (error: any) {
+        console.error('Failed to save company:', error);
+        return { error: 'Erro ao salvar empresa: ' + error.message };
+    }
+}
 
 function extractSociosFromForm(data: FormData) {
   const sociosMap = new Map<number, any>();
@@ -142,7 +301,7 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
       s.municipio || null,
       s.uf || null
     );
-    await upsertLinkStmt.run(randomUUID(), companyId, socioId, s.participacao_percent || 0, s.is_representative ? true : false);
+    await upsertLinkStmt.run(randomUUID(), companyId, socioId, s.participacao_percent || 0, s.is_representative ? 1 : 0);
     await insertSocioHistoryStmt.run(
       uuidv4(),
       socioId,
@@ -332,23 +491,107 @@ export async function toggleCompanyStatus(companyId: string, isActive: boolean) 
   }
 }
 
+export async function checkCompanyMovements(companyId: string): Promise<boolean> {
+  const employee = await db.prepare('SELECT 1 FROM employees WHERE company_id = ?').get(companyId);
+  if (employee) return true;
+
+  const admission = await db.prepare('SELECT 1 FROM admission_requests WHERE company_id = ?').get(companyId);
+  if (admission) return true;
+
+  const transfer = await db.prepare('SELECT 1 FROM transfer_requests WHERE source_company_id = ? OR target_company_id = ?').get(companyId, companyId);
+  if (transfer) return true;
+
+  const user = await db.prepare('SELECT 1 FROM user_companies WHERE company_id = ?').get(companyId);
+  if (user) return true;
+
+  // Check societario processes
+  const process = await db.prepare('SELECT 1 FROM societario_processes WHERE company_id = ?').get(companyId);
+  if (process) return true;
+
+  return false;
+}
+
+async function cleanupCompanyDependencies(companyId: string) {
+  // Delete history
+  await db.prepare('DELETE FROM societario_company_history WHERE company_id = ?').run(companyId);
+  
+  // Delete partners links
+  await db.prepare('DELETE FROM societario_company_socios WHERE company_id = ?').run(companyId);
+
+  // Delete profiles
+  await db.prepare('DELETE FROM societario_profiles WHERE company_id = ?').run(companyId);
+
+  // Delete logs
+  await db.prepare('DELETE FROM societario_logs WHERE company_id = ?').run(companyId);
+
+  // Delete billing info
+  await db.prepare('DELETE FROM simples_nacional_billing WHERE company_id = ?').run(companyId);
+}
+
 export async function deleteCompany(companyId: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
     return { error: 'Não autorizado' };
   }
 
   try {
-    // Check if company has active employees or other dependencies if needed
-    // For now, soft delete
-    await db.prepare("UPDATE client_companies SET is_active = 0, deleted_at = datetime('now') WHERE id = ?").run(companyId);
+    const hasMovements = await checkCompanyMovements(companyId);
+    if (hasMovements) {
+      return { error: 'Esta empresa possui movimentações (funcionários, admissões, processos societários, etc.) e não pode ser excluída.' };
+    }
+
+    // Cleanup dependencies before deleting the company
+    await cleanupCompanyDependencies(companyId);
+
+    await db.prepare("DELETE FROM client_companies WHERE id = ?").run(companyId);
     
-    logAudit(session.user_id, session.role, 'DELETE', 'client_companies', companyId, {}, true);
+    await logAudit(session.user_id, session.role, 'DELETE', 'client_companies', companyId, {}, true);
     revalidatePath('/admin/companies');
+    revalidatePath('/admin/clients');
     return { success: true };
   } catch (error) {
     console.error('Failed to delete company:', error);
     return { error: 'Erro ao excluir empresa' };
+  }
+}
+
+export async function deleteCompaniesBatch(companyIds: string[]) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Não autorizado' };
+  }
+
+  let deletedCount = 0;
+  let errors = 0;
+
+  try {
+    const deleteStmt = db.prepare("DELETE FROM client_companies WHERE id = ?");
+
+    for (const id of companyIds) {
+      const hasMovements = await checkCompanyMovements(id);
+      if (!hasMovements) {
+        // Cleanup dependencies before deleting
+        await cleanupCompanyDependencies(id);
+        
+        deleteStmt.run(id);
+        deletedCount++;
+        await logAudit(session.user_id, session.role, 'DELETE', 'client_companies', id, { batch: true }, true);
+      } else {
+        errors++;
+      }
+    }
+
+    revalidatePath('/admin/companies');
+    revalidatePath('/admin/clients');
+    
+    if (errors > 0) {
+      return { success: true, message: `${deletedCount} empresas excluídas. ${errors} não puderam ser excluídas pois possuem movimentações.` };
+    }
+    
+    return { success: true, message: `${deletedCount} empresas excluídas com sucesso.` };
+  } catch (error) {
+    console.error('Failed to delete companies batch:', error);
+    return { error: 'Erro ao excluir empresas em lote' };
   }
 }
 

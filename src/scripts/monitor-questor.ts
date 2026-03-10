@@ -1,62 +1,56 @@
-import fetch from 'node-fetch';
-// AbortController is global in modern Node
 
-// Monitor Questor nWeb Connectivity
-// Usage: npx tsx src/scripts/monitor-questor.ts
+// Usage: npx tsx src/scripts/monitor-questor.ts [--once]
 
-const BASE_URL = 'http://hcs08305ayy.sn.mynetname.net:9001';
+// Config
+const BASE_URL = 'http://192.168.11.2:9001'; // Internal URL
 const CHECK_INTERVAL = 30000; // 30 seconds
 const TIMEOUT = 10000; // 10 seconds
 
+const runOnce = process.argv.includes('--once');
+
 async function checkStatus() {
-    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-    const url = `${BASE_URL}/TnInfo`;
-    
+    const timestamp = new Date().toLocaleTimeString();
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), TIMEOUT);
-        
-        const start = Date.now();
-        const response = await fetch(url, { 
+
+        const response = await fetch(`${BASE_URL}/TnInfo`, {
             method: 'GET',
             headers: { 'Connection': 'close' },
-            signal: controller.signal 
+            signal: controller.signal
         });
         clearTimeout(timeout);
-        const duration = Date.now() - start;
-        
-        if (response.status === 200) {
-            const text = await response.text();
-            if (text.length > 0) {
-                console.log(`[${timestamp}] ✅ ONLINE! /TnInfo responding in ${duration}ms (Length: ${text.length})`);
-                console.log('--- SERVER IS BACK UP ---');
-                return true;
-            } else {
-                console.log(`[${timestamp}] ⚠️ 200 OK but Empty Body (${duration}ms)`);
-            }
+
+        if (response.ok) {
+            console.log(`[${timestamp}] ✅ SUCCESS: Questor is reachable at ${BASE_URL}`);
+            // Optionally check API content
+            // const text = await response.text();
+            // console.log(`[${timestamp}] ℹ️ Response length: ${text.length}`);
         } else {
-            console.log(`[${timestamp}] ❌ Error: Status ${response.status} (${duration}ms)`);
+            console.log(`[${timestamp}] ⚠️ WARNING: Questor returned status ${response.status} (${response.statusText})`);
         }
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            console.log(`[${timestamp}] ⏳ HANGING (Timeout > ${TIMEOUT}ms) - Server likely stuck on DB connection`);
+             console.log(`[${timestamp}] ❌ FAILURE: Connection timed out after ${TIMEOUT/1000}s (Server Hang?)`);
         } else {
-            console.log(`[${timestamp}] ❌ Connection Failed: ${error.message}`);
+             console.log(`[${timestamp}] ❌ FAILURE: ${error.message}`);
         }
     }
-    return false;
 }
 
 async function startMonitor() {
-    console.log(`--- Questor Monitor Started ---`);
+    console.log(`--- Questor Internal Monitor Started ---`);
     console.log(`Target: ${BASE_URL}`);
     console.log(`Interval: ${CHECK_INTERVAL/1000}s | Timeout: ${TIMEOUT/1000}s`);
     
-    // Initial check
-    await checkStatus();
-    
-    // Loop
-    setInterval(checkStatus, CHECK_INTERVAL);
+    if (runOnce) {
+        await checkStatus();
+    } else {
+        while (true) {
+            await checkStatus();
+            await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL));
+        }
+    }
 }
 
 startMonitor();

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { CompanyImportDialog } from '@/components/admin/companies/company-import-dialog';
+import { QuestorCompanyImport } from '@/components/admin/companies/questor-company-import';
 import { ClientsStatusFilter } from './clients-status-filter';
 
 interface ClientsPageProps {
@@ -61,6 +62,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         <h2 className="text-3xl font-bold tracking-tight">Empresas</h2>
         <div className="flex gap-2">
           <CompanyImportDialog />
+          <QuestorCompanyImport />
           <Link href="/admin/clients/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" /> Nova Empresa

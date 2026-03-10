@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { validateCNPJ } from '@/lib/validators';
+import { parseQuestorNumber, extractQuestorField } from '@/lib/utils';
 import { CompanyDataTab } from './tabs/CompanyDataTab';
 import { LegalRepresentativeTab } from './tabs/LegalRepresentativeTab';
 import { ContactsTab } from './tabs/ContactsTab';
@@ -137,33 +138,64 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
    const [formKey, setFormKey] = useState(0);
  
    const onImport = (data: any) => {
-     // Merge data into a temporary company object
-     const c = data.company || {};
-     const e = data.estab || {};
-     
-     const newCompany: any = {
-       ...mergedCompany,
-       id: mergedCompany?.id || '', // Preserve ID if exists
-       razao_social: c.NOME || c.RAZAOSOCIAL || mergedCompany?.razao_social || '',
-       nome: c.NOMEFANTASIA || c.FANTASIA || mergedCompany?.nome || '',
-       cnpj: c.INSCRFEDERAL || c.CNPJ || mergedCompany?.cnpj || '',
-       code: c.CODIGOEMPRESA || mergedCompany?.code || '',
-       filial: e.CODIGOESTAB || mergedCompany?.filial || '',
-       data_abertura: e.DATAINICIOATIV || mergedCompany?.data_abertura || '',
-       // Address
-       address_street: e.ENDERECO || e.LOGRADOURO || mergedCompany?.address_street || '',
-       address_number: e.NUMERO || mergedCompany?.address_number || '',
-       address_complement: e.COMPLEMENTO || mergedCompany?.address_complement || '',
-       address_neighborhood: e.BAIRRO || mergedCompany?.address_neighborhood || '',
-       address_zip_code: e.CEP || mergedCompany?.address_zip_code || '',
-       municipio: e.NOMEMUNIC || mergedCompany?.municipio || '',
-       uf: e.SIGLAESTADO || mergedCompany?.uf || '',
-       // Contact
-       telefone: (e.DDD && e.TELEFONE ? `${e.DDD}${e.TELEFONE}` : e.TELEFONE) || mergedCompany?.telefone || '',
-       email_contato: e.EMAIL || mergedCompany?.email_contato || '',
-     };
-     
-     setMergedCompany(newCompany);
+    console.log('--- ON IMPORT DEBUG ---', data);
+    
+    // Merge data into a temporary company object
+    // Support both Legacy (estab/company keys) and New (address/company keys) formats
+    const c = data.company || {};
+    const e = data.estab || {}; 
+    const a = data.address || {}; // Direct address object if present
+
+    console.log('Company Data:', c);
+    console.log('Address Data:', a);
+
+    // Helper to find field in any object
+    const find = (keys: string[]) => {
+        const val = extractQuestorField(e, keys) || extractQuestorField(c, keys) || extractQuestorField(a, keys);
+        return val || '';
+    };
+    
+    // Capital Social
+    // Check multiple possible keys for capital social
+    const cap = extractQuestorField(c, ['CAPITALSOCIAL', 'capital_social', 'VALOR_CAPITAL', 'VL_CAPITAL_SOCIAL', 'capital']) || 
+                extractQuestorField(e, ['CAPITALSOCIAL', 'capital_social', 'VALOR_CAPITAL', 'VL_CAPITAL_SOCIAL']);
+                
+    const capCentavos = cap ? Math.round(parseQuestorNumber(cap) * 100) : mergedCompany?.capital_social_centavos;
+    console.log('Capital Raw:', cap, 'Centavos:', capCentavos);
+
+    // Address Type
+    const addressType = extractQuestorField(a, ['tipo_logradouro', 'TIPOLOGRADOURO', 'TIPO', 'DS_TIPO_LOGRADOURO']) || 
+                        find(['TIPOLOGRADOURO', 'DESCRTIPOLOGRAD', 'DS_TIPO_LOGRADOURO', 'tipo_logradouro', 'TIPO_LOGRADOURO', 'DS_LOGRADOURO_TIPO', 'TIPO']);
+    console.log('Address Type Raw:', addressType);
+
+    const newCompany: any = {
+      ...mergedCompany,
+      id: mergedCompany?.id || '', // Preserve ID if exists
+      razao_social: find(['NOMEESTABCOMPLETO', 'NOME_ESTAB_COMPLETO', 'NOME', 'RAZAOSOCIAL', 'razao_social', 'NM_RAZAO_SOCIAL']) || mergedCompany?.razao_social || '',
+      nome: find(['NOMEFANTASIA', 'FANTASIA', 'name', 'nome', 'NM_FANTASIA']) || mergedCompany?.nome || '',
+      cnpj: find(['INSCRFEDERAL', 'CNPJ', 'cnpj', 'NR_CNPJ']) || mergedCompany?.cnpj || '',
+      code: find(['CODIGOEMPRESA', 'code', 'CD_EMPRESA']) || mergedCompany?.code || '',
+      filial: find(['CODIGOESTAB', 'filial', 'CD_FILIAL']) || mergedCompany?.filial || '',
+      data_abertura: find(['DATAINICIOATIV', 'data_abertura', 'DT_ABERTURA']) || mergedCompany?.data_abertura || '',
+      capital_social_centavos: capCentavos,
+      
+      // Address
+      address_type: addressType || mergedCompany?.address_type || '',
+      address_street: extractQuestorField(a, ['logradouro', 'LOGRADOURO', 'ENDERECO', 'NM_LOGRADOURO']) || find(['ENDERECO', 'LOGRADOURO', 'NOME_LOGRADOURO', 'DS_LOGRADOURO', 'logradouro', 'RUA', 'NM_LOGRADOURO']) || mergedCompany?.address_street || '',
+      address_number: extractQuestorField(a, ['numero', 'NUMERO', 'NR_ENDERECO']) || find(['NUMERO', 'NUM', 'NR_ENDERECO', 'NUMEROENDERECO', 'NUMEROEND', 'NR_IMOVEL', 'NRO', 'numero', 'NR_LOGRADOURO']) || mergedCompany?.address_number || '',
+      address_complement: extractQuestorField(a, ['complemento', 'COMPLEMENTO', 'DS_COMPLEMENTO']) || find(['COMPLEMENTO', 'COMPL', 'DS_COMPLEMENTO', 'COMPLEMENTOENDERECO', 'CPL', 'complemento', 'DS_COMPLEMENTO_LOGRADOURO']) || mergedCompany?.address_complement || '',
+      address_neighborhood: extractQuestorField(a, ['bairro', 'BAIRRO', 'NM_BAIRRO']) || find(['BAIRRO', 'NM_BAIRRO', 'NOMEBAIRRO', 'DESCRBAIRRO', 'BAIRROEND', 'DS_BAIRRO', 'NO_BAIRRO', 'bairro', 'NM_BAIRRO_LOGRADOURO']) || mergedCompany?.address_neighborhood || '',
+      address_zip_code: extractQuestorField(a, ['cep', 'CEP', 'NR_CEP']) || find(['CEP', 'NR_CEP', 'CEPEND', 'CODIGO_POSTAL', 'ZIP', 'cep', 'NR_CEP_LOGRADOURO']) || mergedCompany?.address_zip_code || '',
+      municipio: extractQuestorField(a, ['cidade', 'CIDADE', 'MUNICIPIO', 'NM_CIDADE']) || find(['NOMEMUNIC', 'CIDADE', 'MUNICIPIO', 'NM_CIDADE', 'NOMEMUNICIPIO', 'CIDADEEND', 'DS_CIDADE', 'municipio', 'NM_MUNICIPIO']) || mergedCompany?.municipio || '',
+      uf: extractQuestorField(a, ['uf', 'UF', 'ESTADO', 'SG_UF']) || find(['SIGLAESTADO', 'UF', 'ESTADO', 'SG_UF', 'SIGLAUF', 'UFEND', 'uf', 'SG_ESTADO']) || mergedCompany?.uf || '',
+      
+      // Contact
+      telefone: find(['TELEFONE', 'telefone', 'NR_TELEFONE', 'FONE']) || mergedCompany?.telefone || '',
+      email_contato: find(['EMAIL', 'email', 'DS_EMAIL', 'EMAIL_CONTATO']) || mergedCompany?.email_contato || '',
+    };
+    
+    setMergedCompany(newCompany);
+    console.log('New Merged Company State:', newCompany);
      
      // Update individual states
      if (newCompany.cnpj) {
@@ -181,29 +213,34 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
      }
  
      // Update Socios
-     if (data.socios && Array.isArray(data.socios)) {
-       const newSocios = data.socios.map((s: any, index: number) => ({
-         id: index, // Temporary ID
-         nome: s.NOME || '',
-         cpf: s.CPF || '', // Need to format? Input handles it?
-         participacao: parseFloat(s.PERCENTUALPARTICIPACAO || s.PARTICIPACAO || '0'),
-         is_representative: false, // Default
-         data_nascimento: s.DATANASCIMENTO ? new Date(s.DATANASCIMENTO) : undefined,
-         rg: s.RG || '',
-         orgao_expedidor: s.ORGAOEXPEDIDOR || '', // Need to check field name
-         uf_orgao_expedidor: s.UFORGAOEXPEDIDOR || '', // Need to check field name
-         data_expedicao: s.DATAEXPEDICAO ? new Date(s.DATAEXPEDICAO) : undefined,
-         // Address for socio
-         cep: s.CEP || '',
-         logradouro: s.ENDERECO || s.LOGRADOURO || '',
-         numero: s.NUMERO || '',
-         complemento: s.COMPLEMENTO || '',
-         bairro: s.BAIRRO || '',
-         municipio: s.NOMEMUNIC || '',
-         uf: s.SIGLAESTADO || '',
-       }));
-       setSocios(newSocios);
-     }
+    if (data.socios && Array.isArray(data.socios)) {
+      const newSocios = data.socios.map((s: any, index: number) => {
+        const importedCpf = (s.CPF || '').replace(/\D/g, '');
+        const existingSocio = socios.find(es => es.cpf.replace(/\D/g, '') === importedCpf);
+
+        return {
+          id: index, // Temporary ID
+          nome: s.NOME || '',
+          cpf: s.CPF || '', 
+          participacao: parseFloat(s.PERCENTUALPARTICIPACAO || s.PARTICIPACAO || '0'),
+          is_representative: existingSocio ? existingSocio.is_representative : false, // Preserve existing status
+          data_nascimento: s.DATANASCIMENTO ? new Date(s.DATANASCIMENTO) : undefined,
+          rg: s.RG || '',
+          orgao_expedidor: s.ORGAOEXPEDIDOR || '', 
+          uf_orgao_expedidor: s.UFORGAOEXPEDIDOR || '', 
+          data_expedicao: s.DATAEXPEDICAO ? new Date(s.DATAEXPEDICAO) : undefined,
+          // Address for socio
+          cep: s.CEP || '',
+          logradouro: s.ENDERECO || s.LOGRADOURO || '',
+          numero: s.NUMERO || '',
+          complemento: s.COMPLEMENTO || '',
+          bairro: s.BAIRRO || '',
+          municipio: s.NOMEMUNIC || '',
+          uf: s.SIGLAESTADO || '',
+        };
+      });
+      setSocios(newSocios);
+    }
  
      setFormKey(prev => prev + 1); // Force re-render of tabs
      toast.success('Dados importados com sucesso!');

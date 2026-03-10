@@ -319,6 +319,88 @@ export async function executeQuestorSQL(
   }
 }
 
+export async function executeQuestorProcess(
+  routineName: string,
+  filterParams: Record<string, string>
+) {
+  const config = await getQuestorSynConfig();
+  if (!config) return { error: 'Questor não configurado.' };
+
+  let baseUrl: string;
+  try {
+    baseUrl = await resolveQuestorUrl(config);
+  } catch (e: any) {
+    return { error: e.message };
+  }
+
+  const endpoint = `${baseUrl}/TnWebDMProcesso/ProcessoExecutar`;
+  const urlParams = new URLSearchParams();
+  urlParams.append('_AActionName', routineName);
+  if (config.api_token) {
+    urlParams.append('TokenApi', config.api_token);
+  }
+  urlParams.append('_AsEcho', 'JSON');
+  urlParams.append('_AiDisplayLength', '9999');
+
+  const fullUrl = `${endpoint}?${urlParams.toString()}`;
+
+  console.log(`[Questor] Executing Process ${routineName} at ${fullUrl.replace(/TokenApi=[^&]+/, 'TokenApi=***')}`);
+
+  try {
+     const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(filterParams),
+        cache: 'no-store'
+     });
+
+     if (!response.ok) {
+        const text = await response.text();
+        console.error(`[Questor] Error ${response.status}: ${text}`);
+        return { error: `Erro na requisição: ${response.status} - ${text}` };
+     }
+
+     const json = await response.json();
+     if (json.Error || json.Erro) {
+        console.error(`[Questor] Business Error: ${json.Error || json.Erro}`);
+        return { error: `Erro Questor: ${json.Error || json.Erro}` };
+     }
+
+     // Parse items
+     let items: any[] = [];
+     try {
+        const widgets = json.Widgets || {};
+        const areas = [...(widgets.bottom || []), ...(widgets.client || [])];
+        for (const area of areas) {
+            if (area.Itens) {
+                for (const item of area.Itens) {
+                    if (item.grids) {
+                        for (const grid of item.grids) {
+                            const gridData = grid.items || grid.Items || grid.data || grid.Data;
+                            if (Array.isArray(gridData)) {
+                                items = gridData;
+                                break;
+                            }
+                        }
+                    }
+                    if (items.length > 0) break;
+                }
+            }
+            if (items.length > 0) break;
+        }
+     } catch (e) {
+         console.warn('[Questor] Error traversing response structure', e);
+     }
+     
+     console.log(`[Questor] Process ${routineName} returned ${items.length} records`);
+     return { data: items };
+
+  } catch (e: any) {
+     console.error('Error executing process:', e);
+     return { error: e.message };
+  }
+}
+
 // --- Helper for Execution (to be used by other modules) ---
 
 export async function getQuestorSynRoutineBySystemCode(systemCode: string): Promise<QuestorSynRoutine | undefined> {
@@ -481,10 +563,27 @@ export async function fetchQuestorData(
     if (!response.ok) {
       const text = await response.text();
       console.error(`[Questor] Error ${response.status}: ${text}`);
-      return { error: `Erro na requisição: ${response.status} - ${text}` };
+      
+      // Log headers for debugging
+      const headers: Record<string, string> = {};
+      response.headers.forEach((val, key) => headers[key] = val);
+      console.log('[Questor] Error Headers:', headers);
+
+      const user = response.headers.get('x-nweb-usuario') || response.headers.get('usuario') || 'N/A';
+
+      return { 
+        error: `Erro na requisição: ${response.status} - ${text} (Usuário: ${user})`,
+        details: { status: response.status, body: text, headers }
+      };
     }
 
     const data = await response.json();
+    
+    // Log success headers too, just in case
+    const headers: Record<string, string> = {};
+    response.headers.forEach((val, key) => headers[key] = val);
+    console.log('[Questor] Success Headers:', headers);
+
     return { data };
 
   } catch (error: any) {

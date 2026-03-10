@@ -97,10 +97,10 @@ export function QuestorEmployeeImport() {
       const result = await saveQuestorEmployees(companyData.id, employeesToImport);
       
       if (result.success) {
-        toast.success(`${result.count} importados, ${result.updated} atualizados.`);
-        setOpen(false); // Close dialog on success
+        toast.success(result.message);
+        setOpen(false);
       } else {
-        toast.error(result.error || 'Erro ao salvar funcionários.');
+        toast.error(result.error || 'Erro ao importar funcionários.');
       }
     } catch (error) {
       console.error(error);
@@ -157,8 +157,12 @@ export function QuestorEmployeeImport() {
                 <Input
                   id="code"
                   value={questorCode}
-                  onChange={(e) => setQuestorCode(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setQuestorCode(value);
+                  }}
                   placeholder="Ex: 123"
+                  maxLength={4}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
@@ -194,7 +198,7 @@ export function QuestorEmployeeImport() {
                       <TableCell>{emp.code}</TableCell>
                       <TableCell>{emp.name}</TableCell>
                       <TableCell>{emp.cpf}</TableCell>
-                      <TableCell>{format(new Date(emp.admission_date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell>{emp.admission_date ? emp.admission_date.split('-').reverse().join('/') : '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -60,3 +60,50 @@ export function isValidCPF(cpf: string) {
   
   return true;
 }
+
+export function parseQuestorNumber(val: any): number {
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return val;
+  const str = String(val).trim();
+  
+  // Se contiver vírgula e ponto, assume formato 1.000,00 ou 1,000.00
+  // Se contiver apenas vírgula, assume decimal (pt-BR)
+  // Se contiver apenas ponto, assume decimal (en-US)
+  
+  if (str.includes(',') && !str.includes('.')) {
+      return parseFloat(str.replace(',', '.'));
+  }
+  
+  if (str.includes('.') && !str.includes(',')) {
+      return parseFloat(str);
+  }
+
+  // Se tem ambos, o último é o decimal
+  const lastComma = str.lastIndexOf(',');
+  const lastDot = str.lastIndexOf('.');
+  
+  if (lastComma > lastDot) {
+      // 1.000,00 -> remove pontos, troca vírgula por ponto
+      return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+  } else {
+      // 1,000.00 -> remove vírgulas
+      return parseFloat(str.replace(/,/g, ''));
+  }
+}
+
+export function extractQuestorField(obj: any, keys: string[]): any {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+      return obj[key];
+    }
+    // Tenta também uppercase e lowercase
+    if (obj[key.toUpperCase()] !== undefined && obj[key.toUpperCase()] !== null && obj[key.toUpperCase()] !== '') {
+      return obj[key.toUpperCase()];
+    }
+    if (obj[key.toLowerCase()] !== undefined && obj[key.toLowerCase()] !== null && obj[key.toLowerCase()] !== '') {
+      return obj[key.toLowerCase()];
+    }
+  }
+  return undefined;
+}

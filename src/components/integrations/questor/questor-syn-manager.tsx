@@ -51,10 +51,31 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
   const [routines, setRoutines] = useState<QuestorSynRoutine[]>(initialRoutines);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentRoutine, setCurrentRoutine] = useState<Partial<QuestorSynRoutine>>({});
+
+  const handleDiagnose = async () => {
+    setIsLoading(true);
+    setDiagnosticResult(null);
+    try {
+      const response = await fetch('/api/admin/questor/diagnose');
+      const data = await response.json();
+      setDiagnosticResult(data);
+      if (data.success) {
+        toast.success(`Diagnóstico concluído: Usuário ${data.details.possibleUser}`);
+      } else {
+        toast.error(`Diagnóstico falhou: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao executar diagnóstico');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Config Handlers
   const handleSaveConfig = async () => {
@@ -241,10 +262,60 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                 />
               </div>
 
-              <Button onClick={handleSaveConfig} disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Salvar Configuração
-              </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveConfig} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Salvar Configuração
+                  </Button>
+                  <Button onClick={handleDiagnose} variant="outline" disabled={isLoading}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> Diagnóstico de Autenticação
+                  </Button>
+                </div>
+
+                {diagnosticResult && (
+                  <div className="p-4 border rounded bg-muted text-sm font-mono overflow-auto max-h-96 whitespace-pre-wrap">
+                    <div className="flex items-center gap-2 mb-2">
+                      <strong>Status:</strong> 
+                      <span className={diagnosticResult.success ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                        {diagnosticResult.success ? 'SUCESSO' : 'FALHA'}
+                      </span>
+                    </div>
+                    
+                    {diagnosticResult.details && (
+                      <div className="space-y-3">
+                        <div className="p-2 bg-background border rounded">
+                          <p className="text-lg font-semibold text-primary">Usuário Identificado: {diagnosticResult.details.possibleUser}</p>
+                          <p className="text-muted-foreground">Status HTTP: {diagnosticResult.details.status}</p>
+                        </div>
+                        
+                        <div>
+                          <strong>Headers de Resposta:</strong>
+                          <pre className="text-xs mt-1 bg-black/5 p-2 rounded overflow-auto">
+                            {JSON.stringify(diagnosticResult.details.headers, null, 2)}
+                          </pre>
+                        </div>
+                        
+                        <div>
+                          <strong>Corpo da Resposta (Início):</strong>
+                          <pre className="text-xs mt-1 bg-black/5 p-2 rounded overflow-auto">
+                            {typeof diagnosticResult.details.body === 'string' 
+                              ? diagnosticResult.details.body.substring(0, 1000) 
+                              : JSON.stringify(diagnosticResult.details.body, null, 2).substring(0, 1000)
+                            }
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!diagnosticResult.success && (
+                      <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded">
+                        {diagnosticResult.message || diagnosticResult.error}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

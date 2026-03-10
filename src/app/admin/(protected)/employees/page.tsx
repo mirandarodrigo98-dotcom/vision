@@ -7,8 +7,8 @@ import { format } from 'date-fns';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { EmployeeImportDialog } from '@/components/admin/employees/employee-import-dialog';
 import { QuestorEmployeeImport } from '@/components/admin/employees/questor-employee-import';
-import { EmployeeActions } from '@/components/admin/employees/employee-actions';
 import { EmployeeFilters } from '@/components/admin/employees/employee-filters';
+import { EmployeeTable } from '@/components/admin/employees/employee-table';
 
 interface EmployeesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -35,7 +35,13 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
 
   // Build query
   let query = `
-    SELECT e.*, c.nome as company_name 
+    SELECT e.*, c.nome as company_name,
+    CASE WHEN (
+      EXISTS (SELECT 1 FROM dismissals d WHERE d.employee_id = e.id) OR
+      EXISTS (SELECT 1 FROM vacations v WHERE v.employee_id = e.id) OR
+      EXISTS (SELECT 1 FROM leaves l WHERE l.employee_id = e.id) OR
+      EXISTS (SELECT 1 FROM transfer_requests tr WHERE tr.employee_name = e.name)
+    ) THEN 1 ELSE 0 END as has_movements
     FROM employees e
     JOIN client_companies c ON e.company_id = c.id
     WHERE 1=1
@@ -94,6 +100,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     created_at: string;
     is_active: number;
     status: string;
+    has_movements: number;
   }>;
 
   return (
@@ -113,97 +120,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
 
       <EmployeeFilters />
 
-      <div className="border rounded-md bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                <ColumnHeader column="code" title="Código" />
-              </TableHead>
-              <TableHead>
-                <ColumnHeader column="name" title="Nome" />
-              </TableHead>
-              <TableHead>
-                <ColumnHeader column="company_name" title="Empresa" />
-              </TableHead>
-              <TableHead>
-                <ColumnHeader column="cpf" title="CPF" />
-              </TableHead>
-              <TableHead>
-                <ColumnHeader column="admission_date" title="Admissão" />
-              </TableHead>
-              <TableHead>
-                <ColumnHeader column="status" title="Status" />
-              </TableHead>
-              <TableHead>
-                <ColumnHeader column="created_at" title="Criado em" />
-              </TableHead>
-              <TableHead className="w-[100px] text-center">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {employees.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  Nenhum funcionário encontrado com os filtros selecionados.
-                </TableCell>
-              </TableRow>
-            ) : (
-              employees.map((employee) => {
-                let admissionDate = '-';
-                try {
-                   if (employee.admission_date) {
-                     const date = new Date(employee.admission_date);
-                     if (!isNaN(date.getTime())) {
-                       admissionDate = format(date, 'dd/MM/yyyy');
-                     }
-                   }
-                } catch (e) {}
-
-                let createdAt = '-';
-                try {
-                   if (employee.created_at) {
-                     const date = new Date(employee.created_at);
-                     if (!isNaN(date.getTime())) {
-                       createdAt = format(date, 'dd/MM/yyyy HH:mm');
-                     }
-                   }
-                } catch (e) {}
-
-                return (
-                <TableRow key={employee.id}>
-                  <TableCell>{employee.code || '-'}</TableCell>
-                  <TableCell className="font-medium">{employee.name}</TableCell>
-                  <TableCell>{employee.company_name}</TableCell>
-                  <TableCell>{employee.cpf || '-'}</TableCell>
-                  <TableCell suppressHydrationWarning>
-                    {admissionDate}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      employee.status === 'Admitido' ? 'bg-green-100 text-green-800' :
-                      employee.status === 'Desligado' ? 'bg-red-100 text-red-800' :
-                      employee.status === 'Transferido' ? 'bg-primary/10 text-primary' :
-                      employee.status === 'Férias' ? 'bg-yellow-100 text-yellow-800' :
-                      employee.status === 'Afastado' ? 'bg-orange-100 text-orange-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {employee.status || 'Admitido'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm" suppressHydrationWarning>
-                    {createdAt}
-                  </TableCell>
-                  <TableCell>
-                    <EmployeeActions id={employee.id} isActive={employee.is_active === 1} />
-                  </TableCell>
-                </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <EmployeeTable employees={employees} />
     </div>
   );
 }

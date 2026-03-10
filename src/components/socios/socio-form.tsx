@@ -15,6 +15,7 @@ import { saveSocio } from '@/app/actions/socios';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { QuestorImportDialog } from '@/components/admin/companies/questor-import-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface SocioFormProps {
   companies: any[];
@@ -36,6 +37,9 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
     initialData?.participacao_percent 
       ? Number(initialData.participacao_percent).toFixed(2) 
       : '0.00'
+  );
+  const [isRepresentative, setIsRepresentative] = useState(
+    initialData?.is_representative === 1 || initialData?.is_representative === true
   );
   const [dataNascimento, setDataNascimento] = useState<Date | undefined>(
     initialData?.data_nascimento ? new Date(initialData.data_nascimento) : undefined
@@ -163,6 +167,7 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
         nome,
         cpf,
         participacao: parseFloat(participacao),
+        isRepresentative,
         dataNascimento: dataNascimento ? format(dataNascimento, 'yyyy-MM-dd') : undefined,
         rg,
         orgaoExpedidor,
@@ -346,6 +351,21 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
               max="100"
               disabled={socioFieldsDisabled}
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="isRepresentative" 
+              checked={isRepresentative} 
+              onCheckedChange={(checked) => setIsRepresentative(checked === true)}
+              disabled={socioFieldsDisabled}
+            />
+            <label
+              htmlFor="isRepresentative"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Responsável Legal
+            </label>
           </div>
 
           <div className="space-y-2">

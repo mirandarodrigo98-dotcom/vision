@@ -325,8 +325,9 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
         </CardContent>
       </Card>
 
-      <div className="mt-8 text-xs text-gray-400 font-mono">
-        v{APP_VERSION}
+      <div className="mt-8 text-center text-xs text-gray-400 font-mono">
+        <p>v{APP_VERSION}</p>
+        <p className="mt-1">© {new Date().getFullYear()} Vision Sistemas. Todos os direitos reservados.</p>
       </div>
     </div>
   );
