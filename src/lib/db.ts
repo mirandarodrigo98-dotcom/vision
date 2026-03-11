@@ -115,7 +115,7 @@ class PostgresAdapter implements DBClient {
         }
       },
 
-      get: async (...params: any[]) => {
+      get: async <T = any>(...params: any[]) => {
         const client = await pool.connect();
         try {
           let paramIndex = 1;
@@ -127,17 +127,17 @@ class PostgresAdapter implements DBClient {
           if (pluckEnabled && row) {
              const keys = Object.keys(row);
              if (keys.length > 0) {
-                 return row[keys[0]];
+                 return row[keys[0]] as T;
              }
           }
           
-          return row;
+          return row as T;
         } finally {
           client.release();
         }
       },
 
-      all: async (...params: any[]) => {
+      all: async <T = any>(...params: any[]) => {
         const client = await pool.connect();
         try {
           let paramIndex = 1;
@@ -148,11 +148,11 @@ class PostgresAdapter implements DBClient {
           if (pluckEnabled) {
               return result.rows.map(row => {
                   const keys = Object.keys(row);
-                  return keys.length > 0 ? row[keys[0]] : undefined;
+                  return (keys.length > 0 ? row[keys[0]] : undefined) as T;
               });
           }
           
-          return result.rows;
+          return result.rows as T[];
         } finally {
           client.release();
         }
