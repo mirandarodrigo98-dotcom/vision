@@ -170,7 +170,7 @@ export async function getProcessesFiltered(filters?: { company?: string; cnpj?: 
   const params: any[] = [];
 
   if (filters?.company) {
-    query += ` AND (sp.razao_social LIKE ? OR cc.razao_social LIKE ?)`;
+    query += ` AND (sp.razao_social ILIKE ? OR cc.razao_social ILIKE ?)`;
     params.push(`%${filters.company}%`, `%${filters.company}%`);
   }
   if (filters?.cnpj) {

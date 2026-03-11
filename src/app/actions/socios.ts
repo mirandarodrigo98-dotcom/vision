@@ -45,7 +45,7 @@ export async function getSocios(q: string = '') {
     const params: any[] = [];
     
     if (q) {
-      query += ` WHERE (ss.nome LIKE $1 OR ss.cpf LIKE $2 OR cc.razao_social LIKE $3)`;
+      query += ` WHERE (ss.nome ILIKE $1 OR ss.cpf ILIKE $2 OR cc.razao_social ILIKE $3)`;
       const likeQ = `%${q}%`;
       params.push(likeQ, likeQ, likeQ);
     }
