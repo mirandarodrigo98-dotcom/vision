@@ -19,7 +19,7 @@ export async function searchCompanies(query: string) {
       SELECT id, razao_social 
       FROM client_companies 
       WHERE is_active = 1 
-      AND (razao_social ILIKE ? OR nome ILIKE ?)
+      AND (razao_social LIKE ? OR nome LIKE ?)
       ORDER BY razao_social ASC
       LIMIT 10
     `).all(`%${query}%`, `%${query}%`);

@@ -14,7 +14,7 @@ export async function searchEnuvesCompanies(query: string) {
       SELECT id, razao_social, nome, cnpj, code 
       FROM client_companies 
       WHERE is_active = 1 
-      AND (razao_social ILIKE ? OR nome ILIKE ? OR cnpj ILIKE ? OR code ILIKE ?)
+      AND (razao_social LIKE ? OR nome LIKE ? OR cnpj LIKE ? OR code LIKE ?)
       ORDER BY razao_social ASC
       LIMIT 20
     `).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
@@ -43,7 +43,7 @@ export async function searchEklesiaCompanies(query: string) {
       SELECT id, razao_social, nome, cnpj, code 
       FROM client_companies 
       WHERE is_active = 1 
-      AND (razao_social ILIKE ? OR nome ILIKE ? OR cnpj ILIKE ? OR code ILIKE ?)
+      AND (razao_social LIKE ? OR nome LIKE ? OR cnpj LIKE ? OR code LIKE ?)
       ORDER BY razao_social ASC
       LIMIT 20
     `).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
