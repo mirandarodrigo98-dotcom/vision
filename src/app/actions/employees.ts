@@ -316,6 +316,7 @@ export async function fetchQuestorEmployees(questorCompanyCode: string) {
 }
 
 export async function deleteEmployee(id: string) {
+  console.log('[Action] deleteEmployee called for id:', id);
   const session = await getSession();
   if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
     return { error: 'Não autorizado' };
