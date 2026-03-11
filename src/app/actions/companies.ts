@@ -387,12 +387,28 @@ export async function createCompany(data: FormData) {
     // Initial snapshot
     await insertCompanyHistorySnapshot(id, 'initial_creation');
 
-    logAudit(session.user_id, session.role, 'CREATE', 'client_companies', id, { nome, cnpj }, true);
+    await logAudit({
+      actor_user_id: session.user_id,
+      role: session.role,
+      action: 'CREATE_CLIENT',
+      entity_type: 'client_companies',
+      entity_id: id,
+      metadata: { nome, cnpj },
+      success: true
+    });
     revalidatePath('/admin/companies');
     return { success: true, companyId: id };
   } catch (error) {
     console.error('Failed to create company:', error);
-    logAudit(session.user_id, session.role, 'CREATE', 'client_companies', 'new', { nome, cnpj, error: String(error) }, false);
+    await logAudit({
+      actor_user_id: session.user_id,
+      role: session.role,
+      action: 'CREATE_CLIENT',
+      entity_type: 'client_companies',
+      entity_id: 'new',
+      metadata: { nome, cnpj, error: String(error) },
+      success: false
+    });
     return { error: 'Erro ao criar empresa' };
   }
 }
