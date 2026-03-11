@@ -585,7 +585,15 @@ export async function deleteCompany(companyId: string) {
 
     await db.prepare("DELETE FROM client_companies WHERE id = ?").run(companyId);
     
-    await logAudit(session.user_id, session.role, 'DELETE', 'client_companies', companyId, {}, true);
+    await logAudit({
+      actor_user_id: session.user_id,
+      role: session.role,
+      action: 'DELETE',
+      entity_type: 'client_companies',
+      entity_id: companyId,
+      metadata: {},
+      success: true
+    });
     revalidatePath('/admin/companies');
     revalidatePath('/admin/clients');
     return { success: true };
@@ -615,7 +623,15 @@ export async function deleteCompaniesBatch(companyIds: string[]) {
         
         deleteStmt.run(id);
         deletedCount++;
-        await logAudit(session.user_id, session.role, 'DELETE', 'client_companies', id, { batch: true }, true);
+        await logAudit({
+          actor_user_id: session.user_id,
+          role: session.role,
+          action: 'DELETE',
+          entity_type: 'client_companies',
+          entity_id: id,
+          metadata: { batch: true },
+          success: true
+        });
       } else {
         errors++;
       }
