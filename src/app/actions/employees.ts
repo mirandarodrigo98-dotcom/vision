@@ -298,181 +298,19 @@ export async function fetchQuestorEmployees(questorCompanyCode: string) {
   const company = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ?').get(questorCompanyCode) as { id: string, nome: string } | undefined;
 
   if (!company) {
-    return { error: 'Empresa não encontrada no Vision com este código.' };
-  }
-
-  console.log(`[Questor Import] Fetching employees via Integration for company ${questorCompanyCode}`);
-
-  try {
-    const result = await fetchFromIntegration(questorCompanyCode);
-
-    if (result.error) {
-      return { error: result.error };
-    }
-
-    if (!result.data || !Array.isArray(result.data)) {
-      return { error: 'Formato de resposta inválido do Questor.' };
-    }
-
-    const employees = result.data.map((e: any) => ({
-      code: String(e.code || e.CODIGOFUNCCONTR),
-      name: e.name || e.NOMEFUNC,
-      admission_date: e.admission_date, // Keep as string (YYYY-MM-DD) to avoid timezone issues
-      birth_date: e.birth_date, // Keep as string (YYYY-MM-DD)
-      gender: e.sex, // Use full description (Masculino/Feminino) as returned by integration
-      pis: e.pis || e.NUMEROPIS,
-      cpf: e.cpf || e.CPFFUNC,
-      esocial_registration: e.esocial_registration || e.MATRICULAESOCIAL,
-      status: (e.status === 1 || e.status === '1') ? 'active' : 'inactive'
-    }));
-
-    return {
-      success: true,
-      employees,
-      companyId: company.id,
-      companyName: company.nome
-    };
-  } catch (error) {
-    console.error('Failed to fetch employees from Questor:', error);
-    return { error: 'Erro interno ao buscar funcionários.' };
-  }
-}
-
-export async function deleteEmployee(id: string) {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Não autorizado' };
+    return { error: 'Empresa não encontrada para este código.' };
   }
 
   try {
-    const hasMovements = await checkEmployeeMovements(id);
-    if (hasMovements) {
-      return { error: 'Funcionário possui movimentações e não pode ser excluído.' };
-    }
-
-    await db.prepare('DELETE FROM employees WHERE id = ?').run(id);
-    
+    const result = await fetchFromIntegration(company.id, questorCompanyCode);
     revalidatePath('/admin/employees');
-    return { success: true };
+    return result;
   } catch (error) {
-    console.error('Failed to delete employee:', error);
-    return { error: 'Erro ao excluir funcionário.' };
+    console.error('Failed to sync employees:', error);
+    return { error: 'Erro na sincronização.' };
   }
 }
 
-export async function deleteEmployeesBatch(ids: string[]) {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Não autorizado' };
-  }
-
-  try {
-    let deletedCount = 0;
-    let errors = 0;
-
-    for (const id of ids) {
-      const hasMovements = await checkEmployeeMovements(id);
-      if (!hasMovements) {
-        await db.prepare('DELETE FROM employees WHERE id = ?').run(id);
-        deletedCount++;
-      } else {
-        errors++;
-      }
-    }
-
-    revalidatePath('/admin/employees');
-    
-    if (errors > 0) {
-      return { success: true, message: `${deletedCount} excluídos. ${errors} não puderam ser excluídos pois possuem movimentações.` };
-    }
-    
-    return { success: true, message: `${deletedCount} funcionários excluídos com sucesso.` };
-  } catch (error) {
-    console.error('Failed to delete employees batch:', error);
-    return { error: 'Erro ao excluir funcionários.' };
-  }
-}
-
-async function checkEmployeeMovements(employeeId: string): Promise<boolean> {
-  // Check dismissals
-  const dismissal = await db.prepare('SELECT 1 FROM dismissals WHERE employee_id = ?').get(employeeId);
-  if (dismissal) return true;
-
-  // Check vacations
-  const vacation = await db.prepare('SELECT 1 FROM vacations WHERE employee_id = ?').get(employeeId);
-  if (vacation) return true;
-
-  // Check leaves (if table exists)
-  try {
-    const leave = await db.prepare('SELECT 1 FROM leaves WHERE employee_id = ?').get(employeeId);
-    if (leave) return true;
-  } catch (e) {
-    // Ignore if table doesn't exist
-  }
-
-  // Check transfers (by name, unfortunately)
-  const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(employeeId) as { name: string };
-  if (employee) {
-    const transfer = await db.prepare('SELECT 1 FROM transfer_requests WHERE employee_name = ?').get(employee.name);
-    if (transfer) return true;
-  }
-
-  return false;
-}
-
-export async function saveQuestorEmployees(companyId: string, employees: any[]) {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Não autorizado' };
-  }
-
-  let importedCount = 0;
-  let skippedCount = 0;
-
-  for (const emp of employees) {
-    try {
-        // Check if employee exists for THIS company (CPF + Company ID)
-        const existing = await db.prepare('SELECT id FROM employees WHERE cpf = ? AND company_id = ?').get(emp.cpf, companyId) as any;
-
-        if (existing) {
-            skippedCount++;
-        } else {
-            const id = uuidv4();
-            await db.prepare(`
-                INSERT INTO employees (
-                id, company_id, code, name, admission_date, birth_date, gender, pis, cpf, esocial_registration, is_active, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'Admitido', datetime('now'), datetime('now'))
-            `).run(
-                id,
-                companyId,
-                emp.code,
-                emp.name,
-                emp.admission_date,
-                emp.birth_date,
-                emp.gender,
-                emp.pis,
-                emp.cpf,
-                emp.esocial_registration
-            );
-            importedCount++;
-        }
-    } catch (err) {
-        console.error(`[Questor Import] Error saving employee ${emp.name}:`, err);
-    }
-  }
-
-  revalidatePath('/admin/employees');
-  
-  let message = '';
-  if (importedCount > 0 && skippedCount > 0) {
-      message = `${importedCount} funcionário(s) importado(s). ${skippedCount} ignorado(s) pois já existem na base.`;
-  } else if (importedCount > 0) {
-      message = `${importedCount} funcionário(s) importado(s) com sucesso.`;
-  } else if (skippedCount > 0) {
-      message = `Nenhum funcionário importado. ${skippedCount} registro(s) já existem na base.`;
-  } else {
-      message = 'Nenhum funcionário processado.';
-  }
-
-  return { success: true, count: importedCount, skipped: skippedCount, message };
+export async function getEmployeesByCompany(companyId: string) {
+  return getEmployees(companyId);
 }
