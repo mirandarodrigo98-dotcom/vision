@@ -281,7 +281,14 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         for (const row of rows) {
             // Clean description: remove HTML entities like &nbsp; and normalize spaces
             // Handle explicit uppercase &NBSP and standard &nbsp;
-            let rawDesc = (row[colDescription] || '');
+            let rawDesc = '';
+            if (colDescription) {
+                rawDesc = row[colDescription] || '';
+            } else if (headerKeys.length > 0) {
+                 // Fallback: use first column as description if specific column not found
+                 rawDesc = row[headerKeys[0]] || '';
+            }
+            
             let desc = rawDesc.replace(/&nbsp;/gi, ' ').replace(/&NBSP/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
             
             // Debug: Log specific rows to help identification
