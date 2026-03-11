@@ -703,3 +703,37 @@ export async function getCompanies() {
     return [];
   }
 }
+
+export async function getCompanySocios(companyId: string) {
+  const session = await getSession();
+  if (!session) return [];
+
+  try {
+    const socios = await db.prepare(`
+      SELECT s.id, s.nome, s.cpf, cs.participacao_percent, cs.is_representative, s.data_nascimento, s.rg, s.cnh, s.cep, s.logradouro, s.numero, s.complemento, s.bairro, s.municipio, s.uf, s.logradouro_tipo
+      FROM societario_socios s
+      JOIN societario_company_socios cs ON s.id = cs.socio_id
+      WHERE cs.company_id = ?
+    `).all(companyId);
+    return socios;
+  } catch (error) {
+    console.error('Error fetching company socios:', error);
+    return [];
+  }
+}
+
+export async function getCompanyDetailsFull(companyId: string) {
+  const session = await getSession();
+  if (!session) return null;
+
+  try {
+    const company = await db.prepare(`
+      SELECT * FROM client_companies WHERE id = ?
+    `).get(companyId);
+    return company;
+  } catch (error) {
+    console.error('Error fetching company details:', error);
+    return null;
+  }
+}
+

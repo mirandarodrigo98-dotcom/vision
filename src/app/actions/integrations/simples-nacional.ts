@@ -1,7 +1,7 @@
 'use server';
 
 import db from '@/lib/db';
-import { executeQuestorRoutine } from './questor-syn';
+import { executeQuestorProcess } from './questor-syn';
 import Papa from 'papaparse';
 import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
 import crypto from 'crypto';
@@ -47,7 +47,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
     };
     
     // 3. Execute Routine
-    const result = await executeQuestorRoutine('TnFisDPGerarSSimplesFederal', questorParams);
+    const result = await executeQuestorProcess('TnFisDPGerarSSimplesFederal', questorParams);
 
     if (result.error) {
       return { error: result.error };
