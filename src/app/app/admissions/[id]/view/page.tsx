@@ -1,6 +1,8 @@
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { AdmissionForm } from '@/components/admissions/admission-form';
 
 export default async function ViewAdmissionPage({ params }: { params: Promise<{ id: string }> }) {

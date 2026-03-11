@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 
+export const dynamic = 'force-dynamic';
+
 interface AuditLogsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

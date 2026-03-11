@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth';
 import { TransferForm } from '@/components/transfers/transfer-form';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminEditTransferPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) redirect('/login');

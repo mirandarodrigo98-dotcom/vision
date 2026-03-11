@@ -5,6 +5,8 @@ import { VacationForm } from '@/components/vacations/vacation-form';
 import { getVacation } from '@/app/actions/vacations';
 import { getUserPermissions } from '@/app/actions/permissions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function EditVacationPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session) redirect('/login');

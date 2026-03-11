@@ -1,5 +1,7 @@
 import db from '@/lib/db';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+export const dynamic = 'force-dynamic';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { SearchInput } from '@/components/ui/search-input';

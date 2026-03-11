@@ -5,6 +5,8 @@ import { getUserPermissions } from '@/app/actions/permissions';
 import { SocioForm } from '@/components/socios/socio-form';
 import { getSocio } from '@/app/actions/socios';
 
+export const dynamic = 'force-dynamic';
+
 interface EditSocioPageProps {
   params: Promise<{ id: string }>;
 }

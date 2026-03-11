@@ -10,6 +10,8 @@ import { QuestorEmployeeImport } from '@/components/admin/employees/questor-empl
 import { EmployeeFilters } from '@/components/admin/employees/employee-filters';
 import { EmployeeTable } from '@/components/admin/employees/employee-table';
 
+export const dynamic = 'force-dynamic';
+
 interface EmployeesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

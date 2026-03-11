@@ -3,6 +3,8 @@ import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { VacationForm } from '@/components/vacations/vacation-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminViewVacationPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) redirect('/login');

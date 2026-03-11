@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { SocioForm } from '@/components/socios/socio-form';
 
+export const dynamic = 'force-dynamic';
+
 async function getAllowed() {
   const session = await getSession();
   if (!session) return { allowed: false, companies: [] as any[] };

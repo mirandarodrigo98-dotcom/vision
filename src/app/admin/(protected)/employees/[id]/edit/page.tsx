@@ -3,6 +3,8 @@ import db from '@/lib/db';
 import { EmployeeForm } from '@/components/admin/employees/employee-form';
 import { addDays, parseISO, format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

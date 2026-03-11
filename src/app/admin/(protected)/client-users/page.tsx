@@ -1,6 +1,8 @@
 import db from '@/lib/db';
 import { UserList } from './client-components';
 
+export const dynamic = 'force-dynamic';
+
 interface UsersPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

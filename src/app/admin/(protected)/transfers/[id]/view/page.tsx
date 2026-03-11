@@ -3,6 +3,8 @@ import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { TransferForm } from '@/components/transfers/transfer-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminViewTransferPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) redirect('/login');

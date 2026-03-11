@@ -2,6 +2,8 @@ import { getAccountants } from '@/app/actions/accountants';
 import { FaturamentoWizard } from '@/components/contabilidade/FaturamentoWizard';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export default async function FaturamentoPage() {
   const accountantsRaw = await getAccountants();
   

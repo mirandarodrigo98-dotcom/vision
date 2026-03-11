@@ -1,5 +1,7 @@
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 function mapResult(raw: any) {
   const logradouro = raw?.logradouro || raw?.street || '';
   const complemento = raw?.complemento || raw?.complement || '';

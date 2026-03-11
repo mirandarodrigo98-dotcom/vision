@@ -4,6 +4,8 @@ import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewVacationPage() {
   const session = await getSession();
   if (!session) redirect('/login');

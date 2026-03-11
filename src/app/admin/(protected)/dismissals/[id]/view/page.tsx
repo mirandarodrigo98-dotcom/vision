@@ -3,6 +3,8 @@ import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { DismissalForm } from '@/components/dismissals/dismissal-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminViewDismissalPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) redirect('/login');

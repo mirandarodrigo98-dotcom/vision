@@ -1,6 +1,8 @@
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { LeaveForm } from '@/components/leaves/leave-form';
 import { getLeave } from '@/app/actions/leaves';
 import { LeaveActions } from '@/components/leaves/leave-actions';

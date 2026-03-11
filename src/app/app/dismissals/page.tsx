@@ -1,4 +1,6 @@
 import db from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';

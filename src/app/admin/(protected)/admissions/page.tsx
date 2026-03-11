@@ -6,6 +6,8 @@ import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { AdmissionActions } from '@/components/admissions/admission-actions';
 
+export const dynamic = 'force-dynamic';
+
 interface AdminAdmissionsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

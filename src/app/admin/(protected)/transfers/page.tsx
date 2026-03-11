@@ -9,6 +9,8 @@ import { Eye, Plus } from 'lucide-react';
 import { TransferActions } from '@/components/transfers/transfer-actions';
 import { Badge } from '@/components/ui/badge';
 
+export const dynamic = 'force-dynamic';
+
 interface AdminTransfersPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

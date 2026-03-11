@@ -4,6 +4,8 @@ import db from '@/lib/db';
 import path from 'path';
 import fs from 'fs';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ filename: string }> }

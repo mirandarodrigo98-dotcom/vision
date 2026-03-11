@@ -12,6 +12,8 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
+export const dynamic = 'force-dynamic';
+
 interface AdminDismissalsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

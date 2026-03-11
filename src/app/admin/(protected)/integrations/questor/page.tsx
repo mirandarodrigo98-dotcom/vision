@@ -9,6 +9,8 @@ import { QuestorSynManager } from '@/components/integrations/questor/questor-syn
 import { QuestorIntegrationTabs } from '@/components/integrations/questor/questor-integration-tabs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Integração Questor | Admin',
 };

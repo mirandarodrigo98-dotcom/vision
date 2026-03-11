@@ -1,6 +1,8 @@
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { VacationForm } from '@/components/vacations/vacation-form';
 import { getVacation } from '@/app/actions/vacations';
 

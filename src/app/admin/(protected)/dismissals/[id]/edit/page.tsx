@@ -5,6 +5,8 @@ import { getDismissal } from '@/app/actions/dismissals';
 import { DismissalForm } from '@/components/dismissals/dismissal-form';
 import { getUserPermissions } from '@/app/actions/permissions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminEditDismissalPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session) redirect('/login');

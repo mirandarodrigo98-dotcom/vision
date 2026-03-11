@@ -2,6 +2,8 @@ import db from '@/lib/db';
 import { CompanyForm } from '@/components/admin/companies/company-form';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function EditCompanyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const company = await db.prepare('SELECT * FROM client_companies WHERE id = ?').get(id) as any;

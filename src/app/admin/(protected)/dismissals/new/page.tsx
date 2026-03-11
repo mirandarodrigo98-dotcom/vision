@@ -4,6 +4,8 @@ import { getUserPermissions } from '@/app/actions/permissions';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminNewDismissalPage() {
   const session = await getSession();
   if (!session) redirect('/login');

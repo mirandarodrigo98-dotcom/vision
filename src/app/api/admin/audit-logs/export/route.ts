@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_request: NextRequest) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {

@@ -5,6 +5,8 @@ import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { LeaveActions } from '@/components/leaves/leave-actions';
 
+export const dynamic = 'force-dynamic';
+
 interface AdminLeavesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }

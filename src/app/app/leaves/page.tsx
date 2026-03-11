@@ -1,4 +1,6 @@
 import db from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 import { getSession } from '@/lib/auth';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

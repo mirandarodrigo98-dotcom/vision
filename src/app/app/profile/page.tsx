@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import db from '@/lib/db';
 import ProfileForm from '@/app/admin/(protected)/profile/profile-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ClientProfilePage() {
     const session = await getSession();
     if (!session) {

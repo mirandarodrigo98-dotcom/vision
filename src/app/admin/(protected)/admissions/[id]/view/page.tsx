@@ -3,6 +3,8 @@ import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { AdmissionForm } from '@/components/admissions/admission-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminViewAdmissionPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     // Ensure admin

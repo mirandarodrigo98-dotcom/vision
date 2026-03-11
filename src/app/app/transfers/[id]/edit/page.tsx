@@ -1,6 +1,8 @@
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { TransferForm } from '@/components/transfers/transfer-form';
 import { getTransfer } from '@/app/actions/transfers';
 

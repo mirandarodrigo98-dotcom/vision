@@ -2,6 +2,8 @@ import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+
+export const dynamic = 'force-dynamic';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';

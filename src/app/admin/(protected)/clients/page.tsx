@@ -8,6 +8,8 @@ import { CompanyImportDialog } from '@/components/admin/companies/company-import
 import { QuestorCompanyImport } from '@/components/admin/companies/questor-company-import';
 import { ClientsStatusFilter } from './clients-status-filter';
 
+export const dynamic = 'force-dynamic';
+
 interface ClientsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
