@@ -1,5 +1,8 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
+
 import { ClientNav } from '@/components/client-nav';
 import { ClientHeader } from '@/components/client-header';
 import { getUserCompanies } from '@/app/actions/client-users';

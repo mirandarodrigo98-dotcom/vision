@@ -1,5 +1,8 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
+
 import AdminDashboard from '@/components/admin/AdminDashboard';
 
 export default async function AdminLayout({

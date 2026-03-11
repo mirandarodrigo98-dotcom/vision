@@ -1,5 +1,8 @@
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
+
 import { redirect } from 'next/navigation';
 import { getDashboardMetrics } from '@/app/actions/dashboard';
 import { HRMetricsSection } from '@/components/dashboard/hr-metrics-section';
