@@ -306,7 +306,7 @@ export async function fetchQuestorEmployees(questorCompanyCode: string) {
   }
 
   try {
-    const result = await fetchFromIntegration(company.id, questorCompanyCode);
+    const result = await fetchFromIntegration(questorCompanyCode);
     revalidatePath('/admin/employees');
     return result;
   } catch (error) {
@@ -373,7 +373,7 @@ export async function deleteEmployeesBatch(ids: string[]) {
 
     const transaction = db.transaction((employeeIds: string[]) => {
       for (const id of employeeIds) {
-        const hasMovements = checkEmployee.get(id, id, id, id);
+        const hasMovements = checkEmployee.get(id, id, id, id) as any;
         if (hasMovements) {
           throw new Error(`Funcionário com ID ${id} possui movimentações.`);
         }

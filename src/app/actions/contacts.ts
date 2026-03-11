@@ -66,7 +66,7 @@ export async function saveCompanyPhone(data: any) {
 
   const validation = phoneSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    return { error: validation.error.issues[0].message };
   }
 
   try {
@@ -123,7 +123,7 @@ export async function saveCompanyEmail(data: any) {
 
   const validation = emailSchema.safeParse(data);
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    return { error: validation.error.issues[0].message };
   }
 
   try {
