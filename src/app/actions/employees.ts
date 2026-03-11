@@ -225,6 +225,10 @@ export async function getEmployees(optionsOrCompanyId?: string | { companyId?: s
   }
 }
 
+export async function getEmployeesByCompany(companyId: string) {
+  return getEmployees(companyId);
+}
+
 export async function checkPendingRequests(employeeId: string) {
   try {
     // Check pending dismissals
@@ -311,6 +315,129 @@ export async function fetchQuestorEmployees(questorCompanyCode: string) {
   }
 }
 
-export async function getEmployeesByCompany(companyId: string) {
-  return getEmployees(companyId);
+export async function deleteEmployee(id: string) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Não autorizado' };
+  }
+
+  try {
+    // Check for movements
+    const hasMovements = await db.prepare(`
+      SELECT 1 FROM (
+        SELECT employee_id FROM dismissals WHERE employee_id = ?
+        UNION ALL
+        SELECT employee_id FROM vacations WHERE employee_id = ?
+        UNION ALL
+        SELECT employee_id FROM leaves WHERE employee_id = ?
+        UNION ALL
+        SELECT id FROM transfer_requests WHERE employee_name = (SELECT name FROM employees WHERE id = ?)
+      ) LIMIT 1
+    `).get(id, id, id, id);
+
+    if (hasMovements) {
+      return { error: 'Não é possível excluir funcionário com movimentações.' };
+    }
+
+    await db.prepare('DELETE FROM employees WHERE id = ?').run(id);
+    revalidatePath('/admin/employees');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete employee:', error);
+    return { error: 'Erro ao excluir funcionário' };
+  }
+}
+
+export async function deleteEmployeesBatch(ids: string[]) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Não autorizado' };
+  }
+
+  try {
+    // Helper to check one employee
+    const checkEmployee = db.prepare(`
+      SELECT 1 FROM (
+        SELECT employee_id FROM dismissals WHERE employee_id = ?
+        UNION ALL
+        SELECT employee_id FROM vacations WHERE employee_id = ?
+        UNION ALL
+        SELECT employee_id FROM leaves WHERE employee_id = ?
+        UNION ALL
+        SELECT id FROM transfer_requests WHERE employee_name = (SELECT name FROM employees WHERE id = ?)
+      ) LIMIT 1
+    `);
+
+    const deleteStmt = db.prepare('DELETE FROM employees WHERE id = ?');
+
+    const transaction = db.transaction((employeeIds: string[]) => {
+      for (const id of employeeIds) {
+        const hasMovements = checkEmployee.get(id, id, id, id);
+        if (hasMovements) {
+          throw new Error(`Funcionário com ID ${id} possui movimentações.`);
+        }
+        deleteStmt.run(id);
+      }
+    });
+
+    transaction(ids);
+    revalidatePath('/admin/employees');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to delete employees batch:', error);
+    return { error: error.message || 'Erro ao excluir funcionários em lote' };
+  }
+}
+
+export async function saveQuestorEmployees(companyId: string, employees: any[]) {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+        return { error: 'Não autorizado' };
+    }
+
+    try {
+        const checkStmt = db.prepare('SELECT id FROM employees WHERE company_id = ? AND cpf = ?');
+        const insertStmt = db.prepare(`
+            INSERT INTO employees (
+                id, company_id, code, name, admission_date, birth_date, gender, pis, cpf, esocial_registration, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `);
+        
+        let importedCount = 0;
+        let ignoredCount = 0;
+
+        const transaction = db.transaction((emps: any[]) => {
+            for (const emp of emps) {
+                const existing = checkStmt.get(companyId, emp.cpf);
+                if (existing) {
+                    ignoredCount++;
+                    continue;
+                }
+                
+                insertStmt.run(
+                    uuidv4(),
+                    companyId,
+                    emp.code,
+                    emp.name,
+                    emp.admission_date,
+                    emp.birth_date,
+                    emp.gender,
+                    emp.pis,
+                    emp.cpf,
+                    emp.esocial_registration
+                );
+                importedCount++;
+            }
+        });
+
+        transaction(employees);
+        revalidatePath('/admin/employees');
+        return { 
+            success: true, 
+            message: `${importedCount} funcionários importados. ${ignoredCount} já existiam e foram ignorados.` 
+        };
+    } catch (error) {
+        console.error('Failed to save Questor employees:', error);
+        return { error: 'Erro ao salvar funcionários do Questor.' };
+    }
 }
