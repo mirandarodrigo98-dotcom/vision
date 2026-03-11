@@ -57,12 +57,14 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
       return { error: 'Dados vazios retornados pelo Questor' };
     }
 
+    const resultAny = result as any;
+
     let csvData = '';
-    if (typeof result.data === 'string') {
-        csvData = result.data;
-    } else if (typeof result.data === 'object') {
+    if (typeof resultAny.data === 'string') {
+        csvData = resultAny.data;
+    } else if (typeof resultAny.data === 'object') {
         // Check for common error fields in JSON
-        const dataObj = result.data as any;
+        const dataObj = resultAny.data as any;
         if (dataObj.Exception) return { error: `Erro Questor: ${dataObj.Exception}` };
         if (dataObj.Message) return { error: `Erro Questor: ${dataObj.Message}` };
         if (dataObj.Erro) return { error: `Erro Questor: ${dataObj.Erro}` };
