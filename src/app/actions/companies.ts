@@ -486,7 +486,15 @@ export async function updateCompany(companyId: string, data: FormData) {
     return { success: true };
   } catch (error) {
     console.error('Failed to update company:', error);
-    logAudit(session.user_id, session.role, 'UPDATE', 'client_companies', companyId, { error: String(error) }, false);
+    await logAudit({
+      actor_user_id: session.user_id,
+      role: session.role,
+      action: 'UPDATE_CLIENT',
+      entity_type: 'client_companies',
+      entity_id: companyId,
+      metadata: { error: String(error) },
+      success: false
+    });
     return { error: 'Erro ao atualizar empresa' };
   }
 }
