@@ -456,7 +456,15 @@ export async function updateCompany(companyId: string, data: FormData) {
     // Snapshot after update
     await insertCompanyHistorySnapshot(companyId, 'update_form');
 
-    logAudit(session.user_id, session.role, 'UPDATE', 'client_companies', companyId, { nome, cnpj }, true);
+    await logAudit({
+      actor_user_id: session.user_id,
+      role: session.role,
+      action: 'UPDATE_CLIENT',
+      entity_type: 'client_companies',
+      entity_id: companyId,
+      metadata: { nome, cnpj },
+      success: true
+    });
     revalidatePath('/admin/companies');
     revalidatePath(`/admin/companies/${companyId}`);
     return { success: true };
@@ -482,7 +490,15 @@ export async function toggleCompanyStatus(companyId: string, isActive: boolean) 
       await db.prepare("UPDATE client_companies SET is_active = 0, updated_at = datetime('now') WHERE id = ?").run(companyId);
     }
     
-    logAudit(session.user_id, session.role, 'UPDATE', 'client_companies', companyId, { is_active: status }, true);
+    await logAudit({
+      actor_user_id: session.user_id,
+      role: session.role,
+      action: 'TOGGLE_CLIENT_STATUS',
+      entity_type: 'client_companies',
+      entity_id: companyId,
+      metadata: { is_active: status },
+      success: true
+    });
     revalidatePath('/admin/companies');
     return { success: true };
   } catch (error) {
