@@ -50,7 +50,8 @@ export type AuditAction =
   | 'GENERATE_TEMP_PASSWORD'
   | 'APPROVE_ADMISSION'
   | 'UPDATE_PASSWORD'
-  | 'CREATE_CLIENT_SOCIOS_ERROR';
+  | 'CREATE_CLIENT_SOCIOS_ERROR'
+  | 'CLEAR_PERSONNEL_MOVEMENTS';
 
 interface AuditLogParams {
   actor_user_id?: string;
