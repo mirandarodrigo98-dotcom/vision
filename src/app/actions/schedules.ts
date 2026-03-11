@@ -161,9 +161,8 @@ export async function checkUserAccess(userId: string): Promise<{ allowed: boolea
       
       // If this rule extends to next day? Assuming times are within 00:00-23:59
       
-      if (!nextLogout || ruleLogout > nextLogout) {
-        nextLogout = ruleLogout;
-      }
+      // Since we break on the first match, we just assign the logout time of this rule.
+      nextLogout = ruleLogout;
       
       break; // Found a matching rule
     }
