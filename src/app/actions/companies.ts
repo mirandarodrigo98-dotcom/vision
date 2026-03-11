@@ -588,7 +588,7 @@ export async function deleteCompany(companyId: string) {
     await logAudit({
       actor_user_id: session.user_id,
       role: session.role,
-      action: 'DELETE',
+      action: 'DELETE_CLIENT',
       entity_type: 'client_companies',
       entity_id: companyId,
       metadata: {},
