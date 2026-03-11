@@ -25,7 +25,7 @@ const navItems = [
   { href: '/admin/employees', label: 'Funcionários', icon: Briefcase },
   { href: '/admin/client-users', label: 'Usuários', icon: Users },
   { href: '/admin/admissions', label: 'Admissões', icon: FileText },
-  { href: '/admin/team', label: 'Equipe', icon: ShieldCheck },
+  { href: '/admin/team', label: 'Usuários do Escritório', icon: ShieldCheck },
   { href: '/admin/permissions', label: 'Permissões', icon: Lock },
   { href: '/admin/integrations', label: 'Integrações', icon: Blocks },
   { href: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },

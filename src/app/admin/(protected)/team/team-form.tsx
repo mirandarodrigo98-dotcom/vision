@@ -10,16 +10,18 @@ import { toast } from 'sonner';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import { createTeamUser, updateTeamUser, TeamUser } from '@/app/actions/team';
 import { Department } from '@/app/actions/departments';
+import { AccessSchedule } from '@/types/access-schedule';
 import { validateCPF } from '@/lib/validators';
 
 interface TeamFormProps {
     departments: Department[];
+    schedules: AccessSchedule[];
     initialData?: TeamUser;
     onCancel: () => void;
     onSuccess: () => void;
 }
 
-export default function TeamForm({ departments, initialData, onCancel, onSuccess }: TeamFormProps) {
+export default function TeamForm({ departments, schedules, initialData, onCancel, onSuccess }: TeamFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
@@ -28,6 +30,7 @@ export default function TeamForm({ departments, initialData, onCancel, onSuccess
         phone: initialData?.phone || '',
         department_id: initialData?.department_id || '',
         role: initialData?.role || 'operator',
+        access_schedule_id: initialData?.access_schedule_id || 'none',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -107,6 +110,7 @@ export default function TeamForm({ departments, initialData, onCancel, onSuccess
                 phone: formData.phone.replace(/\D/g, ''),
                 department_id: formData.department_id,
                 role: formData.role as 'admin' | 'operator',
+                access_schedule_id: formData.access_schedule_id === 'none' ? undefined : formData.access_schedule_id,
             };
 
             let res;
@@ -229,6 +233,27 @@ export default function TeamForm({ departments, initialData, onCancel, onSuccess
                             </SelectContent>
                         </Select>
                         {errors.department_id && <p className="text-xs text-red-500">{errors.department_id}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="access_schedule_id">Tabela de Horário (Acesso)</Label>
+                        <Select
+                            value={formData.access_schedule_id || 'none'}
+                            onValueChange={(val) => handleChange('access_schedule_id', val)}
+                            disabled={isLoading}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sem restrição de horário" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Sem restrição (Acesso total)</SelectItem>
+                                {schedules.map((schedule) => (
+                                    <SelectItem key={schedule.id} value={schedule.id}>
+                                        {schedule.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 

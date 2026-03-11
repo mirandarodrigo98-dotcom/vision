@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toggleTeamUserStatus, deleteTeamUser, generateTempPassword, sendPassword, TeamUser } from '@/app/actions/team';
 import { Department } from '@/app/actions/departments';
+import { AccessSchedule } from '@/types/access-schedule';
 import { toast } from 'sonner';
 import { Plus, Trash, Shield, User, Power, PowerOff, Clock, Key, Loader2, Copy, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TeamForm from './team-form';
 
-export default function TeamManagementPage({ users, departments }: { users: TeamUser[], departments: Department[] }) {
+export default function TeamManagementPage({ users, departments, schedules }: { users: TeamUser[], departments: Department[], schedules: AccessSchedule[] }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<TeamUser | undefined>(undefined);
   
@@ -101,6 +102,7 @@ export default function TeamManagementPage({ users, departments }: { users: Team
     return (
       <TeamForm 
         departments={departments}
+        schedules={schedules}
         initialData={editingUser}
         onCancel={() => setIsFormOpen(false)}
         onSuccess={handleSuccess}
@@ -138,7 +140,7 @@ export default function TeamManagementPage({ users, departments }: { users: Team
       </Dialog>
 
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Gestão de Equipe</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Gestão de Usuários do Escritório</h1>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" /> Novo Membro
         </Button>

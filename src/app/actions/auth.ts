@@ -3,6 +3,7 @@
 import db from '@/lib/db';
 import { createSession, verifyPassword, getSession, hashPassword } from '@/lib/auth';
 import { sendEmail } from '@/lib/email/resend';
+import { checkUserAccess } from '@/app/actions/schedules';
 import { logAudit } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
@@ -160,6 +161,12 @@ export async function verifyOtp(rawEmail: string, token: string) {
          // Teoricamente não deveria chegar aqui se requestOtp validar bem, mas por segurança:
          return { error: 'Usuário não encontrado.' };
      }
+  }
+
+  // Check access schedule
+  const accessCheck = await checkUserAccess(user.id);
+  if (!accessCheck.allowed) {
+      return { error: accessCheck.reason || 'Acesso não permitido neste horário.' };
   }
 
   await createSession(user.id, user.role);

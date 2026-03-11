@@ -33,10 +33,10 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'client_users.edit', label: 'Editar Usuário de Cliente', category: 'Usuários de Cliente', module: 'Cadastros' },
     { code: 'client_users.delete', label: 'Excluir Usuário de Cliente', category: 'Usuários de Cliente', module: 'Cadastros' },
 
-    { code: 'team.view', label: 'Visualizar Equipe', category: 'Equipe Interna', module: 'Cadastros' },
-    { code: 'team.create', label: 'Adicionar Membro', category: 'Equipe Interna', module: 'Cadastros' },
-    { code: 'team.edit', label: 'Editar Membro', category: 'Equipe Interna', module: 'Cadastros' },
-    { code: 'team.delete', label: 'Remover Membro', category: 'Equipe Interna', module: 'Cadastros' },
+    { code: 'team.view', label: 'Visualizar Usuários do Escritório', category: 'Usuários do Escritório', module: 'Cadastros' },
+    { code: 'team.create', label: 'Adicionar Membro', category: 'Usuários do Escritório', module: 'Cadastros' },
+    { code: 'team.edit', label: 'Editar Membro', category: 'Usuários do Escritório', module: 'Cadastros' },
+    { code: 'team.delete', label: 'Remover Membro', category: 'Usuários do Escritório', module: 'Cadastros' },
 
     { code: 'departments.view', label: 'Visualizar Departamentos', category: 'Departamentos', module: 'Cadastros' },
     { code: 'departments.create', label: 'Criar Departamento', category: 'Departamentos', module: 'Cadastros' },

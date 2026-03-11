@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { SessionMonitor } from '@/components/session-monitor'
 
 const navigation = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon },
@@ -46,7 +47,7 @@ const navigation = [
       { name: 'Contadores', href: '/admin/accountants' },
       { name: 'Departamentos', href: '/admin/registrations/departments' },
       { name: 'Usuário do Cliente', href: '/admin/client-users' },
-      { name: 'Equipe', href: '/admin/team' },
+      { name: 'Usuários do Escritório', href: '/admin/team' },
     ]
   },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon },
@@ -144,7 +145,11 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
 
   return (
     <>
-      <div>
+      <SessionMonitor />
+      <div className={classNames(
+        "min-h-screen bg-background text-foreground transition-colors duration-300",
+        isExpanded ? "md:pl-72" : "md:pl-20"
+      )}>
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog as="div" className="relative z-50 md:hidden" onClose={setSidebarOpen}>
             <Transition.Child
@@ -524,6 +529,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
           </div>
 
           <main className="py-10">
+            <SessionMonitor />
             <div className="px-4 sm:px-6 md:px-8">
               {children}
             </div>

@@ -20,6 +20,8 @@ export type TeamUser = {
   phone?: string;
   department_id?: string;
   department_name?: string;
+  access_schedule_id?: string | null;
+  access_schedule_name?: string | null;
 };
 
 export async function getTeamUsers() {
@@ -29,9 +31,10 @@ export async function getTeamUsers() {
   }
 
   const users = await db.prepare(`
-    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.department_id, d.name as department_name
+    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.id
+    LEFT JOIN access_schedules s ON u.access_schedule_id = s.id
     WHERE u.role IN ('admin', 'operator') AND u.deleted_at IS NULL
     ORDER BY u.name ASC
   `).all() as TeamUser[];
@@ -39,13 +42,13 @@ export async function getTeamUsers() {
   return users;
 }
 
-export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string }) {
+export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role, cpf, phone, department_id } = data;
+  const { name, email, role, cpf, phone, department_id, access_schedule_id } = data;
 
   // Validate email unique
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -69,9 +72,9 @@ export async function createTeamUser(data: { name: string; email: string; role: 
 
   try {
     await db.prepare(`
-      INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, department_id)
-      VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?)
-    `).run(id, name, email, role, hash, cpf || null, phone || null, department_id || null);
+      INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, department_id, access_schedule_id)
+      VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?)
+    `).run(id, name, email, role, hash, cpf || null, phone || null, department_id || null, access_schedule_id || null);
 
     // Send email with password
     await sendEmail({
@@ -109,13 +112,13 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   }
 }
 
-export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string }) {
+export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role, cpf, phone, department_id } = data;
+  const { name, email, role, cpf, phone, department_id, access_schedule_id } = data;
 
   // Validate email unique (excluding current user)
   const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
@@ -134,9 +137,9 @@ export async function updateTeamUser(id: string, data: { name: string; email: st
   try {
     await db.prepare(`
       UPDATE users 
-      SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, department_id = ?, updated_at = datetime('now')
+      SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, department_id = ?, access_schedule_id = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(name, email, role, cpf || null, phone || null, department_id || null, id);
+    `).run(name, email, role, cpf || null, phone || null, department_id || null, access_schedule_id || null, id);
 
     logAudit({
       action: 'UPDATE_TEAM_USER',
