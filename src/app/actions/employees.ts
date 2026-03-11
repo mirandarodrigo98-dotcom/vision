@@ -409,7 +409,7 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
 
         const transaction = db.transaction((emps: any[]) => {
             for (const emp of emps) {
-                const existing = checkStmt.get(companyId, emp.cpf);
+                const existing = checkStmt.get(companyId, emp.cpf) as any;
                 if (existing) {
                     ignoredCount++;
                     continue;
