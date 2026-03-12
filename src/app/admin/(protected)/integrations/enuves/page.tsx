@@ -12,8 +12,16 @@ interface EnuvesPageProps {
 }
 
 export default async function EnuvesPage({ searchParams }: EnuvesPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const companyId = typeof resolvedSearchParams.company_id === 'string' ? resolvedSearchParams.company_id : null;
+  let companyId: string | null = null;
+  
+  try {
+    const resolvedSearchParams = await searchParams;
+    if (resolvedSearchParams && typeof resolvedSearchParams.company_id === 'string') {
+      companyId = resolvedSearchParams.company_id;
+    }
+  } catch (e) {
+    console.error('Error resolving search params:', e);
+  }
 
   // If no company selected, show selector
   if (!companyId) {
