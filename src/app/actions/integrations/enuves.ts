@@ -39,17 +39,22 @@ export async function getCategories(companyId: string) {
   const targetCompanyId = companyId || session.active_company_id;
   if (!targetCompanyId) return [];
 
-  const categories = await db.prepare(`
-    SELECT * FROM enuves_categories 
-    WHERE company_id = ? 
-    ORDER BY code ASC
-  `).all(targetCompanyId) as any[];
+  try {
+    const categories = await db.prepare(`
+      SELECT * FROM enuves_categories 
+      WHERE company_id = ? 
+      ORDER BY code ASC
+    `).all(targetCompanyId) as any[];
 
-  return categories.map(cat => ({
-    ...cat,
-    created_at: cat.created_at ? new Date(cat.created_at).toISOString() : null,
-    updated_at: cat.updated_at ? new Date(cat.updated_at).toISOString() : null
-  })) as Category[];
+    return categories.map(cat => ({
+      ...cat,
+      created_at: cat.created_at ? new Date(cat.created_at).toISOString() : null,
+      updated_at: cat.updated_at ? new Date(cat.updated_at).toISOString() : null
+    })) as Category[];
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
 }
 
 
@@ -477,8 +482,7 @@ export async function getAccounts(companyId: string) {
     // Ensure dates are serialized as strings to avoid "Date object" issues in Client Components
     return accounts.map(account => ({
       ...account,
-      created_at: account.created_at ? new Date(account.created_at).toISOString() : null,
-      updated_at: account.updated_at ? new Date(account.updated_at).toISOString() : null
+      created_at: account.created_at ? new Date(account.created_at).toISOString() : null
     })) as Account[];
   } catch (error) {
     console.error('Error fetching accounts:', error);
