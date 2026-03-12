@@ -154,7 +154,7 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <form action={async () => {
-                         await toggleUserStatus(user.id, !user.is_active);
+                         await toggleUserStatus(user.id, user.is_active);
                          toast.success('Status atualizado');
                       }} className="inline-block">
                         <Button 

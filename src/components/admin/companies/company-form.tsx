@@ -17,7 +17,6 @@ import { QuestorImportDialog } from './questor-import-dialog';
 
 interface Company {
   id: string;
-  id: string;
   nome: string;
   razao_social: string;
   cnpj: string;
