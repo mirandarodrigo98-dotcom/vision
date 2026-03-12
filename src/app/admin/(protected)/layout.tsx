@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,8 +21,10 @@ export default async function AdminLayout({
     redirect('/app');
   }
 
+  const permissions = await getUserPermissions();
+
   return (
-    <AdminDashboard user={session}>
+    <AdminDashboard user={session} permissions={permissions}>
       {children}
     </AdminDashboard>
   );

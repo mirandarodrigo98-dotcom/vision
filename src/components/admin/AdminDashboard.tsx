@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Fragment, useEffect } from 'react'
+import { useState, Fragment, useEffect, useMemo } from 'react'
 import { Dialog, Transition, Menu } from '@headlessui/react'
 import {
   Bars3Icon,
@@ -36,52 +36,62 @@ import {
 } from '@/components/ui/tooltip'
 import { SessionMonitor } from '@/components/session-monitor'
 
-const navigation = [
-  { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon },
+interface NavigationItem {
+  name: string
+  href?: string
+  icon?: any
+  current?: boolean
+  children?: NavigationItem[]
+  permission?: string
+}
+
+const navigation: NavigationItem[] = [
+  { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon, permission: 'dashboard.view' },
   {
     name: 'Cadastro',
     icon: BuildingOfficeIcon,
     children: [
-      { name: 'Empresas', href: '/admin/clients' },
-      { name: 'Sócios', href: '/admin/socios' },
-      { name: 'Contadores', href: '/admin/accountants' },
-      { name: 'Departamentos', href: '/admin/registrations/departments' },
-      { name: 'Usuário do Cliente', href: '/admin/client-users' },
-      { name: 'Usuários do Escritório', href: '/admin/team' },
+      { name: 'Empresas', href: '/admin/clients', permission: 'clients.view' },
+      { name: 'Sócios', href: '/admin/socios', permission: 'socios.view' },
+      { name: 'Contadores', href: '/admin/accountants', permission: 'team.view' },
+      { name: 'Departamentos', href: '/admin/registrations/departments', permission: 'departments.view' },
+      { name: 'Usuário do Cliente', href: '/admin/client-users', permission: 'client_users.view' },
+      { name: 'Usuários do Escritório', href: '/admin/team', permission: 'team.view' },
     ]
   },
-  { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon },
+  { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
   {
     name: 'Pessoal',
     icon: UserGroupIcon,
     children: [
-      { name: 'Funcionários', href: '/admin/employees' },
-      { name: 'Admissões', href: '/admin/admissions' },
-      { name: 'Demissões', href: '/admin/dismissals' },
-      { name: 'Férias', href: '/admin/vacations' },
-      { name: 'Transferências', href: '/admin/transfers' },
-      { name: 'Afastamentos', href: '/admin/leaves' },
+      { name: 'Funcionários', href: '/admin/employees', permission: 'employees.view' },
+      { name: 'Admissões', href: '/admin/admissions', permission: 'admissions.view' },
+      { name: 'Demissões', href: '/admin/dismissals', permission: 'dismissals.view' },
+      { name: 'Férias', href: '/admin/vacations', permission: 'vacations.view' },
+      { name: 'Transferências', href: '/admin/transfers', permission: 'transfers.view' },
+      { name: 'Afastamentos', href: '/admin/leaves', permission: 'leaves.view' },
     ]
   },
-  { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon },
+  { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
   {
     name: 'Contabilidade',
     icon: CalculatorIcon,
     children: [
-      { name: 'Faturamento', href: '/admin/contabilidade/faturamento' },
+      { name: 'Faturamento', href: '/admin/contabilidade/faturamento', permission: 'contabilidade.faturamento.view' },
     ]
   },
-  { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon },
-  { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon },
-  { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon },
+  { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
+  { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon, permission: 'audit_logs.view' },
+  { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon, permission: 'settings.view' },
   {
     name: 'Integrações',
     icon: PuzzlePieceIcon,
+    permission: 'integrations.view',
     children: [
-      { name: 'Geral', href: '/admin/integrations/questor' },
-      { name: 'Enuves', href: '/admin/integrations/enuves' },
-      { name: 'Eklesia', href: '/admin/integrations/eklesia' },
-      { name: 'Digisac', href: '/admin/integrations/digisac' },
+      { name: 'Geral', href: '/admin/integrations/questor', permission: 'integrations.questor' },
+      { name: 'Enuves', href: '/admin/integrations/enuves', permission: 'integrations.enuves' },
+      { name: 'Eklesia', href: '/admin/integrations/eklesia', permission: 'integrations.eklesia' },
+      { name: 'Digisac', href: '/admin/integrations/digisac', permission: 'integrations.digisac' },
     ]
   },
 ]
@@ -102,9 +112,10 @@ interface AdminDashboardProps {
     email: string;
     avatar_path: string | null;
   };
+  permissions?: string[];
 }
 
-export default function AdminDashboard({ children, user }: AdminDashboardProps) {
+export default function AdminDashboard({ children, user, permissions = [] }: AdminDashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
@@ -114,16 +125,41 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
   const isExpanded = !collapsed || (isHovering && !ignoreHover)
   const pathname = usePathname()
 
+  // Filter navigation based on permissions
+  const filteredNavigation = useMemo(() => navigation.map(item => {
+    if (item.children) {
+      // Check parent permission first if exists
+      if (item.permission && !permissions.includes(item.permission)) {
+        return null;
+      }
+
+      const filteredChildren = item.children.filter(child => 
+        !child.permission || permissions.includes(child.permission)
+      );
+      
+      if (filteredChildren.length > 0) {
+        return { ...item, children: filteredChildren };
+      }
+      return null;
+    }
+    
+    if (item.permission && !permissions.includes(item.permission)) {
+      return null;
+    }
+    
+    return item;
+  }).filter(Boolean) as NavigationItem[], [permissions]);
+
   useEffect(() => {
     // Expand menu if current path is a child
-    navigation.forEach(item => {
+    filteredNavigation.forEach(item => {
       if (item.children) {
         if (item.children.some(child => child.href === pathname)) {
           setExpandedMenus(prev => [...new Set([...prev, item.name])])
         }
       }
     })
-  }, [pathname])
+  }, [pathname, filteredNavigation])
 
   const toggleMenu = (name: string) => {
     if (collapsed && !isExpanded) {
@@ -318,7 +354,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
-                    {navigation.map((item) => {
+                    {filteredNavigation.map((item) => {
                       // Desktop Sidebar Logic
                       const hasChildren = 'children' in item && item.children
                       const isCurrent = item.href ? pathname === item.href : false

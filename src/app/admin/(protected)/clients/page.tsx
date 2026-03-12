@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { CompanyImportDialog } from '@/components/admin/companies/company-import-dialog';
 import { QuestorCompanyImport } from '@/components/admin/companies/questor-company-import';
 import { ClientsStatusFilter } from './clients-status-filter';
+import { getUserPermissions } from '@/app/actions/permissions';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +17,11 @@ interface ClientsPageProps {
 }
 
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
+  const permissions = await getUserPermissions();
+  if (!permissions.includes('clients.view')) {
+    redirect('/admin/dashboard');
+  }
+
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'razao_social';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'asc';
