@@ -418,7 +418,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                             </>
                           ) : (
                             <Link
-                                      href={item.href!}
+                                      href={item.href || '#'}
                                       className={classNames(
                                       isCurrent
                                         ? 'bg-sidebar-primary text-sidebar-primary-foreground'
