@@ -62,7 +62,7 @@ export function AccessScheduleForm({ initialData }: AccessScheduleFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<ScheduleFormValues>({
-    resolver: zodResolver(scheduleSchema),
+    resolver: zodResolver(scheduleSchema) as any,
     defaultValues: initialData ? {
       name: initialData.name,
       description: initialData.description || '',

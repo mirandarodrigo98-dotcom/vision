@@ -30,7 +30,7 @@ export function DigisacConfigForm({ initialConfig }: DigisacConfigFormProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const form = useForm<DigisacConfig>({
-    resolver: zodResolver(digisacConfigSchema),
+    resolver: zodResolver(digisacConfigSchema) as any,
     defaultValues: {
       base_url: initialConfig?.base_url || 'https://api.digisac.com.br',
       api_token: initialConfig?.api_token || '',

@@ -28,7 +28,12 @@ export async function getAccessSchedule(id: string): Promise<AccessSchedule | nu
   return { ...schedule, items };
 }
 
-export async function createAccessSchedule(data: Omit<AccessSchedule, 'id' | 'created_at' | 'updated_at'>) {
+
+export type AccessScheduleInput = Omit<AccessSchedule, 'id' | 'created_at' | 'updated_at' | 'items'> & {
+  items: Omit<AccessScheduleItem, 'id' | 'schedule_id'>[];
+};
+
+export async function createAccessSchedule(data: AccessScheduleInput) {
   const id = randomUUID();
   
   try {
@@ -53,7 +58,7 @@ export async function createAccessSchedule(data: Omit<AccessSchedule, 'id' | 'cr
   }
 }
 
-export async function updateAccessSchedule(id: string, data: Omit<AccessSchedule, 'id' | 'created_at' | 'updated_at'>) {
+export async function updateAccessSchedule(id: string, data: AccessScheduleInput) {
   try {
     await db.prepare(`
       UPDATE access_schedules 
@@ -78,6 +83,7 @@ export async function updateAccessSchedule(id: string, data: Omit<AccessSchedule
     return { success: false, error: 'Erro ao atualizar tabela de horário.' };
   }
 }
+
 
 export async function deleteAccessSchedule(id: string) {
   try {

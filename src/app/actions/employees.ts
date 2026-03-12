@@ -287,31 +287,44 @@ export async function toggleEmployeeStatus(employeeId: string, isActive: boolean
   }
 }
 
-export async function importEmployees(formData: FormData) {
+export async function importEmployees(formData: FormData): Promise<{ success: boolean; count?: number; error?: string }> {
   // Functionality preserved as stub due to clean-up
   // If CSV import is required, it should be reimplemented here
-  return { error: 'Funcionalidade CSV temporariamente indisponível.' };
+  return { success: false, error: 'Funcionalidade CSV temporariamente indisponível.' };
 }
 
 export async function fetchQuestorEmployees(questorCompanyCode: string) {
   const session = await getSession();
   if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Não autorizado' };
+    return { success: false, error: 'Não autorizado' };
   }
 
   const company = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ?').get(questorCompanyCode) as { id: string, nome: string } | undefined;
 
   if (!company) {
-    return { error: 'Empresa não encontrada para este código.' };
+    return { success: false, error: 'Empresa não encontrada para este código.' };
   }
 
   try {
     const result = await fetchFromIntegration(questorCompanyCode);
     revalidatePath('/admin/employees');
-    return result;
+    
+    if (result.success && result.data) {
+        return {
+            success: true,
+            employees: result.data,
+            companyId: company.id,
+            companyName: company.nome
+        };
+    }
+    
+    return { 
+        success: false, 
+        error: result.error || 'Erro desconhecido ao buscar dados.' 
+    };
   } catch (error) {
     console.error('Failed to sync employees:', error);
-    return { error: 'Erro na sincronização.' };
+    return { success: false, error: 'Erro na sincronização.' };
   }
 }
 
@@ -319,7 +332,7 @@ export async function deleteEmployee(id: string) {
   console.log('[Action] deleteEmployee called for id:', id);
   const session = await getSession();
   if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Não autorizado' };
+    return { success: false, error: 'Não autorizado' };
   }
 
   try {
@@ -337,7 +350,7 @@ export async function deleteEmployee(id: string) {
     `).get(id, id, id, id);
 
     if (hasMovements) {
-      return { error: 'Não é possível excluir funcionário com movimentações.' };
+      return { success: false, error: 'Não é possível excluir funcionário com movimentações.' };
     }
 
     await db.prepare('DELETE FROM employees WHERE id = ?').run(id);
@@ -345,14 +358,14 @@ export async function deleteEmployee(id: string) {
     return { success: true };
   } catch (error) {
     console.error('Failed to delete employee:', error);
-    return { error: 'Erro ao excluir funcionário' };
+    return { success: false, error: 'Erro ao excluir funcionário' };
   }
 }
 
 export async function deleteEmployeesBatch(ids: string[]) {
   const session = await getSession();
   if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-    return { error: 'Não autorizado' };
+    return { success: false, error: 'Não autorizado' };
   }
 
   try {
@@ -383,17 +396,17 @@ export async function deleteEmployeesBatch(ids: string[]) {
 
     transaction(ids);
     revalidatePath('/admin/employees');
-    return { success: true };
+    return { success: true, message: `${ids.length} funcionários excluídos com sucesso.` };
   } catch (error: any) {
     console.error('Failed to delete employees batch:', error);
-    return { error: error.message || 'Erro ao excluir funcionários em lote' };
+    return { success: false, error: error.message || 'Erro ao excluir funcionários em lote' };
   }
 }
 
 export async function saveQuestorEmployees(companyId: string, employees: any[]) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
-        return { error: 'Não autorizado' };
+        return { success: false, error: 'Não autorizado' };
     }
 
     try {
@@ -439,6 +452,6 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
         };
     } catch (error) {
         console.error('Failed to save Questor employees:', error);
-        return { error: 'Erro ao salvar funcionários do Questor.' };
+        return { success: false, error: 'Erro ao salvar funcionários do Questor.' };
     }
 }

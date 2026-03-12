@@ -4,13 +4,13 @@ import { getQuestorSynConfig, resolveQuestorUrl } from './questor-syn';
 
 export async function fetchEmployeesFromQuestor(companyCode: string) {
     const config = await getQuestorSynConfig();
-    if (!config) return { error: 'Questor não configurado.' };
+    if (!config) return { success: false, error: 'Questor não configurado.' };
 
     let baseUrl: string;
     try {
         baseUrl = await resolveQuestorUrl(config);
     } catch (e: any) {
-        return { error: e.message };
+        return { success: false, error: e.message };
     }
     
     const token = config.api_token;
@@ -51,7 +51,7 @@ export async function fetchEmployeesFromQuestor(companyCode: string) {
         if (!res.ok) {
             const text = await res.text();
             console.error(`[Questor] Error fetching employees: ${res.status} - ${text}`);
-            return { error: `Erro na comunicação com Questor: ${res.status}` };
+            return { success: false, error: `Erro na comunicação com Questor: ${res.status}` };
         }
 
         const json = await res.json();
@@ -59,7 +59,7 @@ export async function fetchEmployeesFromQuestor(companyCode: string) {
         // Check for business errors
         if (json.Error || json.Erro) {
             console.error(`[Questor] Business Error: ${json.Error || json.Erro}`);
-            return { error: `Erro Questor: ${json.Error || json.Erro}` };
+            return { success: false, error: `Erro Questor: ${json.Error || json.Erro}` };
         }
 
         // Extract data from nested structure
@@ -114,6 +114,6 @@ export async function fetchEmployeesFromQuestor(companyCode: string) {
 
     } catch (e: any) {
         console.error('[Questor] Network error:', e);
-        return { error: `Erro de conexão: ${e.message}` };
+        return { success: false, error: `Erro de conexão: ${e.message}` };
     }
 }

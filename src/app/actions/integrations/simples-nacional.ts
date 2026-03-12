@@ -50,11 +50,11 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
     const result = await executeQuestorProcess('TnFisDPGerarSSimplesFederal', questorParams);
 
     if (result.error) {
-      return { error: result.error };
+      return { success: false, error: result.error };
     }
 
     if (!result.data) {
-      return { error: 'Dados vazios retornados pelo Questor' };
+      return { success: false, error: 'Dados vazios retornados pelo Questor' };
     }
 
     const resultAny = result as any;
@@ -65,9 +65,9 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
     } else if (typeof resultAny.data === 'object') {
         // Check for common error fields in JSON
         const dataObj = resultAny.data as any;
-        if (dataObj.Exception) return { error: `Erro Questor: ${dataObj.Exception}` };
-        if (dataObj.Message) return { error: `Erro Questor: ${dataObj.Message}` };
-        if (dataObj.Erro) return { error: `Erro Questor: ${dataObj.Erro}` };
+        if (dataObj.Exception) return { success: false, error: `Erro Questor: ${dataObj.Exception}` };
+        if (dataObj.Message) return { success: false, error: `Erro Questor: ${dataObj.Message}` };
+        if (dataObj.Erro) return { success: false, error: `Erro Questor: ${dataObj.Erro}` };
         
         // If it's a JSON with Data field inside (nested)
         if (dataObj.Data) {
@@ -121,18 +121,18 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                     csvData = Papa.unparse(foundData, { delimiter: ';' });
                 } else {
                      console.log('Questor JSON Dump:', JSON.stringify(dataObj, null, 2)); // Log full response for debugging
-                     return { error: 'Nenhum dado encontrado na resposta do Questor (Grid vazia)' };
+                     return { success: false, error: 'Nenhum dado encontrado na resposta do Questor (Grid vazia)' };
                 }
 
              } catch (e) {
                  console.error('Error parsing Questor Grid JSON:', e);
-                 return { error: 'Erro ao processar estrutura JSON do Questor' };
+                 return { success: false, error: 'Erro ao processar estrutura JSON do Questor' };
              }
         } else {
             // Fallback: try to convert entire object to string if it looks like data, 
             // or return error if it looks like a structured response without CSV
             console.error('Unexpected JSON response from Questor:', JSON.stringify(dataObj));
-            return { error: `Resposta inesperada do Questor: ${JSON.stringify(dataObj).substring(0, 100)}...` };
+            return { success: false, error: `Resposta inesperada do Questor: ${JSON.stringify(dataObj).substring(0, 100)}...` };
         }
     }
 
@@ -145,7 +145,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
 
     if (parsed.errors.length > 0 && parsed.data.length === 0) {
       console.error('CSV Parse Error:', parsed.errors);
-      return { error: 'Erro ao processar o arquivo CSV retornado' };
+      return { success: false, error: 'Erro ao processar o arquivo CSV retornado' };
     }
     
     const rows = parsed.data as any[];
@@ -182,7 +182,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
     };
 
     const processedData: SimplesNacionalBillingData[] = [];
-    if (rows.length === 0) return { count: 0 };
+    if (rows.length === 0) return { success: true, count: 0 };
 
     // Keys mapping helper
     const headerKeys = Object.keys(rows[0]);
@@ -473,11 +473,11 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         insertMany(processedData);
     }
     
-    return { count: processedData.length };
+    return { success: true, count: processedData.length };
 
   } catch (error: any) {
     console.error('Error fetching Simples Nacional billing:', error);
-    return { error: error.message || 'Erro interno ao buscar faturamento' };
+    return { success: false, error: error.message || 'Erro interno ao buscar faturamento' };
   }
 }
 
@@ -491,9 +491,9 @@ export async function getStoredSimplesNacionalBilling(companyId: string, startCo
       ORDER BY competence ASC
     `).all(companyId, startCompetence, endCompetence);
     
-    return { data };
+    return { success: true, data };
   } catch (error: any) {
     console.error('Error getting stored Simples Nacional billing:', error);
-    return { error: `Erro ao buscar dados salvos: ${error.message}` };
+    return { success: false, error: `Erro ao buscar dados salvos: ${error.message}` };
   }
 }

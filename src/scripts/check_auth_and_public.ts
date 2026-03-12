@@ -1,4 +1,5 @@
 
+// @ts-nocheck
 import { db } from '../db/index.js';
 
 const CONFIG = {
