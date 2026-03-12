@@ -18,7 +18,8 @@ import {
 import { updateSettings, clearPersonnelMovements } from '@/app/actions/settings';
 import { uploadSystemLogo, removeSystemLogo } from '@/app/actions/upload-logo';
 import { toast } from 'sonner';
-import { Trash2, Upload, AlertTriangle } from 'lucide-react';
+import { Trash2, Upload, AlertTriangle, CalendarClock } from 'lucide-react';
+import Link from 'next/link';
 
 interface SettingsFormProps {
     initialData: {
@@ -175,6 +176,17 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                                 </p>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                        <Label className="block mb-2">Tabela de Horários</Label>
+                        <p className="text-sm text-gray-500 mb-3">Gerencie os horários de acesso permitidos para os usuários.</p>
+                        <Link href="/admin/settings/access-schedules">
+                            <Button variant="outline" className="gap-2">
+                                <CalendarClock className="h-4 w-4" />
+                                Gerenciar Horários
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </section>

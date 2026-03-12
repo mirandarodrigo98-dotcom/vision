@@ -147,8 +147,7 @@ export default function AdminDashboard({ children, user }: AdminDashboardProps) 
     <>
       <SessionMonitor />
       <div className={classNames(
-        "min-h-screen bg-background text-foreground transition-colors duration-300",
-        isExpanded ? "md:pl-72" : "md:pl-20"
+        "min-h-screen bg-background text-foreground transition-colors duration-300"
       )}>
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog as="div" className="relative z-50 md:hidden" onClose={setSidebarOpen}>

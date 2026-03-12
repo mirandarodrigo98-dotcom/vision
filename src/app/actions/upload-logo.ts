@@ -4,6 +4,7 @@ import { writeFile, unlink, mkdir } from 'fs/promises';
 import { join } from 'path';
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { uploadToR2 } from '@/lib/r2';
 
 export async function uploadSystemLogo(formData: FormData) {
   try {
@@ -18,32 +19,45 @@ export async function uploadSystemLogo(formData: FormData) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Ensure directory exists
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
-
-    // Save file
     const fileName = `system-logo-${Date.now()}.png`; 
-    const filePath = join(uploadDir, fileName);
     
-    await writeFile(filePath, buffer);
+    let publicPath = '';
+
+    // Tenta fazer upload para o R2 (Cloudflare) primeiro
+    // Se as credenciais não estiverem configuradas, o uploadToR2 retorna null
+    // Nesse caso, fazemos fallback para o sistema de arquivos local (apenas dev)
+    const r2Result = await uploadToR2(buffer, fileName, file.type || 'image/png');
+
+    if (r2Result) {
+        publicPath = r2Result.downloadLink;
+    } else {
+        // Fallback para armazenamento local (apenas desenvolvimento)
+        // Em produção na Vercel, isso vai falhar se não tiver R2 configurado
+        if (process.env.NODE_ENV === 'production') {
+             return { error: 'Armazenamento R2 não configurado para produção.' };
+        }
+
+        const uploadDir = join(process.cwd(), 'public', 'uploads');
+        await mkdir(uploadDir, { recursive: true });
+        
+        const filePath = join(uploadDir, fileName);
+        await writeFile(filePath, buffer);
+        publicPath = `/uploads/${fileName}`;
+    }
 
     // Update DB
     const oldLogo = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
     
-    if (oldLogo?.value) {
-        if (oldLogo.value.startsWith('/uploads/')) {
-             const oldPath = join(process.cwd(), 'public', oldLogo.value);
-             try {
-                 await unlink(oldPath);
-             } catch (e) {
-                 console.error('Error deleting old logo:', e);
-             }
-        }
+    // Tenta remover logo antiga se for local
+    if (oldLogo?.value && oldLogo.value.startsWith('/uploads/')) {
+         const oldPath = join(process.cwd(), 'public', oldLogo.value);
+         try {
+             await unlink(oldPath);
+         } catch (e) {
+             console.error('Error deleting old logo:', e);
+         }
     }
 
-    const publicPath = `/uploads/${fileName}`;
     await db.prepare(`
         INSERT INTO settings (key, value) 
         VALUES ('SYSTEM_LOGO_PATH', ?)

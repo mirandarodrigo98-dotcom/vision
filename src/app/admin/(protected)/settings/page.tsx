@@ -19,12 +19,6 @@ export default async function SettingsPage() {
     <div className="space-y-6">
        <div className="flex items-center justify-between">
          <h2 className="text-2xl font-bold">Configurações do Sistema</h2>
-         <Link href="/admin/settings/access-schedules">
-           <Button variant="outline" className="gap-2">
-             <CalendarClock className="h-4 w-4" />
-             Tabela de Horários
-           </Button>
-         </Link>
        </div>
        <SettingsForm initialData={initialData} />
     </div>
