@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   Briefcase,
   Lock,
-  Blocks
+  Blocks,
+  Ticket
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -23,7 +24,9 @@ const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/clients', label: 'Empresas', icon: Building2 },
   { href: '/admin/employees', label: 'Funcionários', icon: Briefcase },
+  { href: '/admin/tickets', label: 'Chamados', icon: Ticket },
   { href: '/admin/client-users', label: 'Usuários', icon: Users },
+
   { href: '/admin/admissions', label: 'Admissões', icon: FileText },
   { href: '/admin/team', label: 'Usuários do Escritório', icon: ShieldCheck },
   { href: '/admin/permissions', label: 'Permissões', icon: Lock },
