@@ -401,7 +401,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                                   {item.children?.map((child) => (
                                     <li key={child.name}>
                                       <Link
-                                        href={child.href}
+                                        href={child.href || '#'}
                                         className={classNames(
                                         pathname === child.href
                                             ? 'bg-sidebar-primary text-sidebar-primary-foreground'
