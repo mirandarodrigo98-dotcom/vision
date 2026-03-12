@@ -3339,17 +3339,10 @@ var useRequireEnsure = false;
     workerSrc = requirejs.toUrl('pdfjs-dist/build/pdf.worker.js');
   }
   var dynamicLoaderSupported = typeof requirejs !== 'undefined' && requirejs.load;
-  fakeWorkerFilesLoader = useRequireEnsure ? function (callback) {
-    require.ensure([], function () {
-      var worker;
-      worker = require('./pdf.worker.js');
-      callback(worker.WorkerMessageHandler);
-    });
-  } : dynamicLoaderSupported ? function (callback) {
-    requirejs(['pdfjs-dist/build/pdf.worker'], function (worker) {
-      callback(worker.WorkerMessageHandler);
-    });
-  } : null;
+  fakeWorkerFilesLoader = function (callback) {
+    var worker = require('./pdf.worker.js');
+    callback(worker.WorkerMessageHandler);
+  };
 }
 var PDFNetworkStream;
 function setPDFNetworkStreamClass(cls) {
