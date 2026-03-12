@@ -151,8 +151,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
   // ----------------------------------------------------------------------
   // 2. DP BLOCK
   // ----------------------------------------------------------------------
-  stats.dp = {};
-
+  
   const getSubBlockStats = async (table: string) => {
     // Counts
     const prevMonthCount = await db.prepare(`
@@ -211,29 +210,35 @@ export async function getDashboardData(): Promise<DashboardStats> {
     return { prevMonth, currMonth, chart, topClients };
   };
 
+  const dpStats: NonNullable<DashboardStats['dp']> = {};
+
   // Sub-block 1: Admissions
   if (isAdmin || permissions.includes('admissions.view')) {
-    stats.dp.admissions = await getSubBlockStats('admission_requests');
+    dpStats.admissions = await getSubBlockStats('admission_requests');
   }
 
   // Sub-block 2: Dismissals
   if (isAdmin || permissions.includes('dismissals.view')) {
-    stats.dp.dismissals = await getSubBlockStats('dismissals');
+    dpStats.dismissals = await getSubBlockStats('dismissals');
   }
 
   // Sub-block 3: Vacations
   if (isAdmin || permissions.includes('vacations.view')) {
-    stats.dp.vacations = await getSubBlockStats('vacations');
+    dpStats.vacations = await getSubBlockStats('vacations');
   }
 
   // Sub-block 4: Transfers
   if (isAdmin || permissions.includes('transfers.view')) {
-    stats.dp.transfers = await getSubBlockStats('transfer_requests');
+    dpStats.transfers = await getSubBlockStats('transfer_requests');
   }
 
   // Sub-block 5: Leaves
   if (isAdmin || permissions.includes('leaves.view')) {
-    stats.dp.leaves = await getSubBlockStats('leaves');
+    dpStats.leaves = await getSubBlockStats('leaves');
+  }
+
+  if (Object.keys(dpStats).length > 0) {
+    stats.dp = dpStats;
   }
 
   return stats;
