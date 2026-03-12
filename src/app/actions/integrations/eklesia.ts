@@ -5,9 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { PDFParse } from 'pdf-parse';
-import path from 'path';
-import { pathToFileURL } from 'url';
+import parsePDF from '@/lib/pdf-parser';
 
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
@@ -759,26 +757,12 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Using pdf-parse v2.4.5 API
+    // Using local pdf-parser wrapper
     console.log('Starting PDF parse...');
     
-    // Explicitly set worker to avoid "fake worker" error in Next.js
-    const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-    const workerUrl = pathToFileURL(workerPath).href;
-    console.log('Setting worker path to:', workerUrl);
-    PDFParse.setWorker(workerUrl);
-
-    const parser = new PDFParse({ data: buffer });
-    let text = '';
-    
-    try {
-      console.log('Parser created, getting text...');
-      const data = await parser.getText();
-      console.log('Text extracted length:', data?.text?.length);
-      text = data.text;
-    } finally {
-      await parser.destroy();
-    }
+    const data = await parsePDF(buffer);
+    console.log('Text extracted length:', data?.text?.length);
+    const text = data.text;
     
     const categories = await getCategories(targetCompanyId);
     
