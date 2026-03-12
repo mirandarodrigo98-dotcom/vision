@@ -277,7 +277,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                                           {item.children?.map((child) => (
                                             <li key={child.name}>
                                               <Link
-                                                href={child.href}
+                                                href={child.href || '#'}
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={classNames(
                                                   pathname === child.href
@@ -295,7 +295,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                                     </>
                                   ) : (
                                     <Link
-                                      href={item.href!}
+                                      href={item.href || '#'}
                                       onClick={() => setSidebarOpen(false)}
                                       className={classNames(
                                         isCurrent
