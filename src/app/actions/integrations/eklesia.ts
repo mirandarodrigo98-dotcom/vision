@@ -762,7 +762,7 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     
     const data = await parsePDF(buffer);
     console.log('Text extracted length:', data?.text?.length);
-    const text = data.text;
+    let text = data.text;
     
     const categories = await getCategories(targetCompanyId);
     
