@@ -326,7 +326,7 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
             <div className="space-y-4">
                <div className="rounded-md bg-muted p-4 mb-4">
                 <p className="text-sm font-medium">Empresa:</p>
-                <p className="text-base">{fetchedData.company.NOME || fetchedData.company.RAZAOSOCIAL}</p>
+                <p className="text-base">{fetchedData.company.razao_social || fetchedData.company.name}</p>
               </div>
               <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
                 {fetchedData.socios.map((socio: any, index: number) => (

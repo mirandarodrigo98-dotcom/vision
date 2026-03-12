@@ -1,0 +1,5 @@
+[33mcommit bbd09266a784fa0194b414284d7dc0e7d6776d94[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Wed Mar 11 17:44:53 2026 -0300
+
+    fix: resolve TypeScript type 'never' error in simples-nacional action
