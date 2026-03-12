@@ -164,7 +164,10 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
         <CardTitle className="text-base font-semibold text-primary">{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1">
-        <div className="h-[240px] w-full flex items-end gap-1 pt-4 pb-8 px-2">
+        <div 
+          className="h-[240px] w-full flex items-end gap-1 pt-4 pb-8 px-2"
+          suppressHydrationWarning
+        >
           {data.length === 0 ? (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
               Sem dados

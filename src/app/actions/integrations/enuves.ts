@@ -5,8 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-// @ts-ignore
-import pdf from 'pdf-parse/lib/pdf-parse.js';
+import pdf from '@/lib/pdf-parser';
 
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
