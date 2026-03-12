@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useRef } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { AVAILABLE_PERMISSIONS } from '@/lib/permissions-constants';
 import { updateDepartmentPermissions, Department } from '@/app/actions/departments';
-import { Loader2, Save } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -26,11 +24,12 @@ export function PermissionsForm({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [departmentPermissions, setDepartmentPermissions] = useState<string[]>(initialDepartmentPermissions);
-    const [isSaving, setIsSaving] = useState(false);
+    const permissionsRef = useRef<string[]>(initialDepartmentPermissions);
 
     // Update state when initial props change (e.g., when department changes via navigation)
     useEffect(() => {
         setDepartmentPermissions(initialDepartmentPermissions);
+        permissionsRef.current = initialDepartmentPermissions;
     }, [initialDepartmentPermissions]);
 
     const modules = Array.from(new Set(AVAILABLE_PERMISSIONS.map(p => p.module)));
@@ -41,29 +40,31 @@ export function PermissionsForm({
         router.push(`/admin/permissions?${params.toString()}`);
     };
 
-    const handlePermissionChange = (permissionCode: string, checked: boolean) => {
-        setDepartmentPermissions(prev => 
-            checked ? [...prev, permissionCode] : prev.filter(p => p !== permissionCode)
-        );
-    };
+    const handlePermissionChange = async (permissionCode: string, checked: boolean) => {
+        const currentPermissions = permissionsRef.current;
+        const newPermissions = checked 
+            ? [...currentPermissions, permissionCode]
+            : currentPermissions.filter(p => p !== permissionCode);
+        
+        permissionsRef.current = newPermissions;
+        setDepartmentPermissions(newPermissions);
 
-    const handleSave = async () => {
         if (!selectedDepartmentId) {
             toast.error('Selecione um departamento.');
             return;
         }
-        setIsSaving(true);
+
         try {
-            const result = await updateDepartmentPermissions(selectedDepartmentId, departmentPermissions);
-            if (result.success) {
-                toast.success('Permissões do Departamento atualizadas!');
-            } else {
-                toast.error('Erro ao atualizar permissões.');
+            const result = await updateDepartmentPermissions(selectedDepartmentId, newPermissions);
+            if (!result.success) {
+                permissionsRef.current = currentPermissions;
+                setDepartmentPermissions(currentPermissions);
+                toast.error('Erro ao salvar permissão.');
             }
         } catch (error) {
-            toast.error('Erro ao salvar permissões.');
-        } finally {
-            setIsSaving(false);
+            permissionsRef.current = currentPermissions;
+            setDepartmentPermissions(currentPermissions);
+            toast.error('Erro de conexão ao salvar.');
         }
     };
 
@@ -138,10 +139,6 @@ export function PermissionsForm({
                         Usuários de clientes são gerenciados individualmente.
                     </p>
                 </div>
-                <Button onClick={handleSave} disabled={isSaving || !selectedDepartmentId}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Salvar Alterações
-                </Button>
             </div>
 
             <Tabs value={selectedDepartmentId} onValueChange={handleDepartmentChange} className="w-full">
