@@ -371,7 +371,7 @@ export async function cancelVacation(id: string) {
     let hasPermission = false;
     if (session.role === 'admin') hasPermission = true;
     else {
-        const permissions = await getRolePermissions(session.role);
+        const permissions = await getUserPermissions();
         hasPermission = permissions.includes('vacations.cancel');
     }
 
