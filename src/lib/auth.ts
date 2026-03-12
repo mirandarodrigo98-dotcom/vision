@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { cookies } from 'next/headers';
 
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 export async function createSession(userId: string, role: string) {
   const sessionId = uuidv4();
@@ -26,7 +27,7 @@ export async function createSession(userId: string, role: string) {
   return sessionId;
 }
 
-export async function getSession() {
+export async function getSession(updateLastSeen = true) {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get('session_id')?.value;
 
@@ -50,8 +51,19 @@ export async function getSession() {
 
   if (!session) return null;
 
-  // Atualizar last_seen
-  await db.prepare("UPDATE sessions SET last_seen_at = datetime('now') WHERE id = ?").run(sessionId);
+  // Check for inactivity
+  const lastSeen = new Date(session.last_seen_at || session.created_at || Date.now()).getTime();
+  const now = Date.now();
+  
+  if (now - lastSeen > INACTIVITY_TIMEOUT_MS) {
+    await db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+    return null;
+  }
+
+  // Atualizar last_seen apenas se solicitado (padrão true)
+  if (updateLastSeen) {
+    await db.prepare("UPDATE sessions SET last_seen_at = datetime('now') WHERE id = ?").run(sessionId);
+  }
 
   return session;
 }

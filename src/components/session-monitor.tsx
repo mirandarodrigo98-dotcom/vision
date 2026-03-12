@@ -16,7 +16,11 @@ export function SessionMonitor() {
         const result = await checkCurrentSessionAccess();
         
         if (!result.allowed) {
-          toast.error('Seu horário de acesso expirou. Você será desconectado.');
+          if (result.reason === 'Não autenticado') {
+             toast.error('Sessão expirada por inatividade.');
+          } else {
+             toast.error(result.reason || 'Sessão expirada.');
+          }
           await logout();
           router.push('/login');
           return;

@@ -3328,17 +3328,10 @@ var useRequireEnsure = false;
 {
   if (typeof window === 'undefined') {
     isWorkerDisabled = true;
-    if (typeof require.ensure === 'undefined') {
-      require.ensure = require('node-ensure');
-    }
-    useRequireEnsure = true;
-  } else if (typeof require !== 'undefined' && typeof require.ensure === 'function') {
-    useRequireEnsure = true;
   }
-  if (typeof requirejs !== 'undefined' && requirejs.toUrl) {
-    workerSrc = requirejs.toUrl('pdfjs-dist/build/pdf.worker.js');
-  }
-  var dynamicLoaderSupported = typeof requirejs !== 'undefined' && requirejs.load;
+  
+  // Simplified for Next.js serverless environment
+  // We don't need require.ensure or node-ensure
   fakeWorkerFilesLoader = function (callback) {
     var worker = require('./pdf.worker.js');
     callback(worker.WorkerMessageHandler);

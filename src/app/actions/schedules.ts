@@ -184,7 +184,7 @@ export async function checkUserAccess(userId: string): Promise<{ allowed: boolea
 import { getSession } from '@/lib/auth';
 
 export async function checkCurrentSessionAccess() {
-  const session = await getSession();
+  const session = await getSession(false); // Don't update last_seen_at on polling check
   if (!session) return { allowed: false, reason: 'Não autenticado' };
   
   return checkUserAccess(session.user_id);
