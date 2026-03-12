@@ -20,7 +20,8 @@ import {
   LockClosedIcon,
   PuzzlePieceIcon,
   BanknotesIcon,
-  CalculatorIcon
+  CalculatorIcon,
+  TicketIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
@@ -47,6 +48,7 @@ interface NavigationItem {
 
 const navigation: NavigationItem[] = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon, permission: 'dashboard.view' },
+  { name: 'Chamados', href: '/admin/tickets', icon: TicketIcon },
   {
     name: 'Cadastro',
     icon: BuildingOfficeIcon,
