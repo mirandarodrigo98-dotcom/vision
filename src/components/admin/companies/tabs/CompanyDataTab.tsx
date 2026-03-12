@@ -13,12 +13,12 @@ interface CompanyDataTabProps {
   handleCnpjBlur: () => void;
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
-  typeRef: React.RefObject<HTMLInputElement>;
-  streetRef: React.RefObject<HTMLInputElement>;
-  complementRef: React.RefObject<HTMLInputElement>;
-  neighborhoodRef: React.RefObject<HTMLInputElement>;
-  municipalityRef: React.RefObject<HTMLInputElement>;
-  ufRef: React.RefObject<HTMLInputElement>;
+  typeRef: React.RefObject<HTMLInputElement | null>;
+  streetRef: React.RefObject<HTMLInputElement | null>;
+  complementRef: React.RefObject<HTMLInputElement | null>;
+  neighborhoodRef: React.RefObject<HTMLInputElement | null>;
+  municipalityRef: React.RefObject<HTMLInputElement | null>;
+  ufRef: React.RefObject<HTMLInputElement | null>;
   cepValue: string;
   setCepValue: (value: string) => void;
   handleCepChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -238,7 +238,7 @@ export function CompanyDataTab({
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
           <label className="text-sm font-medium">Tipo Logradouro</label>
           <Input 
-            ref={typeRef} 
+            ref={typeRef as React.RefObject<HTMLInputElement>} 
             name="address_type" 
             placeholder="Ex: Rua, Av, Alameda" 
             value={addressType} 
@@ -251,7 +251,7 @@ export function CompanyDataTab({
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
           <label className="text-sm font-medium">Logradouro</label>
           <Input 
-            ref={streetRef} 
+            ref={streetRef as React.RefObject<HTMLInputElement>} 
             name="address_street" 
             value={addressStreet} 
             onChange={(e) => setAddressStreet(e.target.value)}
@@ -274,7 +274,7 @@ export function CompanyDataTab({
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
           <label className="text-sm font-medium">Complemento</label>
           <Input 
-            ref={complementRef} 
+            ref={complementRef as React.RefObject<HTMLInputElement>} 
             name="address_complement" 
             value={addressComplement} 
             onChange={(e) => setAddressComplement(e.target.value)}
@@ -286,7 +286,7 @@ export function CompanyDataTab({
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
           <label className="text-sm font-medium">Bairro</label>
           <Input 
-            ref={neighborhoodRef} 
+            ref={neighborhoodRef as React.RefObject<HTMLInputElement>} 
             name="address_neighborhood" 
             value={addressNeighborhood} 
             onChange={(e) => setAddressNeighborhood(e.target.value)}
@@ -298,7 +298,7 @@ export function CompanyDataTab({
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
           <label className="text-sm font-medium">Município</label>
           <Input 
-            ref={municipalityRef} 
+            ref={municipalityRef as React.RefObject<HTMLInputElement>} 
             name="municipio" 
             value={municipality} 
             onChange={(e) => setMunicipality(e.target.value)}
@@ -310,7 +310,7 @@ export function CompanyDataTab({
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
           <label className="text-sm font-medium">UF</label>
           <Input 
-            ref={ufRef} 
+            ref={ufRef as React.RefObject<HTMLInputElement>} 
             name="uf" 
             value={uf} 
             onChange={(e) => setUf(e.target.value)}
