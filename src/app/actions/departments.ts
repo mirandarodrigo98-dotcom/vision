@@ -138,7 +138,12 @@ export async function updateDepartmentPermissions(departmentId: string, permissi
         });
 
         await updateTransaction();
-        revalidatePath(`/admin/registrations/departments/${departmentId}/edit`);
+        
+        // Revalidate critical paths to ensure permissions update immediately
+        revalidatePath('/admin/permissions');
+        revalidatePath('/admin/dashboard');
+        revalidatePath('/', 'layout'); // Force global revalidation (menu, protected routes)
+        
         return { success: true };
     } catch (error) {
         console.error('Error updating department permissions:', error);
