@@ -93,6 +93,14 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'integrations.digisac', label: 'Acessar DigiSac', category: 'Integrações', module: 'Módulo Integrações' },
     { code: 'integrations.questor', label: 'Acessar Questor', category: 'Integrações', module: 'Módulo Integrações' },
 
+    // --- Módulo de Chamados ---
+    { code: 'tickets.view', label: 'Visualizar Chamados', category: 'Chamados', module: 'Módulo de Chamados' },
+    { code: 'tickets.create', label: 'Abrir Novo Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
+    { code: 'tickets.edit', label: 'Editar Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
+    { code: 'tickets.comment', label: 'Comentar em Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
+    { code: 'tickets.delete', label: 'Excluir Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
+    { code: 'tickets.admin', label: 'Administrar Chamados', category: 'Chamados', module: 'Módulo de Chamados' },
+
     // --- ADM (Administração) ---
     { code: 'permissions.view', label: 'Gerenciar Permissões', category: 'Segurança', module: 'ADM' },
     { code: 'audit_logs.view', label: 'Visualizar Logs de Auditoria', category: 'Segurança', module: 'ADM' },
