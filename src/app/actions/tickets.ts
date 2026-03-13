@@ -47,7 +47,7 @@ export async function createTicket(prevState: any, formData: FormData) {
   const validatedFields = TicketSchema.safeParse(rawData);
 
   if (!validatedFields.success) {
-    return { error: 'Campos inválidos', details: validatedFields.error.flatten() };
+    return { error: 'Campos inválidos', details: validatedFields.error.flatten().fieldErrors };
   }
 
   const { title, description, priority, category, assignee_id } = validatedFields.data;

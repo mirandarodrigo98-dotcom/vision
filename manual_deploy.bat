@@ -27,7 +27,7 @@ git add .
 
 echo.
 echo 4. Commitando alteracoes...
-git commit -m "fix: build error - correct zod error access property"
+git commit -m "fix: build error - correct zod error handling in tickets.ts"
 
 echo.
 echo 5. Enviando para o GitHub (Origin Main)...
