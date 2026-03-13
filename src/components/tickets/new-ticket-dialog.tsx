@@ -249,6 +249,7 @@ export function NewTicketDialog() {
                   </FormItem>
                 )}
               />
+            </div>
 
             <FormField
               control={form.control}
