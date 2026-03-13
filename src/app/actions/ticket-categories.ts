@@ -16,7 +16,8 @@ export async function getTicketCategories() {
   if (!session) return [];
 
   try {
-    const categories = await db.prepare('SELECT * FROM ticket_categories WHERE active = 1 ORDER BY name').all();
+    // Use lower(name) for case-insensitive sorting and parameter for boolean compatibility
+    const categories = await db.prepare('SELECT * FROM ticket_categories WHERE active = ? ORDER BY lower(name)').all(true);
     return categories as { id: string; name: string; active: number }[];
   } catch (error) {
     console.error('Error fetching categories:', error);
