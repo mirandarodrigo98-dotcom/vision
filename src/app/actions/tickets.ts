@@ -542,9 +542,10 @@ export async function getPotentialAssignees() {
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.role IN ('admin', 'operator') 
       AND u.name != 'Admin Inicial'
+      AND u.id != ?
       AND u.deleted_at IS NULL
       ORDER BY u.name ASC
-    `).all();
+    `).all(session.user_id);
     
     return assignees as { id: string; name: string; email: string; role: string; department_name: string }[];
   } catch (error) {
