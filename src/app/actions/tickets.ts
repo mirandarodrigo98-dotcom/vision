@@ -16,6 +16,7 @@ const TicketSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   category: z.string().min(1, 'Categoria é obrigatória'),
   assignee_id: z.string().min(1, 'Destinatário é obrigatório'),
+  due_date: z.string().optional(),
 });
 
 const CommentSchema = z.object({
@@ -43,6 +44,7 @@ export async function createTicket(prevState: any, formData: FormData) {
     priority: formData.get('priority') || 'medium',
     category: formData.get('category'),
     assignee_id: formData.get('assignee_id'),
+    due_date: formData.get('due_date'),
   };
 
   const validatedFields = TicketSchema.safeParse(rawData);
@@ -51,7 +53,7 @@ export async function createTicket(prevState: any, formData: FormData) {
     return { error: 'Campos inválidos', details: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { title, description, priority, category, assignee_id } = validatedFields.data;
+  const { title, description, priority, category, assignee_id, due_date } = validatedFields.data;
   const ticketId = uuidv4();
 
   // Processar anexos
@@ -74,8 +76,8 @@ export async function createTicket(prevState: any, formData: FormData) {
 
   try {
     await db.prepare(`
-      INSERT INTO tickets (id, title, description, priority, category, requester_id, assignee_id, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'open')
+      INSERT INTO tickets (id, title, description, priority, category, requester_id, assignee_id, status, due_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)
     `).run(
       ticketId,
       title,
@@ -83,7 +85,8 @@ export async function createTicket(prevState: any, formData: FormData) {
       priority,
       category,
       session.user_id,
-      assignee_id || null
+      assignee_id || null,
+      due_date ? new Date(due_date).toISOString() : null
     );
 
     // Upload de anexos

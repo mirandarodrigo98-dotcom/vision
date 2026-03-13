@@ -43,6 +43,7 @@ const ticketSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   category: z.string().min(1, 'Categoria é obrigatória'),
   assignee_id: z.string().min(1, 'Destinatário é obrigatório'),
+  due_date: z.string().optional(),
 });
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
@@ -67,6 +68,7 @@ export function NewTicketDialog() {
       priority: 'medium',
       category: '',
       assignee_id: '',
+      due_date: '',
     },
   });
 
@@ -126,6 +128,10 @@ export function NewTicketDialog() {
     formData.append('description', data.description);
     formData.append('priority', data.priority);
     formData.append('category', data.category);
+    formData.append('assignee_id', data.assignee_id);
+    if (data.due_date) {
+      formData.append('due_date', data.due_date);
+    }
 
     files.forEach((file) => {
       formData.append('attachments', file);
@@ -181,7 +187,7 @@ export function NewTicketDialog() {
           Novo Chamado
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Chamado</DialogTitle>
           <DialogDescription>
@@ -226,42 +232,57 @@ export function NewTicketDialog() {
                       </SelectContent>
                     </Select>
                     <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="assignee_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Destinatário (Usuário do Escritório)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um destinatário" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {assignees.map((assignee) => (
-                      <SelectItem key={assignee.id} value={assignee.id}>
-                        {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {field.value && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Setor: {assignees.find(a => a.id === field.value)?.department_name || 'N/A'}
-                  </p>
+                  </FormItem>
                 )}
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              />
 
-          <FormField
-            control={form.control}
+              <FormField
+                control={form.control}
+                name="due_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data Limite</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="assignee_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Destinatário (Usuário do Escritório)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um destinatário" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assignees.map((assignee) => (
+                        <SelectItem key={assignee.id} value={assignee.id}>
+                          {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.value && assignees.find(a => a.id === field.value)?.department_name && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Setor: {assignees.find(a => a.id === field.value)?.department_name}
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
                 name="category"
                 render={({ field }) => (
                   <FormItem>
