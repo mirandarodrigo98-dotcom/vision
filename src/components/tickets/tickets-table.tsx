@@ -15,7 +15,7 @@ import { TicketPriorityBadge } from './ticket-priority-badge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
-import { ArrowRight, User } from 'lucide-react';
+import { ArrowRight, User, Eye } from 'lucide-react';
 
 interface TicketsTableProps {
   tickets: any[];
@@ -84,12 +84,14 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
                   {ticket.updated_at ? format(new Date(ticket.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '-'}
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/admin/tickets/${ticket.id}`}>
-                      Detalhes
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" asChild title="Ver detalhes">
+                      <Link href={`/admin/tickets/${ticket.id}`}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">Ver detalhes</span>
+                      </Link>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

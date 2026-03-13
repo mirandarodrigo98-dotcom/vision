@@ -16,10 +16,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Calendar } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const ticket = await getTicketById(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const ticket = await getTicketById(id);
   if (!ticket) return { title: 'Chamado não encontrado' };
-  return { title: `Chamado #${params.id.substring(0, 8)} | VISION` };
+  return { title: `Chamado #${id.substring(0, 8)} | VISION` };
 }
 
 async function TicketDetails({ id }: { id: string }) {
@@ -163,11 +164,12 @@ async function TicketDetails({ id }: { id: string }) {
   );
 }
 
-export default function TicketPage({ params }: { params: { id: string } }) {
+export default async function TicketPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <Suspense fallback={<Skeleton className="h-[600px] w-full" />}>
-        <TicketDetails id={params.id} />
+        <TicketDetails id={id} />
       </Suspense>
     </div>
   );
