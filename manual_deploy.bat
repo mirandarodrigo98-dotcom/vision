@@ -27,7 +27,7 @@ git add .
 
 echo.
 echo 4. Commitando alteracoes...
-git commit -m "fix: build error - correct zod error handling in tickets.ts"
+git commit -m "fix: build error - verified correct imports in new-ticket-dialog"
 
 echo.
 echo 5. Enviando para o GitHub (Origin Main)...

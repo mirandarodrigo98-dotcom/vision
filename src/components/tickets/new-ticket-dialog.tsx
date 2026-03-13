@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { createTicket } from '@/app/actions/tickets';
-import { getTicketCategories, createCategory } from '@/app/actions/ticket-categories';
+import { getTicketCategories, createTicketCategory } from '@/app/actions/ticket-categories';
 import { Plus, Loader2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 
