@@ -529,17 +529,24 @@ export async function getPotentialAssignees() {
   if (!session) return [];
 
   try {
-    // Retorna admins e operadores, excluindo o usuário atual
-    // Inclui o nome do departamento
-    return await db.prepare(`
-      SELECT u.id, u.name, u.email, u.role, d.name as department_name
+    // Retorna admins e operadores
+    // Exclui o usuário "Admin Inicial" especificamente
+    // Define departamento como "Administrador" para admins
+    const assignees = await db.prepare(`
+      SELECT u.id, u.name, u.email, u.role, 
+      CASE 
+        WHEN u.role = 'admin' THEN 'Administrador'
+        ELSE d.name 
+      END as department_name
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.role IN ('admin', 'operator') 
-      AND u.id != ?
+      AND u.name != 'Admin Inicial'
       AND u.deleted_at IS NULL
       ORDER BY u.name ASC
-    `).all(session.user_id);
+    `).all();
+    
+    return assignees as { id: string; name: string; email: string; role: string; department_name: string }[];
   } catch (error) {
     console.error('Error fetching assignees:', error);
     return [];
