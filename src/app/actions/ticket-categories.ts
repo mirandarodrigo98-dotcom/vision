@@ -41,16 +41,20 @@ export async function createTicketCategory(name: string) {
 
   try {
     const id = uuidv4(); // Use standard UUID
-    await db.prepare('INSERT INTO ticket_categories (id, name) VALUES (?, ?)').run(id, name);
+    // Use explicit active field to ensure compatibility
+    await db.prepare('INSERT INTO ticket_categories (id, name, active) VALUES (?, ?, ?)').run(id, name, true);
     
     revalidatePath('/admin/tickets');
     return { success: true, category: { id, name } };
   } catch (error) {
     console.error('Error creating category:', error);
-    // Check for unique constraint
-    if (String(error).includes('UNIQUE constraint failed')) {
+    // Check for unique constraint (SQLite and Postgres)
+    const errorMsg = String(error);
+    if (errorMsg.includes('UNIQUE constraint failed') || errorMsg.includes('duplicate key')) {
       return { error: 'Categoria já existe' };
     }
-    return { error: 'Erro ao criar categoria' };
+    
+    // Return detailed error for debugging in production
+    return { error: `Erro ao criar categoria: ${error instanceof Error ? error.message : errorMsg}` };
   }
 }
