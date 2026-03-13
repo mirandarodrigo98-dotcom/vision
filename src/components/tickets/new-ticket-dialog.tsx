@@ -95,7 +95,7 @@ export function NewTicketDialog() {
         toast.error(result.error);
       } else if (result.category) {
         toast.success('Categoria criada!');
-        setCategories([...categories, { ...result.category, active: 1 }]);
+        setCategories([...categories, result.category]);
         form.setValue('category', result.category.name); // Auto-select using name as value
         setNewCategoryName('');
         setShowNewCategoryInput(false);
