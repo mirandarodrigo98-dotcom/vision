@@ -277,8 +277,8 @@ export function NewTicketDialog() {
                             <SelectValue placeholder={loadingCategories ? "Carregando..." : "Selecione a categoria"} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
+                        <SelectContent className="max-h-[200px]">
+                        {categories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.name}>
                               {cat.name}
                             </SelectItem>
