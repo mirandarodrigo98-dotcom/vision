@@ -36,6 +36,63 @@ async function getUserEmail(userId: string) {
   }
 }
 
+async function createTicketsSequencesTable() {
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS tickets_sequences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      current_number INTEGER NOT NULL DEFAULT 1,
+      UNIQUE(year, month)
+    )
+  `).run();
+
+  // Ensure protocol column exists in tickets table
+  try {
+    const columns = await db.prepare("PRAGMA table_info(tickets)").all() as any[];
+    const hasProtocol = columns.some(c => c.name === 'protocol');
+    if (!hasProtocol) {
+       await db.prepare("ALTER TABLE tickets ADD COLUMN protocol TEXT").run();
+    }
+  } catch (e) {
+    console.error("Error ensuring protocol column:", e);
+  }
+}
+
+async function getNextSequentialNumber(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1; // 1-12
+  await createTicketsSequencesTable();
+
+  // Usar transação para garantir atomicidade se possível, mas SQLite em modo WAL deve lidar bem
+  // Primeiro tenta pegar o atual
+  const sequence = await db.prepare(`
+    SELECT current_number FROM tickets_sequences WHERE year = ? AND month = ?
+  `).get(year, month) as any;
+
+  let nextNum = 1;
+  if (sequence) {
+    nextNum = sequence.current_number;
+    // Incrementa para o próximo
+    await db.prepare(`
+      UPDATE tickets_sequences SET current_number = current_number + 1 WHERE year = ? AND month = ?
+    `).run(year, month);
+  } else {
+    // Inicia sequência do mês
+    // Próximo será 2, atual é 1
+    await db.prepare(`
+      INSERT INTO tickets_sequences (year, month, current_number) VALUES (?, ?, 2)
+    `).run(year, month);
+  }
+  
+  // Format: AAAAMMDD-XXXX
+  const day = String(date.getDate()).padStart(2, '0');
+  const monthStr = String(month).padStart(2, '0');
+  const seqStr = String(nextNum).padStart(4, '0');
+  
+  return `${year}${monthStr}${day}-${seqStr}`;
+}
+
 export async function createTicket(prevState: any, formData: FormData) {
   const session = await getSession();
   if (!session) {
@@ -59,6 +116,7 @@ export async function createTicket(prevState: any, formData: FormData) {
 
   const { title, description, priority, category, assignee_id, due_date } = validatedFields.data;
   const ticketId = uuidv4();
+  const protocol = await getNextSequentialNumber(new Date());
 
   // Processar anexos
   const attachments = formData.getAll('attachments') as File[];
@@ -80,10 +138,11 @@ export async function createTicket(prevState: any, formData: FormData) {
 
   try {
     await db.prepare(`
-      INSERT INTO tickets (id, title, description, priority, category, requester_id, assignee_id, status, due_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)
+      INSERT INTO tickets (id, protocol, title, description, priority, category, requester_id, assignee_id, status, due_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
     `).run(
       ticketId,
+      protocol,
       title,
       description,
       priority,

@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const ticket = await getTicketById(id);
   if (!ticket) return { title: 'Chamado não encontrado' };
-  return { title: `Chamado #${id.substring(0, 8)} | VISION` };
+  return { title: `Chamado ${ticket.protocol || '#' + id.substring(0, 8)} | VISION` };
 }
 
 async function TicketDetails({ id }: { id: string }) {
@@ -61,7 +61,7 @@ async function TicketDetails({ id }: { id: string }) {
       <div className="lg:col-span-2 space-y-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>#{ticket.id}</span>
+            <span className="font-mono font-medium text-foreground">{ticket.protocol || '#' + ticket.id.substring(0, 8)}</span>
             <span>•</span>
             <TicketStatusBadge status={ticket.status} />
             <span>•</span>

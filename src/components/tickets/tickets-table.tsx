@@ -50,7 +50,13 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
                     <span className="truncate max-w-[300px]">{ticket.title}</span>
-                    <span className="text-xs text-muted-foreground">#{ticket.id.substring(0, 8)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {ticket.protocol ? (
+                        <span className="font-mono">{ticket.protocol}</span>
+                      ) : (
+                        `#${ticket.id.substring(0, 8)}`
+                      )}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>

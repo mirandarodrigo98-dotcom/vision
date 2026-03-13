@@ -161,149 +161,159 @@ export function TicketActions({
 
       <div className="flex flex-wrap gap-2">
         {/* Accept Button */}
-        {canAccept && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 gap-2" disabled={isUpdating}>
-                <PlayCircle size={16} /> Aceitar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Aceitar Chamado</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Deseja aceitar este chamado e iniciar o atendimento? O status mudará para "Em Andamento".
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleAccept}>Confirmar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 gap-2" 
+              disabled={isUpdating || !canAccept}
+            >
+              <PlayCircle size={16} /> Aceitar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Aceitar Chamado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja aceitar este chamado e iniciar o atendimento? O status mudará para "Em Andamento".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleAccept}>Confirmar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Return Button */}
-        {canReturn && (
-          <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 gap-2" disabled={isUpdating}>
-                <Undo2 size={16} /> Devolver
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Devolver Chamado</DialogTitle>
-                <DialogDescription>
-                  Informe o motivo da devolução (Obrigatório). O status mudará para "Devolvido".
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Textarea 
-                  placeholder="Descreva o motivo..." 
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleReturn} disabled={isUpdating || !returnReason.trim()}>Confirmar Devolução</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="text-orange-600 border-orange-200 hover:bg-orange-50 gap-2" 
+              disabled={isUpdating || !canReturn}
+            >
+              <Undo2 size={16} /> Devolver
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Devolver Chamado</DialogTitle>
+              <DialogDescription>
+                Informe o motivo da devolução (Obrigatório). O status mudará para "Devolvido".
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Textarea 
+                placeholder="Descreva o motivo..." 
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleReturn} disabled={isUpdating || !returnReason.trim()}>Confirmar Devolução</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Finalize Button */}
-        {canFinalize && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 gap-2" disabled={isUpdating}>
-                <CheckCircle2 size={16} /> Finalizar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Finalizar Chamado</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Deseja finalizar este chamado? O status mudará para "Resolvido".
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleFinalize}>Confirmar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              className="bg-green-600 hover:bg-green-700 gap-2" 
+              disabled={isUpdating || !canFinalize}
+            >
+              <CheckCircle2 size={16} /> Finalizar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Finalizar Chamado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja finalizar este chamado? O status mudará para "Resolvido".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleFinalize}>Confirmar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Resubmit Button (Enviar) */}
-        {canResubmit && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 gap-2" disabled={isUpdating}>
-                <Send size={16} /> Enviar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reenviar Chamado</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Deseja reenviar este chamado para análise? O status voltará para "Aberto".
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleResubmit}>Confirmar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 gap-2" 
+              disabled={isUpdating || !canResubmit}
+            >
+              <Send size={16} /> Enviar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reenviar Chamado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja reenviar este chamado para análise? O status voltará para "Aberto".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleResubmit}>Confirmar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Reopen Button */}
-        {canReopen && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" className="gap-2" disabled={isUpdating}>
-                <RotateCcw size={16} /> Reabrir
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reabrir Chamado</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Deseja reabrir este chamado? O status voltará para "Aberto".
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleReopen}>Confirmar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              disabled={isUpdating || !canReopen}
+            >
+              <RotateCcw size={16} /> Reabrir
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reabrir Chamado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja reabrir este chamado? O status voltará para "Aberto".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleReopen}>Confirmar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Cancel Button */}
-        {canCancel && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-2" disabled={isUpdating}>
-                <Ban size={16} /> Cancelar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Cancelar Chamado</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja cancelar este chamado? Esta ação não pode ser desfeita facilmente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-2" 
+              disabled={isUpdating || !canCancel}
+            >
+              <Ban size={16} /> Cancelar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancelar Chamado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja cancelar este chamado? Esta ação não pode ser desfeita facilmente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+
                 <AlertDialogCancel>Voltar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">Confirmar Cancelamento</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
-        )}
+        </AlertDialog>
       </div>
     </div>
   );
