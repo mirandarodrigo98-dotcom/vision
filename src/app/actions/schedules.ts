@@ -180,13 +180,22 @@ export async function checkUserAccess(userId: string): Promise<{ allowed: boolea
       
       // Calculate logout time for this rule
       const [endH, endM] = rule.end_time.split(':').map(Number);
-      const ruleLogout = new Date(brazilTime);
-      ruleLogout.setHours(endH, endM, 0, 0);
       
-      // If this rule extends to next day? Assuming times are within 00:00-23:59
+      // Calculate remaining duration in milliseconds
+      // We know the current time in Brazil is currentHour:currentMinute
+      // We want to reach endH:endM
+      // Diff in minutes
+      const diffInMinutes = (endH * 60 + endM) - (currentHour * 60 + currentMinute);
       
-      // Since we break on the first match, we just assign the logout time of this rule.
-      nextLogout = ruleLogout;
+      // nextLogout is now + diff
+      if (diffInMinutes > 0) {
+        nextLogout = new Date(now.getTime() + diffInMinutes * 60 * 1000);
+      } else {
+        // Should not happen if we are inside the interval, unless seconds matter or logic edge case
+        // If we are exactly at the end minute, we might want to logout soon.
+        // Let's set it to now
+        nextLogout = now;
+      }
       
       break; // Found a matching rule
     }

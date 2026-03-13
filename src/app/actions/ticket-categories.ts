@@ -40,7 +40,7 @@ export async function createTicketCategory(name: string) {
   }
 
   try {
-    const id = `cat_${uuidv4().replace(/-/g, '')}`; // Simple ID prefix
+    const id = uuidv4(); // Use standard UUID
     await db.prepare('INSERT INTO ticket_categories (id, name) VALUES (?, ?)').run(id, name);
     
     revalidatePath('/admin/tickets');

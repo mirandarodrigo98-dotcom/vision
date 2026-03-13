@@ -312,7 +312,7 @@ export function NewTicketDialog() {
                           onClick={handleCreateCategory}
                           disabled={!newCategoryName || creatingCategory}
                         >
-                          {creatingCategory ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Add'}
+                          {creatingCategory ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Incluir'}
                         </Button>
                       </div>
                     )}
