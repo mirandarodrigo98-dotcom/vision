@@ -35,7 +35,7 @@ export async function createTicketCategory(name: string) {
 
   const validated = CategorySchema.safeParse({ name });
   if (!validated.success) {
-    return { error: validated.error.errors[0].message };
+    return { error: validated.error.issues[0].message };
   }
 
   try {
