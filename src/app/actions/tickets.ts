@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createNotification } from '@/app/actions/notifications';
-import { sendEmail } from '@/lib/email';
+import { sendEmail } from '@/lib/email/resend';
 import { uploadToR2 } from '@/lib/r2';
 
 const TicketSchema = z.object({
@@ -143,7 +143,8 @@ export async function createTicket(prevState: any, formData: FormData) {
             <p><strong>Prioridade:</strong> ${priority}</p>
             <p><strong>Categoria:</strong> ${category}</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
-          `
+          `,
+          category: 'ticket_assigned'
         });
       }
     }
@@ -200,7 +201,8 @@ export async function returnTicket(ticketId: string, reason: string) {
           <p><strong>Motivo:</strong> ${reason}</p>
           <p>Por favor, acesse o chamado, faça os ajustes necessários e clique em "Reenviar".</p>
           <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
-        `
+        `,
+        category: 'ticket_returned'
       });
     }
     
@@ -256,7 +258,8 @@ export async function resubmitTicket(ticketId: string) {
             <h2>Olá ${assignee.name},</h2>
             <p>O chamado foi reenviado após ajustes.</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
-          `
+          `,
+          category: 'ticket_resubmitted'
         });
       }
     }
@@ -314,7 +317,8 @@ export async function updateTicketStatus(ticketId: string, status: string) {
             <p><strong>Chamado:</strong> ${currentTicket.title}</p>
             <p><strong>Novo Status:</strong> ${status}</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
-          `
+          `,
+          category: 'ticket_status_update'
         });
       }
     }
@@ -367,7 +371,8 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
               <p>Um chamado foi atribuído a você.</p>
               <p><strong>Título:</strong> ${ticketInfo.title}</p>
               <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
-            `
+            `,
+            category: 'ticket_assigned'
           });
         }
       }
