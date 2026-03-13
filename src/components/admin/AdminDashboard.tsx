@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { SessionMonitor } from '@/components/session-monitor'
+import { NotificationMonitor } from '@/components/admin/notification-monitor'
 
 interface NavigationItem {
   name: string
@@ -184,6 +185,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
   return (
     <>
       <SessionMonitor />
+      <NotificationMonitor />
       <div className={classNames(
         "min-h-screen bg-background text-foreground transition-colors duration-300"
       )}>
