@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getTicketById, getPotentialAssignees } from '@/app/actions/tickets';
 import { getSession } from '@/lib/auth';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { TicketChat } from '@/components/tickets/ticket-chat';
 import { TicketActions } from '@/components/tickets/ticket-actions';
 import { TicketAssigneeSelect } from '@/components/tickets/ticket-assignee-select';
@@ -25,10 +26,23 @@ async function TicketDetails({ id }: { id: string }) {
   const ticket = await getTicketById(id);
   const assignees = await getPotentialAssignees();
   const session = await getSession();
+  const permissions = await getUserPermissions();
 
   if (!ticket) {
     notFound();
   }
+
+  const isAssignee = ticket.assignee_id === session?.user_id;
+  const isRequester = ticket.requester_id === session?.user_id;
+  const isAdmin = session?.role === 'admin';
+  const isOperator = session?.role === 'operator';
+
+  // Rules
+  const canReturn = (isAdmin || isAssignee) && ticket.status !== 'returned' && ticket.status !== 'closed' && ticket.status !== 'resolved';
+  const canResubmit = isRequester && ticket.status === 'returned';
+  const canCancel = (isAdmin || isAssignee) && ticket.status !== 'cancelled' && ticket.status !== 'closed';
+  const canFinalize = (isAdmin || isAssignee) && ticket.status !== 'closed' && ticket.status !== 'resolved' && ticket.status !== 'cancelled';
+  const canTransfer = isAdmin || isAssignee || (isOperator && permissions.includes('tickets.assign'));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -76,7 +90,14 @@ async function TicketDetails({ id }: { id: string }) {
             <div className="space-y-1">
               <span className="text-sm font-medium text-muted-foreground">Status</span>
               <div className="mt-1">
-                <TicketActions ticketId={ticket.id} currentStatus={ticket.status} />
+                <TicketActions 
+                  ticketId={ticket.id} 
+                  currentStatus={ticket.status} 
+                  canReturn={canReturn}
+                  canResubmit={canResubmit}
+                  canCancel={canCancel}
+                  canFinalize={canFinalize}
+                />
               </div>
             </div>
 
@@ -105,6 +126,7 @@ async function TicketDetails({ id }: { id: string }) {
                   ticketId={ticket.id} 
                   currentAssigneeId={ticket.assignee_id} 
                   assignees={assignees} 
+                  canTransfer={canTransfer}
                 />
               </div>
             </div>

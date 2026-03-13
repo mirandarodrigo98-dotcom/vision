@@ -14,15 +14,17 @@ import { toast } from 'sonner';
 interface Assignee {
   id: string;
   name: string;
+  department_name?: string;
 }
 
 interface TicketAssigneeSelectProps {
   ticketId: string;
   currentAssigneeId?: string | null;
   assignees: Assignee[];
+  canTransfer: boolean;
 }
 
-export function TicketAssigneeSelect({ ticketId, currentAssigneeId, assignees }: TicketAssigneeSelectProps) {
+export function TicketAssigneeSelect({ ticketId, currentAssigneeId, assignees, canTransfer }: TicketAssigneeSelectProps) {
   const [assigneeId, setAssigneeId] = useState<string>(currentAssigneeId || 'unassigned');
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -49,7 +51,7 @@ export function TicketAssigneeSelect({ ticketId, currentAssigneeId, assignees }:
   }
 
   return (
-    <Select value={assigneeId} onValueChange={handleAssigneeChange} disabled={isUpdating}>
+    <Select value={assigneeId} onValueChange={handleAssigneeChange} disabled={isUpdating || !canTransfer}>
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Selecione um responsável" />
       </SelectTrigger>
@@ -57,7 +59,7 @@ export function TicketAssigneeSelect({ ticketId, currentAssigneeId, assignees }:
         <SelectItem value="unassigned">-- Não atribuído --</SelectItem>
         {assignees.map((assignee) => (
           <SelectItem key={assignee.id} value={assignee.id}>
-            {assignee.name}
+            {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
           </SelectItem>
         ))}
       </SelectContent>

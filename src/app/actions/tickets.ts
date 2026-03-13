@@ -14,7 +14,7 @@ const TicketSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   category: z.string().min(1, 'Categoria é obrigatória'),
-  assignee_id: z.string().optional().nullable(),
+  assignee_id: z.string().min(1, 'Destinatário é obrigatório'),
 });
 
 const CommentSchema = z.object({
@@ -153,6 +153,120 @@ export async function createTicket(prevState: any, formData: FormData) {
   } catch (error) {
     console.error('Error creating ticket:', error);
     return { error: 'Erro ao criar chamado' };
+  }
+}
+
+export async function returnTicket(ticketId: string, reason: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  try {
+    const ticket = await db.prepare('SELECT assignee_id, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
+    // Only assignee or admin can return
+    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id) {
+       return { error: 'Permission denied' };
+    }
+
+    await db.prepare(`
+      UPDATE tickets 
+      SET status = 'returned', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(ticketId);
+
+    // Log interaction
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'status_change', ?)
+    `).run(uuidv4(), ticketId, session.user_id, `Chamado devolvido pelo motivo: ${reason}`);
+
+    // Notify requester
+    const requester = await getUserEmail(ticket.requester_id);
+    if (requester) {
+      await createNotification(
+        ticket.requester_id,
+        'Chamado Devolvido',
+        `Seu chamado "${ticket.title}" foi devolvido para ajustes. Motivo: ${reason}`,
+        `/admin/tickets/${ticketId}`
+      );
+
+      await sendEmail({
+        to: requester.email,
+        subject: `[VISION] Chamado Devolvido: ${ticket.title}`,
+        html: `
+          <h2>Olá ${requester.name},</h2>
+          <p>Seu chamado foi devolvido para ajustes.</p>
+          <p><strong>Motivo:</strong> ${reason}</p>
+          <p>Por favor, acesse o chamado, faça os ajustes necessários e clique em "Reenviar".</p>
+          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Acessar Chamado</a></p>
+        `
+      });
+    }
+    
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/tickets');
+    return { success: true };
+  } catch (error) {
+    console.error('Error returning ticket:', error);
+    return { error: 'Erro ao devolver chamado' };
+  }
+}
+
+export async function resubmitTicket(ticketId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  try {
+    const ticket = await db.prepare('SELECT requester_id, assignee_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
+    // Only requester can resubmit
+    if (session.user_id !== ticket.requester_id) {
+       return { error: 'Permission denied' };
+    }
+
+    await db.prepare(`
+      UPDATE tickets 
+      SET status = 'open', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(ticketId);
+
+    // Log interaction
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'status_change', ?)
+    `).run(uuidv4(), ticketId, session.user_id, `Chamado reenviado após ajustes.`);
+
+    // Notify assignee
+    if (ticket.assignee_id) {
+      const assignee = await getUserEmail(ticket.assignee_id);
+      if (assignee) {
+        await createNotification(
+          ticket.assignee_id,
+          'Chamado Reenviado',
+          `O chamado "${ticket.title}" foi reenviado pelo solicitante.`,
+          `/admin/tickets/${ticketId}`
+        );
+
+        await sendEmail({
+          to: assignee.email,
+          subject: `[VISION] Chamado Reenviado: ${ticket.title}`,
+          html: `
+            <h2>Olá ${assignee.name},</h2>
+            <p>O chamado foi reenviado após ajustes.</p>
+            <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Acessar Chamado</a></p>
+          `
+        });
+      }
+    }
+    
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/tickets');
+    return { success: true };
+  } catch (error) {
+    console.error('Error resubmitting ticket:', error);
+    return { error: 'Erro ao reenviar chamado' };
   }
 }
 
@@ -302,16 +416,32 @@ export async function getTickets(filters?: { status?: string; assignee_id?: stri
   const session = await getSession();
   if (!session) return [];
 
+  // Fetch user's department
+  const user = await db.prepare('SELECT department_id FROM users WHERE id = ?').get(session.user_id) as any;
+  const userDepartmentId = user?.department_id;
+
   let query = `
     SELECT t.*, 
       r.name as requester_name, r.email as requester_email,
-      a.name as assignee_name
+      a.name as assignee_name,
+      ad.name as assignee_department_name
     FROM tickets t
     JOIN users r ON t.requester_id = r.id
     LEFT JOIN users a ON t.assignee_id = a.id
+    LEFT JOIN departments ad ON a.department_id = ad.id
     WHERE 1=1
   `;
   const params: any[] = [];
+
+  // Visibility Logic: Admin sees all. Others see created by them, assigned to them, or assigned to their department.
+  if (session.role !== 'admin') {
+    query += ` AND (
+      t.requester_id = ? 
+      OR t.assignee_id = ? 
+      OR (a.department_id IS NOT NULL AND a.department_id = ?)
+    )`;
+    params.push(session.user_id, session.user_id, userDepartmentId);
+  }
 
   if (filters?.status && filters.status !== 'all') {
     query += ` AND t.status = ?`;
@@ -376,13 +506,17 @@ export async function getPotentialAssignees() {
   if (!session) return [];
 
   try {
-    // Retorna admins e operadores
+    // Retorna admins e operadores, excluindo o usuário atual
+    // Inclui o nome do departamento
     return await db.prepare(`
-      SELECT id, name, email, role 
-      FROM users 
-      WHERE role IN ('admin', 'operator')
-      ORDER BY name ASC
-    `).all();
+      SELECT u.id, u.name, u.email, u.role, d.name as department_name
+      FROM users u
+      LEFT JOIN departments d ON u.department_id = d.id
+      WHERE u.role IN ('admin', 'operator') 
+      AND u.id != ?
+      AND u.deleted_at IS NULL
+      ORDER BY u.name ASC
+    `).all(session.user_id);
   } catch (error) {
     console.error('Error fetching assignees:', error);
     return [];

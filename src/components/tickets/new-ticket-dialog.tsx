@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { createTicket } from '@/app/actions/tickets';
+import { createTicket, getPotentialAssignees } from '@/app/actions/tickets';
 import { getTicketCategories, createTicketCategory } from '@/app/actions/ticket-categories';
 import { Plus, Loader2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,6 +42,7 @@ const ticketSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   category: z.string().min(1, 'Categoria é obrigatória'),
+  assignee_id: z.string().min(1, 'Destinatário é obrigatório'),
 });
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
@@ -49,6 +50,7 @@ type TicketFormValues = z.infer<typeof ticketSchema>;
 export function NewTicketDialog() {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [assignees, setAssignees] = useState<{ id: string; name: string; department_name?: string }[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -64,12 +66,14 @@ export function NewTicketDialog() {
       description: '',
       priority: 'medium',
       category: '',
+      assignee_id: '',
     },
   });
 
   useEffect(() => {
     if (open) {
       fetchCategories();
+      fetchAssignees();
     }
   }, [open]);
 
@@ -82,6 +86,15 @@ export function NewTicketDialog() {
       toast.error('Erro ao carregar categorias');
     } finally {
       setLoadingCategories(false);
+    }
+  }
+
+  async function fetchAssignees() {
+    try {
+      const data = await getPotentialAssignees();
+      setAssignees(data);
+    } catch (error) {
+      console.error('Error fetching assignees', error);
     }
   }
 
@@ -213,12 +226,42 @@ export function NewTicketDialog() {
                       </SelectContent>
                     </Select>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
+          <FormField
+            control={form.control}
+            name="assignee_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Destinatário (Usuário do Escritório)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um destinatário" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {assignees.map((assignee) => (
+                      <SelectItem key={assignee.id} value={assignee.id}>
+                        {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {field.value && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Setor: {assignees.find(a => a.id === field.value)?.department_name || 'N/A'}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
                 name="category"
                 render={({ field }) => (
                   <FormItem>
