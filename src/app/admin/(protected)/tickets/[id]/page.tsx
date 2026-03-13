@@ -39,10 +39,16 @@ async function TicketDetails({ id }: { id: string }) {
   const isOperator = session?.role === 'operator';
 
   // Rules
-  const canReturn = (isAdmin || isAssignee) && ticket.status !== 'returned' && ticket.status !== 'closed' && ticket.status !== 'resolved';
-  const canResubmit = isRequester && ticket.status === 'returned';
-  const canCancel = (isAdmin || isAssignee) && ticket.status !== 'cancelled' && ticket.status !== 'closed';
-  const canFinalize = (isAdmin || isAssignee) && ticket.status !== 'closed' && ticket.status !== 'resolved' && ticket.status !== 'cancelled';
+  const daysSinceClosed = ticket.closed_at 
+    ? Math.ceil(Math.abs(new Date().getTime() - new Date(ticket.closed_at).getTime()) / (1000 * 60 * 60 * 24)) 
+    : 0;
+
+  const canAccept = (isAdmin || isAssignee) && ticket.status === 'open';
+  const canReturn = (isAdmin || isAssignee) && ticket.status === 'in_progress';
+  const canFinalize = (isAdmin || isAssignee) && ticket.status === 'in_progress';
+  const canResubmit = (isAdmin || isRequester) && ticket.status === 'returned';
+  const canReopen = (isAdmin || isRequester) && ticket.status === 'resolved' && daysSinceClosed <= 15;
+  const canCancel = (isAdmin || isAssignee) && ticket.status !== 'closed' && ticket.status !== 'cancelled';
   const canTransfer = isAdmin || isAssignee || (isOperator && permissions.includes('tickets.assign'));
 
   return (
@@ -89,15 +95,17 @@ async function TicketDetails({ id }: { id: string }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
-              <span className="text-sm font-medium text-muted-foreground">Status</span>
+              <span className="text-sm font-medium text-muted-foreground">Ações</span>
               <div className="mt-1">
                 <TicketActions 
                   ticketId={ticket.id} 
                   currentStatus={ticket.status} 
+                  canAccept={canAccept}
                   canReturn={canReturn}
                   canResubmit={canResubmit}
-                  canCancel={canCancel}
                   canFinalize={canFinalize}
+                  canReopen={canReopen}
+                  canCancel={canCancel}
                 />
               </div>
             </div>
@@ -124,6 +132,7 @@ async function TicketDetails({ id }: { id: string }) {
               <span className="text-sm font-medium text-muted-foreground">Atribuído a</span>
               <div className="mt-1">
                 <TicketAssigneeSelect 
+                  key={ticket.assignee_id || 'unassigned'}
                   ticketId={ticket.id} 
                   currentAssigneeId={ticket.assignee_id} 
                   assignees={assignees} 

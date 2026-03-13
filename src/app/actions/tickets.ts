@@ -279,6 +279,217 @@ export async function resubmitTicket(ticketId: string) {
   }
 }
 
+export async function acceptTicket(ticketId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  try {
+    const ticket = await db.prepare('SELECT status, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
+    // Only assignee or admin can accept
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
+       return { error: 'Permission denied' };
+    }
+
+    if (ticket.status !== 'open') {
+      return { error: 'Ticket must be open to accept' };
+    }
+
+    await db.prepare(`
+      UPDATE tickets 
+      SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(ticketId);
+
+    // Log interaction
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'status_change', ?)
+    `).run(uuidv4(), ticketId, session.user_id, 'Chamado aceito e em andamento');
+
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/tickets');
+    return { success: true };
+  } catch (error) {
+    console.error('Error accepting ticket:', error);
+    return { error: 'Erro ao aceitar chamado' };
+  }
+}
+
+export async function resolveTicket(ticketId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  try {
+    const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
+    // Only assignee or admin can resolve
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
+       return { error: 'Permission denied' };
+    }
+
+    if (ticket.status !== 'in_progress') {
+      return { error: 'Ticket must be in progress to resolve' };
+    }
+
+    await db.prepare(`
+      UPDATE tickets 
+      SET status = 'resolved', updated_at = CURRENT_TIMESTAMP, closed_at = ?
+      WHERE id = ?
+    `).run(new Date().toISOString(), ticketId);
+
+    // Log interaction
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'status_change', ?)
+    `).run(uuidv4(), ticketId, session.user_id, 'Chamado resolvido');
+
+    // Notify requester
+    const requester = await getUserEmail(ticket.requester_id);
+    if (requester) {
+      await createNotification(
+        ticket.requester_id,
+        'Chamado Resolvido',
+        `Seu chamado "${ticket.title}" foi marcado como resolvido.`,
+        `/admin/tickets/${ticketId}`
+      );
+
+      await sendEmail({
+        to: requester.email,
+        subject: `[VISION] Chamado Resolvido: ${ticket.title}`,
+        html: `
+          <h2>Olá ${requester.name},</h2>
+          <p>Seu chamado foi resolvido.</p>
+          <p>Se o problema persistir, você pode reabrir o chamado em até 15 dias.</p>
+          <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
+        `,
+        category: 'ticket_resolved'
+      });
+    }
+
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/tickets');
+    return { success: true };
+  } catch (error) {
+    console.error('Error resolving ticket:', error);
+    return { error: 'Erro ao resolver chamado' };
+  }
+}
+
+export async function reopenTicket(ticketId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  try {
+    const ticket = await db.prepare('SELECT status, requester_id, closed_at, title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
+    // Only requester or admin can reopen
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && session.user_id !== ticket.requester_id && !canEdit) {
+       return { error: 'Permission denied' };
+    }
+
+    if (ticket.status !== 'resolved') {
+      return { error: 'Ticket must be resolved to reopen' };
+    }
+
+    // Check 15 days limit
+    if (ticket.closed_at) {
+      const closedDate = new Date(ticket.closed_at);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - closedDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 15) {
+        return { error: 'Prazo de 15 dias para reabertura expirado' };
+      }
+    }
+
+    await db.prepare(`
+      UPDATE tickets 
+      SET status = 'open', updated_at = CURRENT_TIMESTAMP, closed_at = NULL
+      WHERE id = ?
+    `).run(ticketId);
+
+    // Log interaction
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'status_change', ?)
+    `).run(uuidv4(), ticketId, session.user_id, 'Chamado reaberto pelo solicitante');
+
+    // Notify assignee
+    if (ticket.assignee_id) {
+      const assignee = await getUserEmail(ticket.assignee_id);
+      if (assignee) {
+        await createNotification(
+          ticket.assignee_id,
+          'Chamado Reaberto',
+          `O chamado "${ticket.title}" foi reaberto.`,
+          `/admin/tickets/${ticketId}`
+        );
+
+        await sendEmail({
+          to: assignee.email,
+          subject: `[VISION] Chamado Reaberto: ${ticket.title}`,
+          html: `
+            <h2>Olá ${assignee.name},</h2>
+            <p>Um chamado resolvido foi reaberto pelo solicitante.</p>
+            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
+          `,
+          category: 'ticket_reopened'
+        });
+      }
+    }
+
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/tickets');
+    return { success: true };
+  } catch (error) {
+    console.error('Error reopening ticket:', error);
+    return { error: 'Erro ao reabrir chamado' };
+  }
+}
+
+export async function cancelTicket(ticketId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  try {
+    const ticket = await db.prepare('SELECT status, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
+    // Only assignee or admin can cancel
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
+       return { error: 'Permission denied' };
+    }
+
+    await db.prepare(`
+      UPDATE tickets 
+      SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP, closed_at = ?
+      WHERE id = ?
+    `).run(new Date().toISOString(), ticketId);
+
+    // Log interaction
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'status_change', ?)
+    `).run(uuidv4(), ticketId, session.user_id, 'Chamado cancelado');
+
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/tickets');
+    return { success: true };
+  } catch (error) {
+    console.error('Error cancelling ticket:', error);
+    return { error: 'Erro ao cancelar chamado' };
+  }
+}
+
 export async function updateTicketStatus(ticketId: string, status: string) {
   const session = await getSession();
   if (!session) return { error: 'Unauthorized' };
@@ -414,15 +625,65 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
   }
 }
 
-export async function addTicketComment(ticketId: string, content: string) {
+export async function addTicketComment(ticketId: string, formData: FormData) {
   const session = await getSession();
   if (!session) return { error: 'Unauthorized' };
 
+  const content = formData.get('content') as string;
+  if (!content || !content.trim()) return { error: 'Comentário não pode ser vazio' };
+
   try {
+    const interactionId = uuidv4();
     await db.prepare(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
       VALUES (?, ?, ?, 'comment', ?)
-    `).run(uuidv4(), ticketId, session.user_id, content);
+    `).run(interactionId, ticketId, session.user_id, content);
+
+    // Processar anexos
+    const attachments = formData.getAll('attachments') as File[];
+    const validAttachments: File[] = [];
+
+    // Validar limites de arquivos (max 2MB cada)
+    for (const file of attachments) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB
+        return { error: `Arquivo ${file.name} excede o limite de 2MB` };
+      }
+      if (file.size > 0) {
+          validAttachments.push(file);
+      }
+    }
+
+    // Upload de anexos
+    for (const file of validAttachments) {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const fileExtension = file.name.split('.').pop();
+        const fileName = `tickets/${ticketId}/comments/${interactionId}/${uuidv4()}.${fileExtension}`;
+        
+        const uploadResult = await uploadToR2(buffer, fileName, file.type);
+        
+        if (uploadResult) {
+          await db.prepare(`
+            INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(
+            uuidv4(),
+            ticketId,
+            uploadResult.fileKey,
+            file.name,
+            file.type,
+            file.size
+          );
+          
+          // Opcional: Adicionar referência no texto do comentário?
+          // Como não tenho interaction_id na tabela ticket_attachments, não consigo vincular facilmente.
+          // Mas como o fileName tem o interactionId no path, posso inferir se precisar.
+          // Por enquanto, ficam na lista geral de anexos do ticket.
+        }
+      } catch (uploadError) {
+        console.error(`Erro ao fazer upload do arquivo ${file.name}:`, uploadError);
+      }
+    }
 
     await db.prepare(`
       UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?

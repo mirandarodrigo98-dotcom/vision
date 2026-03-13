@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { addTicketComment } from '@/app/actions/tickets';
 import { toast } from 'sonner';
-import { User, Send } from 'lucide-react';
+import { User, Send, Paperclip, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Badge } from '@/components/ui/badge';
 
 interface Interaction {
   id: string;
@@ -29,18 +30,24 @@ interface TicketChatProps {
 export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketChatProps) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!comment.trim()) return;
+  async function handleSubmit() {
+    if (!comment.trim() && attachments.length === 0) return;
 
     setIsSubmitting(true);
     try {
-      const result = await addTicketComment(ticketId, comment);
+      const formData = new FormData();
+      formData.append('content', comment);
+      attachments.forEach(file => formData.append('attachments', file));
+
+      const result = await addTicketComment(ticketId, formData);
       if (result.error) {
-        toast.error('Erro ao enviar comentário');
+        toast.error(result.error);
       } else {
         setComment('');
+        setAttachments([]);
         toast.success('Comentário enviado');
       }
     } catch (error) {
@@ -49,6 +56,25 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
       setIsSubmitting(false);
     }
   }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      const validFiles = newFiles.filter(file => file.size <= 2 * 1024 * 1024);
+      
+      if (validFiles.length !== newFiles.length) {
+        toast.error('Alguns arquivos foram ignorados por excederem 2MB');
+      }
+      
+      setAttachments(prev => [...prev, ...validFiles]);
+    }
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="flex flex-col h-[600px] border rounded-md">
@@ -62,16 +88,17 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
                     <AvatarImage src={interaction.user_avatar} />
                     <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col flex-1">
+                  <div className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-sm">{interaction.user_name}</span>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(interaction.created_at), "dd/MM HH:mm", { locale: ptBR })}
                       </span>
                     </div>
-                    <div className="bg-muted p-3 rounded-lg text-sm whitespace-pre-wrap">
-                      {interaction.content}
-                    </div>
+                    <div 
+                      className="bg-muted p-3 rounded-lg text-sm [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md"
+                      dangerouslySetInnerHTML={{ __html: interaction.content }} 
+                    />
                   </div>
                 </>
               ) : (
@@ -83,18 +110,45 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
           ))}
         </div>
       </ScrollArea>
+      
       <div className="p-4 border-t bg-background">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Escreva um comentário..."
-            className="min-h-[80px]"
+        <div className="space-y-2">
+          <RichTextEditor 
+            value={comment} 
+            onChange={setComment} 
+            placeholder="Escreva um comentário..." 
+            className="bg-background"
           />
-          <Button type="submit" size="icon" disabled={isSubmitting || !comment.trim()} className="h-[80px] w-[80px]">
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+          
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((file, index) => (
+                <Badge key={index} variant="secondary" className="gap-1">
+                  {file.name}
+                  <X size={12} className="cursor-pointer hover:text-red-500" onClick={() => removeAttachment(index)} />
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2">
+            <div>
+              <input 
+                type="file" 
+                multiple 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileSelect} 
+              />
+              <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} type="button">
+                <Paperclip size={16} className="mr-2" /> Anexar Arquivo (Max 2MB)
+              </Button>
+            </div>
+            <Button onClick={handleSubmit} disabled={isSubmitting || (!comment.trim() && attachments.length === 0)}>
+              Enviar <Send size={16} className="ml-2" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

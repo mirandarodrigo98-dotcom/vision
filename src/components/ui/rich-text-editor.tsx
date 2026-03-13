@@ -1,46 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 interface RichTextEditorProps {
-  name?: string;
-  value?: string;
-  onChange?: (value: string) => void;
+  value: string;
+  onChange: (value: string) => void;
   placeholder?: string;
-  initialValue?: string;
+  className?: string;
 }
 
-export default function RichTextEditor({
-  name,
-  value,
-  onChange,
-  placeholder,
-  initialValue = '',
-}: RichTextEditorProps) {
-  const [internal, setInternal] = useState<string>(initialValue);
-  const controlled = typeof value === 'string' && typeof onChange === 'function';
-  const currentValue = controlled ? (value as string) : internal;
-
-  const handleChange = (next: string) => {
-    if (controlled) {
-      (onChange as (v: string) => void)(next);
-    } else {
-      setInternal(next);
-    }
+export function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
+  const modules = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'image'],
+      ['clean']
+    ],
   };
 
+  const formats = [
+    'bold', 'italic', 'underline',
+    'list', 'bullet',
+    'link', 'image'
+  ];
+
   return (
-    <div className="bg-white text-black rounded-md">
-      <textarea
-        className="w-full h-[240px] p-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-        name={name}
-        value={currentValue}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder={placeholder || 'Escreva aqui...'}
+    <div className={className}>
+      <ReactQuill 
+        theme="snow" 
+        value={value} 
+        onChange={onChange} 
+        modules={modules}
+        formats={formats}
+        placeholder={placeholder}
       />
-      <p className="text-xs text-gray-400 mt-1 px-1">
-        Editor de texto simples (Modo de Compatibilidade).
-      </p>
     </div>
   );
 }

@@ -3,13 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,55 +11,70 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { updateTicketStatus, returnTicket, resubmitTicket } from '@/app/actions/tickets';
+import { 
+  returnTicket, 
+  resubmitTicket, 
+  acceptTicket, 
+  resolveTicket, 
+  reopenTicket, 
+  cancelTicket 
+} from '@/app/actions/tickets';
 import { toast } from 'sonner';
-import { Undo2, Send, CheckCircle2, Ban } from 'lucide-react';
+import { 
+  Undo2, 
+  Send, 
+  CheckCircle2, 
+  Ban, 
+  PlayCircle, 
+  RotateCcw 
+} from 'lucide-react';
 
 interface TicketActionsProps {
   ticketId: string;
   currentStatus: string;
+  canAccept: boolean;
   canReturn: boolean;
   canResubmit: boolean;
-  canCancel: boolean;
   canFinalize: boolean;
+  canReopen: boolean;
+  canCancel: boolean;
 }
 
 export function TicketActions({ 
   ticketId, 
   currentStatus, 
+  canAccept,
   canReturn, 
   canResubmit, 
-  canCancel, 
-  canFinalize 
+  canFinalize,
+  canReopen,
+  canCancel
 }: TicketActionsProps) {
-  const [status, setStatus] = useState(currentStatus);
   const [isUpdating, setIsUpdating] = useState(false);
   const [returnReason, setReturnReason] = useState('');
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
 
-  async function handleStatusChange(value: string) {
-    if (value === status) return;
-    
-    // Check if trying to cancel/finalize without permission (though UI should hide it)
-    if ((value === 'cancelled' && !canCancel) || ((value === 'closed' || value === 'resolved') && !canFinalize)) {
-        toast.error('Você não tem permissão para realizar esta ação.');
-        return;
-    }
-
+  // Handlers
+  async function handleAccept() {
     setIsUpdating(true);
     try {
-      const result = await updateTicketStatus(ticketId, value);
-      if (result.error) {
-        toast.error('Erro ao atualizar status');
-        setStatus(currentStatus); // Revert
-      } else {
-        setStatus(value);
-        toast.success(`Status alterado para ${value}`);
-      }
-    } catch (error) {
-      toast.error('Erro ao atualizar status');
-      setStatus(currentStatus);
+      const result = await acceptTicket(ticketId);
+      if (result.error) toast.error(result.error);
+      else toast.success('Chamado aceito');
+    } catch {
+      toast.error('Erro ao aceitar chamado');
     } finally {
       setIsUpdating(false);
     }
@@ -77,19 +85,29 @@ export function TicketActions({
       toast.error('Informe o motivo da devolução');
       return;
     }
-
     setIsUpdating(true);
     try {
       const result = await returnTicket(ticketId, returnReason);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Chamado devolvido com sucesso');
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success('Chamado devolvido');
         setReturnDialogOpen(false);
-        setStatus('returned');
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao devolver chamado');
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleFinalize() {
+    setIsUpdating(true);
+    try {
+      const result = await resolveTicket(ticketId);
+      if (result.error) toast.error(result.error);
+      else toast.success('Chamado resolvido');
+    } catch {
+      toast.error('Erro ao resolver chamado');
     } finally {
       setIsUpdating(false);
     }
@@ -99,51 +117,85 @@ export function TicketActions({
     setIsUpdating(true);
     try {
       const result = await resubmitTicket(ticketId);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Chamado reenviado com sucesso');
-        setStatus('open');
-      }
-    } catch (error) {
+      if (result.error) toast.error(result.error);
+      else toast.success('Chamado reenviado');
+    } catch {
       toast.error('Erro ao reenviar chamado');
     } finally {
       setIsUpdating(false);
     }
   }
 
+  async function handleReopen() {
+    setIsUpdating(true);
+    try {
+      const result = await reopenTicket(ticketId);
+      if (result.error) toast.error(result.error);
+      else toast.success('Chamado reaberto');
+    } catch {
+      toast.error('Erro ao reabrir chamado');
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleCancel() {
+    setIsUpdating(true);
+    try {
+      const result = await cancelTicket(ticketId);
+      if (result.error) toast.error(result.error);
+      else toast.success('Chamado cancelado');
+    } catch {
+      toast.error('Erro ao cancelar chamado');
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Select value={status} onValueChange={handleStatusChange} disabled={isUpdating || (!canCancel && !canFinalize)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="open">Aberto</SelectItem>
-            <SelectItem value="in_progress">Em Andamento</SelectItem>
-            {canFinalize && <SelectItem value="resolved">Resolvido</SelectItem>}
-            {canFinalize && <SelectItem value="closed">Fechado</SelectItem>}
-            {canCancel && <SelectItem value="cancelled">Cancelado</SelectItem>}
-            <SelectItem value="returned" disabled>Devolvido</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="flex flex-col gap-4">
+      {/* Status Display (Read Only) */}
+      <div className="text-sm font-medium text-muted-foreground mb-2">
+        Status Atual: <span className="text-foreground capitalize">{currentStatus === 'in_progress' ? 'Em Andamento' : currentStatus}</span>
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {/* Accept Button */}
+        {canAccept && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700 gap-2" disabled={isUpdating}>
+                <PlayCircle size={16} /> Aceitar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Aceitar Chamado</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja aceitar este chamado e iniciar o atendimento? O status mudará para "Em Andamento".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleAccept}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Return Button */}
         {canReturn && (
           <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700">
-                <Undo2 size={16} />
-                Devolver
+              <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 gap-2" disabled={isUpdating}>
+                <Undo2 size={16} /> Devolver
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Devolver Chamado</DialogTitle>
                 <DialogDescription>
-                  Informe o motivo da devolução para que o solicitante possa corrigir.
+                  Informe o motivo da devolução (Obrigatório). O status mudará para "Devolvido".
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -155,17 +207,102 @@ export function TicketActions({
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleReturn} disabled={isUpdating}>Confirmar Devolução</Button>
+                <Button onClick={handleReturn} disabled={isUpdating || !returnReason.trim()}>Confirmar Devolução</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         )}
 
+        {/* Finalize Button */}
+        {canFinalize && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="bg-green-600 hover:bg-green-700 gap-2" disabled={isUpdating}>
+                <CheckCircle2 size={16} /> Finalizar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Finalizar Chamado</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja finalizar este chamado? O status mudará para "Resolvido".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleFinalize}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Resubmit Button (Enviar) */}
         {canResubmit && (
-          <Button variant="default" size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={handleResubmit} disabled={isUpdating}>
-            <Send size={16} />
-            Reenviar Chamado
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700 gap-2" disabled={isUpdating}>
+                <Send size={16} /> Enviar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reenviar Chamado</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja reenviar este chamado para análise? O status voltará para "Aberto".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResubmit}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Reopen Button */}
+        {canReopen && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="gap-2" disabled={isUpdating}>
+                <RotateCcw size={16} /> Reabrir
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reabrir Chamado</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja reabrir este chamado? O status voltará para "Aberto".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReopen}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Cancel Button */}
+        {canCancel && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-2" disabled={isUpdating}>
+                <Ban size={16} /> Cancelar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancelar Chamado</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja cancelar este chamado? Esta ação não pode ser desfeita facilmente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">Confirmar Cancelamento</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
     </div>
