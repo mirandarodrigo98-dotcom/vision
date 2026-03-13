@@ -90,7 +90,7 @@ export function NewTicketDialog() {
     
     setCreatingCategory(true);
     try {
-      const result = await createCategory(newCategoryName);
+      const result = await createTicketCategory(newCategoryName);
       if (result.error) {
         toast.error(result.error);
       } else if (result.category) {
