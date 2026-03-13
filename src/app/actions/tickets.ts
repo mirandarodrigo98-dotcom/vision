@@ -142,7 +142,7 @@ export async function createTicket(prevState: any, formData: FormData) {
             <p><strong>Título:</strong> ${title}</p>
             <p><strong>Prioridade:</strong> ${priority}</p>
             <p><strong>Categoria:</strong> ${category}</p>
-            <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
+            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
           `
         });
       }
@@ -199,7 +199,7 @@ export async function returnTicket(ticketId: string, reason: string) {
           <p>Seu chamado foi devolvido para ajustes.</p>
           <p><strong>Motivo:</strong> ${reason}</p>
           <p>Por favor, acesse o chamado, faça os ajustes necessários e clique em "Reenviar".</p>
-          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Acessar Chamado</a></p>
+          <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
         `
       });
     }
@@ -255,7 +255,7 @@ export async function resubmitTicket(ticketId: string) {
           html: `
             <h2>Olá ${assignee.name},</h2>
             <p>O chamado foi reenviado após ajustes.</p>
-            <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Acessar Chamado</a></p>
+            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
           `
         });
       }
@@ -313,7 +313,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
             <p>O status do seu chamado foi atualizado.</p>
             <p><strong>Chamado:</strong> ${currentTicket.title}</p>
             <p><strong>Novo Status:</strong> ${status}</p>
-            <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
+            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
           `
         });
       }
@@ -366,7 +366,7 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
               <h2>Olá ${assigneeName},</h2>
               <p>Um chamado foi atribuído a você.</p>
               <p><strong>Título:</strong> ${ticketInfo.title}</p>
-              <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
+              <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
             `
           });
         }

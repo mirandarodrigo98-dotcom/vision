@@ -87,7 +87,7 @@ export async function createTeamUser(data: { name: string; email: string; role: 
                 <p><strong>Usuário:</strong> ${email}</p>
                 <p><strong>Senha:</strong> ${password}</p>
                 <br />
-                <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Acessar Sistema</a></p>
+                <p><a href="https://vision.nzdcontabilidade.com.br/login">Acessar Sistema</a></p>
             </div>
         `,
         category: 'welcome_email'
@@ -290,9 +290,9 @@ export async function sendPassword(userId: string) {
                     <br />
                     <p><strong>Usuário:</strong> ${user.email}</p>
                     <p><strong>Senha:</strong> ${password}</p>
-                    <br />
-                    <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Acessar Sistema</a></p>
-                </div>
+                <br />
+                <p><a href="https://vision.nzdcontabilidade.com.br/login">Acessar Sistema</a></p>
+            </div>
             `,
             category: 'welcome_email'
         });

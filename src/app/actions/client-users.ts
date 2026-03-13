@@ -157,6 +157,7 @@ export async function saveClientUser(data: SaveClientUserPayload) {
                       <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
                       <p style="margin: 5px 0;"><strong>Senha Provisória:</strong> ${tempPassword}</p>
                     </div>
+                    <p><a href="https://vision.nzdcontabilidade.com.br/login">Acessar Sistema</a></p>
                     <p>Recomendamos que altere sua senha após o primeiro acesso.</p>
                     <p>Atenciosamente,<br>Equipe NZD</p>
                   </div>
@@ -238,6 +239,7 @@ export async function sendPassword(userId: string) {
                     <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
                         <p style="margin: 5px 0;"><strong>Nova Senha Provisória:</strong> ${tempPassword}</p>
                     </div>
+                    <p><a href="https://vision.nzdcontabilidade.com.br/login">Acessar Sistema</a></p>
                     <p>Recomendamos que altere sua senha após o acesso.</p>
                 </div>
             `,
