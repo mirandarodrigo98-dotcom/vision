@@ -8,10 +8,13 @@ import { z } from 'zod';
 import { createNotification } from '@/app/actions/notifications';
 import { sendEmail } from '@/lib/email/resend';
 import { uploadToR2 } from '@/lib/r2';
-import { hasPermission } from '@/lib/rbac';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 const TicketSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório'),
+  title: z.string()
+    .min(1, 'Título é obrigatório')
+    .max(15, 'Título deve ter no máximo 15 caracteres')
+    .regex(/^[a-zA-Z0-9\s]+$/, 'Título deve conter apenas letras e números'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   category: z.string().min(1, 'Categoria é obrigatória'),
@@ -85,7 +88,7 @@ export async function createTicket(prevState: any, formData: FormData) {
       priority,
       category,
       session.user_id,
-      assignee_id || null,
+      assignee_id,
       due_date ? new Date(due_date).toISOString() : null
     );
 
@@ -170,7 +173,9 @@ export async function returnTicket(ticketId: string, reason: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only assignee or admin can return
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
        return { error: 'Permission denied' };
     }
@@ -229,7 +234,9 @@ export async function resubmitTicket(ticketId: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only requester can resubmit
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    
     if (session.role !== 'admin' && session.user_id !== ticket.requester_id && !canEdit) {
        return { error: 'Permission denied' };
     }
@@ -287,9 +294,12 @@ export async function acceptTicket(ticketId: string) {
     const ticket = await db.prepare('SELECT status, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!ticket) return { error: 'Ticket not found' };
 
-    // Only assignee or admin can accept
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
-    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
+    // Only assignee or admin can accept, OR if it's unassigned (pickup)
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    const isUnassigned = !ticket.assignee_id;
+    
+    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit && !isUnassigned) {
        return { error: 'Permission denied' };
     }
 
@@ -297,17 +307,26 @@ export async function acceptTicket(ticketId: string) {
       return { error: 'Ticket must be open to accept' };
     }
 
-    await db.prepare(`
-      UPDATE tickets 
-      SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(ticketId);
+    // If unassigned, assign to current user
+    if (isUnassigned) {
+      await db.prepare(`
+        UPDATE tickets 
+        SET status = 'in_progress', assignee_id = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(session.user_id, ticketId);
+    } else {
+      await db.prepare(`
+        UPDATE tickets 
+        SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(ticketId);
+    }
 
     // Log interaction
     await db.prepare(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
       VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, 'Chamado aceito e em andamento');
+    `).run(uuidv4(), ticketId, session.user_id, isUnassigned ? 'Chamado aceito e assumido' : 'Chamado aceito e em andamento');
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath('/admin/tickets');
@@ -327,7 +346,9 @@ export async function resolveTicket(ticketId: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only assignee or admin can resolve
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
        return { error: 'Permission denied' };
     }
@@ -389,7 +410,9 @@ export async function reopenTicket(ticketId: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only requester or admin can reopen
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    
     if (session.role !== 'admin' && session.user_id !== ticket.requester_id && !canEdit) {
        return { error: 'Permission denied' };
     }
@@ -464,7 +487,9 @@ export async function cancelTicket(ticketId: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only assignee or admin can cancel
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
        return { error: 'Permission denied' };
     }
@@ -498,7 +523,8 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     const currentTicket = await db.prepare('SELECT status, requester_id, assignee_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!currentTicket) return { error: 'Ticket not found' };
 
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
     const isAssignee = currentTicket.assignee_id === session.user_id;
     const isRequester = currentTicket.requester_id === session.user_id;
     
@@ -565,8 +591,12 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
     const ticketInfo = await db.prepare('SELECT title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!ticketInfo) return { error: 'Ticket not found' };
 
-    const canEdit = await hasPermission(session.role, 'tickets.edit');
-    if (session.role !== 'admin' && !canEdit) {
+    const permissions = await getUserPermissions();
+    const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+    const isUnassigned = !ticketInfo.assignee_id;
+    
+    // Allow if admin, canEdit, is current assignee, OR ticket is unassigned (pickup)
+    if (session.role !== 'admin' && !canEdit && session.user_id !== ticketInfo.assignee_id && !isUnassigned) {
        return { error: 'Permission denied' };
     }
 
@@ -708,10 +738,12 @@ export async function getTickets(filters?: { status?: string; assignee_id?: stri
   let query = `
     SELECT t.*, 
       r.name as requester_name, r.email as requester_email,
+      rd.name as requester_department_name,
       a.name as assignee_name,
       ad.name as assignee_department_name
     FROM tickets t
     JOIN users r ON t.requester_id = r.id
+    LEFT JOIN departments rd ON r.department_id = rd.id
     LEFT JOIN users a ON t.assignee_id = a.id
     LEFT JOIN departments ad ON a.department_id = ad.id
     WHERE 1=1
@@ -788,7 +820,7 @@ export async function getTicketById(id: string) {
   }
 }
 
-export async function getPotentialAssignees() {
+export async function getPotentialAssignees(excludeCurrentUser: boolean = true) {
   const session = await getSession();
   if (!session) return [];
 
@@ -796,7 +828,7 @@ export async function getPotentialAssignees() {
     // Retorna admins e operadores
     // Exclui o usuário "Admin Inicial" especificamente
     // Define departamento como "Administrador" para admins
-    const assignees = await db.prepare(`
+    let query = `
       SELECT u.id, u.name, u.email, u.role, 
       CASE 
         WHEN u.role = 'admin' THEN 'Administrador'
@@ -806,10 +838,19 @@ export async function getPotentialAssignees() {
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.role IN ('admin', 'operator') 
       AND u.name != 'Admin Inicial'
-      AND u.id != ?
       AND u.deleted_at IS NULL
-      ORDER BY u.name ASC
-    `).all(session.user_id);
+    `;
+    
+    const params: any[] = [];
+
+    if (excludeCurrentUser) {
+      query += ` AND u.id != ?`;
+      params.push(session.user_id);
+    }
+
+    query += ` ORDER BY u.name ASC`;
+
+    const assignees = await db.prepare(query).all(...params);
     
     return assignees as { id: string; name: string; email: string; role: string; department_name: string }[];
   } catch (error) {

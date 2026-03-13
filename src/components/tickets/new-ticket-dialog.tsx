@@ -38,7 +38,10 @@ import { Plus, Loader2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ticketSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório'),
+  title: z.string()
+    .min(1, 'Título é obrigatório')
+    .max(15, 'Título deve ter no máximo 15 caracteres')
+    .regex(/^[a-zA-Z0-9\s]+$/, 'Título deve conter apenas letras e números'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   category: z.string().min(1, 'Categoria é obrigatória'),
@@ -204,7 +207,7 @@ export function NewTicketDialog() {
                 <FormItem>
                   <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="Resumo do problema" {...field} />
+                    <Input placeholder="Resumo do problema" maxLength={15} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

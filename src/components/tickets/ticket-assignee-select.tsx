@@ -33,11 +33,12 @@ interface Assignee {
 interface TicketAssigneeSelectProps {
   ticketId: string;
   currentAssigneeId?: string | null;
+  currentAssigneeName?: string | null;
   assignees: Assignee[];
   canTransfer: boolean;
 }
 
-export function TicketAssigneeSelect({ ticketId, currentAssigneeId, assignees, canTransfer }: TicketAssigneeSelectProps) {
+export function TicketAssigneeSelect({ ticketId, currentAssigneeId, currentAssigneeName, assignees, canTransfer }: TicketAssigneeSelectProps) {
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>(currentAssigneeId || 'unassigned');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -64,7 +65,16 @@ export function TicketAssigneeSelect({ ticketId, currentAssigneeId, assignees, c
     }
   }
 
-  const selectedAssigneeName = assignees.find(a => a.id === selectedAssigneeId)?.name || 'Ninguém';
+  const getAssigneeName = (id: string) => {
+    if (id === 'unassigned') return 'Ninguém';
+    const assignee = assignees.find(a => a.id === id);
+    if (assignee) return assignee.name;
+    // Fallback se o ID selecionado for o atual, mas não estiver na lista (ex: lista filtrada mas eu sou o dono)
+    if (id === currentAssigneeId && currentAssigneeName) return currentAssigneeName;
+    return 'Desconhecido';
+  };
+
+  const selectedAssigneeName = getAssigneeName(selectedAssigneeId);
 
   return (
     <div className="flex gap-2">

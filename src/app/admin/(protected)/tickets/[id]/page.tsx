@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 async function TicketDetails({ id }: { id: string }) {
   const ticket = await getTicketById(id);
-  const assignees = await getPotentialAssignees();
+  const assignees = await getPotentialAssignees(false);
   const session = await getSession();
   const permissions = await getUserPermissions();
 
@@ -43,13 +43,18 @@ async function TicketDetails({ id }: { id: string }) {
     ? Math.ceil(Math.abs(new Date().getTime() - new Date(ticket.closed_at).getTime()) / (1000 * 60 * 60 * 24)) 
     : 0;
 
-  const canAccept = (isAdmin || isAssignee) && ticket.status === 'open';
-  const canReturn = (isAdmin || isAssignee) && ticket.status === 'in_progress';
-  const canFinalize = (isAdmin || isAssignee) && ticket.status === 'in_progress';
-  const canResubmit = (isAdmin || isRequester) && ticket.status === 'returned';
-  const canReopen = (isAdmin || isRequester) && ticket.status === 'resolved' && daysSinceClosed <= 15;
-  const canCancel = (isAdmin || isAssignee) && ticket.status !== 'closed' && ticket.status !== 'cancelled';
-  const canTransfer = isAdmin || isAssignee || (isOperator && permissions.includes('tickets.assign'));
+  const canTransfer = isAdmin || isAssignee || (isOperator && (permissions.includes('tickets.edit') || permissions.includes('tickets.admin'))) || (isOperator && !ticket.assignee_id);
+  
+  // Quem pode aceitar: Admin, o próprio assignee (se já definido), ou qualquer um com permissão de transferir (para pegar tickets sem dono)
+  const canAccept = (isAdmin || isAssignee || canTransfer) && ticket.status === 'open';
+  
+  const hasEditPermission = isAdmin || permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
+
+  const canReturn = (isAdmin || isAssignee || hasEditPermission) && ticket.status === 'in_progress';
+  const canFinalize = (isAdmin || isAssignee || hasEditPermission) && ticket.status === 'in_progress';
+  const canResubmit = (isAdmin || isRequester || hasEditPermission) && ticket.status === 'returned';
+  const canReopen = (isAdmin || isRequester || hasEditPermission) && ticket.status === 'resolved' && daysSinceClosed <= 15;
+  const canCancel = (isAdmin || isAssignee || hasEditPermission) && ticket.status !== 'closed' && ticket.status !== 'cancelled';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

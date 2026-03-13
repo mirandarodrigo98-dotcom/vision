@@ -31,6 +31,7 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
             <TableHead>Status</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead>Solicitante</TableHead>
+            <TableHead>Departamento</TableHead>
             <TableHead>Atribuído a</TableHead>
             <TableHead>Atualizado em</TableHead>
             <TableHead className="w-[100px]">Ações</TableHead>
@@ -66,6 +67,11 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
                     </Avatar>
                     <span className="text-sm">{ticket.requester_name}</span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {ticket.requester_department_name || '-'}
+                  </span>
                 </TableCell>
                 <TableCell>
                   {ticket.assignee_id ? (
