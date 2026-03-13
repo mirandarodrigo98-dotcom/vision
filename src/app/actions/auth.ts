@@ -202,6 +202,13 @@ export async function loginClient(email: string, password: string) {
       return { error: 'Conta inativa.' };
   }
 
+  // Check access schedule
+  const accessCheck = await checkUserAccess(user.id);
+  if (!accessCheck.allowed) {
+      logAudit({ action: 'LOGIN_FAIL', actor_email: email, role: user.role, success: false, error_message: 'Access schedule restriction' });
+      return { error: accessCheck.reason || 'Você está fora do seu horário de expediente.' };
+  }
+
   // Check temp password expiration
   if (user.password_temporary && user.temp_password_expires_at) {
       const expiresAt = new Date(user.temp_password_expires_at);

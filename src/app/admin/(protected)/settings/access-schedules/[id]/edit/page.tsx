@@ -6,13 +6,14 @@ import { getAccessSchedule } from '@/app/actions/schedules';
 import { notFound } from 'next/navigation';
 
 interface EditAccessSchedulePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EditAccessSchedulePage({ params }: EditAccessSchedulePageProps) {
-  const schedule = await getAccessSchedule(params.id);
+  const { id } = await params;
+  const schedule = await getAccessSchedule(id);
 
   if (!schedule) {
     notFound();

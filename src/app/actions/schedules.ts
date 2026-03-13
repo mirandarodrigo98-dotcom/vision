@@ -50,6 +50,7 @@ export async function createAccessSchedule(data: AccessScheduleInput) {
       `).run(randomUUID(), id, item.day_of_week, item.start_time, item.end_time);
     }
 
+    revalidatePath('/admin/settings/access-schedules');
     revalidatePath('/admin/settings');
     return { success: true, id };
   } catch (error) {
@@ -76,6 +77,8 @@ export async function updateAccessSchedule(id: string, data: AccessScheduleInput
       `).run(randomUUID(), id, item.day_of_week, item.start_time, item.end_time);
     }
 
+    revalidatePath('/admin/settings/access-schedules');
+    revalidatePath(`/admin/settings/access-schedules/${id}/edit`);
     revalidatePath('/admin/settings');
     return { success: true };
   } catch (error) {
@@ -131,18 +134,33 @@ export async function checkUserAccess(userId: string): Promise<{ allowed: boolea
   }
 
   const now = new Date();
-  // Adjust for timezone -03:00 (Brasilia) if server is UTC, but database operations use CURRENT_TIMESTAMP/NOW().
-  // JS Date is in local time of the server. If server is UTC, we need to handle timezone.
-  // The user is likely in Brazil.
-  // We should compare times in Brazil time.
-  // However, `now.getDay()` returns local day.
+  // Get Brazil time parts explicitly to avoid timezone parsing issues
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: 'numeric',
+    minute: 'numeric',
+    weekday: 'short', // Sun, Mon, Tue...
+    hour12: false
+  });
   
-  // Let's use a helper to get Brazil time components.
-  const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  const currentDay = brazilTime.getDay(); // 0-6
-  const currentHour = brazilTime.getHours();
-  const currentMinute = brazilTime.getMinutes();
+  const parts = formatter.formatToParts(now);
+  const hourPart = parts.find(p => p.type === 'hour')?.value || '0';
+  const minutePart = parts.find(p => p.type === 'minute')?.value || '0';
+  const weekdayPart = parts.find(p => p.type === 'weekday')?.value || '';
+  
+  // Adjust 24h format explicitly if needed (some locales return 24h, en-US with hour12: false should be 0-23)
+  // Check if value is '24' (some implementations do this for midnight) -> 0
+  let currentHour = parseInt(hourPart);
+  if (currentHour === 24) currentHour = 0;
+  
+  const currentMinute = parseInt(minutePart);
   const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+
+  // Map weekday string to 0-6
+  const weekDayMap: Record<string, number> = {
+    'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
+  };
+  const currentDay = weekDayMap[weekdayPart];
 
   // Find rules for today
   const todayRules = schedule.items.filter(item => item.day_of_week === currentDay);
