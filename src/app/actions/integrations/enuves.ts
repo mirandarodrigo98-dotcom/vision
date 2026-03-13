@@ -26,26 +26,58 @@ export type Category = {
   description: string;
   integration_code?: string;
   nature: 'Saída' | 'Entrada' | 'Transferência';
+  is_active: boolean;
   created_at: string;
 };
 
-export async function getCategories(companyId: string) {
+export async function getCategories(
+  companyId: string,
+  filters?: {
+    code?: string;
+    description?: string;
+    integration_code?: string;
+    nature?: string;
+  }
+) {
   const session = await getSession();
   if (!session) return [];
 
-  // If no companyId provided, try to fallback to session (though UI should enforce selection)
   const targetCompanyId = companyId || session.active_company_id;
   if (!targetCompanyId) return [];
 
   try {
-    const categories = await db.prepare(`
+    let query = `
       SELECT * FROM enuves_categories 
-      WHERE company_id = ? 
-      ORDER BY code ASC
-    `).all(targetCompanyId) as any[];
+      WHERE company_id = ?
+    `;
+    const params: any[] = [targetCompanyId];
+
+    if (filters) {
+      if (filters.code) {
+        query += ` AND code LIKE ?`;
+        params.push(`%${filters.code}%`);
+      }
+      if (filters.description) {
+        query += ` AND description LIKE ?`;
+        params.push(`%${filters.description}%`);
+      }
+      if (filters.integration_code) {
+        query += ` AND integration_code LIKE ?`;
+        params.push(`%${filters.integration_code}%`);
+      }
+      if (filters.nature && filters.nature !== 'all') {
+        query += ` AND nature = ?`;
+        params.push(filters.nature);
+      }
+    }
+
+    query += ` ORDER BY code ASC`;
+
+    const categories = await db.prepare(query).all(...params) as any[];
 
     return categories.map(cat => ({
       ...cat,
+      is_active: Boolean(cat.is_active),
       created_at: cat.created_at ? new Date(cat.created_at).toISOString() : null,
       updated_at: cat.updated_at ? new Date(cat.updated_at).toISOString() : null
     })) as Category[];
@@ -214,12 +246,44 @@ export async function deleteCategory(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
+    // Check for linked transactions
+    const linkedTransactions = await db.prepare(`
+      SELECT COUNT(*) as count FROM enuves_transactions 
+      WHERE category_id = ? AND company_id = ?
+    `).get(id, targetCompanyId) as { count: number };
+
+    if (linkedTransactions.count > 0) {
+      return { error: 'Não é possível excluir: existem lançamentos vinculados a esta categoria.' };
+    }
+
     await db.prepare('DELETE FROM enuves_categories WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
   } catch (error) {
     console.error('Error deleting category:', error);
     return { error: 'Erro ao excluir categoria' };
+  }
+}
+
+export async function toggleCategoryStatus(id: string, isActive: boolean, companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  try {
+    await db.prepare(`
+      UPDATE enuves_categories 
+      SET is_active = ? 
+      WHERE id = ? AND company_id = ?
+    `).run(isActive ? 1 : 0, id, targetCompanyId);
+
+    revalidatePath('/admin/integrations/enuves');
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling category status:', error);
+    return { error: 'Erro ao alterar status da categoria' };
   }
 }
 
@@ -441,6 +505,30 @@ export async function deleteTransaction(id: string, companyId: string) {
   }
 }
 
+export async function deleteTransactionsBatch(ids: string[], companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  if (!ids || ids.length === 0) return { error: 'Nenhum lançamento selecionado' };
+
+  try {
+    // SQLite/Postgres 'IN' clause parameter generation
+    const placeholders = ids.map(() => '?').join(',');
+    const query = `DELETE FROM enuves_transactions WHERE id IN (${placeholders}) AND company_id = ?`;
+    
+    await db.prepare(query).run(...ids, targetCompanyId);
+    
+    revalidatePath('/admin/integrations/enuves');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting transactions batch:', error);
+    return { error: 'Erro ao excluir lançamentos em lote' };
+  }
+}
+
 // Accounts Management
 
 const accountSchema = z.object({
@@ -460,10 +548,18 @@ export type Account = {
   code: string;
   description: string;
   integration_code?: string;
+  is_active: boolean;
   created_at: string;
 };
 
-export async function getAccounts(companyId: string) {
+export async function getAccounts(
+  companyId: string,
+  filters?: {
+    code?: string;
+    description?: string;
+    integration_code?: string;
+  }
+) {
   const session = await getSession();
   if (!session) return [];
 
@@ -471,15 +567,35 @@ export async function getAccounts(companyId: string) {
   if (!targetCompanyId) return [];
 
   try {
-    const accounts = await db.prepare(`
+    let query = `
       SELECT * FROM enuves_accounts 
-      WHERE company_id = ? 
-      ORDER BY CAST(code AS INTEGER) ASC
-    `).all(targetCompanyId) as any[];
+      WHERE company_id = ?
+    `;
+    const params: any[] = [targetCompanyId];
+
+    if (filters) {
+      if (filters.code) {
+        query += ` AND code LIKE ?`;
+        params.push(`%${filters.code}%`);
+      }
+      if (filters.description) {
+        query += ` AND description LIKE ?`;
+        params.push(`%${filters.description}%`);
+      }
+      if (filters.integration_code) {
+        query += ` AND integration_code LIKE ?`;
+        params.push(`%${filters.integration_code}%`);
+      }
+    }
+
+    query += ` ORDER BY CAST(code AS INTEGER) ASC`;
+
+    const accounts = await db.prepare(query).all(...params) as any[];
     
     // Ensure dates are serialized as strings to avoid "Date object" issues in Client Components
     return accounts.map(account => ({
       ...account,
+      is_active: Boolean(account.is_active),
       created_at: account.created_at ? new Date(account.created_at).toISOString() : null
     })) as Account[];
   } catch (error) {
@@ -599,12 +715,44 @@ export async function deleteAccount(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
+    // Check for linked transactions
+    const linkedTransactions = await db.prepare(`
+      SELECT COUNT(*) as count FROM enuves_transactions 
+      WHERE account_id = ? AND company_id = ?
+    `).get(id, targetCompanyId) as { count: number };
+
+    if (linkedTransactions.count > 0) {
+      return { error: 'Não é possível excluir: existem lançamentos vinculados a esta conta.' };
+    }
+
     await db.prepare('DELETE FROM enuves_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
   } catch (error) {
     console.error('Error deleting account:', error);
     return { error: 'Erro ao excluir conta' };
+  }
+}
+
+export async function toggleAccountStatus(id: string, isActive: boolean, companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  try {
+    await db.prepare(`
+      UPDATE enuves_accounts 
+      SET is_active = ? 
+      WHERE id = ? AND company_id = ?
+    `).run(isActive ? 1 : 0, id, targetCompanyId);
+
+    revalidatePath('/admin/integrations/enuves');
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling account status:', error);
+    return { error: 'Erro ao alterar status da conta' };
   }
 }
 
