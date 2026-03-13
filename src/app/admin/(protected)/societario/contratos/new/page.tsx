@@ -5,7 +5,7 @@ import { createContract } from '@/app/actions/societario-contracts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import RichTextEditor from '@/components/ui/rich-text-editor';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 export default async function NewContratoPage() {
   const session = await getSession();
