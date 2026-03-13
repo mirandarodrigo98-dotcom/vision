@@ -99,6 +99,7 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'tickets.edit', label: 'Editar Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
     { code: 'tickets.comment', label: 'Comentar em Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
     { code: 'tickets.delete', label: 'Excluir Chamado', category: 'Chamados', module: 'Módulo de Chamados' },
+    { code: 'tickets.create_category', label: 'Criar Categoria', category: 'Chamados', module: 'Módulo de Chamados' },
     { code: 'tickets.admin', label: 'Administrar Chamados', category: 'Chamados', module: 'Módulo de Chamados' },
 
     // --- ADM (Administração) ---

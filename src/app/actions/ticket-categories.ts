@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { hasPermission } from '@/lib/rbac';
 
 const CategorySchema = z.object({
   name: z.string().min(1, 'Nome da categoria é obrigatório'),
@@ -27,9 +28,9 @@ export async function createTicketCategory(name: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autenticado' };
 
-  // Only admins or operators with permission can create categories
-  // For now, let's assume all admins/operators can
-  if (session.role !== 'admin' && session.role !== 'operator') {
+  // Check permission
+  const canCreate = await hasPermission(session.role, 'tickets.create_category');
+  if (session.role !== 'admin' && !canCreate) {
     return { error: 'Sem permissão' };
   }
 

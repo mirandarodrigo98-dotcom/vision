@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { createNotification } from '@/app/actions/notifications';
 import { sendEmail } from '@/lib/email/resend';
 import { uploadToR2 } from '@/lib/r2';
+import { hasPermission } from '@/lib/rbac';
 
 const TicketSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -166,7 +167,8 @@ export async function returnTicket(ticketId: string, reason: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only assignee or admin can return
-    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id) {
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
        return { error: 'Permission denied' };
     }
 
@@ -224,7 +226,8 @@ export async function resubmitTicket(ticketId: string) {
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only requester can resubmit
-    if (session.user_id !== ticket.requester_id) {
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && session.user_id !== ticket.requester_id && !canEdit) {
        return { error: 'Permission denied' };
     }
 
@@ -278,8 +281,16 @@ export async function updateTicketStatus(ticketId: string, status: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    const currentTicket = await db.prepare('SELECT status, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    const currentTicket = await db.prepare('SELECT status, requester_id, assignee_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!currentTicket) return { error: 'Ticket not found' };
+
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    const isAssignee = currentTicket.assignee_id === session.user_id;
+    const isRequester = currentTicket.requester_id === session.user_id;
+    
+    if (session.role !== 'admin' && !canEdit && !isAssignee && !isRequester) {
+       return { error: 'Permission denied' };
+    }
 
     await db.prepare(`
       UPDATE tickets 
@@ -339,6 +350,11 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
   try {
     const ticketInfo = await db.prepare('SELECT title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!ticketInfo) return { error: 'Ticket not found' };
+
+    const canEdit = await hasPermission(session.role, 'tickets.edit');
+    if (session.role !== 'admin' && !canEdit) {
+       return { error: 'Permission denied' };
+    }
 
     await db.prepare(`
       UPDATE tickets 
@@ -439,7 +455,9 @@ export async function getTickets(filters?: { status?: string; assignee_id?: stri
   const params: any[] = [];
 
   // Visibility Logic: Admin sees all. Others see created by them, assigned to them, or assigned to their department.
-  if (session.role !== 'admin') {
+  const canAdmin = await hasPermission(session.role, 'tickets.admin');
+  
+  if (session.role !== 'admin' && !canAdmin) {
     query += ` AND (
       t.requester_id = ? 
       OR t.assignee_id = ? 
