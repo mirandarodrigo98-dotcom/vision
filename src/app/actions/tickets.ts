@@ -9,6 +9,7 @@ import { createNotification } from '@/app/actions/notifications';
 import { sendEmail } from '@/lib/email/resend';
 import { uploadToR2 } from '@/lib/r2';
 import { getUserPermissions } from '@/app/actions/permissions';
+import { hasPermission } from '@/lib/rbac';
 
 const TicketSchema = z.object({
   title: z.string()
