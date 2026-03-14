@@ -52,3 +52,6 @@ public/uploads/*
 
 # build logs
 build.log
+
+.vercel
+.env*.local
