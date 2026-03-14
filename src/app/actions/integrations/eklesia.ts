@@ -884,6 +884,235 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
   }
 }
 
+export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  const file = formData.get('file') as File;
+  if (!file) return { error: 'Arquivo não fornecido' };
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const data = await parsePDF(buffer);
+    const text = data.text;
+    const lines = text.split('\n');
+
+    const categoriesToInsert: any[] = [];
+    let currentNature: 'Entrada' | 'Saída' = 'Entrada';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      if (trimmed.toUpperCase().includes('ENTRADAS')) {
+        currentNature = 'Entrada';
+        continue;
+      }
+      if (trimmed.toUpperCase().includes('SAÍDAS') || trimmed.toUpperCase().includes('SAIDAS')) {
+        currentNature = 'Saída';
+        continue;
+      }
+
+      // Format: 1.01.01 DIZIMOS
+      // We expect a code (digits/dots) at the start, followed by description.
+      // We must avoid matching dates or page numbers.
+      // Codes usually have at least one dot or are specific length.
+      const match = trimmed.match(/^([\d\.]+)\s+(.+)$/);
+      if (match) {
+        const code = match[1];
+        const description = match[2].trim();
+
+        // Ignore totals, dates, page numbers
+        if (description.toUpperCase().startsWith('TOTAL')) continue;
+        if (code.includes('/')) continue; // Date
+        if (!code.includes('.') && code.length < 3) continue; // Likely page number or short index
+        
+        // Ignore zero codes
+        if (code === '0' || /^0+$/.test(code.replace(/\./g, ''))) continue;
+
+        categoriesToInsert.push({
+            code: code,
+            description: description,
+            integration_code: code,
+            nature: currentNature,
+            is_active: true
+        });
+      }
+    }
+
+    return { success: categoriesToInsert };
+  } catch (error: any) {
+    console.error('Error parsing Categories PDF:', error);
+    return { error: `Erro ao processar PDF: ${error.message}` };
+  }
+}
+
+export async function saveCategoriesBatch(categories: any[], companyId: string) {
+    const session = await getSession();
+    if (!session) return { error: 'Não autorizado' };
+  
+    const targetCompanyId = companyId || session.active_company_id;
+    if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+    let count = 0;
+
+    try {
+        for (const cat of categories) {
+            // Check existence by Description + Nature (since code might be auto-generated in Vision)
+            // Or check by Integration Code if we treat the PDF code as integration code.
+            // Let's use Integration Code for matching.
+            const existing = await db.prepare(`
+                SELECT id FROM eklesia_categories 
+                WHERE company_id = ? AND integration_code = ?
+            `).get(targetCompanyId, cat.integration_code);
+
+            if (existing) {
+                await db.prepare(`
+                    UPDATE eklesia_categories 
+                    SET description = ?, nature = ?
+                    WHERE id = ?
+                `).run(cat.description, cat.nature, existing.id);
+            } else {
+                // Generate Vision internal code
+                const startCode = cat.nature === 'Entrada' ? 800000 : 900000;
+                const endCode = cat.nature === 'Entrada' ? 899999 : 999999;
+                
+                const result = await db.prepare(`
+                  SELECT MAX(CAST(code AS INTEGER)) as max_code 
+                  FROM eklesia_categories 
+                  WHERE company_id = ? AND CAST(code AS INTEGER) BETWEEN ? AND ?
+                `).get(targetCompanyId, startCode, endCode) as { max_code: number | null };
+
+                let nextCode = (result && result.max_code) ? result.max_code + 1 : startCode;
+
+                const id = uuidv4();
+                await db.prepare(`
+                    INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                `).run(id, targetCompanyId, String(nextCode), cat.description, cat.integration_code, cat.nature);
+                
+                count++;
+            }
+        }
+        revalidatePath('/admin/integrations/eklesia');
+        return { success: true, count };
+    } catch (error) {
+        console.error('Error saving categories batch:', error);
+        return { error: 'Erro ao salvar categorias.' };
+    }
+}
+
+export async function parseEklesiaAccountsPDF(formData: FormData, companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  const file = formData.get('file') as File;
+  if (!file) return { error: 'Arquivo não fornecido' };
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const data = await parsePDF(buffer);
+    const text = data.text;
+    const lines = text.split('\n');
+
+    const accountsToInsert: any[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      // User Rules:
+      // 1. Import only Analytic (Bold). 
+      // 2. Analytic usually has a Reduced Code. Synthetic usually doesn't.
+      // 3. Ignore if Synthetic (Non-Bold).
+      // 4. Reduced Code -> Internal Code. 
+      // 5. If Reduced Code is 0 or empty -> Internal Code = null.
+      
+      // Pattern: Code (digits/dots) + Space + Description + Space + ReducedCode (digits)
+      // Example: 1.1.01.001     CAIXA GERAL      5
+      // Synthetic: 1.1          ATIVO
+      
+      // We use the presence of the trailing number (Reduced Code) as the filter for Analytic accounts.
+      const match = trimmed.match(/^([\d\.]+)\s+(.+?)\s+(\d+)$/);
+      
+      if (match) {
+        const code = match[1];
+        const description = match[2].trim();
+        const reducedCodeStr = match[3];
+        
+        let integrationCode = reducedCodeStr;
+        
+        // Check if reduced code is effectively zero
+        if (/^0+$/.test(reducedCodeStr)) {
+            integrationCode = ''; // "deixe o campo em branco"
+        }
+
+        accountsToInsert.push({
+            code: code, // Keep the PDF code structure (e.g. 1.1.01)
+            description: description,
+            integration_code: integrationCode || null,
+            is_active: true
+        });
+      } else {
+        // No trailing number -> Likely Synthetic or formatting issue.
+        // Per user rule: "as sem negrito são contas sintéticas, ignore."
+        continue;
+      }
+    }
+
+    return { success: accountsToInsert };
+  } catch (error: any) {
+    console.error('Error parsing Accounts PDF:', error);
+    return { error: `Erro ao processar PDF: ${error.message}` };
+  }
+}
+
+export async function saveAccountsBatch(accounts: any[], companyId: string) {
+    const session = await getSession();
+    if (!session) return { error: 'Não autorizado' };
+  
+    const targetCompanyId = companyId || session.active_company_id;
+    if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+    let count = 0;
+
+    try {
+        for (const acc of accounts) {
+            const existing = await db.prepare(`
+                SELECT id FROM eklesia_accounts 
+                WHERE company_id = ? AND code = ?
+            `).get(targetCompanyId, acc.code);
+
+            if (existing) {
+                await db.prepare(`
+                    UPDATE eklesia_accounts 
+                    SET description = ?, integration_code = ?
+                    WHERE id = ?
+                `).run(acc.description, acc.integration_code, existing.id);
+            } else {
+                const id = uuidv4();
+                await db.prepare(`
+                    INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code, is_active)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                `).run(id, targetCompanyId, acc.code, acc.description, acc.integration_code);
+                
+                count++;
+            }
+        }
+        revalidatePath('/admin/integrations/eklesia');
+        return { success: true, count };
+    } catch (error) {
+        console.error('Error saving accounts batch:', error);
+        return { error: 'Erro ao salvar contas.' };
+    }
+}
+
 export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
@@ -897,290 +1126,149 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Using local pdf-parser wrapper
-    console.log('Starting PDF parse...');
+    console.log('Starting PDF parse (Razão Gerencial)...');
     
     const data = await parsePDF(buffer);
-    console.log('Text extracted length:', data?.text?.length);
-    let text = data.text;
+    const text = data.text;
+    const lines = text.split('\n');
     
     const categories = await getCategories(targetCompanyId);
-    
-    // Sort categories by length (descending) to match longest descriptions first
-    categories.sort((a, b) => b.description.length - a.description.length);
-
     const accounts = await getAccounts(targetCompanyId);
-    // Sort accounts by length (descending) to match longest descriptions first
+    
+    // Sort for better matching
+    categories.sort((a, b) => b.description.length - a.description.length);
     accounts.sort((a, b) => b.description.length - a.description.length);
 
     const transactionsToInsert: any[] = [];
     const ignoredLines: any[] = [];
 
-    // Detect Layout
-    // The new layout has explicit headers usually, but text extraction might vary.
-    // We check for specific characteristics of the new layout (e.g. "Data" + "Descrição" + "Total" headers or tab structure)
-    // Or simpler: The new layout uses dot for decimals (e.g. -619.13) while the old one uses comma (X.XXX,XX)
-    // We relax the check to just Data and Descrição as Total/Contato might be missing or extracted differently.
-    const isNewLayout = (text.includes('Data') && text.includes('Descrição')) || text.includes('Data \tDescrição');
+    let currentCategory: { id: string, name: string } | null = null;
 
-    if (isNewLayout) {
-        console.log('Detected New PDF Layout (Tabular/Dot Decimal)');
+    // Regex for Category Header: Code + Description + Value
+    // We allow flexible code (digits/dots)
+    const categoryHeaderRegex = /^([\d\.]+)\s+(.+?)\s+(-?[\d\.,]+)$/;
 
-        // 1. Cleanup Text (Fix fragmented lines due to PDF layout)
-        // Fix Date split: "25/01/2" \n "026" -> "25/01/2026"
-        text = text.replace(/(\d{2}\/\d{2}\/\d)\n(\d{3})/g, '$1$2');
-        // Fix Value split: "-619.1" \n "3" -> "-619.13"
-        text = text.replace(/(\d+\.\d)\n(\d)/g, '$1$2');
-        // Fix Value split type 2: "-3260." \n "66" -> "-3260.66"
-        text = text.replace(/(\d+\.)\n(\d+)/g, '$1$2');
+    // Regex for Transaction Line: 
+    // Date + Description + Value + D/C + Balance
+    // We try to capture the essential parts.
+    // Date: dd/mm/yyyy
+    // Value: 1.234,56 or -1.234,56
+    // D/C: D or C
+    // Balance: 1.234,56 (optional match for validation, but we focus on Value)
+    
+    // Improved Regex:
+    // Start with Date
+    // Middle: Description (greedy)
+    // End: Value Space D/C Space Balance
+    const lineRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d\.,]+)\s+([DC])\s+([\d\.,]+)$/;
 
-        const lines = text.split('\n');
-        
-        let currentRecord: { date: string, rawText: string } | null = null;
-        
-        const processRecord = (record: { date: string, rawText: string }) => {
-             const { date, rawText } = record;
-             const [day, month, year] = date.split('/');
-             const isoDate = `${year}-${month}-${day}`;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
 
-             // Find Value: Look for a number that stands alone or is negative, surrounded by whitespace/tabs/start/end
-             // Regex for dot decimal: -123.45 or 123.45 or -123 or 123
-             // We prioritize finding it.
-             const valueRegex = /(?:^|\s|\t)(-?\d+(?:\.\d{1,2})?)(?=\s|\t|$)/;
-             // Find the LAST matching number in the text? 
-             // In "Energia elétrica (8/72) -619.13 LIGHT", (8/72) shouldn't match because of parens/slash not being whitespace.
-             // But let's use `match` which returns first match.
-             // We need to be careful about numbers in description.
-             // Strategy: Split by tabs first? No, tabs are unreliable in extracted text sometimes.
-             // Use the Regex on the full string (minus the Date prefix).
-             
-             const textWithoutDate = rawText.substring(date.length).trim();
-             
-             // Try to find the value
-             const valueMatch = textWithoutDate.match(valueRegex);
-             
-             if (!valueMatch) {
-                 ignoredLines.push({
-                     line: rawText,
-                     reason: 'Valor não encontrado (Novo Layout)',
-                     date: isoDate,
-                     value: null
-                 });
-                 return;
-             }
-
-             const valueStr = valueMatch[1];
-             const valueNum = parseFloat(valueStr);
-             const finalValue = Math.abs(valueNum);
-
-             // Description is everything before the value match
-             const valueIndex = textWithoutDate.indexOf(valueStr);
-             let description = textWithoutDate.substring(0, valueIndex).trim();
-             
-             // Extract suffix for Account detection
-             // The text AFTER the value typically contains the Account Name
-             const suffix = textWithoutDate.substring(valueIndex + valueStr.length).trim();
-
-             // Clean description
-             description = description.replace(/\s+/g, ' ').trim();
-             
-             // Remove leading/trailing dashes or colons, but keep parens if matched
-             description = description.replace(/^[\s\-\:]+|[\s\-\:]+$/g, '');
-
-             if (!description) {
-                  description = 'Sem descrição';
-             }
-             
-             // Match Account
-             let accountId = null;
-             const normalizedSuffix = suffix.toUpperCase();
-             
-             for (const acc of accounts) {
-                 const accDesc = acc.description.trim().toUpperCase();
-                 // Check if suffix contains account name (it usually ends with it)
-                 if (normalizedSuffix.includes(accDesc)) {
-                     accountId = acc.id;
-                     break;
-                 }
-             }
-
-             const normalizedDesc = description.toUpperCase();
-             let categoryId = null;
-
-             for (const cat of categories) {
-                 const catDesc = cat.description.trim().toUpperCase();
-                 if (normalizedDesc.includes(catDesc) || catDesc === normalizedDesc) {
-                     categoryId = cat.id;
-                     break;
-                 }
-             }
-
-             if (categoryId && accountId) {
-                transactionsToInsert.push({
-                    id: uuidv4(),
-                    company_id: targetCompanyId,
-                    category_id: categoryId,
-                    account_id: accountId,
-                    date: isoDate,
-                    description: description,
-                    original_description: description,
-                    value: finalValue
-                });
-            } else {
-                let reason = '';
-                if (!categoryId && !accountId) reason = 'Categoria e Conta não identificadas';
-                else if (!categoryId) reason = 'Categoria não identificada';
-                else if (!accountId) reason = 'Conta não identificada';
-
-                ignoredLines.push({
-                     line: rawText,
-                     reason: reason,
-                     date: isoDate,
-                     value: finalValue
-                });
-            }
-        };
-
-        for (const line of lines) {
-             // Skip headers and page markers
-             if (!line.trim() || line.includes('-- 1 of') || line.includes('-- 2 of') || line.includes('-- 3 of') || line.includes('-- 4 of') || line.startsWith('Data \tDescrição')) continue;
-
-             const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})/);
-             if (dateMatch) {
-                 if (currentRecord) {
-                     processRecord(currentRecord);
-                 }
-                 currentRecord = {
-                     date: dateMatch[1],
-                     rawText: line
-                 };
-             } else {
-                 if (currentRecord) {
-                     currentRecord.rawText += ' ' + line;
-                 }
-             }
-        }
-        if (currentRecord) {
-            processRecord(currentRecord);
-        }
-
-    } else {
-        // OLD LAYOUT LOGIC
-        const lines = text.split('\n');
-        
-        // Regex patterns
-        const dateRegex = /(\d{2})\/(\d{2})\/(\d{4})/;
-        // Value: 1.000,00 or 100,00 (ends with ,XX). Matches optional R$ and whitespace.
-        // Also captures optional negative sign
-        const valueRegex = /(?:R\$\s*)?(-?\s*\d{1,3}(?:\.\d{3})*,\d{2})/;
-        
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (!trimmedLine) continue;
-
-            // Try to find date
-            const dateMatch = trimmedLine.match(dateRegex);
-            if (!dateMatch) {
-                if (trimmedLine.length > 10) {
-                        ignoredLines.push({
-                            line: trimmedLine,
-                            reason: 'Data não encontrada',
-                            date: null,
-                            value: null
-                        });
-                }
-                continue; 
+        // 1. Try to match Transaction Line
+        const lineMatch = trimmed.match(lineRegex);
+        if (lineMatch) {
+            if (!currentCategory) {
+                 // Try to recover category from previous lines if needed, or just skip
+                 continue;
             }
 
-            const dateStr = dateMatch[0]; // DD/MM/YYYY
+            const dateStr = lineMatch[1];
+            const descriptionRaw = lineMatch[2].trim(); // Middle content
+            const valueStr = lineMatch[3];
+            const dc = lineMatch[4];
+            
+            // Parse Date
             const [day, month, year] = dateStr.split('/');
             const isoDate = `${year}-${month}-${day}`;
 
-            // Try to find value
-            const valueMatch = trimmedLine.match(valueRegex);
+            // Parse Value
+            // Remove dots (thousands), replace comma with dot
+            let valueNum = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
             
-            if (!valueMatch) {
-                ignoredLines.push({
-                        line: trimmedLine,
-                        reason: 'Valor não encontrado',
-                        date: isoDate,
-                        value: null
-                });
-                continue;
+            // Adjust sign based on D/C
+            // Usually in Cash Flow:
+            // D = Despesa (Saída) -> Negative
+            // C = Receita (Entrada) -> Positive
+            // But if valueStr already has sign, we might trust it.
+            // Let's enforce standard logic:
+            if (dc === 'D') {
+                valueNum = -Math.abs(valueNum);
+            } else if (dc === 'C') {
+                valueNum = Math.abs(valueNum);
             }
 
-            const valueStr = valueMatch[1];
-            // Parse value: remove dots, replace comma with dot, remove spaces and R$
-            const cleanValueStr = valueStr.replace(/\./g, '').replace(',', '.').replace(/\s/g, '');
-            const valueNum = Math.abs(parseFloat(cleanValueStr));
-
-            // Extract Description
-            let description = trimmedLine.replace(dateStr, '').replace(valueMatch[0], '').trim();
-            description = description.replace(/\s+/g, ' ').replace('R$', '').trim();
+            // Extract Account from Description if present
+            // Pattern: "Code-Name" or just "Name" at the end?
+            // User said: "basta importar a descrição exata do relatório" for accounts import.
+            // For transactions, we need to map to an Account ID.
             
-            // Remove leading/trailing non-alphanumeric if any (like - or :)
-            description = description.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+            let accountId = null;
+            let accountName = '';
+            let finalDescription = descriptionRaw;
 
-            if (!description) {
-                    ignoredLines.push({
-                        line: trimmedLine,
-                        reason: 'Descrição vazia',
-                        date: isoDate,
-                        value: valueNum
-                    });
-                    continue;
-            }
-
-            const normalizedDesc = description.toUpperCase();
+            // Heuristic: If description contains a known account name at the end
+            // We iterate accounts to find a match
+            // Optimization: Filter accounts that could match (e.g. contained in description)
             
-            // Try to match category
-            let categoryId = null;
-
-            for (const cat of categories) {
-                    const catDesc = cat.description.trim().toUpperCase();
-                    if (normalizedDesc.includes(catDesc)) {
-                        categoryId = cat.id;
-                        break;
-                    }
-                    if (catDesc === normalizedDesc) {
-                        categoryId = cat.id;
-                        break;
-                    }
+            // Simple approach: Check if description ends with any account description
+            // Sort accounts by length desc to match longest first
+            for (const acc of accounts) {
+                if (finalDescription.includes(acc.description)) {
+                     // Check if it's at the end or standalone
+                     // eklesia often puts account info in the line
+                     accountId = acc.id;
+                     accountName = acc.description;
+                     break; 
+                }
             }
 
-            if (categoryId) {
-                transactionsToInsert.push({
-                    id: uuidv4(),
-                    company_id: targetCompanyId,
-                    category_id: categoryId,
-                    date: isoDate,
-                    description: description,
-                    original_description: description,
-                    value: valueNum
-                });
-            } else {
-                ignoredLines.push({
-                        line: trimmedLine,
-                        reason: 'Categoria não identificada',
-                        date: isoDate,
-                        value: valueNum
-                });
-            }
+            transactionsToInsert.push({
+                id: uuidv4(),
+                company_id: targetCompanyId,
+                category_id: currentCategory.id,
+                categoryName: currentCategory.name,
+                account_id: accountId,
+                accountName: accountName,
+                date: isoDate,
+                description: finalDescription,
+                original_description: trimmed,
+                value: valueNum
+            });
+            continue;
         }
-    }
 
-    if (transactionsToInsert.length > 0) {
-        // Do not insert yet, return for preview
-        // We need to enrich with category names for the UI
-        for (const t of transactionsToInsert) {
-                const cat = categories.find(c => c.id === t.category_id);
-                if (cat) {
-                    t.categoryName = cat.description;
-                }
-                const acc = accounts.find(a => a.id === t.account_id);
-                if (acc) {
-                    t.accountName = acc.description;
-                }
+        // 2. Check for Category Header
+        // Format: Code Description Value(Total?)
+        // e.g. 1.01.01 DIZIMOS 1.000,00
+        const catMatch = trimmed.match(categoryHeaderRegex);
+        if (catMatch) {
+            const code = catMatch[1];
+            const description = catMatch[2].trim();
+            
+            // Validate if it looks like a category
+            if (code.length < 3 || description.toUpperCase() === 'TOTAL') continue;
+
+            // Find category
+            let cat = categories.find(c => c.integration_code === code);
+            if (!cat) {
+                // Try fuzzy match on description
+                cat = categories.find(c => c.description.toUpperCase() === description.toUpperCase());
+            }
+
+            if (cat) {
+                currentCategory = { id: cat.id, name: cat.description };
+            } else {
+                // Category not found in DB. 
+                // We should probably create it or skip?
+                // For safety, skip transactions until we find a known category.
+                // Or use a "Unknown" category?
+                // Let's log and skip.
+                console.warn(`Category not found for header: ${code} - ${description}`);
+                currentCategory = null; 
+            }
+            continue;
         }
     }
 
@@ -1191,7 +1279,6 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
 
   } catch (error: any) {
     console.error('Error parsing PDF:', error);
-    console.error('Error stack:', error.stack);
     return { error: `Erro ao processar o arquivo PDF: ${error.message}` };
   }
 }
