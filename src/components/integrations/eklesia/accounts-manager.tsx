@@ -7,8 +7,16 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { createAccount, Account, deleteAccount, getNextAccountCode, updateAccount } from '@/app/actions/integrations/eklesia';
-import { Loader2, Trash2, Database, RefreshCcw, Pencil, X } from 'lucide-react';
+import { 
+  createAccount, 
+  Account, 
+  deleteAccount, 
+  getNextAccountCode, 
+  updateAccount,
+  getAccounts,
+  toggleAccountStatus
+} from '@/app/actions/integrations/eklesia';
+import { Loader2, Trash2, Database, RefreshCcw, Pencil, Plus, Filter } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -28,7 +36,18 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useRouter } from 'next/navigation';
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const accountSchema = z.object({
   description: z.string().max(100, 'Máximo 100 caracteres').min(1, 'Obrigatório'),
@@ -47,6 +66,16 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nextCode, setNextCode] = useState<string>('Calculando...');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Filter states
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [filters, setFilters] = useState({
+      code: '',
+      description: '',
+      integration_code: ''
+  });
+
   const router = useRouter();
 
   const form = useForm<AccountFormValues>({
@@ -59,6 +88,8 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
 
   useEffect(() => {
     if (editingId) return; // Don't fetch next code if editing
+    if (!isDialogOpen) return; // Don't fetch if dialog is closed
+
     async function fetchNextCode() {
         setNextCode('Calculando...');
         const result = await getNextAccountCode(companyId);
@@ -69,19 +100,26 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
         }
     }
     fetchNextCode();
-  }, [companyId, accounts, editingId]);
+  }, [companyId, accounts, editingId, isDialogOpen]);
+
+  const handleOpenCreate = () => {
+      setEditingId(null);
+      form.reset();
+      setIsDialogOpen(true);
+  };
 
   const handleEdit = (account: Account) => {
     setEditingId(account.id);
     form.setValue('description', account.description);
     form.setValue('integration_code', account.integration_code || '');
     setNextCode(account.code);
+    setIsDialogOpen(true);
   };
 
-  const handleCancelEdit = () => {
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
     setEditingId(null);
     form.reset();
-    // nextCode will be updated by useEffect
   };
 
   const onSubmit = async (data: AccountFormValues) => {
@@ -93,8 +131,8 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
           toast.error(result.error);
         } else {
           toast.success('Conta atualizada com sucesso!');
-          handleCancelEdit();
-          window.location.reload();
+          handleCloseDialog();
+          handleFilter();
         }
       } else {
         const result = await createAccount(data, companyId);
@@ -103,8 +141,8 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
         } else {
           toast.success('Conta criada com sucesso!');
           form.reset();
-          router.refresh(); 
-          window.location.reload();
+          handleCloseDialog();
+          handleFilter();
         }
       }
     } catch (error) {
@@ -129,119 +167,204 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
       }
   }
 
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    try {
+        const result = await toggleAccountStatus(id, !currentStatus, companyId);
+        if (result.success) {
+            toast.success(`Conta ${!currentStatus ? 'ativada' : 'desativada'}`);
+            setAccounts(prev => prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c));
+        } else {
+            toast.error(result.error);
+        }
+    } catch (error) {
+        toast.error("Erro ao alterar status");
+    }
+  };
+
+  const handleFilter = async () => {
+    setIsFilterLoading(true);
+    try {
+        const data = await getAccounts(companyId, filters);
+        setAccounts(data);
+    } catch (error) {
+        toast.error("Erro ao filtrar contas");
+    } finally {
+        setIsFilterLoading(false);
+    }
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="p-4 border rounded-md bg-gray-50">
-        <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">{editingId ? 'Editar Conta' : 'Nova Conta'}</h3>
-        </div>
-        
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          
-          {/* Código (Read Only) */}
-          <div className="grid grid-cols-12 gap-4 items-center">
-            <label className="col-span-3 text-sm font-medium text-right">
-              Código:
-            </label>
-            <div className="col-span-9 md:col-span-4">
-                <div className="flex items-center space-x-2">
+    <div className="space-y-6">
+      {/* Filtros */}
+      <Card>
+        <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Filtros de Pesquisa</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="space-y-1">
+                    <label className="text-xs font-medium">Código</label>
                     <Input 
-                        value={nextCode}
-                        readOnly
-                        disabled
-                        className="bg-muted font-mono"
+                        placeholder="Ex: 1" 
+                        value={filters.code} 
+                        onChange={(e) => setFilters(prev => ({ ...prev, code: e.target.value }))}
                     />
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        (Automático)
-                    </span>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs font-medium">Descrição</label>
+                    <Input 
+                        placeholder="Descrição da conta" 
+                        value={filters.description} 
+                        onChange={(e) => setFilters(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-medium">Cód. Interno</label>
+                    <Input 
+                        placeholder="Cód. Integração" 
+                        value={filters.integration_code} 
+                        onChange={(e) => setFilters(prev => ({ ...prev, integration_code: e.target.value }))}
+                    />
                 </div>
             </div>
-          </div>
-          
-          {/* Descrição */}
-          <div className="grid grid-cols-12 gap-4 items-center">
-            <label className="col-span-3 text-sm font-medium text-right">
-              Descrição da Conta:
-            </label>
-            <div className="col-span-9 md:col-span-6">
-              <Input 
-                {...form.register('description')} 
-                placeholder="Descrição da conta" 
-                maxLength={100}
-              />
-              {form.formState.errors.description && (
-                <span className="text-xs text-red-500">{form.formState.errors.description.message}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Código de Integração */}
-          <div className="grid grid-cols-12 gap-4 items-center">
-            <label className="col-span-3 text-sm font-medium text-right">
-              Cód. Integração:
-            </label>
-            <div className="col-span-9 md:col-span-4">
-              <Input 
-                {...form.register('integration_code')} 
-                placeholder="Opcional" 
-                maxLength={20}
-              />
-              {form.formState.errors.integration_code && (
-                <span className="text-xs text-red-500">{form.formState.errors.integration_code.message}</span>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-3"></div>
-            <div className="col-span-9 flex gap-2">
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingId ? <RefreshCcw className="mr-2 h-4 w-4" /> : <Database className="mr-2 h-4 w-4" />)}
-                    {editingId ? 'Salvar Alterações' : 'Adicionar Conta'}
+            <div className="mt-4 flex justify-end">
+                <Button onClick={handleFilter} disabled={isFilterLoading} size="sm">
+                    {isFilterLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter className="mr-2 h-4 w-4" />}
+                    Filtrar
                 </Button>
-                {editingId && (
-                    <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
-                        <X className="mr-2 h-4 w-4" />
-                        Cancelar
-                    </Button>
-                )}
             </div>
-          </div>
+        </CardContent>
+      </Card>
 
-        </form>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Listagem de Contas</h3>
+        <div className="flex gap-2">
+             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button onClick={handleOpenCreate}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Incluir
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingId ? 'Editar Conta' : 'Nova Conta'}</DialogTitle>
+                        <DialogDescription>
+                            Preencha os dados abaixo para {editingId ? 'editar' : 'criar'} a conta.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        
+                        {/* Código (Read Only) */}
+                        <div className="grid grid-cols-4 gap-4 items-center">
+                            <label className="text-sm font-medium text-right">Código:</label>
+                            <div className="col-span-3">
+                                <div className="flex items-center space-x-2">
+                                    <Input 
+                                        value={nextCode}
+                                        readOnly
+                                        disabled
+                                        className="bg-muted font-mono w-32"
+                                    />
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                        (Automático)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Descrição */}
+                        <div className="grid grid-cols-4 gap-4 items-center">
+                            <label className="text-sm font-medium text-right">Descrição:</label>
+                            <div className="col-span-3">
+                                <Input 
+                                    {...form.register('description')} 
+                                    placeholder="Descrição da conta" 
+                                    maxLength={100}
+                                />
+                                {form.formState.errors.description && (
+                                    <span className="text-xs text-red-500">{form.formState.errors.description.message}</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Código de Integração */}
+                        <div className="grid grid-cols-4 gap-4 items-center">
+                            <label className="text-sm font-medium text-right">Cód. Int.:</label>
+                            <div className="col-span-3">
+                                <Input 
+                                    {...form.register('integration_code')} 
+                                    placeholder="Opcional" 
+                                    maxLength={20}
+                                />
+                                {form.formState.errors.integration_code && (
+                                    <span className="text-xs text-red-500">{form.formState.errors.integration_code.message}</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingId ? <RefreshCcw className="mr-2 h-4 w-4" /> : <Database className="mr-2 h-4 w-4" />)}
+                                {editingId ? 'Salvar' : 'Adicionar'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </div>
       </div>
-
-      <div className="rounded-md border">
+      
+      <div className="rounded-md border bg-white">
           <Table>
               <TableHeader>
                   <TableRow>
                       <TableHead>Código</TableHead>
                       <TableHead>Descrição da Conta</TableHead>
                       <TableHead>Cód. Int.</TableHead>
-                      <TableHead className="w-[100px]">Ações</TableHead>
+                      <TableHead className="w-[100px] text-center">Status</TableHead>
+                      <TableHead className="w-[120px] text-right">Ações</TableHead>
                   </TableRow>
               </TableHeader>
               <TableBody>
-                  {accounts.length === 0 ? (
+                  {isFilterLoading ? (
                       <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground">
-                              Nenhuma conta cadastrada.
+                          <TableCell colSpan={5} className="text-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                          </TableCell>
+                      </TableRow>
+                  ) : accounts.length === 0 ? (
+                      <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              Nenhuma conta encontrada.
                           </TableCell>
                       </TableRow>
                   ) : (
                       accounts.map((account) => (
-                          <TableRow key={account.id}>
+                          <TableRow key={account.id} className={!account.is_active ? 'opacity-60 bg-gray-50' : ''}>
                               <TableCell className="font-mono">{account.code}</TableCell>
-                              <TableCell>{account.description}</TableCell>
-                              <TableCell className="font-mono text-xs">{account.integration_code || '-'}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(account)}>
+                              <TableCell className="font-medium">{account.description}</TableCell>
+                              <TableCell className="font-mono text-xs text-muted-foreground">{account.integration_code || '-'}</TableCell>
+                              <TableCell className="text-center">
+                                  <div className="flex justify-center">
+                                      <Switch 
+                                          checked={account.is_active} 
+                                          onCheckedChange={() => handleToggleStatus(account.id, account.is_active)}
+                                      />
+                                  </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(account)} title="Editar">
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                     <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Excluir">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
@@ -250,7 +373,8 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
                                             <AlertDialogTitle>Excluir Conta</AlertDialogTitle>
                                             <AlertDialogDescription>
                                                 Tem certeza que deseja excluir a conta <strong>{account.description}</strong>?
-                                                Essa ação não pode ser desfeita.
+                                                <br/><br/>
+                                                <span className="text-red-600 font-medium text-xs">Atenção: Não é possível excluir contas que possuem lançamentos vinculados.</span>
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -260,7 +384,7 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
-                                </AlertDialog>
+                                    </AlertDialog>
                                 </div>
                               </TableCell>
                           </TableRow>
