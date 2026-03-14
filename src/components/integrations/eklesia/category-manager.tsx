@@ -18,7 +18,7 @@ import {
   getCategories,
   toggleCategoryStatus
 } from '@/app/actions/integrations/eklesia';
-import { CategoriesImportDialog } from './categories-import-dialog';
+// import { CategoriesImportDialog } from './categories-import-dialog';
 import { Loader2, Trash2, Database, RefreshCcw, Pencil, Plus, Filter } from 'lucide-react';
 import {
   Table,
