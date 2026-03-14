@@ -9,12 +9,34 @@ export function NotificationMonitor() {
 
   useEffect(() => {
     // Request permission on mount
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    const requestPermission = () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    };
+
+    requestPermission();
+
+    // Also try on first click if permission is default (browsers block auto request)
+    const handleInteraction = () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      // Remove listener after first interaction
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
 
     // Initialize audio
-    audioRef.current = new Audio('/sounds/notification.mp3'); // We might need to add this file or use a CDN
+    audioRef.current = new Audio('/sounds/notification.mp3'); 
+    
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
   }, []);
 
   useEffect(() => {

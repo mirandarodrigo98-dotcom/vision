@@ -10,6 +10,7 @@ import { sendEmail } from '@/lib/email/resend';
 import { uploadToR2 } from '@/lib/r2';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { hasPermission } from '@/lib/rbac';
+import { translateStatus, translatePriority } from '@/lib/ticket-utils';
 
 const TicketSchema = z.object({
   title: z.string()
@@ -207,7 +208,8 @@ export async function createTicket(prevState: any, formData: FormData) {
             <h2>Olá ${assignee.name},</h2>
             <p>Um novo chamado foi atribuído a você.</p>
             <p><strong>Título:</strong> ${title}</p>
-            <p><strong>Prioridade:</strong> ${priority}</p>
+            <p><strong>Status:</strong> ${translateStatus('open')}</p>
+            <p><strong>Prioridade:</strong> ${translatePriority(priority)}</p>
             <p><strong>Categoria:</strong> ${category}</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
           `,
@@ -268,6 +270,7 @@ export async function returnTicket(ticketId: string, reason: string) {
         html: `
           <h2>Olá ${requester.name},</h2>
           <p>Seu chamado foi devolvido para ajustes.</p>
+          <p><strong>Status:</strong> ${translateStatus('returned')}</p>
           <p><strong>Motivo:</strong> ${reason}</p>
           <p>Por favor, acesse o chamado, faça os ajustes necessários e clique em "Reenviar".</p>
           <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
@@ -330,6 +333,7 @@ export async function resubmitTicket(ticketId: string) {
           html: `
             <h2>Olá ${assignee.name},</h2>
             <p>O chamado foi reenviado após ajustes.</p>
+            <p><strong>Status:</strong> ${translateStatus('open')}</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
           `,
           category: 'ticket_resubmitted'
@@ -444,7 +448,8 @@ export async function resolveTicket(ticketId: string) {
         subject: `[VISION] Chamado Resolvido: ${ticket.title}`,
         html: `
           <h2>Olá ${requester.name},</h2>
-          <p>Seu chamado foi resolvido.</p>
+          <p>Seu chamado foi marcado como <strong>${translateStatus('resolved')}</strong>.</p>
+          <p><strong>Status:</strong> ${translateStatus('resolved')}</p>
           <p>Se o problema persistir, você pode reabrir o chamado em até 15 dias.</p>
           <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
         `,
@@ -522,6 +527,7 @@ export async function reopenTicket(ticketId: string) {
           html: `
             <h2>Olá ${assignee.name},</h2>
             <p>Um chamado resolvido foi reaberto pelo solicitante.</p>
+            <p><strong>Status:</strong> ${translateStatus('open')}</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
           `,
           category: 'ticket_reopened'
