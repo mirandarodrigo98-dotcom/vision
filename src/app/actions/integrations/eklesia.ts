@@ -1018,19 +1018,32 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const data = await parsePDF(buffer);
-    const text = data.text;
-    const lines = text.split('\n');
+    
+    // Use structured lines if available for bold detection
+    let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
+    if (data.lines && data.lines.length > 0) {
+        linesToProcess = data.lines;
+    } else {
+        // Fallback: assume all are relevant if we can't detect bold
+        linesToProcess = data.text.split('\n').map(t => ({ text: t, isBold: true }));
+    }
 
     const accountsToInsert: any[] = [];
 
-    for (const line of lines) {
-      const trimmed = line.trim();
+    for (const lineObj of linesToProcess) {
+      const trimmed = lineObj.text.trim();
       if (!trimmed) continue;
 
       // User Rules:
       // 1. Import only Analytic (Bold). 
       // 2. Analytic usually has a Reduced Code. Synthetic usually doesn't.
       // 3. Ignore if Synthetic (Non-Bold).
+      
+      // Filter by Bold if we have that info (and not fallback)
+      if (data.lines && data.lines.length > 0 && !lineObj.isBold) {
+           continue; 
+      }
+
       // 4. Reduced Code -> Internal Code. 
       // 5. If Reduced Code is 0 or empty -> Internal Code = null.
       
@@ -1060,8 +1073,10 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
             is_active: true
         });
       } else {
-        // No trailing number -> Likely Synthetic or formatting issue.
-        // Per user rule: "as sem negrito são contas sintéticas, ignore."
+        // Even if bold, if it doesn't match the analytic pattern (with reduced code), skip it.
+        // But bold usually implies analytic.
+        // If it's bold but no reduced code? Maybe "1.1.01.001 CAIXA GERAL" without code?
+        // Let's stick to the regex requiring reduced code as a secondary validation.
         continue;
       }
     }
