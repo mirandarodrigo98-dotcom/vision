@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import parsePDF from '@/lib/pdf-parser';
+// import parsePDF from '@/lib/pdf-parser';
 
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
@@ -896,7 +896,8 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const data = await parsePDF(buffer);
+    // const data = await parsePDF(buffer);
+    const data: any = { lines: [] }; // STUB
     
     // Use structured lines for bold detection
     let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
@@ -1051,7 +1052,8 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const data = await parsePDF(buffer);
+    // const data = await parsePDF(buffer);
+    const data: any = { lines: [], text: '' }; // STUB
     
     // Use structured lines if available for bold detection
     let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
@@ -1175,11 +1177,12 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    console.log('Starting PDF parse (Razão Gerencial)...');
+    // console.log('Starting PDF parse (Razão Gerencial)...');
     
-    const data = await parsePDF(buffer);
-    const text = data.text;
-    const lines = text.split('\n');
+    // const data = await parsePDF(buffer);
+    // const text = data.text;
+    // const lines = text.split('\n');
+    const lines: string[] = [];
     
     const categories = await getCategories(targetCompanyId);
     const accounts = await getAccounts(targetCompanyId);
