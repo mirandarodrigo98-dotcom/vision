@@ -1,6 +1,10 @@
 
 import { Buffer } from 'buffer';
 
+// Import pdfjs-dist legacy build for Node.js compatibility
+// @ts-ignore
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+
 // Define the PDFData interface
 export interface PDFData {
     numpages: number;
@@ -20,9 +24,6 @@ export interface PDFData {
  * @returns A promise that resolves to PDFData
  */
 export default async function parsePDF(dataBuffer: Buffer, options?: any): Promise<PDFData> {
-    // Dynamic import to avoid build-time issues and reduce bundle size
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
-
     // Disable worker to avoid loading external worker files in serverless environment
     // @ts-ignore
     if (typeof pdfjsLib.GlobalWorkerOptions !== 'undefined') {
@@ -43,7 +44,15 @@ export default async function parsePDF(dataBuffer: Buffer, options?: any): Promi
     // Load the document
     // We need to convert Buffer to Uint8Array for pdfjs-dist
     const uint8Array = new Uint8Array(dataBuffer);
-    const loadingTask = pdfjsLib.getDocument({
+    
+    // Check if getDocument exists on default export or directly
+    const getDocument = pdfjsLib.getDocument || (pdfjsLib.default && pdfjsLib.default.getDocument);
+    
+    if (!getDocument) {
+        throw new Error('pdfjs-dist getDocument not found');
+    }
+
+    const loadingTask = getDocument({
         data: uint8Array,
         // Disable worker is also an option here sometimes, but usually GlobalWorkerOptions is better
         isEvalSupported: false, // For security in some envs
