@@ -87,7 +87,8 @@ export default async function parsePDF(dataBuffer: Buffer, options?: any): Promi
                 hasEOL: boolean;
             }
 
-            const items = textContent.items as TextItem[];
+            // Filter out items that don't have transform (TextMarkedContent)
+            const items = (textContent.items as any[]).filter(item => item.transform && item.str) as TextItem[];
             
             // Sort items by Y (descending) and then X (ascending)
             // Note: PDF coordinates start from bottom-left, so higher Y is higher on page
@@ -103,6 +104,8 @@ export default async function parsePDF(dataBuffer: Buffer, options?: any): Promi
             let currentLineText = "";
             let currentLineIsBold = false;
             let firstItemInLine = true;
+            let lastItemX = 0;
+            let lastItemWidth = 0;
 
             for (const item of items) {
                 // Check if this item is on a new line (significant Y difference)
@@ -119,20 +122,28 @@ export default async function parsePDF(dataBuffer: Buffer, options?: any): Promi
                     firstItemInLine = false;
                     
                     // Detect bold for the start of the line
-                    // We consider the line bold if the starting segment is bold
-                    // Adjust this logic if needed (e.g., majority of line)
                     currentLineIsBold = isBoldFont(item.fontName, textContent.styles);
+                    
+                    lastItemX = item.transform[4];
+                    lastItemWidth = item.width;
                 } else {
                     // Append to current line
-                    // Add space if there's a gap? Simple concatenation for now
-                    // In a real PDF parser, we'd check x-coordinates to add spaces
-                    // But pdf.js often includes spaces in strings or separate items
+                    // Add space if there's a significant gap between items
+                    const gap = item.transform[4] - (lastItemX + lastItemWidth);
+                    if (gap > 2 && !item.str.startsWith(' ') && !currentLineText.endsWith(' ')) { // Threshold for space (2px)
+                         currentLineText += " ";
+                    }
+                    
                     currentLineText += item.str;
                     
                     // If we haven't detected bold yet, check this item
                     if (!currentLineIsBold && item.str.trim().length > 0) {
-                        currentLineIsBold = isBoldFont(item.fontName, textContent.styles);
+                        const isBold = isBoldFont(item.fontName, textContent.styles);
+                        if (isBold) currentLineIsBold = true;
                     }
+                    
+                    lastItemX = item.transform[4];
+                    lastItemWidth = item.width;
                 }
             }
 
