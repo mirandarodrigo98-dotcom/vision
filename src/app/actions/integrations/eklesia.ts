@@ -990,9 +990,9 @@ export async function saveCategoriesBatch(categories: any[], companyId: string) 
 
     try {
         for (const cat of categories) {
-            // Truncate fields to match schema constraints
-            // eklesia_categories: description VARCHAR(50), integration_code VARCHAR(20)
-            const safeDescription = cat.description.substring(0, 50).trim();
+            // eklesia_categories: description TEXT, integration_code VARCHAR(20)
+            // Removed truncation of description to support long names as requested
+            const safeDescription = cat.description.trim();
             const safeIntegrationCode = cat.integration_code ? cat.integration_code.substring(0, 20) : null;
 
             // Check existence by Description + Nature (Primary Key for User Intent)
