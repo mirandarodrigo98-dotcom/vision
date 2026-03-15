@@ -948,8 +948,9 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
         if (code === '0' || /^0+$/.test(code.replace(/\./g, ''))) continue;
 
         let integrationCode = reducedCodeStr || '';
-        if (!integrationCode || /^0+$/.test(integrationCode)) {
-            integrationCode = '';
+        if (integrationCode) {
+            integrationCode = integrationCode.replace(/^0+/, '');
+            if (!integrationCode) integrationCode = '';
         }
 
         // Use the Reduced Code as integration_code if available, else maybe the main code?
@@ -1326,7 +1327,7 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
         // e.g. 1.01.01 DIZIMOS 1.000,00
         const catMatch = trimmed.match(categoryHeaderRegex);
         if (catMatch) {
-            const code = catMatch[1];
+            const code = catMatch[1].replace(/^0+/, '');
             const description = catMatch[2].trim();
             
             // Validate if it looks like a category
