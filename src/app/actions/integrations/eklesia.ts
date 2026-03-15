@@ -953,6 +953,11 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
             if (!integrationCode) integrationCode = '';
         }
 
+        // Heuristic: If integrationCode is empty, but 'code' looks like a reduced code (no dots, just digits), use it.
+        if (!integrationCode && code && !code.includes('.') && /^\d+$/.test(code)) {
+             integrationCode = code;
+        }
+
         // Use the Reduced Code as integration_code if available, else maybe the main code?
         // User said: "esse código reduzido deverá ser importado para o campo Cód. Interno no Vision."
         // And "ignore non-bold".
@@ -985,32 +990,25 @@ export async function saveCategoriesBatch(categories: any[], companyId: string) 
 
     try {
         for (const cat of categories) {
-            // Check existence by Integration Code (if present) OR Description + Nature
-            let existing = null;
+            // Truncate fields to match schema constraints
+            // eklesia_categories: description VARCHAR(50), integration_code VARCHAR(20)
+            const safeDescription = cat.description.substring(0, 50).trim();
+            const safeIntegrationCode = cat.integration_code ? cat.integration_code.substring(0, 20) : null;
 
-            if (cat.integration_code) {
-                existing = await db.prepare(`
-                    SELECT id FROM eklesia_categories 
-                    WHERE company_id = ? AND integration_code = ?
-                `).get(targetCompanyId, cat.integration_code);
-            }
-
-            if (!existing) {
-                // Fallback: match by Description and Nature
-                existing = await db.prepare(`
-                    SELECT id FROM eklesia_categories 
-                    WHERE company_id = ? AND description = ? AND nature = ?
-                `).get(targetCompanyId, cat.description, cat.nature);
-            }
+            // Check existence by Description + Nature (Primary Key for User Intent)
+            // We ignore integration_code for matching because Eklesia report may duplicate it for different categories
+            let existing = await db.prepare(`
+                SELECT id FROM eklesia_categories 
+                WHERE company_id = ? AND description = ? AND nature = ?
+            `).get(targetCompanyId, safeDescription, cat.nature);
 
             if (existing) {
-                // Update existing category
-                // If we matched by description, we might update integration_code if it was missing
+                // Update existing category (update integration_code)
                 await db.prepare(`
                     UPDATE eklesia_categories 
-                    SET description = ?, nature = ?, integration_code = ?
+                    SET integration_code = ?
                     WHERE id = ?
-                `).run(cat.description, cat.nature, cat.integration_code, existing.id);
+                `).run(safeIntegrationCode, existing.id);
             } else {
                 // Generate Vision internal code
                 const startCode = cat.nature === 'Entrada' ? 800000 : 900000;
@@ -1028,16 +1026,16 @@ export async function saveCategoriesBatch(categories: any[], companyId: string) 
                 await db.prepare(`
                     INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature, is_active)
                     VALUES (?, ?, ?, ?, ?, ?, 1)
-                `).run(id, targetCompanyId, String(nextCode), cat.description, cat.integration_code, cat.nature);
+                `).run(id, targetCompanyId, String(nextCode), safeDescription, safeIntegrationCode, cat.nature);
                 
                 count++;
             }
         }
         revalidatePath('/admin/integrations/eklesia');
         return { success: true, count };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving categories batch:', error);
-        return { error: 'Erro ao salvar categorias.' };
+        return { error: `Erro ao salvar categorias: ${error.message || error}` };
     }
 }
 
@@ -1103,6 +1101,11 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
             integrationCode = ''; // "deixe o campo em branco"
         }
 
+        // Heuristic: If integrationCode is empty, but 'code' looks like a reduced code (no dots, just digits), use it.
+        if (!integrationCode && code && !code.includes('.') && /^\d+$/.test(code)) {
+             integrationCode = code;
+        }
+
         accountsToInsert.push({
             code: code, // Keep the PDF code structure (e.g. 1.1.01)
             description: description,
@@ -1136,6 +1139,8 @@ export async function saveAccountsBatch(accounts: any[], companyId: string) {
 
     try {
         for (const acc of accounts) {
+            const safeIntegrationCode = acc.integration_code ? acc.integration_code.substring(0, 20) : null;
+
             const existing = await db.prepare(`
                 SELECT id FROM eklesia_accounts 
                 WHERE company_id = ? AND code = ?
@@ -1146,22 +1151,22 @@ export async function saveAccountsBatch(accounts: any[], companyId: string) {
                     UPDATE eklesia_accounts 
                     SET description = ?, integration_code = ?
                     WHERE id = ?
-                `).run(acc.description, acc.integration_code, existing.id);
+                `).run(acc.description, safeIntegrationCode, existing.id);
             } else {
                 const id = uuidv4();
                 await db.prepare(`
                     INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code, is_active)
                     VALUES (?, ?, ?, ?, ?, 1)
-                `).run(id, targetCompanyId, acc.code, acc.description, acc.integration_code);
+                `).run(id, targetCompanyId, acc.code, acc.description, safeIntegrationCode);
                 
                 count++;
             }
         }
         revalidatePath('/admin/integrations/eklesia');
         return { success: true, count };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving accounts batch:', error);
-        return { error: 'Erro ao salvar contas.' };
+        return { error: `Erro ao salvar contas: ${error.message || error}` };
     }
 }
 
