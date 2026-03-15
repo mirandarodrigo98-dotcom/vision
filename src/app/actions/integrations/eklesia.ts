@@ -935,7 +935,7 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
       const match = trimmed.match(/^([\d\.]+)\s+(.+?)(\s+(\d+))?$/);
 
       if (match) {
-        const code = match[1];
+        const code = match[1].replace(/^0+/, '');
         const description = match[2].trim();
         const reducedCodeStr = match[4];
 
@@ -1092,7 +1092,7 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
       const match = trimmed.match(/^([\d\.]+)\s+(.+?)(\s+(\d+))?$/);
       
       if (match) {
-        const code = match[1];
+        const code = match[1].replace(/^0+/, '');
         const description = match[2].trim();
         const reducedCodeStr = match[4]; // Group 4 is the digits if present
         
