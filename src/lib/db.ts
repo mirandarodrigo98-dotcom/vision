@@ -1,8 +1,8 @@
 import { Pool, PoolClient, QueryResult as PgQueryResult } from 'pg';
-import dotenv from 'dotenv';
 import { AsyncLocalStorage } from 'async_hooks';
 
-dotenv.config();
+// dotenv is automatically loaded by Next.js, no need to import it explicitly
+// dotenv.config();
 
 // Fix for "SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'"
 // We handle SSL configuration via the 'ssl' property below, so we can remove sslmode from the connection string
