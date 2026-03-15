@@ -1,10 +1,6 @@
 
 import { Buffer } from 'buffer';
 
-// Import pdfjs-dist
-// We use the standard build which should work in Node.js environments
-import * as pdfjsLib from 'pdfjs-dist';
-
 // Define the PDFData interface
 export interface PDFData {
     numpages: number;
@@ -24,6 +20,9 @@ export interface PDFData {
  * @returns A promise that resolves to PDFData
  */
 export default async function parsePDF(dataBuffer: Buffer, options?: any): Promise<PDFData> {
+    // Dynamic import to avoid build-time issues and reduce bundle size
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+
     // Disable worker to avoid loading external worker files in serverless environment
     // @ts-ignore
     if (typeof pdfjsLib.GlobalWorkerOptions !== 'undefined') {
