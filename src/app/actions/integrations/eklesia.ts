@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-// import parsePDF from '@/lib/pdf-parser';
+import parsePDF from '@/lib/pdf-parser';
 
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
@@ -896,8 +896,8 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    // const data = await parsePDF(buffer);
-    const data: any = { lines: [] }; // STUB
+    const data = await parsePDF(buffer);
+    // const data: any = { lines: [] }; // STUB
     
     // Use structured lines for bold detection
     let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
@@ -1052,8 +1052,8 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    // const data = await parsePDF(buffer);
-    const data: any = { lines: [], text: '' }; // STUB
+    const data = await parsePDF(buffer);
+    // const data: any = { lines: [], text: '' }; // STUB
     
     // Use structured lines if available for bold detection
     let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
@@ -1179,10 +1179,14 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     
     // console.log('Starting PDF parse (Razão Gerencial)...');
     
-    // const data = await parsePDF(buffer);
-    // const text = data.text;
-    // const lines = text.split('\n');
-    const lines: string[] = [];
+    const data = await parsePDF(buffer);
+    let lines: string[] = [];
+    
+    if (data.lines && data.lines.length > 0) {
+        lines = data.lines.map(l => l.text);
+    } else {
+        lines = data.text.split('\n');
+    }
     
     const categories = await getCategories(targetCompanyId);
     const accounts = await getAccounts(targetCompanyId);
@@ -1195,28 +1199,38 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     const ignoredLines: any[] = [];
 
     let currentCategory: { id: string, name: string } | null = null;
+    let isEntradaBlock = true; // Default, will be updated by headers
 
     // Regex for Category Header: Code + Description + Value
     // We allow flexible code (digits/dots)
     const categoryHeaderRegex = /^([\d\.]+)\s+(.+?)\s+(-?[\d\.,]+)$/;
 
     // Regex for Transaction Line: 
-    // Date + Description + Value + D/C + Balance
+    // Date + Description + Value + [D/C] + [Balance]
     // We try to capture the essential parts.
     // Date: dd/mm/yyyy
     // Value: 1.234,56 or -1.234,56
-    // D/C: D or C
-    // Balance: 1.234,56 (optional match for validation, but we focus on Value)
+    // D/C: D or C (Optional if block logic is used)
     
     // Improved Regex:
     // Start with Date
     // Middle: Description (greedy)
-    // End: Value Space D/C Space Balance
-    const lineRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d\.,]+)\s+([DC])\s+([\d\.,]+)$/;
+    // End: Value (required) + [Space + D/C] + [Space + Balance]
+    const lineRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d\.,]+)(\s+([DC]))?(\s+[\d\.,]+)?$/;
 
     for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
+
+        // Check for Block Headers
+        if (trimmed.toUpperCase().includes('ENTRADAS') || trimmed.toUpperCase().includes('RECEITAS')) {
+            isEntradaBlock = true;
+            continue;
+        }
+        if (trimmed.toUpperCase().includes('SAÍDAS') || trimmed.toUpperCase().includes('SAIDAS') || trimmed.toUpperCase().includes('DESPESAS')) {
+            isEntradaBlock = false;
+            continue;
+        }
 
         // 1. Try to match Transaction Line
         const lineMatch = trimmed.match(lineRegex);
@@ -1229,7 +1243,7 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
             const dateStr = lineMatch[1];
             const descriptionRaw = lineMatch[2].trim(); // Middle content
             const valueStr = lineMatch[3];
-            const dc = lineMatch[4];
+            const dc = lineMatch[5]; // Group 5 is D/C if present
             
             // Parse Date
             const [day, month, year] = dateStr.split('/');
@@ -1239,37 +1253,53 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
             // Remove dots (thousands), replace comma with dot
             let valueNum = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
             
-            // Adjust sign based on D/C
-            // Usually in Cash Flow:
-            // D = Despesa (Saída) -> Negative
-            // C = Receita (Entrada) -> Positive
-            // But if valueStr already has sign, we might trust it.
-            // Let's enforce standard logic:
-            if (dc === 'D') {
-                valueNum = -Math.abs(valueNum);
-            } else if (dc === 'C') {
-                valueNum = Math.abs(valueNum);
+            // Adjust sign logic:
+            // Priority 1: Block Logic (Entrada vs Saída)
+            // Priority 2: D/C if present and contradicts block? Or D/C confirms?
+            // Usually D/C is strictly accounting (D=Debito, C=Credito).
+            // In Assets: D is + (Increase), C is - (Decrease)
+            // In Liabilities/Equity: C is +, D is -
+            // In Revenue (Receitas): C is +, D is - (deductions)
+            // In Expenses (Despesas): D is +, C is - (reversals)
+            
+            // However, "Entradas" block usually means positive cash flow. "Saídas" means negative.
+            // So we can simplify:
+            // If Entrada Block -> Positive
+            // If Saída Block -> Negative
+            
+            // But if D/C is present, does it override?
+            // Example: A refund in "Saídas" block might be C (Credit)? That would be positive cash flow (money back).
+            // Example: A cancellation in "Entradas" might be D (Debit)? That would be negative.
+            
+            // Let's use D/C if present as the source of truth for sign relative to nature?
+            // Or just trust the Block?
+            // The user said: "o relatório em pdf também faz a distinção entre entradas e saídas por bloco considere isso".
+            // This implies the block is the key differentiator.
+            
+            // Implementation:
+            // Base sign on Block.
+            // If Block is Saída, value should be negative.
+            // If Block is Entrada, value should be positive.
+            
+            // What if valueStr is already negative? e.g. "-100,00"
+            // We take absolute value first.
+            valueNum = Math.abs(valueNum);
+            
+            if (!isEntradaBlock) {
+                valueNum = -valueNum;
             }
+            
+            // If D/C is present, maybe handle special cases?
+            // For now, trust the block as requested.
 
             // Extract Account from Description if present
-            // Pattern: "Code-Name" or just "Name" at the end?
-            // User said: "basta importar a descrição exata do relatório" for accounts import.
-            // For transactions, we need to map to an Account ID.
-            
             let accountId = null;
             let accountName = '';
             let finalDescription = descriptionRaw;
 
             // Heuristic: If description contains a known account name at the end
-            // We iterate accounts to find a match
-            // Optimization: Filter accounts that could match (e.g. contained in description)
-            
-            // Simple approach: Check if description ends with any account description
-            // Sort accounts by length desc to match longest first
             for (const acc of accounts) {
                 if (finalDescription.includes(acc.description)) {
-                     // Check if it's at the end or standalone
-                     // eklesia often puts account info in the line
                      accountId = acc.id;
                      accountName = acc.description;
                      break; 
@@ -1312,12 +1342,7 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
             if (cat) {
                 currentCategory = { id: cat.id, name: cat.description };
             } else {
-                // Category not found in DB. 
-                // We should probably create it or skip?
-                // For safety, skip transactions until we find a known category.
-                // Or use a "Unknown" category?
-                // Let's log and skip.
-                console.warn(`Category not found for header: ${code} - ${description}`);
+                // console.warn(`Category not found for header: ${code} - ${description}`);
                 currentCategory = null; 
             }
             continue;
