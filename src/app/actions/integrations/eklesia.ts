@@ -1047,22 +1047,22 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
       // 4. Reduced Code -> Internal Code. 
       // 5. If Reduced Code is 0 or empty -> Internal Code = null.
       
-      // Pattern: Code (digits/dots) + Space + Description + Space + ReducedCode (digits)
+      // Pattern: Code (digits/dots) + Space + Description + [Space + ReducedCode (digits)]
       // Example: 1.1.01.001     CAIXA GERAL      5
       // Synthetic: 1.1          ATIVO
       
-      // We use the presence of the trailing number (Reduced Code) as the filter for Analytic accounts.
-      const match = trimmed.match(/^([\d\.]+)\s+(.+?)\s+(\d+)$/);
+      // We accept lines with or without reduced code, but they must be bold (Analytic).
+      const match = trimmed.match(/^([\d\.]+)\s+(.+?)(\s+(\d+))?$/);
       
       if (match) {
         const code = match[1];
         const description = match[2].trim();
-        const reducedCodeStr = match[3];
+        const reducedCodeStr = match[4]; // Group 4 is the digits if present
         
-        let integrationCode = reducedCodeStr;
+        let integrationCode = reducedCodeStr || '';
         
-        // Check if reduced code is effectively zero
-        if (/^0+$/.test(reducedCodeStr)) {
+        // Check if reduced code is effectively zero or empty
+        if (!integrationCode || /^0+$/.test(integrationCode)) {
             integrationCode = ''; // "deixe o campo em branco"
         }
 

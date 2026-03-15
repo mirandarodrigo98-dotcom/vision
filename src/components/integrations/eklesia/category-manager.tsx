@@ -18,7 +18,7 @@ import {
   getCategories,
   toggleCategoryStatus
 } from '@/app/actions/integrations/eklesia';
-// import { CategoriesImportDialog } from './categories-import-dialog';
+import { CategoriesImportDialog } from './categories-import-dialog';
 import { Loader2, Trash2, Database, RefreshCcw, Pencil, Plus, Filter } from 'lucide-react';
 import {
   Table,
@@ -286,6 +286,9 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
         <h3 className="text-lg font-medium">Listagem de Categorias</h3>
         <div className="flex gap-2">
             <CategoriesImportDialog companyId={companyId} onSuccess={handleFilter} />
+          <Button variant="outline" size="icon" onClick={handleFilter} title="Recarregar">
+                <RefreshCcw className="h-4 w-4" />
+            </Button>
             {categories.length === 0 && !isFilterLoading && (
                 <Button variant="outline" size="sm" onClick={handleSeed} disabled={isSeeding}>
                     {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}

@@ -16,7 +16,7 @@ import {
   getAccounts,
   toggleAccountStatus
 } from '@/app/actions/integrations/eklesia';
-// import { AccountsImportDialog } from './accounts-import-dialog';
+import { AccountsImportDialog } from './accounts-import-dialog';
 import { Loader2, Trash2, Database, RefreshCcw, Pencil, Plus, Filter } from 'lucide-react';
 import {
   Table,
@@ -241,7 +241,7 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
         <h3 className="text-lg font-medium">Listagem de Contas</h3>
         <div className="flex gap-2">
             <AccountsImportDialog companyId={companyId} onSuccess={handleFilter} />
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                     <Button onClick={handleOpenCreate}>
                         <Plus className="mr-2 h-4 w-4" />
