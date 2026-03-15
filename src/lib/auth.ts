@@ -1,5 +1,5 @@
 import db from '@/lib/db';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { cookies } from 'next/headers';
 
