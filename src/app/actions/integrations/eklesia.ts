@@ -897,46 +897,68 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const data = await parsePDF(buffer);
-    const text = data.text;
-    const lines = text.split('\n');
+    
+    // Use structured lines for bold detection
+    let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
+    if (data.lines && data.lines.length > 0) {
+        linesToProcess = data.lines;
+    } else {
+        // Fallback
+        linesToProcess = data.text.split('\n').map(t => ({ text: t, isBold: true }));
+    }
 
     const categoriesToInsert: any[] = [];
     let currentNature: 'Entrada' | 'Saída' = 'Entrada';
 
-    for (const line of lines) {
-      const trimmed = line.trim();
+    for (const lineObj of linesToProcess) {
+      const trimmed = lineObj.text.trim();
       if (!trimmed) continue;
 
-      if (trimmed.toUpperCase().includes('ENTRADAS')) {
+      if (trimmed.toUpperCase().includes('ENTRADAS') || trimmed.toUpperCase().includes('RECEITAS')) {
         currentNature = 'Entrada';
         continue;
       }
-      if (trimmed.toUpperCase().includes('SAÍDAS') || trimmed.toUpperCase().includes('SAIDAS')) {
+      if (trimmed.toUpperCase().includes('SAÍDAS') || trimmed.toUpperCase().includes('SAIDAS') || trimmed.toUpperCase().includes('DESPESAS')) {
         currentNature = 'Saída';
         continue;
       }
 
-      // Format: 1.01.01 DIZIMOS
-      // We expect a code (digits/dots) at the start, followed by description.
-      // We must avoid matching dates or page numbers.
-      // Codes usually have at least one dot or are specific length.
-      const match = trimmed.match(/^([\d\.]+)\s+(.+)$/);
+      // Rule: Only import Bold (Analytic). Ignore Non-Bold (Synthetic).
+      if (data.lines && data.lines.length > 0 && !lineObj.isBold) {
+           continue; 
+      }
+
+      // Format: Code + Description + [ReducedCode]
+      // Regex to capture Code, Description, ReducedCode
+      // Pattern: Code (digits/dots) + Space + Description + [Space + ReducedCode (digits)]
+      const match = trimmed.match(/^([\d\.]+)\s+(.+?)(\s+(\d+))?$/);
+
       if (match) {
         const code = match[1];
         const description = match[2].trim();
+        const reducedCodeStr = match[4];
 
         // Ignore totals, dates, page numbers
         if (description.toUpperCase().startsWith('TOTAL')) continue;
         if (code.includes('/')) continue; // Date
-        if (!code.includes('.') && code.length < 3) continue; // Likely page number or short index
+        if (!code.includes('.') && code.length < 3) continue; // Likely page number
         
         // Ignore zero codes
         if (code === '0' || /^0+$/.test(code.replace(/\./g, ''))) continue;
 
+        let integrationCode = reducedCodeStr || '';
+        if (!integrationCode || /^0+$/.test(integrationCode)) {
+            integrationCode = '';
+        }
+
+        // Use the Reduced Code as integration_code if available, else maybe the main code?
+        // User said: "esse código reduzido deverá ser importado para o campo Cód. Interno no Vision."
+        // And "ignore non-bold".
+
         categoriesToInsert.push({
             code: code,
             description: description,
-            integration_code: code,
+            integration_code: integrationCode || code, // Fallback to main code if no reduced? Or empty? User said "deixe o campo em branco". So if no reduced code, maybe blank? But usually main code is useful. Let's stick to Reduced Code for integration_code, but if empty, maybe keep empty.
             nature: currentNature,
             is_active: true
         });
