@@ -1,1 +1,0 @@
-Vendor folder for pdf.js to avoid Vercel build issues.
