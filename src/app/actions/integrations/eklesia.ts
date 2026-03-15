@@ -959,18 +959,17 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
         }
 
         // Use the Reduced Code as integration_code if available, else maybe the main code?
-        // User said: "esse código reduzido deverá ser importado para o campo Cód. Interno no Vision."
-        // And "ignore non-bold".
+    // User said: "esse código reduzido deverá ser importado para o campo Cód. Interno no Vision."
+    // And "ignore non-bold".
 
-        categoriesToInsert.push({
-            code: code,
-            description: description,
-            integration_code: integrationCode,
-            nature: currentNature,
-            is_active: true
-        });
-      }
-    }
+    categoriesToInsert.push({
+        code: code,
+        description: description,
+        integration_code: integrationCode,
+        nature: currentNature
+    });
+  }
+}
 
     return { success: categoriesToInsert };
   } catch (error: any) {
@@ -1024,8 +1023,8 @@ export async function saveCategoriesBatch(categories: any[], companyId: string) 
 
                 const id = uuidv4();
                 await db.prepare(`
-                    INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature, is_active)
-                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                    INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 `).run(id, targetCompanyId, String(nextCode), safeDescription, safeIntegrationCode, cat.nature);
                 
                 count++;
@@ -1109,8 +1108,7 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
         accountsToInsert.push({
             code: code, // Keep the PDF code structure (e.g. 1.1.01)
             description: description,
-            integration_code: integrationCode || null,
-            is_active: true
+            integration_code: integrationCode || null
         });
       } else {
         // Even if bold, if it doesn't match the analytic pattern (with reduced code), skip it.
@@ -1155,8 +1153,8 @@ export async function saveAccountsBatch(accounts: any[], companyId: string) {
             } else {
                 const id = uuidv4();
                 await db.prepare(`
-                    INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code, is_active)
-                    VALUES (?, ?, ?, ?, ?, 1)
+                    INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code)
+                    VALUES (?, ?, ?, ?, ?)
                 `).run(id, targetCompanyId, acc.code, acc.description, safeIntegrationCode);
                 
                 count++;
