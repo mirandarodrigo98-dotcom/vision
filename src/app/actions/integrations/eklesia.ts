@@ -958,7 +958,7 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
         categoriesToInsert.push({
             code: code,
             description: description,
-            integration_code: integrationCode || code, // Fallback to main code if no reduced? Or empty? User said "deixe o campo em branco". So if no reduced code, maybe blank? But usually main code is useful. Let's stick to Reduced Code for integration_code, but if empty, maybe keep empty.
+            integration_code: integrationCode,
             nature: currentNature,
             is_active: true
         });
@@ -983,20 +983,32 @@ export async function saveCategoriesBatch(categories: any[], companyId: string) 
 
     try {
         for (const cat of categories) {
-            // Check existence by Description + Nature (since code might be auto-generated in Vision)
-            // Or check by Integration Code if we treat the PDF code as integration code.
-            // Let's use Integration Code for matching.
-            const existing = await db.prepare(`
-                SELECT id FROM eklesia_categories 
-                WHERE company_id = ? AND integration_code = ?
-            `).get(targetCompanyId, cat.integration_code);
+            // Check existence by Integration Code (if present) OR Description + Nature
+            let existing = null;
+
+            if (cat.integration_code) {
+                existing = await db.prepare(`
+                    SELECT id FROM eklesia_categories 
+                    WHERE company_id = ? AND integration_code = ?
+                `).get(targetCompanyId, cat.integration_code);
+            }
+
+            if (!existing) {
+                // Fallback: match by Description and Nature
+                existing = await db.prepare(`
+                    SELECT id FROM eklesia_categories 
+                    WHERE company_id = ? AND description = ? AND nature = ?
+                `).get(targetCompanyId, cat.description, cat.nature);
+            }
 
             if (existing) {
+                // Update existing category
+                // If we matched by description, we might update integration_code if it was missing
                 await db.prepare(`
                     UPDATE eklesia_categories 
-                    SET description = ?, nature = ?
+                    SET description = ?, nature = ?, integration_code = ?
                     WHERE id = ?
-                `).run(cat.description, cat.nature, existing.id);
+                `).run(cat.description, cat.nature, cat.integration_code, existing.id);
             } else {
                 // Generate Vision internal code
                 const startCode = cat.nature === 'Entrada' ? 800000 : 900000;
