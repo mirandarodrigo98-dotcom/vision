@@ -61,6 +61,11 @@ function convertSql(sql: string): string {
     }
   });
 
+  // Replace AUTOINCREMENT with GENERATED ALWAYS AS IDENTITY or SERIAL
+  // Postgres doesn't support AUTOINCREMENT keyword
+  converted = converted.replace(/\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b/gi, 'SERIAL PRIMARY KEY');
+  converted = converted.replace(/\bAUTOINCREMENT\b/gi, '');
+
   return converted;
 }
 
