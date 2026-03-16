@@ -9,10 +9,10 @@ export function TicketStatusBadge({ status }: TicketStatusBadgeProps) {
   const label = translateStatus(status);
   const colorClass = getStatusColor(status);
 
-  // Forçar variant 'outline' para remover cores padrões do shadcn que podem conflitar
-  // e aplicar nossas classes de cor manualmente
+  // Removemos variant='outline' para usar o estilo padrão (sólido)
+  // As classes de cor (colorClass) irão sobrescrever as cores padrão do componente
   return (
-    <Badge variant="outline" className={`${colorClass} border-0`}>
+    <Badge className={`${colorClass} border-0`}>
       {label}
     </Badge>
   );

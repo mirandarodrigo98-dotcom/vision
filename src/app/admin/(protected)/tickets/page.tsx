@@ -120,15 +120,16 @@ async function TicketsList({ searchParams }: { searchParams: any }) {
   );
 }
 
-export default function TicketsPage({
+export default async function TicketsPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: Promise<{ status?: string }>;
 }) {
+  const resolvedParams = await searchParams;
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-        <TicketsList searchParams={searchParams} />
+        <TicketsList searchParams={resolvedParams} />
       </Suspense>
     </div>
   );

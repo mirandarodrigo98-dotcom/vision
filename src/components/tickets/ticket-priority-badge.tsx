@@ -10,7 +10,7 @@ export function TicketPriorityBadge({ priority }: TicketPriorityBadgeProps) {
   const colorClass = getPriorityColor(priority);
 
   return (
-    <Badge variant="outline" className={`${colorClass} text-white border-0`}>
+    <Badge className={`${colorClass} text-white border-0`}>
       {label}
     </Badge>
   );
