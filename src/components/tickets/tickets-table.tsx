@@ -28,8 +28,8 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Título</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Prioridade</TableHead>
+            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-center">Prioridade</TableHead>
             <TableHead>Solicitante</TableHead>
             <TableHead>Departamento</TableHead>
             <TableHead>Atribuído a</TableHead>
@@ -59,10 +59,10 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <TicketStatusBadge status={ticket.status} />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <TicketPriorityBadge priority={ticket.priority} />
                 </TableCell>
                 <TableCell>

@@ -1,26 +1,17 @@
 import { Badge } from '@/components/ui/badge';
+import { translatePriority, getPriorityColor } from '@/lib/ticket-utils';
 
 interface TicketPriorityBadgeProps {
   priority: string;
 }
 
 export function TicketPriorityBadge({ priority }: TicketPriorityBadgeProps) {
-  const priorityConfig: Record<string, string> = {
-    low: 'Baixa',
-    medium: 'Média',
-    high: 'Alta',
-    critical: 'Crítica',
-  };
-
-  let className = '';
-  if (priority === 'low') className = 'bg-gray-400';
-  if (priority === 'medium') className = 'bg-blue-500';
-  if (priority === 'high') className = 'bg-orange-500';
-  if (priority === 'critical') className = 'bg-red-600 font-bold';
+  const label = translatePriority(priority);
+  const colorClass = getPriorityColor(priority);
 
   return (
-    <Badge className={`${className} hover:${className}`}>
-      {priorityConfig[priority] || priority}
+    <Badge variant="outline" className={`${colorClass} text-white border-0`}>
+      {label}
     </Badge>
   );
 }

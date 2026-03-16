@@ -9,16 +9,10 @@ export function TicketStatusBadge({ status }: TicketStatusBadgeProps) {
   const label = translateStatus(status);
   const colorClass = getStatusColor(status);
 
-  // Mapeamento de variantes do shadcn/ui baseado na cor/status
-  let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default';
-  
-  if (status === 'in_progress' || status === 'returned') variant = 'secondary';
-  if (status === 'cancelled') variant = 'destructive';
-  if (status === 'closed') variant = 'outline';
-  // resolved e open usam default (mas com classes de cor customizadas)
-
+  // Forçar variant 'outline' para remover cores padrões do shadcn que podem conflitar
+  // e aplicar nossas classes de cor manualmente
   return (
-    <Badge variant={variant} className={`${colorClass} border-none`}>
+    <Badge variant="outline" className={`${colorClass} border-0`}>
       {label}
     </Badge>
   );
