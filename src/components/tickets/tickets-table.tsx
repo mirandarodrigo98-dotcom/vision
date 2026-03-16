@@ -60,10 +60,14 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <TicketStatusBadge status={ticket.status} />
+                  <div className="flex justify-center items-center w-full">
+                    <TicketStatusBadge status={ticket.status} />
+                  </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <TicketPriorityBadge priority={ticket.priority} />
+                  <div className="flex justify-center items-center w-full">
+                    <TicketPriorityBadge priority={ticket.priority} />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
