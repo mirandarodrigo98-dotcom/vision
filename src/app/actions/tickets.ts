@@ -1171,6 +1171,7 @@ export async function getTicketById(id: string) {
 
     if (!ticket) return null;
 
+
     const interactions = await db.prepare(`
       SELECT i.*, u.name as user_name, u.avatar_path as user_avatar
       FROM ticket_interactions i
@@ -1179,6 +1180,7 @@ export async function getTicketById(id: string) {
       ORDER BY i.created_at ASC
     `).all(id);
 
+    // Get attachments
     const attachmentsRaw = await db.prepare(`
       SELECT * FROM ticket_attachments WHERE ticket_id = ?
     `).all(id) as any[];
