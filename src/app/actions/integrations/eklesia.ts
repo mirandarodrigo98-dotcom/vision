@@ -1309,3 +1309,89 @@ export async function deleteAccountsBatch(ids: string[], companyId: string) {
     return { error: 'Erro ao excluir contas em lote' };
   }
 }
+
+export async function exportTransactionsCsv(
+  companyId: string,
+  filters?: {
+    startDate?: string;
+    endDate?: string;
+    categoryId?: string;
+    accountId?: string;
+    description?: string;
+  }
+) {
+    const session = await getSession();
+    if (!session) return { error: 'Não autorizado' };
+
+    const targetCompanyId = companyId || session.active_company_id;
+    if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+    try {
+        let query = `
+            SELECT 
+                t.date,
+                c.description as category_name,
+                c.nature as category_nature,
+                t.description,
+                t.value,
+                a.description as account_name,
+                a.integration_code as account_code
+            FROM eklesia_transactions t
+            LEFT JOIN eklesia_categories c ON t.category_id = c.id
+            LEFT JOIN eklesia_accounts a ON t.account_id = a.id
+            WHERE t.company_id = ?
+        `;
+        
+        const params: any[] = [targetCompanyId];
+
+        if (filters) {
+            if (filters.startDate) {
+                query += ` AND t.date >= ?`;
+                params.push(filters.startDate);
+            }
+            if (filters.endDate) {
+                query += ` AND t.date <= ?`;
+                params.push(filters.endDate);
+            }
+            if (filters.categoryId && filters.categoryId !== 'all') {
+                query += ` AND t.category_id = ?`;
+                params.push(filters.categoryId);
+            }
+            if (filters.accountId && filters.accountId !== 'all') {
+                query += ` AND t.account_id = ?`;
+                params.push(filters.accountId);
+            }
+            if (filters.description) {
+                query += ` AND t.description LIKE ?`;
+                params.push(`%${filters.description}%`);
+            }
+        }
+
+        query += ` ORDER BY t.date DESC`;
+
+        const transactions = await db.prepare(query).all(...params) as any[];
+
+        // Generate CSV
+        const header = ['Data', 'Categoria', 'Natureza', 'Histórico', 'Valor', 'Conta', 'Cód. Conta'];
+        const rows = transactions.map(t => [
+            t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '',
+            t.category_name || '',
+            t.category_nature || '',
+            t.description || '',
+            t.value ? t.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00',
+            t.account_name || '',
+            t.account_code || ''
+        ]);
+
+        const csvContent = [
+            header.join(';'),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+        ].join('\n');
+
+        return { success: true, csv: csvContent };
+
+    } catch (error) {
+        console.error('Error exporting transactions:', error);
+        return { error: 'Erro ao exportar lançamentos' };
+    }
+}
