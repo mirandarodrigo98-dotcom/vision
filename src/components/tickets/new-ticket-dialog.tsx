@@ -136,6 +136,9 @@ export function NewTicketDialog() {
     if (data.due_date) {
       formData.append('due_date', data.due_date);
     }
+    if (data.company_id) {
+      formData.append('company_id', data.company_id);
+    }
 
     files.forEach((file) => {
       formData.append('attachments', file);
@@ -145,6 +148,13 @@ export function NewTicketDialog() {
       const result = await createTicket(null, formData);
       
       if (result.error) {
+        if (result.details) {
+          Object.entries(result.details).forEach(([key, errors]) => {
+            if (Array.isArray(errors) && errors.length > 0) {
+              form.setError(key as any, { message: errors[0] });
+            }
+          });
+        }
         toast.error(result.error);
         return;
       }

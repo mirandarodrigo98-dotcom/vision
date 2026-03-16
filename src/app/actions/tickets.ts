@@ -111,14 +111,20 @@ export async function createTicket(prevState: any, formData: FormData) {
     priority: formData.get('priority') || 'medium',
     category: formData.get('category'),
     assignee_id: formData.get('assignee_id'),
-    due_date: formData.get('due_date'),
-    company_id: formData.get('company_id'),
+    due_date: formData.get('due_date') || undefined,
+    company_id: formData.get('company_id') || undefined,
   };
+
+  // Ensure empty strings are treated as undefined for optional fields
+  if (rawData.due_date === '') rawData.due_date = undefined;
+  if (rawData.company_id === '') rawData.company_id = undefined;
 
   const validatedFields = TicketSchema.safeParse(rawData);
 
   if (!validatedFields.success) {
-    return { error: 'Campos inválidos', details: validatedFields.error.flatten().fieldErrors };
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    console.error('Ticket validation error:', fieldErrors);
+    return { error: 'Campos inválidos', details: fieldErrors };
   }
 
   const { title, description, priority, category, assignee_id, due_date, company_id } = validatedFields.data;
