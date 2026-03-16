@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Upload, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
-import { parseEklesiaPdf, saveTransactions } from '@/app/actions/integrations/eklesia';
+import { parseEklesiaPdf, saveTransactionsBatch } from '@/app/actions/integrations/eklesia';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -63,7 +63,7 @@ export function PdfImportDialog({ companyId, onSuccess }: PdfImportDialogProps) 
     if (!result || result.success.length === 0) return;
     setIsSaving(true);
     try {
-      const res = await saveTransactions(result.success, companyId);
+      const res = await saveTransactionsBatch(result.success, companyId);
       if (res.error) {
         toast.error(res.error);
       } else {
