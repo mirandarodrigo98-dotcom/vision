@@ -41,12 +41,6 @@ export async function uploadToR2(
         // Or if the bucket is public, we can just construct the URL.
         // Assuming private bucket for security, so we use signed URL.
         const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const getCommand = new GetObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: fileName
-        });
-        
-        // Note: PutObjectCommand is for upload. For download link we need GetObjectCommand.
         
         let downloadLink = '';
         
@@ -55,31 +49,6 @@ export async function uploadToR2(
             downloadLink = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
         } else {
              downloadLink = await getR2DownloadLink(fileName);
-    }
-
-    return { uploadUrl, fileKey: fileName, downloadLink };
-}
-
-export async function deleteFromR2(fileKey: string): Promise<void> {
-    if (!R2_BUCKET_NAME) {
-        console.warn('R2_BUCKET_NAME not configured');
-        return;
-    }
-
-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-    
-    const command = new DeleteObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: fileKey,
-    });
-
-    try {
-        await S3.send(command);
-    } catch (error) {
-        console.error('Error deleting from R2:', error);
-        throw error;
-    }
-}
         }
 
         return {
@@ -130,4 +99,25 @@ export async function getPresignedUploadUrl(fileName: string, mimeType: string):
         fileKey: fileName,
         downloadLink
     };
+}
+
+export async function deleteFromR2(fileKey: string): Promise<void> {
+    if (!R2_BUCKET_NAME) {
+        console.warn('R2_BUCKET_NAME not configured');
+        return;
+    }
+
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+    
+    const command = new DeleteObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: fileKey,
+    });
+
+    try {
+        await S3.send(command);
+    } catch (error) {
+        console.error('Error deleting from R2:', error);
+        throw error;
+    }
 }
