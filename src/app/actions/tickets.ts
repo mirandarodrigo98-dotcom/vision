@@ -793,7 +793,15 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
   }
 }
 
-export async function getTickets(filters?: { status?: string; assignee_id?: string; requester_id?: string }) {
+export async function getTickets(filters?: { 
+  status?: string; 
+  assignee_id?: string; 
+  requester_id?: string;
+  title?: string;
+  department_id?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
   const session = await getSession();
   if (!session) return [];
 
@@ -833,14 +841,34 @@ export async function getTickets(filters?: { status?: string; assignee_id?: stri
     params.push(filters.status);
   }
 
-  if (filters?.assignee_id) {
+  if (filters?.assignee_id && filters.assignee_id !== 'all') {
     query += ` AND t.assignee_id = ?`;
     params.push(filters.assignee_id);
   }
 
-  if (filters?.requester_id) {
+  if (filters?.requester_id && filters.requester_id !== 'all') {
     query += ` AND t.requester_id = ?`;
     params.push(filters.requester_id);
+  }
+
+  if (filters?.title) {
+    query += ` AND t.title LIKE ?`;
+    params.push(`%${filters.title}%`);
+  }
+
+  if (filters?.department_id && filters.department_id !== 'all') {
+    query += ` AND r.department_id = ?`;
+    params.push(filters.department_id);
+  }
+
+  if (filters?.startDate) {
+    query += ` AND date(t.created_at) >= date(?)`;
+    params.push(filters.startDate);
+  }
+
+  if (filters?.endDate) {
+    query += ` AND date(t.created_at) <= date(?)`;
+    params.push(filters.endDate);
   }
 
   query += ` ORDER BY t.created_at DESC`;
@@ -851,6 +879,115 @@ export async function getTickets(filters?: { status?: string; assignee_id?: stri
   } catch (error) {
     console.error('Error fetching tickets:', error);
     return [];
+  }
+}
+
+export async function getTicketCounts(filters?: { 
+  assignee_id?: string; 
+  requester_id?: string;
+  title?: string;
+  department_id?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const session = await getSession();
+  if (!session) return { total: 0, open: 0, in_progress: 0, closed: 0 };
+
+  // Fetch user's department
+  const user = await db.prepare('SELECT department_id FROM users WHERE id = ?').get(session.user_id) as any;
+  const userDepartmentId = user?.department_id;
+
+  let query = `
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN t.status = 'open' THEN 1 ELSE 0 END) as open,
+      SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+      SUM(CASE WHEN t.status IN ('closed', 'resolved') THEN 1 ELSE 0 END) as closed
+    FROM tickets t
+    JOIN users r ON t.requester_id = r.id
+    LEFT JOIN departments rd ON r.department_id = rd.id
+    LEFT JOIN users a ON t.assignee_id = a.id
+    LEFT JOIN departments ad ON a.department_id = ad.id
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  // Visibility Logic: Admin sees all. Others see created by them, assigned to them, or assigned to their department.
+  const canAdmin = await hasPermission(session.role, 'tickets.admin');
+  
+  if (session.role !== 'admin' && !canAdmin) {
+    query += ` AND (
+      t.requester_id = ? 
+      OR t.assignee_id = ? 
+      OR (a.department_id IS NOT NULL AND a.department_id = ?)
+    )`;
+    params.push(session.user_id, session.user_id, userDepartmentId);
+  }
+
+  // Filters (excluding status)
+  if (filters?.assignee_id && filters.assignee_id !== 'all') {
+    query += ` AND t.assignee_id = ?`;
+    params.push(filters.assignee_id);
+  }
+
+  if (filters?.requester_id && filters.requester_id !== 'all') {
+    query += ` AND t.requester_id = ?`;
+    params.push(filters.requester_id);
+  }
+
+  if (filters?.title) {
+    query += ` AND t.title LIKE ?`;
+    params.push(`%${filters.title}%`);
+  }
+
+  if (filters?.department_id && filters.department_id !== 'all') {
+    query += ` AND r.department_id = ?`;
+    params.push(filters.department_id);
+  }
+
+  if (filters?.startDate) {
+    query += ` AND date(t.created_at) >= date(?)`;
+    params.push(filters.startDate);
+  }
+
+  if (filters?.endDate) {
+    query += ` AND date(t.created_at) <= date(?)`;
+    params.push(filters.endDate);
+  }
+
+  try {
+    const result = await db.prepare(query).get(...params) as any;
+    return {
+      total: result.total || 0,
+      open: result.open || 0,
+      in_progress: result.in_progress || 0,
+      closed: result.closed || 0
+    };
+  } catch (error) {
+    console.error('Error fetching ticket counts:', error);
+    return { total: 0, open: 0, in_progress: 0, closed: 0 };
+  }
+}
+
+export async function getTicketFilterOptions() {
+  const session = await getSession();
+  if (!session) return { requesters: [], departments: [], assignees: [] };
+
+  try {
+    const requesters = await db.prepare(`
+      SELECT id, name FROM users WHERE deleted_at IS NULL ORDER BY name ASC
+    `).all();
+
+    const departments = await db.prepare(`
+      SELECT id, name FROM departments ORDER BY name ASC
+    `).all();
+
+    const assignees = await getPotentialAssignees(false);
+
+    return { requesters, departments, assignees };
+  } catch (error) {
+    console.error('Error fetching ticket filter options:', error);
+    return { requesters: [], departments: [], assignees: [] };
   }
 }
 

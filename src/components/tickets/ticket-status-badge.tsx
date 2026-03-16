@@ -18,7 +18,7 @@ export function TicketStatusBadge({ status }: TicketStatusBadgeProps) {
   // resolved e open usam default (mas com classes de cor customizadas)
 
   return (
-    <Badge variant={variant} className={`${colorClass} border-none text-white`}>
+    <Badge variant={variant} className={`${colorClass} border-none`}>
       {label}
     </Badge>
   );

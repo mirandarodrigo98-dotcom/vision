@@ -77,32 +77,32 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
   };
 
   return (
-    <div className="flex flex-col h-[600px] border rounded-md">
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+    <div className="flex flex-col h-[600px] border rounded-md w-full max-w-full">
+      <ScrollArea className="flex-1 p-4 w-full">
+        <div className="space-y-4 w-full max-w-full">
           {interactions.map((interaction) => (
-            <div key={interaction.id} className={`flex gap-3 ${interaction.type === 'status_change' ? 'justify-center' : ''}`}>
+            <div key={interaction.id} className={`flex gap-3 w-full max-w-full ${interaction.type === 'status_change' ? 'justify-center' : ''}`}>
               {interaction.type === 'comment' || interaction.type === 'creation' ? (
                 <>
-                  <Avatar className="h-8 w-8 mt-1">
+                  <Avatar className="h-8 w-8 mt-1 shrink-0">
                     <AvatarImage src={interaction.user_avatar} />
                     <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex flex-col flex-1 min-w-0 max-w-full">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-semibold text-sm">{interaction.user_name}</span>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(interaction.created_at), "dd/MM HH:mm", { locale: ptBR })}
                       </span>
                     </div>
                     <div 
-                      className="bg-muted p-3 rounded-lg text-sm [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md"
+                      className="bg-muted p-3 rounded-lg text-sm w-full max-w-full break-words whitespace-pre-wrap overflow-hidden [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md"
                       dangerouslySetInnerHTML={{ __html: interaction.content }} 
                     />
                   </div>
                 </>
               ) : (
-                <div className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                <div className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full text-center break-words max-w-full whitespace-pre-wrap">
                   {interaction.content} - {format(new Date(interaction.created_at), "dd/MM HH:mm", { locale: ptBR })} por {interaction.user_name}
                 </div>
               )}

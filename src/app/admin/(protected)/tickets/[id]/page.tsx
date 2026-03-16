@@ -74,7 +74,7 @@ async function TicketDetails({ id }: { id: string }) {
           <CardHeader>
             <CardTitle>Descrição</CardTitle>
           </CardHeader>
-          <CardContent className="whitespace-pre-wrap">
+          <CardContent className="whitespace-pre-wrap break-words">
             {ticket.description}
           </CardContent>
         </Card>
