@@ -950,9 +950,9 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding comment:', error);
-    return { error: 'Failed to add comment' };
+    return { error: 'Failed to add comment: ' + (error?.message || String(error)) };
   }
 }
 
