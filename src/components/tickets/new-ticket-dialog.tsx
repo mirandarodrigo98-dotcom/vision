@@ -146,6 +146,7 @@ export function NewTicketDialog() {
 
     try {
       const result = await createTicket(null, formData);
+      console.log('Resultado da criação de chamado:', result);
       
       if (result.error) {
         if (result.details) {
@@ -155,7 +156,7 @@ export function NewTicketDialog() {
             }
           });
         }
-        toast.error(result.error);
+        toast.error(`Erro: ${result.error}`);
         return;
       }
 
@@ -164,7 +165,8 @@ export function NewTicketDialog() {
       form.reset();
       router.refresh();
     } catch (error) {
-      toast.error('Erro ao criar chamado');
+      console.error('Erro no onSubmit:', error);
+      toast.error(`Erro inesperado: ${(error as Error).message}`);
     }
   }
 

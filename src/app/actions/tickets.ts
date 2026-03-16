@@ -238,7 +238,7 @@ export async function createTicket(prevState: any, formData: FormData) {
     return { success: true, ticketId };
   } catch (error) {
     console.error('Error creating ticket:', error);
-    return { error: 'Erro ao criar chamado' };
+    return { error: `Erro ao criar chamado: ${(error as Error).message}` };
   }
 }
 
