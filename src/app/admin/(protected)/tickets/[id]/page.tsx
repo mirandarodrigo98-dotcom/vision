@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Calendar } from 'lucide-react';
+import { User, Calendar, Paperclip, FileText, Download } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -78,6 +78,39 @@ async function TicketDetails({ id }: { id: string }) {
             {ticket.description}
           </CardContent>
         </Card>
+
+        {ticket.attachments && ticket.attachments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Paperclip className="h-5 w-5" />
+                Anexos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {ticket.attachments.map((att: any) => (
+                  <a 
+                    key={att.id} 
+                    href={att.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 p-3 border rounded-md hover:bg-muted transition-colors group"
+                  >
+                    <div className="bg-primary/10 p-2 rounded text-primary">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{att.original_name}</p>
+                      <p className="text-xs text-muted-foreground">{Math.round(att.size / 1024)} KB</p>
+                    </div>
+                    <Download className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

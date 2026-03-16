@@ -20,6 +20,12 @@ interface Interaction {
   created_at: string;
   user_name: string;
   user_avatar: string;
+  attachments?: {
+    id: string;
+    original_name: string;
+    size: number;
+    url: string;
+  }[];
 }
 
 function formatInteractionContent(content: string) {
@@ -110,6 +116,23 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
                       className="bg-muted p-3 rounded-lg text-sm w-full max-w-full break-words whitespace-pre-wrap overflow-hidden [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md"
                       dangerouslySetInnerHTML={{ __html: interaction.content }} 
                     />
+                    
+                    {interaction.attachments && interaction.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {interaction.attachments.map((att: any) => (
+                          <a 
+                            key={att.id} 
+                            href={att.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 p-1.5 border rounded bg-background hover:bg-muted text-xs transition-colors"
+                          >
+                            <Paperclip className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate max-w-[150px]">{att.original_name}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (

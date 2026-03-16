@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createNotification } from '@/app/actions/notifications';
 import { sendEmail } from '@/lib/email/resend';
-import { uploadToR2 } from '@/lib/r2';
+import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { hasPermission } from '@/lib/rbac';
 import { translateStatus, translatePriority } from '@/lib/ticket-utils';
@@ -22,6 +22,7 @@ const TicketSchema = z.object({
   category: z.string().min(1, 'Categoria é obrigatória'),
   assignee_id: z.string().min(1, 'Destinatário é obrigatório'),
   due_date: z.string().optional(),
+  company_id: z.string().optional(),
 });
 
 const CommentSchema = z.object({
@@ -107,6 +108,7 @@ export async function createTicket(prevState: any, formData: FormData) {
     category: formData.get('category'),
     assignee_id: formData.get('assignee_id'),
     due_date: formData.get('due_date'),
+    company_id: formData.get('company_id'),
   };
 
   const validatedFields = TicketSchema.safeParse(rawData);
@@ -115,7 +117,7 @@ export async function createTicket(prevState: any, formData: FormData) {
     return { error: 'Campos inválidos', details: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { title, description, priority, category, assignee_id, due_date } = validatedFields.data;
+  const { title, description, priority, category, assignee_id, due_date, company_id } = validatedFields.data;
   const ticketId = uuidv4();
   const protocol = await getNextSequentialNumber(new Date());
 
@@ -139,8 +141,8 @@ export async function createTicket(prevState: any, formData: FormData) {
 
   try {
     await db.prepare(`
-      INSERT INTO tickets (id, protocol, title, description, priority, category, requester_id, assignee_id, status, due_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
+      INSERT INTO tickets (id, protocol, title, description, priority, category, requester_id, assignee_id, status, due_date, company_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)
     `).run(
       ticketId,
       protocol,
@@ -150,8 +152,16 @@ export async function createTicket(prevState: any, formData: FormData) {
       category,
       session.user_id,
       assignee_id,
-      due_date ? new Date(due_date).toISOString() : null
+      due_date ? new Date(due_date).toISOString() : null,
+      company_id
     );
+
+    // Adicionar registro no histórico
+    const interactionId = uuidv4();
+    await db.prepare(`
+      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
+      VALUES (?, ?, ?, 'creation', 'Chamado criado')
+    `).run(interactionId, ticketId, session.user_id);
 
     // Upload de anexos
     for (const file of validAttachments) {
@@ -164,15 +174,16 @@ export async function createTicket(prevState: any, formData: FormData) {
         
         if (uploadResult) {
           await db.prepare(`
-            INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size, interaction_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
           `).run(
             uuidv4(),
             ticketId,
             uploadResult.fileKey,
             file.name,
             file.type,
-            file.size
+            file.size,
+            interactionId
           );
         }
       } catch (uploadError) {
@@ -180,13 +191,6 @@ export async function createTicket(prevState: any, formData: FormData) {
         // Não falhar o ticket se um anexo falhar, apenas logar
       }
     }
-
-    // Adicionar registro no histórico
-    const interactionId = uuidv4();
-    await db.prepare(`
-      INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'creation', 'Chamado criado')
-    `).run(interactionId, ticketId, session.user_id);
 
     // Notificar Assignee se houver
     if (assignee_id) {
@@ -760,15 +764,16 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
         
         if (uploadResult) {
           await db.prepare(`
-            INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size, interaction_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
           `).run(
             uuidv4(),
             ticketId,
             uploadResult.fileKey,
             file.name,
             file.type,
-            file.size
+            file.size,
+            interactionId
           );
           
           // Opcional: Adicionar referência no texto do comentário?
@@ -1016,7 +1021,27 @@ export async function getTicketById(id: string) {
       ORDER BY i.created_at ASC
     `).all(id);
 
-    return { ...ticket, interactions };
+    const attachmentsRaw = await db.prepare(`
+      SELECT * FROM ticket_attachments WHERE ticket_id = ?
+    `).all(id) as any[];
+
+    const attachments = await Promise.all(attachmentsRaw.map(async (att) => {
+      try {
+        const url = await getR2DownloadLink(att.file_key);
+        return { ...att, url };
+      } catch (e) {
+        console.error(`Error generating download link for attachment ${att.id}:`, e);
+        return { ...att, url: '#' };
+      }
+    }));
+
+    // Attach attachments to interactions
+    const interactionsWithAttachments = interactions.map((interaction: any) => {
+      const interactionAttachments = attachments.filter((att: any) => att.interaction_id === interaction.id);
+      return { ...interaction, attachments: interactionAttachments };
+    });
+
+    return { ...ticket, interactions: interactionsWithAttachments, attachments };
   } catch (error) {
     console.error('Error fetching ticket details:', error);
     return null;

@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { createTicket, getPotentialAssignees } from '@/app/actions/tickets';
 import { getTicketCategories, createTicketCategory } from '@/app/actions/ticket-categories';
+import { TicketCompanySelector } from './ticket-company-selector';
 import { Plus, Loader2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,6 +48,7 @@ const ticketSchema = z.object({
   category: z.string().min(1, 'Categoria é obrigatória'),
   assignee_id: z.string().min(1, 'Destinatário é obrigatório'),
   due_date: z.string().optional(),
+  company_id: z.string().optional(),
 });
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
@@ -214,7 +216,7 @@ export function NewTicketDialog() {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="priority"
@@ -224,7 +226,7 @@ export function NewTicketDialog() {
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a prioridade" />
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -252,33 +254,47 @@ export function NewTicketDialog() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="assignee_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Destinatário</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {assignees.map((assignee) => (
+                          <SelectItem key={assignee.id} value={assignee.id}>
+                            {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <FormField
               control={form.control}
-              name="assignee_id"
+              name="company_id"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Destinatário (Usuário do Escritório)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um destinatário" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {assignees.map((assignee) => (
-                        <SelectItem key={assignee.id} value={assignee.id}>
-                          {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {field.value && assignees.find(a => a.id === field.value)?.department_name && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Setor: {assignees.find(a => a.id === field.value)?.department_name}
-                    </p>
-                  )}
+                <FormItem className="flex flex-col">
+                  <FormLabel>Empresa (Opcional)</FormLabel>
+                  <FormControl>
+                    <TicketCompanySelector
+                      value={field.value}
+                      onSelect={(company) => {
+                        field.onChange(company?.id);
+                      }}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
