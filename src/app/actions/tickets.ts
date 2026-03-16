@@ -128,28 +128,29 @@ export async function createTicket(prevState: any, formData: FormData) {
   }
 
   const { title, description, priority, category, assignee_id, due_date, company_id } = validatedFields.data;
-  const ticketId = uuidv4();
-  const protocol = await getNextSequentialNumber(new Date());
-
-  // Processar anexos
-  const attachments = formData.getAll('attachments') as File[];
-  const validAttachments: File[] = [];
-
-  // Validar limites de arquivos
-  if (attachments.length > 5) {
-    return { error: 'Máximo de 5 arquivos permitidos' };
-  }
-
-  for (const file of attachments) {
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      return { error: `Arquivo ${file.name} excede o limite de 5MB` };
-    }
-    if (file.size > 0) {
-        validAttachments.push(file);
-    }
-  }
-
+  
   try {
+    const ticketId = uuidv4();
+    const protocol = await getNextSequentialNumber(new Date());
+
+    // Processar anexos
+    const attachments = formData.getAll('attachments') as File[];
+    const validAttachments: File[] = [];
+
+    // Validar limites de arquivos
+    if (attachments.length > 5) {
+      return { error: 'Máximo de 5 arquivos permitidos' };
+    }
+
+    for (const file of attachments) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        return { error: `Arquivo ${file.name} excede o limite de 5MB` };
+      }
+      if (file.size > 0) {
+          validAttachments.push(file);
+      }
+    }
+
     await db.prepare(`
       INSERT INTO tickets (id, protocol, title, description, priority, category, requester_id, assignee_id, status, due_date, company_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)
@@ -204,33 +205,38 @@ export async function createTicket(prevState: any, formData: FormData) {
 
     // Notificar Assignee se houver
     if (assignee_id) {
-      const assignee = await getUserEmail(assignee_id);
-      if (assignee) {
-        // Notificação Desktop/App
-        await createNotification(
-          assignee_id,
-          'Novo Chamado Atribuído',
-          `Você foi atribuído ao chamado: ${title}`,
-          `/admin/tickets/${ticketId}`
-        );
+      try {
+        const assignee = await getUserEmail(assignee_id);
+        if (assignee) {
+          // Notificação Desktop/App
+          await createNotification(
+            assignee_id,
+            'Novo Chamado Atribuído',
+            `Você foi atribuído ao chamado: ${title}`,
+            `/admin/tickets/${ticketId}`
+          );
 
-        // Email
-        const ticketData = {
-          id: ticketId,
-          protocol,
-          title,
-          description,
-          priority,
-          category,
-          due_date,
-          status: 'open'
-        };
+          // Email
+          const ticketData = {
+            id: ticketId,
+            protocol,
+            title,
+            description,
+            priority,
+            category,
+            due_date,
+            status: 'open'
+          };
 
-        await sendTicketCreatedEmail({
-          ticket: ticketData,
-          creator: { name: session.name || 'Usuário', email: session.email || '' },
-          assignee: { name: assignee.name, email: assignee.email }
-        });
+          await sendTicketCreatedEmail({
+            ticket: ticketData,
+            creator: { name: session.name || 'Usuário', email: session.email || '' },
+            assignee: { name: assignee.name, email: assignee.email }
+          });
+        }
+      } catch (notifyError) {
+         console.error('Error sending notifications:', notifyError);
+         // Don't fail ticket creation if notification fails
       }
     }
 
