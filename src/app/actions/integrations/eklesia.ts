@@ -1055,11 +1055,16 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
     
     // Use structured lines if available for bold detection
     let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
+    let hasAnyBold = false;
+
     if (data.lines && data.lines.length > 0) {
         linesToProcess = data.lines;
+        hasAnyBold = data.lines.some(l => l.isBold);
+        // console.log(`[Eklesia Accounts] Detected ${data.lines.length} lines. Has bold: ${hasAnyBold}`);
     } else {
         // Fallback: assume all are relevant if we can't detect bold
         linesToProcess = data.text.split('\n').map(t => ({ text: t, isBold: true }));
+        // console.log(`[Eklesia Accounts] Fallback to text split. ${linesToProcess.length} lines.`);
     }
 
     const accountsToInsert: any[] = [];
@@ -1073,25 +1078,29 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
       // 2. Analytic usually has a Reduced Code. Synthetic usually doesn't.
       // 3. Ignore if Synthetic (Non-Bold).
       
-      // Filter by Bold if we have that info (and not fallback)
-      if (data.lines && data.lines.length > 0 && !lineObj.isBold) {
+      // Filter by Bold only if we actually detected bold lines in the document
+      if (hasAnyBold && !lineObj.isBold) {
            continue; 
       }
 
       // 4. Reduced Code -> Internal Code. 
       // 5. If Reduced Code is 0 or empty -> Internal Code = null.
       
-      // Pattern: Code (digits/dots) + Space + Description + [Space + ReducedCode (digits)]
+      // Pattern: Code (digits/dots) + Space + Description + [Space + ReducedCode (digits)] + [Anything else]
       // Example: 1.1.01.001     CAIXA GERAL      5
       // Synthetic: 1.1          ATIVO
-      
-      // We accept lines with or without reduced code, but they must be bold (Analytic).
-      const match = trimmed.match(/^([\d\.]+)\s+(.+?)(\s+(\d+))?$/);
+      // Robust Regex:
+      // ^([\d\.]+)   -> Start with code (digits and dots)
+      // \s+          -> Separator
+      // (.+?)        -> Description (lazy, capture until...)
+      // (?:\s+(\d+))? -> Optional Reduced Code (space + digits)
+      // .*$          -> Ignore trailing characters (like Balance, D/C, etc.)
+      const match = trimmed.match(/^([\d\.]+)\s+(.+?)(?:\s+(\d+))?.*$/);
       
       if (match) {
         const code = match[1].replace(/^0+/, '');
         const description = match[2].trim();
-        const reducedCodeStr = match[4]; // Group 4 is the digits if present
+        const reducedCodeStr = match[3]; // Group 3 is now the digits if present (was 4)
         
         let integrationCode = reducedCodeStr || '';
         
