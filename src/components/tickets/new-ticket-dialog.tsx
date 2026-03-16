@@ -216,16 +216,16 @@ export function NewTicketDialog() {
               )}
             />
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <FormField
                 control={form.control}
                 name="priority"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-1">
                     <FormLabel>Prioridade</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -245,7 +245,7 @@ export function NewTicketDialog() {
                 control={form.control}
                 name="due_date"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-1">
                     <FormLabel>Data Limite</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
@@ -259,18 +259,20 @@ export function NewTicketDialog() {
                 control={form.control}
                 name="assignee_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-1 md:col-span-2">
                     <FormLabel>Destinatário</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full truncate">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {assignees.map((assignee) => (
                           <SelectItem key={assignee.id} value={assignee.id}>
-                            {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
+                            <span className="truncate block">
+                              {assignee.name} {assignee.department_name ? `(${assignee.department_name})` : ''}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -313,7 +315,7 @@ export function NewTicketDialog() {
                         disabled={loadingCategories}
                       >
                         <FormControl>
-                          <SelectTrigger className="flex-1">
+                          <SelectTrigger className="flex-1 w-full">
                             <SelectValue placeholder={loadingCategories ? "Carregando..." : "Selecione a categoria"} />
                           </SelectTrigger>
                         </FormControl>

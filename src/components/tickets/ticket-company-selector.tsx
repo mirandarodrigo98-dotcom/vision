@@ -92,13 +92,15 @@ export function TicketCompanySelector({ value, onSelect, disabled }: TicketCompa
           className="w-full justify-between"
           disabled={disabled}
         >
-          {value
-            ? (selectedCompanyName || "Carregando...")
-            : "Selecione a empresa (Opcional)"}
+          <span className="truncate flex-1 text-left">
+            {value
+              ? (selectedCompanyName || "Carregando...")
+              : "Selecione a empresa (Opcional)"}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <div className="flex flex-col">
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
