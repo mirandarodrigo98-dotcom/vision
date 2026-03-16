@@ -1073,7 +1073,31 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
       const trimmed = lineObj.text.trim();
       if (!trimmed) continue;
 
-      // User Rules:
+      // New Pattern Check: "Listagem das Contas Correntes com Reduzido"
+      // Format: ReducedCode Code-Description
+      // Example: 00000005 10-CAIXA GERAL
+      // Regex: ^(\d+)\s+([\w\.-]+?)\s*-\s*(.+)$
+      // Group 1: Reduced Code (digits)
+      // Group 2: Code (digits, dots, etc.)
+      // Group 3: Description (rest of line)
+      const listMatch = trimmed.match(/^(\d{4,})\s+([\w\.-]+?)\s*-\s*(.+)$/);
+      if (listMatch) {
+          const reducedCodeStr = listMatch[1];
+          const code = listMatch[2];
+          const description = listMatch[3].trim();
+          
+          let integrationCode = reducedCodeStr.replace(/^0+/, '');
+          if (!integrationCode) integrationCode = '';
+
+          accountsToInsert.push({
+              code: code,
+              description: description,
+              integration_code: integrationCode || null
+          });
+          continue; // Successfully parsed as list format
+      }
+
+      // User Rules (Old/Standard Pattern):
       // 1. Import only Analytic (Bold). 
       // 2. Analytic usually has a Reduced Code. Synthetic usually doesn't.
       // 3. Ignore if Synthetic (Non-Bold).
