@@ -11,6 +11,11 @@ import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { hasPermission } from '@/lib/rbac';
 import { translateStatus, translatePriority } from '@/lib/ticket-utils';
+import { 
+  sendTicketCreatedEmail, 
+  sendTicketStatusChangedEmail, 
+  sendTicketCommentEmail 
+} from '@/lib/emails/ticket-notifications';
 
 const TicketSchema = z.object({
   title: z.string()
@@ -205,19 +210,21 @@ export async function createTicket(prevState: any, formData: FormData) {
         );
 
         // Email
-        await sendEmail({
-          to: assignee.email,
-          subject: `[VISION] Novo Chamado Atribuído: ${title}`,
-          html: `
-            <h2>Olá ${assignee.name},</h2>
-            <p>Um novo chamado foi atribuído a você.</p>
-            <p><strong>Título:</strong> ${title}</p>
-            <p><strong>Status:</strong> ${translateStatus('open')}</p>
-            <p><strong>Prioridade:</strong> ${translatePriority(priority)}</p>
-            <p><strong>Categoria:</strong> ${category}</p>
-            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
-          `,
-          category: 'ticket_assigned'
+        const ticketData = {
+          id: ticketId,
+          protocol,
+          title,
+          description,
+          priority,
+          category,
+          due_date,
+          status: 'open'
+        };
+
+        await sendTicketCreatedEmail({
+          ticket: ticketData,
+          creator: { name: session.name || 'Usuário', email: session.email || '' },
+          assignee: { name: assignee.name, email: assignee.email }
         });
       }
     }
@@ -359,7 +366,7 @@ export async function acceptTicket(ticketId: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    const ticket = await db.prepare('SELECT status, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only assignee or admin can accept, OR if it's unassigned (pickup)
@@ -376,7 +383,9 @@ export async function acceptTicket(ticketId: string) {
     }
 
     // If unassigned, assign to current user
+    let newAssigneeId = ticket.assignee_id;
     if (isUnassigned) {
+      newAssigneeId = session.user_id;
       await db.prepare(`
         UPDATE tickets 
         SET status = 'in_progress', assignee_id = ?, updated_at = CURRENT_TIMESTAMP 
@@ -395,6 +404,25 @@ export async function acceptTicket(ticketId: string) {
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
       VALUES (?, ?, ?, 'status_change', ?)
     `).run(uuidv4(), ticketId, session.user_id, isUnassigned ? 'Chamado aceito e assumido' : 'Chamado aceito e em andamento');
+
+    // Notify requester
+    const requester = await getUserEmail(ticket.requester_id);
+    if (requester) {
+      await createNotification(
+        ticket.requester_id,
+        'Chamado em Andamento',
+        `Seu chamado "${ticket.title}" foi aceito e está em andamento.`,
+        `/admin/tickets/${ticketId}`
+      );
+
+      await sendTicketStatusChangedEmail({
+        ticket,
+        oldStatus: 'open',
+        newStatus: 'in_progress',
+        updater: { name: session.name || 'Atendente' }, // Assuming session has user_name or fetch it
+        recipient: { name: requester.name, email: requester.email }
+      });
+    }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath('/admin/tickets');
@@ -553,7 +581,7 @@ export async function cancelTicket(ticketId: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    const ticket = await db.prepare('SELECT status, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!ticket) return { error: 'Ticket not found' };
 
     // Only assignee or admin can cancel
@@ -576,6 +604,46 @@ export async function cancelTicket(ticketId: string) {
       VALUES (?, ?, ?, 'status_change', ?)
     `).run(uuidv4(), ticketId, session.user_id, 'Chamado cancelado');
 
+    // Notify requester
+    const requester = await getUserEmail(ticket.requester_id);
+    if (requester) {
+      await createNotification(
+        ticket.requester_id,
+        'Chamado Cancelado',
+        `Seu chamado "${ticket.title}" foi cancelado.`,
+        `/admin/tickets/${ticketId}`
+      );
+
+      await sendTicketStatusChangedEmail({
+        ticket,
+        oldStatus: ticket.status,
+        newStatus: 'cancelled',
+        updater: { name: session.name || 'Atendente' },
+        recipient: { name: requester.name, email: requester.email }
+      });
+    }
+
+    // Notify assignee if not the one canceling
+    if (ticket.assignee_id && ticket.assignee_id !== session.user_id) {
+        const assignee = await getUserEmail(ticket.assignee_id);
+        if (assignee) {
+             await createNotification(
+                ticket.assignee_id,
+                'Chamado Cancelado',
+                `O chamado "${ticket.title}" foi cancelado.`,
+                `/admin/tickets/${ticketId}`
+              );
+
+              await sendTicketStatusChangedEmail({
+                ticket,
+                oldStatus: ticket.status,
+                newStatus: 'cancelled',
+                updater: { name: session.name || 'Atendente' },
+                recipient: { name: assignee.name, email: assignee.email }
+              });
+        }
+    }
+
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath('/admin/tickets');
     return { success: true };
@@ -590,7 +658,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    const currentTicket = await db.prepare('SELECT status, requester_id, assignee_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    const currentTicket = await db.prepare('SELECT status, requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!currentTicket) return { error: 'Ticket not found' };
 
     const permissions = await getUserPermissions();
@@ -629,17 +697,12 @@ export async function updateTicketStatus(ticketId: string, status: string) {
           `/admin/tickets/${ticketId}`
         );
 
-        await sendEmail({
-          to: requester.email,
-          subject: `[VISION] Chamado Atualizado: ${currentTicket.title}`,
-          html: `
-            <h2>Olá ${requester.name},</h2>
-            <p>O status do seu chamado foi atualizado.</p>
-            <p><strong>Chamado:</strong> ${currentTicket.title}</p>
-            <p><strong>Novo Status:</strong> ${translateStatus(status)}</p>
-            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
-          `,
-          category: 'ticket_status_update'
+        await sendTicketStatusChangedEmail({
+          ticket: currentTicket,
+          oldStatus: currentTicket.status,
+          newStatus: status,
+          updater: { name: session.name || 'Atendente' },
+          recipient: { name: requester.name, email: requester.email }
         });
       }
     }
@@ -733,6 +796,9 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
   if (!content || !content.trim()) return { error: 'Comentário não pode ser vazio' };
 
   try {
+    const ticket = await db.prepare('SELECT requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
+    if (!ticket) return { error: 'Ticket not found' };
+
     const interactionId = uuidv4();
     await db.prepare(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
@@ -775,11 +841,6 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
             file.size,
             interactionId
           );
-          
-          // Opcional: Adicionar referência no texto do comentário?
-          // Como não tenho interaction_id na tabela ticket_attachments, não consigo vincular facilmente.
-          // Mas como o fileName tem o interactionId no path, posso inferir se precisar.
-          // Por enquanto, ficam na lista geral de anexos do ticket.
         }
       } catch (uploadError) {
         console.error(`Erro ao fazer upload do arquivo ${file.name}:`, uploadError);
@@ -789,6 +850,89 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
     await db.prepare(`
       UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?
     `).run(ticketId);
+
+    // Notificações
+    const sender = await getUserEmail(session.user_id);
+    const senderName = sender?.name || 'Usuário';
+
+    // Se o remetente é o solicitante, notifica o responsável
+    if (session.user_id === ticket.requester_id && ticket.assignee_id) {
+        const assignee = await getUserEmail(ticket.assignee_id);
+        if (assignee) {
+            await createNotification(
+                ticket.assignee_id,
+                'Nova Mensagem',
+                `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+                `/admin/tickets/${ticketId}`
+            );
+
+            await sendTicketCommentEmail({
+                ticket,
+                comment: content,
+                author: { name: senderName },
+                recipient: { name: assignee.name, email: assignee.email }
+            });
+        }
+    } 
+    // Se o remetente é o responsável, notifica o solicitante
+    else if (session.user_id === ticket.assignee_id) {
+        const requester = await getUserEmail(ticket.requester_id);
+        if (requester) {
+             await createNotification(
+                ticket.requester_id,
+                'Nova Mensagem',
+                `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+                `/admin/tickets/${ticketId}`
+            );
+
+            await sendTicketCommentEmail({
+                ticket,
+                comment: content,
+                author: { name: senderName },
+                recipient: { name: requester.name, email: requester.email }
+            });
+        }
+    }
+    // Se for um terceiro (ex: admin que não é nem solicitante nem responsável)
+    else {
+        // Notifica solicitante
+        const requester = await getUserEmail(ticket.requester_id);
+        if (requester && requester.id !== session.user_id) {
+             await createNotification(
+                ticket.requester_id,
+                'Nova Mensagem',
+                `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+                `/admin/tickets/${ticketId}`
+            );
+
+            await sendTicketCommentEmail({
+                ticket,
+                comment: content,
+                author: { name: senderName },
+                recipient: { name: requester.name, email: requester.email }
+            });
+        }
+
+        // Notifica responsável
+        if (ticket.assignee_id && ticket.assignee_id !== session.user_id) {
+            const assignee = await getUserEmail(ticket.assignee_id);
+            if (assignee) {
+                await createNotification(
+                    ticket.assignee_id,
+                    'Nova Mensagem',
+                    `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+                    `/admin/tickets/${ticketId}`
+                );
+
+                await sendTicketCommentEmail({
+                    ticket,
+                    comment: content,
+                    author: { name: senderName },
+                    recipient: { name: assignee.name, email: assignee.email }
+                });
+            }
+        }
+    }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     return { success: true };

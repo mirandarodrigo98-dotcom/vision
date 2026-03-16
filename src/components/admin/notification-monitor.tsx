@@ -1,99 +1,62 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { getUnreadNotifications, markNotificationAsRead } from '@/app/actions/notifications';
+import { getUnreadNotifications } from '@/app/actions/notifications';
 import { toast } from 'sonner';
 
 export function NotificationMonitor() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastCountRef = useRef(0);
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
-    // Request permission on mount
-    const requestPermission = () => {
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-    };
+    // Solicitar permissão ao carregar
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
 
-    requestPermission();
-
-    // Also try on first click if permission is default (browsers block auto request)
-    const handleInteraction = () => {
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-      // Remove listener after first interaction
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-    };
-
-    window.addEventListener('click', handleInteraction);
-    window.addEventListener('keydown', handleInteraction);
-
-    // Initialize audio
-    audioRef.current = new Audio('/sounds/notification.mp3'); 
-    
-    return () => {
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-    };
-  }, []);
-
-  useEffect(() => {
     const checkNotifications = async () => {
       try {
-        const notifications = await getUnreadNotifications();
-        
-        if (notifications.length > 0) {
-          // Play sound if possible
-          if (audioRef.current) {
-            audioRef.current.play().catch(() => {}); // Ignore autoplay errors
-          }
+        const unread = await getUnreadNotifications();
+        const currentCount = unread.length;
 
-          for (const notification of notifications) {
-            // Browser Notification
+        // Se não for a primeira execução e tivermos mais notificações do que antes
+        if (!isFirstRun.current && currentCount > lastCountRef.current) {
+          // Encontrar as novas notificações
+          // Simplificação: Pegar as (currentCount - lastCountRef.current) mais recentes
+          const newNotificationsCount = currentCount - lastCountRef.current;
+          const newNotifications = unread.slice(0, newNotificationsCount);
+
+          newNotifications.forEach(notification => {
+            // Disparar notificação do sistema
             if ('Notification' in window && Notification.permission === 'granted') {
-              const n = new Notification(notification.title, {
+              new Notification(notification.title, {
                 body: notification.message,
-                icon: '/icons/icon-192x192.png', // Adjust path as needed
-                tag: notification.id // Prevent duplicates
+                icon: '/icon.png' // Ajustar caminho do ícone se necessário
               });
-              
-              n.onclick = () => {
-                window.focus();
-                if (notification.link) {
-                  window.location.href = notification.link;
-                }
-                n.close();
-              };
             }
-
-            // Toast Notification (fallback/additional)
-            toast(notification.title, {
+            
+            // Disparar toast também
+            toast.info(notification.title, {
               description: notification.message,
-              action: notification.link ? {
-                label: 'Ver',
-                onClick: () => window.location.href = notification.link!
-              } : undefined,
             });
-
-            // Mark as read immediately after showing
-            await markNotificationAsRead(notification.id);
-          }
+          });
         }
+
+        lastCountRef.current = currentCount;
+        isFirstRun.current = false;
       } catch (error) {
-        console.error('Error checking notifications:', error);
+        console.error('Erro ao verificar notificações:', error);
       }
     };
 
-    // Initial check
+    // Verificar imediatamente
     checkNotifications();
 
-    // Poll every 30 seconds
-    const interval = setInterval(checkNotifications, 30 * 1000);
+    // Polling a cada 30 segundos
+    const interval = setInterval(checkNotifications, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  return null; // This component is invisible
+  return null; // Componente sem UI visual
 }
