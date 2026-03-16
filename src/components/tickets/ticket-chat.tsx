@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
@@ -49,6 +49,13 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [interactions]);
 
   async function handleSubmit() {
     if (!comment.trim() && attachments.length === 0) return;
@@ -142,6 +149,7 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
               )}
             </div>
           ))}
+          <div ref={bottomRef} />
         </div>
       </ScrollArea>
       
@@ -157,9 +165,18 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {attachments.map((file, index) => (
-                <Badge key={index} variant="secondary" className="gap-1">
-                  {file.name}
-                  <X size={12} className="cursor-pointer hover:text-red-500" onClick={() => removeAttachment(index)} />
+                <Badge key={index} variant="secondary" className="gap-1 pr-1 pl-2 py-1 flex items-center">
+                  <span className="truncate max-w-[200px]">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAttachment(index);
+                    }}
+                    className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors focus:outline-none"
+                  >
+                    <X size={14} />
+                  </button>
                 </Badge>
               ))}
             </div>
