@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createNotification } from '@/app/actions/notifications';
 import { sendEmail } from '@/lib/email/resend';
-import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
+import { uploadToR2, getR2DownloadLink, deleteFromR2 } from '@/lib/r2';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { hasPermission } from '@/lib/rbac';
 import { translateStatus, translatePriority } from '@/lib/ticket-utils';
@@ -810,7 +810,7 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
   if (!content || !content.trim()) return { error: 'Comentário não pode ser vazio' };
 
   try {
-    const ticket = await db.prepare('SELECT requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = await db.prepare('SELECT id, requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
     if (!ticket) return { error: 'Ticket not found' };
 
     const interactionId = uuidv4();
