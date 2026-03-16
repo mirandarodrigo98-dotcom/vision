@@ -20,7 +20,7 @@ import {
 const TicketSchema = z.object({
   title: z.string()
     .min(1, 'Título é obrigatório')
-    .max(15, 'Título deve ter no máximo 15 caracteres')
+    .max(30, 'Título deve ter no máximo 30 caracteres')
     .regex(/^[a-zA-Z0-9\s]+$/, 'Título deve conter apenas letras e números'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   priority: z.enum(['low', 'medium', 'high', 'critical']),

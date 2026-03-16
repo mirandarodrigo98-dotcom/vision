@@ -209,7 +209,7 @@ export function NewTicketDialog() {
                 <FormItem>
                   <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="Resumo do problema" maxLength={15} {...field} />
+                    <Input placeholder="Resumo do problema" maxLength={30} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
