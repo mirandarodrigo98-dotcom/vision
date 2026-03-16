@@ -12,7 +12,7 @@ export function TicketStatusBadge({ status }: TicketStatusBadgeProps) {
   // Removemos variant='outline' para usar o estilo padrão (sólido)
   // As classes de cor (colorClass) irão sobrescrever as cores padrão do componente
   return (
-    <Badge className={`${colorClass} border-0 hover:${colorClass.split(' ')[0]} whitespace-nowrap`}>
+    <Badge className={`${colorClass} border-0 whitespace-nowrap`}>
       {label}
     </Badge>
   );

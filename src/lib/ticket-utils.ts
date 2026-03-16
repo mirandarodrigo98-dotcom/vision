@@ -34,10 +34,10 @@ export function getStatusColor(status: string): string {
 
 export function getPriorityColor(priority: string): string {
   const map: Record<string, string> = {
-    'low': 'bg-slate-500',
-    'medium': 'bg-blue-500',
-    'high': 'bg-orange-500',
-    'critical': 'bg-red-600'
+    'low': 'bg-slate-500 hover:bg-slate-600 text-white',
+    'medium': 'bg-blue-500 hover:bg-blue-600 text-white',
+    'high': 'bg-orange-500 hover:bg-orange-600 text-white',
+    'critical': 'bg-red-600 hover:bg-red-700 text-white'
   };
-  return map[priority] || 'bg-gray-500';
+  return map[priority] || 'bg-gray-500 hover:bg-gray-600 text-white';
 }

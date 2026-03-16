@@ -10,7 +10,7 @@ export function TicketPriorityBadge({ priority }: TicketPriorityBadgeProps) {
   const colorClass = getPriorityColor(priority);
 
   return (
-    <Badge className={`${colorClass} text-white border-0 hover:${colorClass} whitespace-nowrap`}>
+    <Badge className={`${colorClass} border-0 whitespace-nowrap`}>
       {label}
     </Badge>
   );
