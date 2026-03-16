@@ -40,7 +40,7 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
         <TableBody>
           {tickets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+              <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                 Nenhum chamado encontrado
               </TableCell>
             </TableRow>
@@ -60,12 +60,12 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex justify-center items-center w-full">
+                  <div className="flex justify-center items-center">
                     <TicketStatusBadge status={ticket.status} />
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex justify-center items-center w-full">
+                  <div className="flex justify-center items-center">
                     <TicketPriorityBadge priority={ticket.priority} />
                   </div>
                 </TableCell>

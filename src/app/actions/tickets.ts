@@ -612,7 +612,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     await db.prepare(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
       VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, `Status alterado de ${currentTicket.status} para ${status}`);
+    `).run(uuidv4(), ticketId, session.user_id, `Status alterado de ${translateStatus(currentTicket.status)} para ${translateStatus(status)}`);
 
     // Notificar Requester se fechado/resolvido
     if (status === 'closed' || status === 'resolved') {
@@ -621,7 +621,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
         await createNotification(
           currentTicket.requester_id,
           'Chamado Atualizado',
-          `Seu chamado "${currentTicket.title}" foi alterado para: ${status}`,
+          `Seu chamado "${currentTicket.title}" foi alterado para: ${translateStatus(status)}`,
           `/admin/tickets/${ticketId}`
         );
 
@@ -632,7 +632,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
             <h2>Olá ${requester.name},</h2>
             <p>O status do seu chamado foi atualizado.</p>
             <p><strong>Chamado:</strong> ${currentTicket.title}</p>
-            <p><strong>Novo Status:</strong> ${status}</p>
+            <p><strong>Novo Status:</strong> ${translateStatus(status)}</p>
             <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
           `,
           category: 'ticket_status_update'

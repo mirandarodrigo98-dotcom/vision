@@ -11,6 +11,7 @@ import { User, Send, Paperclip, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
+import { translateStatus } from '@/lib/ticket-utils';
 
 interface Interaction {
   id: string;
@@ -19,6 +20,16 @@ interface Interaction {
   created_at: string;
   user_name: string;
   user_avatar: string;
+}
+
+function formatInteractionContent(content: string) {
+  let formatted = content;
+  const statuses = ['open', 'in_progress', 'resolved', 'closed', 'returned', 'cancelled'];
+  statuses.forEach(status => {
+    const regex = new RegExp(`\\b${status}\\b`, 'g');
+    formatted = formatted.replace(regex, translateStatus(status));
+  });
+  return formatted;
 }
 
 interface TicketChatProps {
@@ -103,7 +114,7 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full text-center break-words max-w-full whitespace-pre-wrap">
-                  {interaction.content} - {format(new Date(interaction.created_at), "dd/MM HH:mm", { locale: ptBR })} por {interaction.user_name}
+                  {formatInteractionContent(interaction.content)} - {format(new Date(interaction.created_at), "dd/MM HH:mm", { locale: ptBR })} por {interaction.user_name}
                 </div>
               )}
             </div>

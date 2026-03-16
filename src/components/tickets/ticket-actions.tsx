@@ -40,6 +40,7 @@ import {
   PlayCircle, 
   RotateCcw 
 } from 'lucide-react';
+import { translateStatus } from '@/lib/ticket-utils';
 
 interface TicketActionsProps {
   ticketId: string;
@@ -156,7 +157,7 @@ export function TicketActions({
     <div className="flex flex-col gap-4">
       {/* Status Display (Read Only) */}
       <div className="text-sm font-medium text-muted-foreground mb-2">
-        Status Atual: <span className="text-foreground capitalize">{currentStatus === 'in_progress' ? 'Em Andamento' : currentStatus}</span>
+        Status Atual: <span className="text-foreground capitalize">{translateStatus(currentStatus)}</span>
       </div>
 
       <div className="flex flex-wrap gap-2">

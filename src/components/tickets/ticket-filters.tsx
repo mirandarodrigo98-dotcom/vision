@@ -98,7 +98,7 @@ export function TicketFilters({ requesters, departments, assignees }: TicketFilt
                   <SelectItem value="in_progress">Em Andamento</SelectItem>
                   <SelectItem value="resolved">Resolvido</SelectItem>
                   <SelectItem value="closed">Fechado</SelectItem>
-                  <SelectItem value="returned">Retornado</SelectItem>
+                  <SelectItem value="returned">Devolvido</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
