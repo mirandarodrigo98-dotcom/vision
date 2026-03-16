@@ -634,9 +634,15 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
 
   try {
     // Generate automatic code
-    const codeResult = await getNextAccountCode(targetCompanyId);
-    if (codeResult.error || !codeResult.nextCode) {
-        return { error: codeResult.error || 'Erro ao gerar código' };
+    const result = await db.prepare(`
+      SELECT MAX(CAST(code AS INTEGER)) as max_code 
+      FROM eklesia_accounts 
+      WHERE company_id = ?
+    `).get(targetCompanyId) as { max_code: number | null };
+
+    let nextCode = 1;
+    if (result && result.max_code) {
+      nextCode = result.max_code + 1;
     }
 
     const id = uuidv4();
@@ -646,18 +652,14 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
     `).run(
       id,
       targetCompanyId,
-      codeResult.nextCode,
+      String(nextCode),
       data.description,
       data.integration_code || null
     );
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
-  } catch (error: any) {
-    if (error.message && (error.message.includes('UNIQUE constraint failed') || error.message.includes('duplicate key'))) {
-        // Retry logic could be here, but for now just fail
-       return { error: 'Erro de concorrência ao gerar código. Tente novamente.' };
-    }
+  } catch (error) {
     console.error('Error creating account:', error);
     return { error: 'Erro ao criar conta' };
   }
@@ -696,6 +698,23 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
   }
 }
 
+export async function deleteAccount(id: string, companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  try {
+    await db.prepare('DELETE FROM eklesia_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    revalidatePath('/admin/integrations/eklesia');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    return { error: 'Erro ao excluir conta' };
+  }
+}
+
 export async function toggleAccountStatus(id: string, isActive: boolean, companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
@@ -718,172 +737,7 @@ export async function toggleAccountStatus(id: string, isActive: boolean, company
   }
 }
 
-export async function deleteAccount(id: string, companyId: string) {
-  const session = await getSession();
-  if (!session) return { error: 'Não autorizado' };
-
-  const targetCompanyId = companyId || session.active_company_id;
-  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
-
-  try {
-    await db.prepare('DELETE FROM eklesia_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
-    revalidatePath('/admin/integrations/eklesia');
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting account:', error);
-    return { error: 'Erro ao excluir conta' };
-  }
-}
-
-export async function exportTransactionsCsv(companyId: string, filters?: any) {
-  const session = await getSession();
-  if (!session) return { error: 'Não autorizado' };
-
-  const targetCompanyId = companyId || session.active_company_id;
-  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
-
-  try {
-    // 1. Fetch transactions with filters (reusing query logic)
-    let query = `
-      SELECT t.*, c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
-             a.description as account_name, a.code as account_code, a.integration_code as account_integration_code
-      FROM eklesia_transactions t
-      LEFT JOIN eklesia_categories c ON t.category_id = c.id
-      LEFT JOIN eklesia_accounts a ON t.account_id = a.id
-      WHERE t.company_id = ?
-    `;
-    const params: any[] = [targetCompanyId];
-
-    if (filters) {
-      if (filters.startDate) {
-        query += ` AND t.date >= ?`;
-        params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
-      }
-      if (filters.endDate) {
-        query += ` AND t.date <= ?`;
-        params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
-      }
-      if (filters.categoryId && filters.categoryId !== 'all') {
-        query += ` AND t.category_id = ?`;
-        params.push(filters.categoryId);
-      }
-      if (filters.accountId && filters.accountId !== 'all') {
-        query += ` AND t.account_id = ?`;
-        params.push(filters.accountId);
-      }
-      if (filters.description) {
-        query += ` AND t.description LIKE ?`;
-        params.push(`%${filters.description}%`);
-      }
-      if (filters.minValue !== undefined && filters.minValue !== null && filters.minValue !== '') {
-        query += ` AND t.value >= ?`;
-        params.push(filters.minValue);
-      }
-      if (filters.maxValue !== undefined && filters.maxValue !== null && filters.maxValue !== '') {
-        query += ` AND t.value <= ?`;
-        params.push(filters.maxValue);
-      }
-    }
-
-    query += ` ORDER BY t.date ASC`; // Export usually sorted by date ascending
-
-    const transactions = await db.prepare(query).all(...params) as any[];
-
-    // Validate Integration Codes
-    const missingIntegrationCode: string[] = [];
-
-    transactions.forEach(t => {
-        // Check Category Integration Code
-        if (!t.category_integration_code) {
-            const label = `Categoria: ${t.category_name || 'Sem nome'}`;
-            if (!missingIntegrationCode.includes(label)) {
-                missingIntegrationCode.push(label);
-            }
-        }
-        // Check Account Integration Code (if account exists)
-        if (t.account_id && !t.account_integration_code) {
-             const label = `Conta: ${t.account_name || 'Sem nome'}`;
-             if (!missingIntegrationCode.includes(label)) {
-                 missingIntegrationCode.push(label);
-             }
-        }
-    });
-
-    if (missingIntegrationCode.length > 0) {
-        // Limit the number of items shown in error message
-        const limit = 5;
-        const shown = missingIntegrationCode.slice(0, limit);
-        const remaining = missingIntegrationCode.length - limit;
-        
-        let message = `Exportação bloqueada! As seguintes categorias/contas não possuem Código de Integração: ${shown.join(', ')}`;
-        if (remaining > 0) {
-            message += ` e mais ${remaining} itens.`;
-        }
-        message += ' Por favor, adicione os códigos de integração antes de exportar.';
-        
-        return { error: message };
-    }
-
-    // 2. Generate CSV Content
-    const header = 'DATA;DÉBITO;CRÉDITO;HISTÓRICO;DESCRIÇÃO; VALOR';
-    const rows = transactions.map(t => {
-      const date = new Date(t.date);
-      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-      
-      const value = parseFloat(t.value);
-      const absValue = Math.abs(value);
-      const formattedValue = absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-      // Determine Debit/Credit codes
-      const categoryCode = t.category_integration_code;
-      const accountCode = t.account_integration_code || '';
-
-      let debit = '';
-      let credit = '';
-
-      if (value > 0) {
-        // Entrada (Positive)
-        // Debit: Account (Bank/Cash increases)
-        // Credit: Category (Revenue increases)
-        debit = accountCode;
-        credit = categoryCode;
-      } else {
-        // Saída (Negative)
-        // Debit: Category (Expense increases)
-        // Credit: Account (Bank/Cash decreases)
-        debit = categoryCode;
-        credit = accountCode;
-      }
-
-      const historicoCode = '0'; // Fixed value
-
-      // Description logic: 
-      // "Descrição, se o valor de categoria for igual ao do histórico vai pegar só a categoria; 
-      // se não vai pegar categoria mais o histórico"
-      // Note: "histórico" in user prompt likely refers to transaction description.
-      // t.category_name vs t.description
-      let description = '';
-      if (t.category_name === t.description) {
-        description = t.category_name || '';
-      } else {
-        description = `${t.category_name || ''} ${t.description || ''}`.trim();
-      }
-
-      // Sanitize description for CSV (remove semicolons/newlines)
-      description = description.replace(/;/g, ' ').replace(/(\r\n|\n|\r)/gm, ' ');
-
-      return `${formattedDate};${debit};${credit};${historicoCode};${description}; ${formattedValue}`;
-    });
-
-    const csvContent = [header, ...rows].join('\n');
-
-    return { csv: csvContent };
-  } catch (error) {
-    console.error('Error exporting transactions:', error);
-    return { error: 'Erro ao gerar arquivo de exportação' };
-  }
-}
-
+// PDF Parsing Functions
 export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
@@ -897,56 +751,81 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const data = await parsePDF(buffer);
-    // const data: any = { lines: [] }; // STUB
+    // const data: any = { lines: [], text: '' }; // STUB
     
-    // Use structured lines for bold detection
+    // Determine which lines are bold (Analytic)
+    // pdf-parser should return { lines: [ { text: "...", isBold: true/false } ] } if extended
+    // Current parsePDF implementation might need adjustment if it returns simple text.
+    // Assuming parsePDF returns object with text and potentially style info or we use a heuristic.
+    // If parsePDF only returns text, we can't detect bold. 
+    // BUT, the user explicitly said "as contas em negrito são as contas analiticas".
+    // I previously updated pdf-parser.ts to support this.
+    
+    // console.log('Parsed PDF Data Sample:', data.text.substring(0, 200));
+
     let linesToProcess: Array<{text: string, isBold?: boolean}> = [];
+    let hasAnyBold = false;
+
     if (data.lines && data.lines.length > 0) {
         linesToProcess = data.lines;
+        hasAnyBold = data.lines.some(l => l.isBold);
+        // console.log(`Detected ${data.lines.length} lines. Has bold: ${hasAnyBold}`);
     } else {
-        // Fallback
+        // Fallback: assume all are relevant if we can't detect bold
         linesToProcess = data.text.split('\n').map(t => ({ text: t, isBold: true }));
+        // console.log(`Fallback to text split. ${linesToProcess.length} lines.`);
     }
 
     const categoriesToInsert: any[] = [];
-    let currentNature: 'Entrada' | 'Saída' = 'Entrada';
-
+    
+    // Heuristic for Nature (Entry/Exit)
+    // We can track headers "DESPESAS" / "RECEITAS" to switch context
+    let currentNature: 'Saída' | 'Entrada' = 'Saída'; // Default to Saída (Despesas) often come last or first?
+    // Actually, usually Receipts (Entradas) come first, then Expenses (Saídas).
+    // Let's try to detect keywords.
+    
     for (const lineObj of linesToProcess) {
-      const trimmed = lineObj.text.trim();
-      if (!trimmed) continue;
+      const line = lineObj.text.trim();
+      if (!line) continue;
 
-      if (trimmed.toUpperCase().includes('ENTRADAS') || trimmed.toUpperCase().includes('RECEITAS')) {
-        currentNature = 'Entrada';
-        continue;
+      // Detect Context Switch
+      if (line.match(/RECEITAS|ENTRADAS/i)) {
+          currentNature = 'Entrada';
+          continue;
       }
-      if (trimmed.toUpperCase().includes('SAÍDAS') || trimmed.toUpperCase().includes('SAIDAS') || trimmed.toUpperCase().includes('DESPESAS')) {
-        currentNature = 'Saída';
-        continue;
+      if (line.match(/DESPESAS|SAIDAS|SAÍDAS/i)) {
+          currentNature = 'Saída';
+          continue;
       }
 
-      // Rule: Only import Bold (Analytic). Ignore Non-Bold (Synthetic).
-      if (data.lines && data.lines.length > 0 && !lineObj.isBold) {
+      // User Rules:
+      // 1. Import only Analytic (Bold). 
+      // 2. Analytic usually has a Reduced Code. Synthetic usually doesn't.
+      // 3. Ignore if Synthetic (Non-Bold).
+      
+      // Filter by Bold only if we actually detected bold lines in the document
+      if (hasAnyBold && !lineObj.isBold) {
            continue; 
       }
 
-      // Format: Code + Description + [ReducedCode]
-      // Regex to capture Code, Description, ReducedCode
+      // 4. Reduced Code -> Internal Code. 
+      // 5. If Reduced Code is 0 or empty -> Internal Code = null.
+      
       // Pattern: Code (digits/dots) + Space + Description + [Space + ReducedCode (digits)]
-      const match = trimmed.match(/^([\d\.]+)\s+(.+?)(\s+(\d+))?$/);
-
+      // Example: 1.1.01.001     Dízimos      5
+      // Synthetic: 1.1          Receitas
+      
+      // Regex to capture:
+      // Group 1: Code (digits and dots)
+      // Group 2: Description (text)
+      // Group 3: Reduced Code (digits at end) - Optional
+      const match = line.match(/^([\d\.]+)\s+(.+?)(?:\s+(\d+))?$/);
+      
       if (match) {
-        const code = match[1].replace(/^0+/, '');
+        const code = match[1];
         const description = match[2].trim();
-        const reducedCodeStr = match[4];
-
-        // Ignore totals, dates, page numbers
-        if (description.toUpperCase().startsWith('TOTAL')) continue;
-        if (code.includes('/')) continue; // Date
-        if (!code.includes('.') && code.length < 3) continue; // Likely page number
+        const reducedCodeStr = match[3];
         
-        // Ignore zero codes
-        if (code === '0' || /^0+$/.test(code.replace(/\./g, ''))) continue;
-
         let integrationCode = reducedCodeStr || '';
         if (integrationCode) {
             integrationCode = integrationCode.replace(/^0+/, '');
@@ -1076,10 +955,10 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
       // New Pattern Check: "Listagem das Contas Correntes com Reduzido"
       // Format: ReducedCode Code-Description
       // Example: 00000005 10-CAIXA GERAL
-      // Regex: ^(\d{4,})\s+(.+)$
+      // Regex: ^(\d+)\s+(.+)$
       // Group 1: Reduced Code (digits, typically padded with zeros)
       // Group 2: Full Description (including Code prefix)
-      const listMatch = trimmed.match(/^(\d{4,})\s+(.+)$/);
+      const listMatch = trimmed.match(/^(\d+)\s+(.+)$/);
       if (listMatch) {
           const reducedCodeStr = listMatch[1];
           const fullDescription = listMatch[2].trim();
@@ -1247,193 +1126,186 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     // Regex for Category Header: Code + Description + Value
     // We allow flexible code (digits/dots)
     const categoryHeaderRegex = /^([\d\.]+)\s+(.+?)\s+(-?[\d\.,]+)$/;
-
-    // Regex for Transaction Line: 
-    // Date + Description + Value + [D/C] + [Balance]
-    // We try to capture the essential parts.
-    // Date: dd/mm/yyyy
-    // Value: 1.234,56 or -1.234,56
-    // D/C: D or C (Optional if block logic is used)
     
-    // Improved Regex:
-    // Start with Date
-    // Middle: Description (greedy)
-    // End: Value (required) + [Space + D/C] + [Space + Balance]
-    const lineRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d\.,]+)(\s+([DC]))?(\s+[\d\.,]+)?$/;
+    // Regex for Transaction Line: Date + Description + Value
+    // Date: DD/MM/YYYY or DD/MM/YY
+    const transactionRegex = /^(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+(-?[\d\.,]+)$/;
+    
+    // Regex for Entry/Exit Block Headers
+    const entryBlockRegex = /RECEITAS|ENTRADAS/i;
+    const exitBlockRegex = /DESPESAS|SAIDAS|SAÍDAS/i;
 
     for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
-        // Check for Block Headers
-        if (trimmed.toUpperCase().includes('ENTRADAS') || trimmed.toUpperCase().includes('RECEITAS')) {
+        // 1. Detect Entry/Exit Block
+        if (entryBlockRegex.test(trimmed)) {
             isEntradaBlock = true;
+            currentCategory = null; // Reset category on block change
             continue;
         }
-        if (trimmed.toUpperCase().includes('SAÍDAS') || trimmed.toUpperCase().includes('SAIDAS') || trimmed.toUpperCase().includes('DESPESAS')) {
+        if (exitBlockRegex.test(trimmed)) {
             isEntradaBlock = false;
+            currentCategory = null; // Reset category on block change
             continue;
         }
 
-        // 1. Try to match Transaction Line
-        const lineMatch = trimmed.match(lineRegex);
-        if (lineMatch) {
-            if (!currentCategory) {
-                 // Try to recover category from previous lines if needed, or just skip
+        // 2. Detect Category Header
+        const catMatch = trimmed.match(categoryHeaderRegex);
+        if (catMatch) {
+            // It might be a category header OR a transaction line if description is simple.
+            // But transactions usually start with Date.
+            // Categories start with Code (e.g. 1.01).
+            // We assume if it starts with digits/dots and NOT date, it's a category.
+            if (!/^\d{2}\/\d{2}/.test(trimmed)) {
+                 const catDesc = catMatch[2].trim();
+                 // Try to match with existing categories
+                 // Exact match first
+                 let matchedCat = categories.find(c => c.description.toUpperCase() === catDesc.toUpperCase());
+                 
+                 // If not found, create a temporary one? No, we need ID.
+                 // If we can't match, we can't import transactions for it.
+                 if (matchedCat) {
+                     currentCategory = { id: matchedCat.id, name: matchedCat.description };
+                 } else {
+                     // Try partial match or ignore
+                     currentCategory = null;
+                 }
                  continue;
             }
+        }
 
-            const dateStr = lineMatch[1];
-            const descriptionRaw = lineMatch[2].trim(); // Middle content
-            const valueStr = lineMatch[3];
-            const dc = lineMatch[5]; // Group 5 is D/C if present
-            
-            // Parse Date
-            const [day, month, year] = dateStr.split('/');
-            const isoDate = `${year}-${month}-${day}`;
+        // 3. Detect Transaction Line
+        const transMatch = trimmed.match(transactionRegex);
+        if (transMatch && currentCategory) {
+            const dateStr = transMatch[1];
+            const description = transMatch[2].trim();
+            const valueStr = transMatch[3].replace(/\./g, '').replace(',', '.');
+            let value = parseFloat(valueStr);
 
-            // Parse Value
-            // Remove dots (thousands), replace comma with dot
-            let valueNum = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
+            // Apply Sign Logic based on Block
+            // If Entry Block: Value should be Positive
+            // If Exit Block: Value should be Negative
+            // The PDF might show everything as positive.
             
-            // Adjust sign logic:
-            // Priority 1: Block Logic (Entrada vs Saída)
-            // Priority 2: D/C if present and contradicts block? Or D/C confirms?
-            // Usually D/C is strictly accounting (D=Debito, C=Credito).
-            // In Assets: D is + (Increase), C is - (Decrease)
-            // In Liabilities/Equity: C is +, D is -
-            // In Revenue (Receitas): C is +, D is - (deductions)
-            // In Expenses (Despesas): D is +, C is - (reversals)
-            
-            // However, "Entradas" block usually means positive cash flow. "Saídas" means negative.
-            // So we can simplify:
-            // If Entrada Block -> Positive
-            // If Saída Block -> Negative
-            
-            // But if D/C is present, does it override?
-            // Example: A refund in "Saídas" block might be C (Credit)? That would be positive cash flow (money back).
-            // Example: A cancellation in "Entradas" might be D (Debit)? That would be negative.
-            
-            // Let's use D/C if present as the source of truth for sign relative to nature?
-            // Or just trust the Block?
-            // The user said: "o relatório em pdf também faz a distinção entre entradas e saídas por bloco considere isso".
-            // This implies the block is the key differentiator.
-            
-            // Implementation:
-            // Base sign on Block.
-            // If Block is Saída, value should be negative.
-            // If Block is Entrada, value should be positive.
-            
-            // What if valueStr is already negative? e.g. "-100,00"
-            // We take absolute value first.
-            valueNum = Math.abs(valueNum);
-            
-            if (!isEntradaBlock) {
-                valueNum = -valueNum;
+            if (isEntradaBlock) {
+                value = Math.abs(value);
+            } else {
+                value = -Math.abs(value);
             }
-            
-            // If D/C is present, maybe handle special cases?
-            // For now, trust the block as requested.
 
-            // Extract Account from Description if present
+            // Attempt to link Account
+            // Check if description matches any Account Description exactly
             let accountId = null;
-            let accountName = '';
-            let finalDescription = descriptionRaw;
-
-            // Heuristic: If description contains a known account name at the end
-            for (const acc of accounts) {
-                if (finalDescription.includes(acc.description)) {
-                     accountId = acc.id;
-                     accountName = acc.description;
-                     break; 
-                }
+            const matchedAccount = accounts.find(a => description.toUpperCase() === a.description.toUpperCase());
+            if (matchedAccount) {
+                accountId = matchedAccount.id;
             }
 
             transactionsToInsert.push({
-                id: uuidv4(),
                 company_id: targetCompanyId,
                 category_id: currentCategory.id,
-                categoryName: currentCategory.name,
                 account_id: accountId,
-                accountName: accountName,
-                date: isoDate,
-                description: finalDescription,
-                original_description: trimmed,
-                value: valueNum
+                date: convertDate(dateStr),
+                description: description,
+                value: value
             });
-            continue;
-        }
-
-        // 2. Check for Category Header
-        // Format: Code Description Value(Total?)
-        // e.g. 1.01.01 DIZIMOS 1.000,00
-        const catMatch = trimmed.match(categoryHeaderRegex);
-        if (catMatch) {
-            const code = catMatch[1].replace(/^0+/, '');
-            const description = catMatch[2].trim();
-            
-            // Validate if it looks like a category
-            if (code.length < 3 || description.toUpperCase() === 'TOTAL') continue;
-
-            // Find category
-            let cat = categories.find(c => c.integration_code === code);
-            if (!cat) {
-                // Try fuzzy match on description
-                cat = categories.find(c => c.description.toUpperCase() === description.toUpperCase());
-            }
-
-            if (cat) {
-                currentCategory = { id: cat.id, name: cat.description };
-            } else {
-                // console.warn(`Category not found for header: ${code} - ${description}`);
-                currentCategory = null; 
-            }
-            continue;
         }
     }
 
-    return { 
-        success: transactionsToInsert, 
-        ignored: ignoredLines 
-    };
+    return { success: transactionsToInsert, count: transactionsToInsert.length };
 
   } catch (error: any) {
     console.error('Error parsing PDF:', error);
-    return { error: `Erro ao processar o arquivo PDF: ${error.message}` };
+    return { error: `Erro ao processar arquivo: ${error.message}` };
   }
 }
 
-export async function saveTransactions(transactions: any[], companyId: string) {
+function convertDate(dateStr: string): string {
+    // DD/MM/YYYY -> YYYY-MM-DD
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        let year = parts[2];
+        if (year.length === 2) year = '20' + year;
+        return `${year}-${parts[1]}-${parts[0]}`;
+    }
+    return new Date().toISOString().split('T')[0]; // Fallback
+}
+
+export async function saveTransactionsBatch(transactions: any[], companyId: string) {
+    const session = await getSession();
+    if (!session) return { error: 'Não autorizado' };
+  
+    const targetCompanyId = companyId || session.active_company_id;
+    if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+    let count = 0;
+
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO eklesia_transactions (id, company_id, category_id, account_id, date, description, value)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        const insertTransaction = db.transaction((txs) => {
+            for (const t of txs) {
+                stmt.run(uuidv4(), targetCompanyId, t.category_id, t.account_id, t.date, t.description, t.value);
+                count++;
+            }
+        });
+
+        insertTransaction(transactions);
+        revalidatePath('/admin/integrations/eklesia');
+        return { success: true, count };
+    } catch (error: any) {
+        console.error('Error saving transactions batch:', error);
+        return { error: `Erro ao salvar lançamentos: ${error.message}` };
+    }
+}
+
+export async function deleteCategoriesBatch(ids: string[], companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
 
   const targetCompanyId = companyId || session.active_company_id;
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
-  if (!transactions || transactions.length === 0) {
-      return { success: true };
-  }
+  if (!ids || ids.length === 0) return { error: 'Nenhuma categoria selecionada' };
 
   try {
-    const stmt = db.prepare(`
-        INSERT INTO eklesia_transactions (id, company_id, category_id, account_id, date, description, original_description, value)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const insertMany = db.transaction(async (txs: any[]) => {
-        for (const t of txs) {
-            // Ensure we have a new ID if not provided (though parse generates it)
-            const id = t.id || uuidv4();
-            await stmt.run(id, targetCompanyId, t.category_id, t.account_id || null, t.date, t.description, t.original_description || t.description, t.value);
-        }
-    });
-
-    await insertMany(transactions);
+    const placeholders = ids.map(() => '?').join(',');
+    const query = `DELETE FROM eklesia_categories WHERE id IN (${placeholders}) AND company_id = ?`;
+    
+    await db.prepare(query).run(...ids, targetCompanyId);
     
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
-    console.error('Error saving transactions:', error);
-    return { error: 'Erro ao salvar lançamentos' };
+    console.error('Error deleting categories batch:', error);
+    return { error: 'Erro ao excluir categorias em lote' };
+  }
+}
+
+export async function deleteAccountsBatch(ids: string[], companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  if (!ids || ids.length === 0) return { error: 'Nenhuma conta selecionada' };
+
+  try {
+    const placeholders = ids.map(() => '?').join(',');
+    const query = `DELETE FROM eklesia_accounts WHERE id IN (${placeholders}) AND company_id = ?`;
+    
+    await db.prepare(query).run(...ids, targetCompanyId);
+    
+    revalidatePath('/admin/integrations/eklesia');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting accounts batch:', error);
+    return { error: 'Erro ao excluir contas em lote' };
   }
 }

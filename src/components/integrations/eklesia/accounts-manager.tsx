@@ -11,6 +11,7 @@ import {
   createAccount, 
   Account, 
   deleteAccount, 
+  deleteAccountsBatch,
   getNextAccountCode, 
   updateAccount,
   getAccounts,
@@ -18,6 +19,7 @@ import {
 } from '@/app/actions/integrations/eklesia';
 import { AccountsImportDialog } from './accounts-import-dialog';
 import { Loader2, Trash2, Database, RefreshCcw, Pencil, Plus, Filter } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -68,6 +70,8 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
   const [nextCode, setNextCode] = useState<string>('Calculando...');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   
   // Filter states
   const [isFilterLoading, setIsFilterLoading] = useState(false);
@@ -184,6 +188,7 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
 
   const handleFilter = async () => {
     setIsFilterLoading(true);
+    setSelectedIds([]);
     try {
         const data = await getAccounts(companyId, filters);
         setAccounts(data);
@@ -191,6 +196,42 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
         toast.error("Erro ao filtrar contas");
     } finally {
         setIsFilterLoading(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(accounts.map(c => c.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    }
+  };
+
+  const executeBatchDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBatchDeleting(true);
+    try {
+        const result = await deleteAccountsBatch(selectedIds, companyId);
+        if (result.success) {
+            toast.success(`${selectedIds.length} contas excluídas`);
+            setAccounts(prev => prev.filter(c => !selectedIds.includes(c.id)));
+            setSelectedIds([]);
+            router.refresh();
+        } else {
+            toast.error(result.error || 'Erro ao excluir contas');
+        }
+    } catch (error) {
+        toast.error("Erro ao excluir contas em lote");
+    } finally {
+        setIsBatchDeleting(false);
     }
   };
 
@@ -238,7 +279,35 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
       </Card>
 
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Listagem de Contas</h3>
+        <div className="flex items-center gap-4">
+            <h3 className="text-lg font-medium">Listagem de Contas</h3>
+            {selectedIds.length > 0 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={isBatchDeleting}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir {selectedIds.length} selecionados
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Contas</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tem certeza que deseja excluir <strong>{selectedIds.length}</strong> contas selecionadas?
+                                <br/><br/>
+                                <span className="text-red-600 font-medium text-xs">Atenção: Não é possível excluir contas que possuem lançamentos vinculados.</span>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={executeBatchDelete} className="bg-red-600 hover:bg-red-700">
+                                {isBatchDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Excluir'}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+        </div>
         <div className="flex gap-2">
             <AccountsImportDialog companyId={companyId} onSuccess={handleFilter} />
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -325,6 +394,12 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
           <Table>
               <TableHeader>
                   <TableRow>
+                      <TableHead className="w-[40px]">
+                          <Checkbox 
+                              checked={accounts.length > 0 && selectedIds.length === accounts.length}
+                              onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                          />
+                      </TableHead>
                       <TableHead>Código</TableHead>
                       <TableHead>Descrição da Conta</TableHead>
                       <TableHead>Cód. Int.</TableHead>
@@ -348,6 +423,12 @@ export function AccountsManager({ initialAccounts, companyId }: AccountsManagerP
                   ) : (
                       accounts.map((account) => (
                           <TableRow key={account.id} className={!account.is_active ? 'opacity-60 bg-gray-50' : ''}>
+                              <TableCell>
+                                  <Checkbox 
+                                      checked={selectedIds.includes(account.id)}
+                                      onCheckedChange={(checked) => handleSelectOne(account.id, !!checked)}
+                                  />
+                              </TableCell>
                               <TableCell className="font-mono">{account.code}</TableCell>
                               <TableCell className="font-medium">{account.description}</TableCell>
                               <TableCell className="font-mono text-xs text-muted-foreground">{account.integration_code || '-'}</TableCell>

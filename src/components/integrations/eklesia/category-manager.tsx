@@ -12,6 +12,7 @@ import {
   createCategory, 
   Category, 
   deleteCategory, 
+  deleteCategoriesBatch,
   seedDefaultCategories, 
   getNextCode, 
   updateCategory,
@@ -20,6 +21,7 @@ import {
 } from '@/app/actions/integrations/eklesia';
 import { CategoriesImportDialog } from './categories-import-dialog';
 import { Loader2, Trash2, Database, RefreshCcw, Pencil, Plus, Filter } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -72,6 +74,8 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
   const [nextCode, setNextCode] = useState<string>('Calculando...');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   
   // Filter states
   const [isFilterLoading, setIsFilterLoading] = useState(false);
@@ -195,6 +199,7 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
 
   const handleFilter = async () => {
     setIsFilterLoading(true);
+    setSelectedIds([]);
     try {
         const data = await getCategories(companyId, filters);
         setCategories(data);
@@ -219,6 +224,42 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
       toast.error("Erro ao inserir categorias padrão");
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(categories.map(c => c.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    }
+  };
+
+  const executeBatchDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBatchDeleting(true);
+    try {
+        const result = await deleteCategoriesBatch(selectedIds, companyId);
+        if (result.success) {
+            toast.success(`${selectedIds.length} categorias excluídas`);
+            setCategories(prev => prev.filter(c => !selectedIds.includes(c.id)));
+            setSelectedIds([]);
+            router.refresh();
+        } else {
+            toast.error(result.error || 'Erro ao excluir categorias');
+        }
+    } catch (error) {
+        toast.error("Erro ao excluir categorias em lote");
+    } finally {
+        setIsBatchDeleting(false);
     }
   };
 
@@ -283,7 +324,35 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
       </Card>
 
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Listagem de Categorias</h3>
+        <div className="flex items-center gap-4">
+            <h3 className="text-lg font-medium">Listagem de Categorias</h3>
+            {selectedIds.length > 0 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={isBatchDeleting}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir {selectedIds.length} selecionados
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Categorias</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tem certeza que deseja excluir <strong>{selectedIds.length}</strong> categorias selecionadas?
+                                <br/><br/>
+                                <span className="text-red-600 font-medium text-xs">Atenção: Não é possível excluir categorias que possuem lançamentos vinculados.</span>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={executeBatchDelete} className="bg-red-600 hover:bg-red-700">
+                                {isBatchDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Excluir'}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+        </div>
         <div className="flex gap-2">
             <CategoriesImportDialog companyId={companyId} onSuccess={handleFilter} />
           <Button variant="outline" size="icon" onClick={handleFilter} title="Recarregar">
@@ -402,6 +471,12 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
           <Table>
               <TableHeader>
                   <TableRow>
+                      <TableHead className="w-[40px]">
+                          <Checkbox 
+                              checked={categories.length > 0 && selectedIds.length === categories.length}
+                              onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                          />
+                      </TableHead>
                       <TableHead>Código</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Cód. Int.</TableHead>
@@ -413,19 +488,25 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
               <TableBody>
                   {isFilterLoading ? (
                       <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
+                          <TableCell colSpan={7} className="text-center py-8">
                               <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                           </TableCell>
                       </TableRow>
                   ) : categories.length === 0 ? (
                       <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                               Nenhuma categoria encontrada.
                           </TableCell>
                       </TableRow>
                   ) : (
                       categories.map((category) => (
                           <TableRow key={category.id} className={!category.is_active ? 'opacity-60 bg-gray-50' : ''}>
+                              <TableCell>
+                                  <Checkbox 
+                                      checked={selectedIds.includes(category.id)}
+                                      onCheckedChange={(checked) => handleSelectOne(category.id, !!checked)}
+                                  />
+                              </TableCell>
                               <TableCell className="font-mono">{category.code}</TableCell>
                               <TableCell className="font-medium">{category.description}</TableCell>
                               <TableCell className="font-mono text-xs text-muted-foreground">{category.integration_code || '-'}</TableCell>
