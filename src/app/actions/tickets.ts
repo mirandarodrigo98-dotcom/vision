@@ -55,13 +55,16 @@ async function createTicketsSequencesTable() {
 
   // Ensure protocol column exists in tickets table
   try {
-    const columns = await db.prepare("PRAGMA table_info(tickets)").all() as any[];
-    const hasProtocol = columns.some(c => c.name === 'protocol');
-    if (!hasProtocol) {
-       await db.prepare("ALTER TABLE tickets ADD COLUMN protocol TEXT").run();
-    }
+    // Postgres compatible way to ensure column exists
+    await db.prepare("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS protocol TEXT").run();
   } catch (e) {
     console.error("Error ensuring protocol column:", e);
+    // Fallback for older DBs or if IF NOT EXISTS is not supported
+    try {
+      await db.prepare("ALTER TABLE tickets ADD COLUMN protocol TEXT").run();
+    } catch (e2) {
+      // Ignore error if column already exists
+    }
   }
 }
 
