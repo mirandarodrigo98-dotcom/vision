@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface Notification {
+export interface NotificationItem {
   id: string;
   title: string;
   message: string;
@@ -29,7 +29,7 @@ export async function getUnreadNotifications() {
     return notifications.map((n: any) => ({
       ...n,
       read: Boolean(n.read)
-    })) as Notification[];
+    })) as NotificationItem[];
   } catch (error) {
     console.error('Error fetching unread notifications:', error);
     return [];
@@ -57,7 +57,7 @@ export async function getUserNotifications(limit = 20, offset = 0) {
       notifications: notifications.map((n: any) => ({
         ...n,
         read: Boolean(n.read)
-      })) as Notification[],
+      })) as NotificationItem[],
       total: total.count
     };
   } catch (error) {
