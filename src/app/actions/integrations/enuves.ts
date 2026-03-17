@@ -969,7 +969,7 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
              // Find Value: Look for a number that stands alone or is negative, surrounded by whitespace/tabs/start/end
              // Regex for dot decimal: -123.45 or 123.45 or -123 or 123
              // We prioritize finding it.
-             const valueRegex = /(?:^|\s|\t)(-?\d+(?:\.\d{1,2})?)(?=\s|\t|$)/;
+             const valueRegex = /(?:^|\s|\t)(-?\d+(?:[\.,]\d{1,2})?)(?=\s|\t|$)/;
              // Find the LAST matching number in the text? 
              // In "Energia elétrica (8/72) -619.13 LIGHT", (8/72) shouldn't match because of parens/slash not being whitespace.
              // But let's use `match` which returns first match.
@@ -993,7 +993,7 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
              }
 
              const valueStr = valueMatch[1];
-             const valueNum = parseFloat(valueStr);
+             const valueNum = parseFloat(valueStr.replace(',', '.'));
              const finalValue = Math.abs(valueNum);
 
              // Description is everything before the value match
@@ -1017,6 +1017,7 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
              // Match Account
              let accountId = null;
              const normalizedSuffix = suffix.toUpperCase();
+             const fullRawTextNormalized = rawText.toUpperCase();
              
              for (const acc of accounts) {
                  const accDesc = acc.description.trim().toUpperCase();
@@ -1027,14 +1028,34 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
                  }
              }
 
+             if (!accountId) {
+                 for (const acc of accounts) {
+                     const words = acc.description.trim().toUpperCase().split(/\s+/).filter(w => w.length > 2);
+                     if (words.length > 0 && words.every(w => fullRawTextNormalized.includes(w))) {
+                         accountId = acc.id;
+                         break;
+                     }
+                 }
+             }
+
              const normalizedDesc = description.toUpperCase();
              let categoryId = null;
 
              for (const cat of categories) {
                  const catDesc = cat.description.trim().toUpperCase();
-                 if (normalizedDesc.includes(catDesc) || catDesc === normalizedDesc) {
+                 if (normalizedDesc.includes(catDesc) || catDesc === normalizedDesc || normalizedSuffix.includes(catDesc)) {
                      categoryId = cat.id;
                      break;
+                 }
+             }
+
+             if (!categoryId) {
+                 for (const cat of categories) {
+                     const words = cat.description.trim().toUpperCase().split(/\s+/).filter(w => w.length > 2);
+                     if (words.length > 0 && words.every(w => fullRawTextNormalized.includes(w))) {
+                         categoryId = cat.id;
+                         break;
+                     }
                  }
              }
 
