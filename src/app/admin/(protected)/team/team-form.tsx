@@ -322,7 +322,8 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                                         <ScrollArea className="h-[300px]">
                                             {(() => {
                                                 const filteredCompanies = companies.filter(company => 
-                                                    company.nome.toLowerCase().includes(searchCompany.toLowerCase()) || 
+                                                    (company.razao_social && company.razao_social.toLowerCase().includes(searchCompany.toLowerCase())) ||
+                                                    (company.nome && company.nome.toLowerCase().includes(searchCompany.toLowerCase())) || 
                                                     (company.cnpj && company.cnpj.includes(searchCompany))
                                                 );
 
@@ -363,9 +364,10 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                                                                     )}
                                                                 />
                                                                 <div>
-                                                                    <div className="font-medium text-sm">{company.nome}</div>
+                                                                    <div className="font-medium text-sm">{company.razao_social || company.nome}</div>
                                                                     <div className="flex gap-2 text-xs text-muted-foreground">
                                                                         <span>{company.cnpj}</span>
+                                                                        {company.code && <span>Cód: {company.code}</span>}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -402,8 +404,13 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                                 return (
                                     <div key={id} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
                                         <div className="flex flex-col overflow-hidden mr-2">
-                                            <span className="text-sm font-medium truncate" title={company.nome}>{company.nome}</span>
-                                            <span className="text-xs text-muted-foreground">{company.cnpj}</span>
+                                            <span className="text-sm font-medium truncate" title={company.razao_social || company.nome}>
+                                                {company.razao_social || company.nome}
+                                            </span>
+                                            <div className="flex gap-2 text-xs text-muted-foreground">
+                                                <span>{company.cnpj}</span>
+                                                {company.code && <span>Cód: {company.code}</span>}
+                                            </div>
                                         </div>
                                         <Button
                                             type="button"
