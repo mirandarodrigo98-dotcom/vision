@@ -99,7 +99,7 @@ export function PdfImportDialog({ companyId, onSuccess }: PdfImportDialogProps) 
           Importar PDF
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[98vw] w-full max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-4">
+      <DialogContent className="max-w-[95vw] sm:max-w-[1200px] w-full max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-4">
         <DialogHeader>
           <DialogTitle>Importar Lançamentos via PDF</DialogTitle>
           <DialogDescription>

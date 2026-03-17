@@ -1011,8 +1011,9 @@ export async function getTickets(filters?: {
       t.requester_id = ? 
       OR t.assignee_id = ? 
       OR (a.department_id IS NOT NULL AND a.department_id = ?)
+      OR (r.department_id IS NOT NULL AND r.department_id = ?)
     )`;
-    params.push(session.user_id, session.user_id, userDepartmentId);
+    params.push(session.user_id, session.user_id, userDepartmentId, userDepartmentId);
   }
 
   if (filters?.status && filters.status !== 'all') {
@@ -1105,8 +1106,9 @@ export async function getTicketCounts(filters?: {
       t.requester_id = ? 
       OR t.assignee_id = ? 
       OR (a.department_id IS NOT NULL AND a.department_id = ?)
+      OR (r.department_id IS NOT NULL AND r.department_id = ?)
     )`;
-    params.push(session.user_id, session.user_id, userDepartmentId);
+    params.push(session.user_id, session.user_id, userDepartmentId, userDepartmentId);
   }
 
   // Filters (excluding status)
@@ -1184,10 +1186,12 @@ export async function getTicketById(id: string) {
     const ticket = await db.prepare(`
       SELECT t.*, 
         r.name as requester_name, r.email as requester_email, r.avatar_path as requester_avatar,
-        a.name as assignee_name, a.avatar_path as assignee_avatar
+        a.name as assignee_name, a.avatar_path as assignee_avatar,
+        c.nome as company_name
       FROM tickets t
       JOIN users r ON t.requester_id = r.id
       LEFT JOIN users a ON t.assignee_id = a.id
+      LEFT JOIN client_companies c ON t.company_id = c.id
       WHERE t.id = ?
     `).get(id);
 

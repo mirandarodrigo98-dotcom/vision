@@ -73,10 +73,34 @@ async function TicketDetails({ id }: { id: string }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Descrição</CardTitle>
+            <CardTitle>Detalhes do Chamado</CardTitle>
           </CardHeader>
-          <CardContent className="whitespace-pre-wrap break-words">
-            {ticket.description}
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
+              <div>
+                <span className="text-sm font-medium text-muted-foreground block">Categoria</span>
+                <span>{ticket.category || 'Não informada'}</span>
+              </div>
+              {ticket.company_name && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground block">Unidade/Empresa</span>
+                  <span>{ticket.company_name}</span>
+                </div>
+              )}
+              {ticket.due_date && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground block">Prazo Desejado</span>
+                  <span>{format(new Date(ticket.due_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="pt-2">
+              <span className="text-sm font-medium text-muted-foreground block mb-2">Descrição</span>
+              <div className="whitespace-pre-wrap break-words">
+                {ticket.description}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -89,6 +113,8 @@ async function TicketDetails({ id }: { id: string }) {
               ticketId={ticket.id} 
               interactions={ticket.interactions} 
               currentUserEmail={session?.email} 
+              ticketStatus={ticket.status}
+              isRequester={isRequester}
             />
           </CardContent>
         </Card>

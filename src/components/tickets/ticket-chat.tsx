@@ -42,9 +42,11 @@ interface TicketChatProps {
   ticketId: string;
   interactions: Interaction[];
   currentUserEmail?: string;
+  ticketStatus?: string;
+  isRequester?: boolean;
 }
 
-export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketChatProps) {
+export function TicketChat({ ticketId, interactions, currentUserEmail, ticketStatus, isRequester }: TicketChatProps) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -153,54 +155,60 @@ export function TicketChat({ ticketId, interactions, currentUserEmail }: TicketC
         </div>
       </ScrollArea>
       
-      <div className="p-4 border-t bg-background">
-        <div className="space-y-2">
-          <RichTextEditor 
-            value={comment} 
-            onChange={setComment} 
-            placeholder="Escreva um comentário..." 
-            className="bg-background"
-          />
-          
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((file, index) => (
-                <Badge key={index} variant="secondary" className="gap-1 pr-1 pl-2 py-1 flex items-center">
-                  <span className="truncate max-w-[200px]">{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeAttachment(index);
-                    }}
-                    className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors focus:outline-none"
-                  >
-                    <X size={14} />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
+      {ticketStatus === 'open' && !isRequester ? (
+        <div className="p-4 border-t bg-muted/50 text-center text-sm text-muted-foreground">
+          Apenas o solicitante pode enviar mensagens ou anexos antes do chamado ser aceito.
+        </div>
+      ) : (
+        <div className="p-4 border-t bg-background">
+          <div className="space-y-2">
+            <RichTextEditor 
+              value={comment} 
+              onChange={setComment} 
+              placeholder="Escreva um comentário..." 
+              className="bg-background"
+            />
+            
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((file, index) => (
+                  <Badge key={index} variant="secondary" className="gap-1 pr-1 pl-2 py-1 flex items-center">
+                    <span className="truncate max-w-[200px]">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeAttachment(index);
+                      }}
+                      className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors focus:outline-none"
+                    >
+                      <X size={14} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
 
-          <div className="flex justify-between items-center pt-2">
-            <div>
-              <input 
-                type="file" 
-                multiple 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleFileSelect} 
-              />
-              <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} type="button">
-                <Paperclip size={16} className="mr-2" /> Anexar Arquivo (Max 2MB)
+            <div className="flex justify-between items-center pt-2">
+              <div>
+                <input 
+                  type="file" 
+                  multiple 
+                  className="hidden" 
+                  ref={fileInputRef} 
+                  onChange={handleFileSelect} 
+                />
+                <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} type="button">
+                  <Paperclip size={16} className="mr-2" /> Anexar Arquivo (Max 2MB)
+                </Button>
+              </div>
+              <Button onClick={handleSubmit} disabled={isSubmitting || (!comment.trim() && attachments.length === 0)}>
+                Enviar <Send size={16} className="ml-2" />
               </Button>
             </div>
-            <Button onClick={handleSubmit} disabled={isSubmitting || (!comment.trim() && attachments.length === 0)}>
-              Enviar <Send size={16} className="ml-2" />
-            </Button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

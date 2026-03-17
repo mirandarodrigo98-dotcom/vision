@@ -996,6 +996,10 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
              const valueNum = parseFloat(valueStr.replace(',', '.'));
              const finalValue = Math.abs(valueNum);
 
+             if (finalValue === 0) {
+                 return;
+             }
+
              // Description is everything before the value match
              const valueIndex = textWithoutDate.indexOf(valueStr);
              let description = textWithoutDate.substring(0, valueIndex).trim();
@@ -1157,6 +1161,10 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
             // Parse value: remove dots, replace comma with dot, remove spaces and R$
             const cleanValueStr = valueStr.replace(/\./g, '').replace(',', '.').replace(/\s/g, '');
             const valueNum = Math.abs(parseFloat(cleanValueStr));
+
+            if (valueNum === 0) {
+                continue;
+            }
 
             // Extract Description
             let description = trimmedLine.replace(dateStr, '').replace(valueMatch[0], '').trim();
