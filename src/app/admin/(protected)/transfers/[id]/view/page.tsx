@@ -11,22 +11,40 @@ export default async function AdminViewTransferPage({ params }: { params: Promis
 
     const { id } = await params;
 
-    const transfer = await db.prepare(`
+    let transferQuery = `
         SELECT tr.*, cc.nome as source_company_name
         FROM transfer_requests tr
         LEFT JOIN client_companies cc ON tr.source_company_id = cc.id
         WHERE tr.id = ?
-    `).get(id) as any;
+    `;
+    const queryParams: any[] = [id];
+
+    if (session.role === 'operator') {
+        transferQuery += ` AND (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        queryParams.push(session.user_id);
+    }
+
+    const transfer = await db.prepare(transferQuery).get(...queryParams) as any;
 
     if (!transfer) {
         redirect('/admin/transfers');
     }
 
-    const companies = await db.prepare(`
-        SELECT id, nome, cnpj 
-        FROM client_companies 
-        ORDER BY nome
-      `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+    let companies = [];
+    if (session.role === 'operator') {
+        companies = await db.prepare(`
+            SELECT id, nome, cnpj 
+            FROM client_companies 
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            ORDER BY nome
+        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    } else {
+        companies = await db.prepare(`
+            SELECT id, nome, cnpj 
+            FROM client_companies 
+            ORDER BY nome
+          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+    }
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">

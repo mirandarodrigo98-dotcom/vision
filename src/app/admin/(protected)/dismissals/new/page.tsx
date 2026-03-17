@@ -23,10 +23,17 @@ export default async function AdminNewDismissalPage() {
 
   // Get companies based on role
   let companies = [];
-  if (session.role === 'admin' || session.role === 'operator') {
+  if (session.role === 'admin') {
     companies = await db.prepare(`
         SELECT id, nome, cnpj FROM client_companies ORDER BY nome
     `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+  } else if (session.role === 'operator') {
+    companies = await db.prepare(`
+        SELECT id, nome, cnpj 
+        FROM client_companies 
+        WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+        ORDER BY nome
+    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
   } else {
     // Should not happen for admin routes if properly guarded, but safe fallback
     companies = await db.prepare(`

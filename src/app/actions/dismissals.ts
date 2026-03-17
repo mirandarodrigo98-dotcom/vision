@@ -50,6 +50,9 @@ export async function getDismissals(
         if (session.role === 'client_user') {
             query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
             params.push(session.user_id);
+        } else if (session.role === 'operator') {
+            query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+            params.push(session.user_id);
         }
 
         if (search) {
@@ -115,6 +118,11 @@ export async function getDismissal(id: string) {
                 SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
             `).get(session.user_id, dismissal.company_id);
             if (!hasAccess) return null;
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, dismissal.company_id);
+            if (isRestricted) return null;
         }
 
         return dismissal;
@@ -158,6 +166,11 @@ export async function createDismissal(formData: FormData) {
             SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
         `).get(session.user_id, company_id);
         if (!hasAccess) return { error: 'Você não tem acesso a esta empresa.' };
+    } else if (session.role === 'operator') {
+        const isRestricted = await db.prepare(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+        `).get(session.user_id, company_id);
+        if (isRestricted) return { error: 'Você não tem acesso a esta empresa.' };
     }
 
     // Fetch details for email/PDF
@@ -534,6 +547,13 @@ export async function completeDismissal(id: string) {
 
     const dismissal = await db.prepare('SELECT * FROM dismissals WHERE id = ?').get(id) as any;
     if (!dismissal) return { error: 'Rescisão não encontrada.' };
+
+    if (session.role === 'operator') {
+        const isRestricted = await db.prepare(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+        `).get(session.user_id, dismissal.company_id);
+        if (isRestricted) return { error: 'Você não tem acesso a esta empresa.' };
+    }
 
     try {
         const txn = db.transaction(async () => {

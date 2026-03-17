@@ -41,6 +41,17 @@ export async function createProcess(formData: FormData) {
     return { error: 'Empresa obrigatória para Alteração/Baixa.' };
   }
 
+  // Permission check for company access
+  if (company_id) {
+    if (session.role === 'client_user') {
+      const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+      if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+    } else if (session.role === 'operator') {
+      const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+      if (restricted) return { error: 'Sem permissão para esta empresa.' };
+    }
+  }
+
   const status = type === 'CONSTITUICAO' ? 'EM_ANDAMENTO' : 'NAO_INICIADO';
   const razao_social = type === 'CONSTITUICAO' ? (razao_social_input || null) : null;
 
@@ -149,12 +160,23 @@ export async function createProcess(formData: FormData) {
 export async function getProcesses() {
   const session = await getSession();
   if (!session) return [];
-  return await db.prepare(`
+
+  let query = `
     SELECT sp.*, cc.razao_social as company_name, cc.cnpj as company_cnpj
     FROM societario_processes sp
     LEFT JOIN client_companies cc ON cc.id = sp.company_id
-    ORDER BY sp.created_at DESC
-  `).all();
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (session.role === 'operator') {
+      query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      params.push(session.user_id);
+  }
+
+  query += ` ORDER BY sp.created_at DESC`;
+
+  return await db.prepare(query).all(...params);
 }
 
 export async function getProcessesFiltered(filters?: { company?: string; cnpj?: string; type?: string; status?: string }) {
@@ -186,6 +208,14 @@ export async function getProcessesFiltered(filters?: { company?: string; cnpj?: 
     params.push(filters.status);
   }
 
+  if (session.role === 'operator') {
+    query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    params.push(session.user_id);
+  } else if (session.role === 'client_user') {
+    query += ` AND (sp.company_id IS NOT NULL AND sp.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?))`;
+    params.push(session.user_id);
+  }
+
   query += ` ORDER BY sp.created_at DESC`;
 
   return await db.prepare(query).all(...params);
@@ -199,8 +229,19 @@ export async function getProcessById(id: string) {
     FROM societario_processes sp
     LEFT JOIN client_companies cc ON cc.id = sp.company_id
     WHERE sp.id = ?
-  `).get(id);
+  `).get(id) as any;
   if (!proc) return null;
+
+  if (proc.company_id) {
+    if (session.role === 'client_user') {
+        const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, proc.company_id);
+        if (!hasAccess) return null;
+    } else if (session.role === 'operator') {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, proc.company_id);
+        if (restricted) return null;
+    }
+  }
+
   const socios = await db.prepare(`
     SELECT id, nome, cpf, rg, cnh, participacao_percent, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf,
            natureza_evento, qualificacao, pais
@@ -264,8 +305,30 @@ export async function updateProcess(formData: FormData) {
 
   const razao_social = type === 'CONSTITUICAO' ? (razao_social_input || null) : null;
 
-  const exists = await db.prepare(`SELECT id FROM societario_processes WHERE id = ?`).get(id);
+  const exists = await db.prepare(`SELECT id, company_id FROM societario_processes WHERE id = ?`).get(id) as any;
   if (!exists) return { error: 'Processo não encontrado.' };
+
+  // Check access to existing process company
+  if (exists.company_id) {
+      if (session.role === 'client_user') {
+          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          if (!hasAccess) return { error: 'Sem permissão para alterar este processo.' };
+      } else if (session.role === 'operator') {
+          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          if (restricted) return { error: 'Sem permissão para alterar este processo.' };
+      }
+  }
+
+  // Check access to new company_id if changing
+  if (company_id && company_id !== exists.company_id) {
+      if (session.role === 'client_user') {
+          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+          if (!hasAccess) return { error: 'Sem permissão para a nova empresa selecionada.' };
+      } else if (session.role === 'operator') {
+          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+          if (restricted) return { error: 'Sem permissão para a nova empresa selecionada.' };
+      }
+  }
 
   await db.prepare(`
     UPDATE societario_processes SET
@@ -395,6 +458,17 @@ export async function concludeProcess(
     .prepare('SELECT * FROM societario_processes WHERE id = ?')
     .get(id) as any;
   if (!process) return { error: 'Processo não encontrado.' };
+
+  // Permission check
+  if (process.company_id) {
+      if (session.role === 'client_user') {
+          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, process.company_id);
+          if (!hasAccess) return { error: 'Sem permissão para concluir este processo.' };
+      } else if (session.role === 'operator') {
+          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, process.company_id);
+          if (restricted) return { error: 'Sem permissão para concluir este processo.' };
+      }
+  }
 
   if (process.type === 'CONSTITUICAO') {
     if (!params.companyCode) {
@@ -647,8 +721,19 @@ export async function deleteProcess(id: string) {
   }
   if (!hasPermission) return { error: 'Sem permissão.' };
 
-  const exists = await db.prepare(`SELECT id FROM societario_processes WHERE id = ?`).get(id);
+  const exists = await db.prepare(`SELECT id, company_id FROM societario_processes WHERE id = ?`).get(id) as any;
   if (!exists) return { error: 'Processo não encontrado.' };
+
+  // Permission check
+  if (exists.company_id) {
+      if (session.role === 'client_user') {
+          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          if (!hasAccess) return { error: 'Sem permissão para excluir este processo.' };
+      } else if (session.role === 'operator') {
+          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          if (restricted) return { error: 'Sem permissão para excluir este processo.' };
+      }
+  }
 
   try {
     const tx = db.transaction(async (processId: string) => {

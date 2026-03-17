@@ -12,17 +12,32 @@ export default async function ViewProcessoPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const session = await getSession();
   if (!session) redirect('/login');
+  
+  // Permission check
   const perms = await getUserPermissions();
-  if (!(perms.includes('societario.processes.view') || perms.includes('societario.view'))) {
+  const canView = session.role === 'admin' || session.role === 'operator' || perms.includes('societario.processes.view') || perms.includes('societario.view');
+  
+  if (!canView) {
     return <div className="p-6">Sem permissão</div>;
   }
 
-  const process = await db.prepare(`
+  let query = `
     SELECT sp.*, cc.razao_social as company_name, cc.cnpj as company_cnpj
     FROM societario_processes sp
     LEFT JOIN client_companies cc ON cc.id = sp.company_id
     WHERE sp.id = ?
-  `).get(id) as any;
+  `;
+  const queryParams: any[] = [id];
+
+  if (session.role === 'operator') {
+    query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    queryParams.push(session.user_id);
+  } else if (session.role === 'client_user') {
+    query += ` AND sp.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    queryParams.push(session.user_id);
+  }
+
+  const process = await db.prepare(query).get(...queryParams) as any;
   if (!process) notFound();
 
   const displayRazao = process.razao_social || process.company_name || '-';

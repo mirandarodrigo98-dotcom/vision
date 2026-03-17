@@ -1,6 +1,7 @@
 'use server';
 
 import db from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { fetchQuestorZenCompany } from './questor-zen';
 import { executeQuestorProcess } from './questor-syn';
 
@@ -325,6 +326,17 @@ export async function fetchCompanyFromQuestor(identifier: string, source: 'zen' 
         `).get(normalizedData.company.code) as any;
     }
 
+    // Check permissions for existing company
+    if (existing) {
+        const session = await getSession();
+        if (session && session.role === 'operator') {
+            const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, existing.id);
+            if (restricted) {
+                return { error: 'Sem permissão para acessar esta empresa (restrita).' };
+            }
+        }
+    }
+
     return { 
         success: true, 
         data: normalizedData,
@@ -334,7 +346,8 @@ export async function fetchCompanyFromQuestor(identifier: string, source: 'zen' 
             cnpj: existing.cnpj,
             code: existing.code
         } : undefined
-    };
+      };
+    }
 
   } catch (error: any) {
     console.error('Fetch Company Error:', error);

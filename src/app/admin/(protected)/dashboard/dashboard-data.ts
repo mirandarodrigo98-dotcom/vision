@@ -153,25 +153,38 @@ export async function getDashboardData(): Promise<DashboardStats> {
   // ----------------------------------------------------------------------
   
   const getSubBlockStats = async (table: string) => {
+    let whereClause = "WHERE status = 'COMPLETED'";
+    const queryParams: any[] = [];
+    
+    const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
+
+    if (session.role === 'client_user') {
+        whereClause += ` AND ${companyCol} IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+        queryParams.push(session.user_id);
+    } else if (session.role === 'operator') {
+        whereClause += ` AND (${companyCol} IS NULL OR ${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        queryParams.push(session.user_id);
+    }
+
     // Counts
     const prevMonthCount = await db.prepare(`
-        SELECT COUNT(*) FROM ${table} WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
-    `).pluck().get(prevMonthStart.toISOString(), currMonthStart.toISOString());
+        SELECT COUNT(*) FROM ${table} ${whereClause} AND created_at >= ? AND created_at < ?
+    `).pluck().get(...queryParams, prevMonthStart.toISOString(), currMonthStart.toISOString());
     const prevMonth = Number(prevMonthCount);
 
     const currMonthCount = await db.prepare(`
-        SELECT COUNT(*) FROM ${table} WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
-    `).pluck().get(currMonthStart.toISOString(), nextMonthStart.toISOString());
+        SELECT COUNT(*) FROM ${table} ${whereClause} AND created_at >= ? AND created_at < ?
+    `).pluck().get(...queryParams, currMonthStart.toISOString(), nextMonthStart.toISOString());
     const currMonth = Number(currMonthCount);
 
     // Chart (Last 6 Months)
     const chartData = await db.prepare(`
         SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count 
         FROM ${table} 
-        WHERE status = 'COMPLETED' AND created_at >= ?
+        ${whereClause} AND created_at >= ?
         GROUP BY month
         ORDER BY month
-    `).all(sixMonthsAgo.toISOString()) as { month: string, count: number }[];
+    `).all(...queryParams, sixMonthsAgo.toISOString()) as { month: string, count: number }[];
 
     // Fill missing months
     const chart: { month: string; count: number }[] = [];
@@ -192,18 +205,27 @@ export async function getDashboardData(): Promise<DashboardStats> {
         current.setMonth(current.getMonth() + 1);
     }
 
-    // Ranking (Top 5) - Assuming All Time or Last 6 Months? "Ranking TOP 5 clientes".
-    // Usually implies "Recent" or "General". I'll use Last 6 Months to be consistent with the chart.
-    const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
+    // Ranking (Top 5)
+    let rankingWhere = "WHERE t.status = 'COMPLETED'";
+    const rankingParams: any[] = [];
+    
+    if (session.role === 'client_user') {
+        rankingWhere += ` AND t.${companyCol} IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+        rankingParams.push(session.user_id);
+    } else if (session.role === 'operator') {
+        rankingWhere += ` AND (t.${companyCol} IS NULL OR t.${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        rankingParams.push(session.user_id);
+    }
+
     const topClientsData = await db.prepare(`
         SELECT cc.nome, COUNT(*) as count 
         FROM ${table} t
         JOIN client_companies cc ON t.${companyCol} = cc.id
-        WHERE t.status = 'COMPLETED' AND t.created_at >= ?
+        ${rankingWhere} AND t.created_at >= ?
         GROUP BY cc.nome
         ORDER BY count DESC
         LIMIT 5
-    `).all(sixMonthsAgo.toISOString()) as { nome: string, count: number }[];
+    `).all(...rankingParams, sixMonthsAgo.toISOString()) as { nome: string, count: number }[];
     
     const topClients = topClientsData.map(d => ({ name: d.nome, count: Number(d.count) }));
 

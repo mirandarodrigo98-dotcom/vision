@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { AdmissionActions } from '@/components/admissions/admission-actions';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,9 @@ interface AdminAdmissionsPageProps {
 }
 
 export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissionsPageProps) {
+  const session = await getSession();
+  if (!session) return null;
+
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
@@ -31,12 +35,21 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
     FROM admission_requests ar
     JOIN client_companies cc ON ar.company_id = cc.id
     LEFT JOIN admission_attachments aa ON ar.id = aa.admission_id
+    WHERE 1=1
   `;
 
   const params: any[] = [];
 
+  if (session.role === 'client_user') {
+    query += ` AND ar.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    params.push(session.user_id);
+  } else if (session.role === 'operator') {
+    query += ` AND (ar.company_id IS NULL OR ar.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    params.push(session.user_id);
+  }
+
   if (q) {
-    query += ` WHERE (ar.protocol_number LIKE ? OR ar.employee_full_name LIKE ? OR cc.nome LIKE ?)`;
+    query += ` AND (ar.protocol_number LIKE ? OR ar.employee_full_name LIKE ? OR cc.nome LIKE ?)`;
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ, likeQ);
   }

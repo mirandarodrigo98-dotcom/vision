@@ -1,10 +1,12 @@
 import { getAccountants } from '@/app/actions/accountants';
 import { FaturamentoWizard } from '@/components/contabilidade/FaturamentoWizard';
 import db from '@/lib/db';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FaturamentoPage() {
+  const session = await getSession();
   const accountantsRaw = await getAccountants();
   
   // Serialize dates to avoid Next.js warnings
@@ -16,12 +18,26 @@ export default async function FaturamentoPage() {
   }));
 
   // Fetch all active companies for the wizard
-  const companies = await db.prepare(`
+  let companiesQuery = `
     SELECT id, razao_social, cnpj 
     FROM client_companies 
     WHERE is_active = 1 
-    ORDER BY razao_social ASC
-  `).all() as Array<{ id: string; razao_social: string; cnpj: string }>;
+  `;
+  const companiesParams: any[] = [];
+
+  if (session) {
+    if (session.role === 'client_user') {
+      companiesQuery += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      companiesParams.push(session.user_id);
+    } else if (session.role === 'operator') {
+      companiesQuery += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+      companiesParams.push(session.user_id);
+    }
+  }
+
+  companiesQuery += ` ORDER BY razao_social ASC`;
+
+  const companies = await db.prepare(companiesQuery).all(...companiesParams) as Array<{ id: string; razao_social: string; cnpj: string }>;
 
   return (
     <div className="container mx-auto py-6">

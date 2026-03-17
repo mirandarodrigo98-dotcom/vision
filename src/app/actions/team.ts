@@ -22,6 +22,7 @@ export type TeamUser = {
   department_name?: string;
   access_schedule_id?: string | null;
   access_schedule_name?: string | null;
+  restricted_companies?: string[];
 };
 
 export async function getTeamUsers() {
@@ -31,24 +32,28 @@ export async function getTeamUsers() {
   }
 
   const users = await db.prepare(`
-    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name
+    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name,
+    (SELECT GROUP_CONCAT(urc.company_id) FROM user_restricted_companies urc WHERE urc.user_id = u.id) as restricted_company_ids
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.id
     LEFT JOIN access_schedules s ON u.access_schedule_id = s.id
     WHERE u.role IN ('admin', 'operator') AND u.deleted_at IS NULL
     ORDER BY u.name ASC
-  `).all() as TeamUser[];
+  `).all() as (TeamUser & { restricted_company_ids: string | null })[];
 
-  return users;
+  return users.map(u => ({
+    ...u,
+    restricted_companies: u.restricted_company_ids ? u.restricted_company_ids.split(',') : []
+  }));
 }
 
-export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string }) {
+export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string; restricted_company_ids?: string[] }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role, cpf, phone, department_id, access_schedule_id } = data;
+  const { name, email, role, cpf, phone, department_id, access_schedule_id, restricted_company_ids } = data;
 
   // Validate email unique
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -75,6 +80,13 @@ export async function createTeamUser(data: { name: string; email: string; role: 
       INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, department_id, access_schedule_id)
       VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?)
     `).run(id, name, email, role, hash, cpf || null, phone || null, department_id || null, access_schedule_id || null);
+
+    if (restricted_company_ids && restricted_company_ids.length > 0) {
+      const insertRestriction = db.prepare('INSERT INTO user_restricted_companies (user_id, company_id) VALUES (?, ?)');
+      for (const companyId of restricted_company_ids) {
+        await insertRestriction.run(id, companyId);
+      }
+    }
 
     // Send email with password
     await sendEmail({
@@ -112,13 +124,13 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   }
 }
 
-export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string }) {
+export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string; restricted_company_ids?: string[] }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role, cpf, phone, department_id, access_schedule_id } = data;
+  const { name, email, role, cpf, phone, department_id, access_schedule_id, restricted_company_ids } = data;
 
   // Validate email unique (excluding current user)
   const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
@@ -140,6 +152,15 @@ export async function updateTeamUser(id: string, data: { name: string; email: st
       SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, department_id = ?, access_schedule_id = ?, updated_at = datetime('now')
       WHERE id = ?
     `).run(name, email, role, cpf || null, phone || null, department_id || null, access_schedule_id || null, id);
+
+    // Update restrictions
+    await db.prepare('DELETE FROM user_restricted_companies WHERE user_id = ?').run(id);
+    if (restricted_company_ids && restricted_company_ids.length > 0) {
+      const insertRestriction = db.prepare('INSERT INTO user_restricted_companies (user_id, company_id) VALUES (?, ?)');
+      for (const companyId of restricted_company_ids) {
+        await insertRestriction.run(id, companyId);
+      }
+    }
 
     logAudit({
       action: 'UPDATE_TEAM_USER',

@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import db from '@/lib/db';
 import { EmployeeForm } from '@/components/admin/employees/employee-form';
 import { addDays, parseISO, format } from 'date-fns';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,15 +11,49 @@ interface PageProps {
 }
 
 export default async function ViewEmployeePage({ params }: PageProps) {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
   const { id } = await params;
 
-  const employee = await db.prepare('SELECT * FROM employees WHERE id = ?').get(id) as any;
+  let employeeQuery = 'SELECT * FROM employees WHERE id = ?';
+  const queryParams: any[] = [id];
+
+  if (session.role === 'client_user') {
+    employeeQuery += ' AND company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)';
+    queryParams.push(session.user_id);
+  } else if (session.role === 'operator') {
+    employeeQuery += ' AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))';
+    queryParams.push(session.user_id);
+  }
+
+  const employee = await db.prepare(employeeQuery).get(...queryParams) as any;
 
   if (!employee) {
     notFound();
   }
 
-  const companies = await db.prepare('SELECT id, nome, cnpj FROM client_companies WHERE is_active = 1 ORDER BY nome').all() as Array<{ id: string; nome: string; cnpj: string }>;
+  let companies = [];
+  if (session.role === 'client_user') {
+    companies = await db.prepare(`
+      SELECT id, nome, cnpj 
+      FROM client_companies 
+      WHERE id IN (SELECT company_id FROM user_companies WHERE user_id = ?) 
+      AND is_active = 1 
+      ORDER BY nome
+    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+  } else if (session.role === 'operator') {
+    companies = await db.prepare(`
+      SELECT id, nome, cnpj 
+      FROM client_companies 
+      WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?) 
+      AND is_active = 1 
+      ORDER BY nome
+    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+  } else {
+    // Admin
+    companies = await db.prepare('SELECT id, nome, cnpj FROM client_companies WHERE is_active = 1 ORDER BY nome').all() as Array<{ id: string; nome: string; cnpj: string }>;
+  }
 
   const vacations = await db.prepare(`
     SELECT * FROM vacations 

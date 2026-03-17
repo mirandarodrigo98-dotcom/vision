@@ -1,5 +1,6 @@
 import db from '@/lib/db';
 import { UserList } from './client-components';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,7 @@ interface UsersPageProps {
 }
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
+  const session = await getSession();
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
@@ -31,6 +33,16 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   const params: any[] = [];
 
+  if (session && session.role === 'operator') {
+    query += ` AND NOT EXISTS (
+      SELECT 1 
+      FROM user_companies sub_uc
+      JOIN user_restricted_companies sub_urc ON sub_urc.company_id = sub_uc.company_id
+      WHERE sub_uc.user_id = u.id AND sub_urc.user_id = ?
+    )`;
+    params.push(session.user_id);
+  }
+
   if (q) {
     query += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
     const likeQ = `%${q}%`;
@@ -41,7 +53,17 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   const users = await db.prepare(query).all(...params) as any[];
 
-  const companies = await db.prepare("SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1 AND nome IS NOT NULL AND nome != '' ORDER BY nome").all() as any[];
+  let companiesQuery = "SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1 AND nome IS NOT NULL AND nome != ''";
+  const companiesParams: any[] = [];
+
+  if (session && session.role === 'operator') {
+      companiesQuery += " AND (id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))";
+      companiesParams.push(session.user_id);
+  }
+
+  companiesQuery += " ORDER BY nome";
+
+  const companies = await db.prepare(companiesQuery).all(...companiesParams) as any[];
   
   return (
     <div className="space-y-6">

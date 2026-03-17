@@ -132,6 +132,16 @@ export async function createTicket(prevState: any, formData: FormData) {
 
   const { title, description, priority, category, assignee_id, due_date, company_id } = validatedFields.data;
   
+  if (company_id) {
+    if (session.role === 'client_user') {
+        const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+        if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+    } else if (session.role === 'operator') {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+        if (restricted) return { error: 'Sem permissão para esta empresa.' };
+    }
+  }
+
   try {
     const ticketId = uuidv4();
     const protocol = await getNextSequentialNumber(new Date());
@@ -990,6 +1000,12 @@ export async function getTickets(filters?: {
   // Visibility Logic: Admin sees all. Others see created by them, assigned to them, or assigned to their department.
   const canAdmin = await hasPermission(session.role, 'tickets.admin');
   
+  // Apply company restrictions for operators (even if they are admins/have permissions, they shouldn't see restricted companies)
+  if (session.role === 'operator') {
+    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    params.push(session.user_id);
+  }
+
   if (session.role !== 'admin' && !canAdmin) {
     query += ` AND (
       t.requester_id = ? 
@@ -1078,6 +1094,12 @@ export async function getTicketCounts(filters?: {
   // Visibility Logic: Admin sees all. Others see created by them, assigned to them, or assigned to their department.
   const canAdmin = await hasPermission(session.role, 'tickets.admin');
   
+  // Apply company restrictions for operators
+  if (session.role === 'operator') {
+    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    params.push(session.user_id);
+  }
+
   if (session.role !== 'admin' && !canAdmin) {
     query += ` AND (
       t.requester_id = ? 
@@ -1170,6 +1192,16 @@ export async function getTicketById(id: string) {
     `).get(id);
 
     if (!ticket) return null;
+
+    if (ticket.company_id) {
+      if (session.role === 'client_user') {
+        const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, ticket.company_id);
+        if (!hasAccess) return null;
+      } else if (session.role === 'operator') {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, ticket.company_id);
+        if (restricted) return null;
+      }
+    }
 
 
     const interactions = await db.prepare(`

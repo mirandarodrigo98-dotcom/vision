@@ -6,33 +6,78 @@ import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email/resend';
 import { v4 as uuidv4 } from 'uuid';
 
+async function checkOperatorAccessToUser(operatorId: string, targetUserId: string) {
+    // Check if target user has any company that is restricted for the operator
+    const conflict = await db.prepare(`
+        SELECT 1 
+        FROM user_companies uc
+        JOIN user_restricted_companies urc ON urc.company_id = uc.company_id
+        WHERE uc.user_id = ? AND urc.user_id = ?
+    `).get(targetUserId, operatorId);
+    
+    return !conflict;
+}
+
 export async function getUserCompanies() {
   const session = await getSession();
   if (!session) return [];
 
-  const companies = await db.prepare(`
-    SELECT c.id, c.razao_social, c.cnpj
-    FROM client_companies c
-    JOIN user_companies uc ON c.id = uc.company_id
-    WHERE uc.user_id = ? AND c.is_active = 1
-    ORDER BY c.razao_social
-  `).all(session.user_id) as any[];
-
-  return companies;
+  if (session.role === 'client_user') {
+      const companies = await db.prepare(`
+        SELECT c.id, c.razao_social, c.cnpj
+        FROM client_companies c
+        JOIN user_companies uc ON c.id = uc.company_id
+        WHERE uc.user_id = ? AND c.is_active = 1
+        ORDER BY c.razao_social
+      `).all(session.user_id) as any[];
+      return companies;
+  } else if (session.role === 'operator') {
+      const companies = await db.prepare(`
+        SELECT c.id, c.razao_social, c.cnpj
+        FROM client_companies c
+        WHERE c.is_active = 1 
+        AND (c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))
+        ORDER BY c.razao_social
+      `).all(session.user_id) as any[];
+      return companies;
+  } else if (session.role === 'admin') {
+      const companies = await db.prepare(`
+        SELECT c.id, c.razao_social, c.cnpj
+        FROM client_companies c
+        WHERE c.is_active = 1
+        ORDER BY c.razao_social
+      `).all() as any[];
+      return companies;
+  }
+  return [];
 }
 
 export async function switchCompany(companyId: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
 
-  // Verify if user is linked to this company
-  const link = await db.prepare(`
-    SELECT 1 FROM user_companies 
-    WHERE user_id = ? AND company_id = ?
-  `).get(session.user_id, companyId);
+  // Verify permission based on role
+  let hasAccess = false;
 
-  if (!link) {
-    throw new Error('User not linked to this company');
+  if (session.role === 'client_user') {
+    const link = await db.prepare(`
+      SELECT 1 FROM user_companies 
+      WHERE user_id = ? AND company_id = ?
+    `).get(session.user_id, companyId);
+    hasAccess = !!link;
+  } else if (session.role === 'operator') {
+    // Operators have access to all EXCEPT restricted ones
+    const restricted = await db.prepare(`
+      SELECT 1 FROM user_restricted_companies 
+      WHERE user_id = ? AND company_id = ?
+    `).get(session.user_id, companyId);
+    hasAccess = !restricted;
+  } else if (session.role === 'admin') {
+    hasAccess = true;
+  }
+
+  if (!hasAccess) {
+    throw new Error('User not authorized for this company');
   }
 
   // Update active company
@@ -114,6 +159,25 @@ export async function saveClientUser(data: SaveClientUserPayload) {
   const emailCheck = await validateUserEmail(email, id);
   if (emailCheck.error) {
       return { error: emailCheck.error };
+  }
+
+  if (session.role === 'operator' && company_ids.length > 0) {
+      const placeholders = company_ids.map(() => '?').join(',');
+      const restricted = await db.prepare(`
+          SELECT company_id FROM user_restricted_companies 
+          WHERE user_id = ? AND company_id IN (${placeholders})
+      `).all(session.user_id, ...company_ids) as { company_id: string }[];
+      
+      if (restricted.length > 0) {
+          return { error: 'Você não tem permissão para conceder acesso a uma ou mais empresas selecionadas.' };
+      }
+  }
+
+  if (id && session.role === 'operator') {
+      const hasAccess = await checkOperatorAccessToUser(session.user_id, id);
+      if (!hasAccess) {
+          return { error: 'Você não tem permissão para editar este usuário.' };
+      }
   }
 
   try {
@@ -204,6 +268,13 @@ export async function toggleUserStatus(userId: string, currentStatus: number) {
     return { error: 'Unauthorized' };
   }
 
+  if (session.role === 'operator') {
+      const hasAccess = await checkOperatorAccessToUser(session.user_id, userId);
+      if (!hasAccess) {
+          return { error: 'Você não tem permissão para gerenciar este usuário.' };
+      }
+  }
+
   try {
     await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(currentStatus === 1 ? 0 : 1, userId);
     revalidatePath('/admin/client-users');
@@ -217,6 +288,13 @@ export async function sendPassword(userId: string) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
+    }
+
+    if (session.role === 'operator') {
+        const hasAccess = await checkOperatorAccessToUser(session.user_id, userId);
+        if (!hasAccess) {
+            return { error: 'Você não tem permissão para gerenciar este usuário.' };
+        }
     }
 
     try {
@@ -256,6 +334,13 @@ export async function generateTempPassword(userId: string) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
+    }
+
+    if (session.role === 'operator') {
+        const hasAccess = await checkOperatorAccessToUser(session.user_id, userId);
+        if (!hasAccess) {
+            return { error: 'Você não tem permissão para gerenciar este usuário.' };
+        }
     }
 
     try {

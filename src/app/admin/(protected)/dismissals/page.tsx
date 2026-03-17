@@ -68,6 +68,9 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   if (session.role === 'client_user') {
     query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
     params.push(session.user_id);
+  } else if (session.role === 'operator') {
+    query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    params.push(session.user_id);
   }
 
   if (q) {

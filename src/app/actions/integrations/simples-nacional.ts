@@ -5,6 +5,7 @@ import { executeQuestorProcess } from './questor-syn';
 import Papa from 'papaparse';
 import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
 import crypto from 'crypto';
+import { getSession } from '@/lib/auth';
 
 interface SimplesNacionalParams {
   companyId: string;
@@ -24,6 +25,17 @@ interface SimplesNacionalBillingData {
 }
 
 export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams) {
+  const session = await getSession();
+  if (!session) return { success: false, error: 'Não autorizado' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, params.companyId);
+    if (!hasAccess) return { success: false, error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, params.companyId);
+    if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     // 1. Get Company Code
     const company = await db.prepare('SELECT code, filial FROM client_companies WHERE id = ?').get(params.companyId) as { code: number, filial: number } | undefined;

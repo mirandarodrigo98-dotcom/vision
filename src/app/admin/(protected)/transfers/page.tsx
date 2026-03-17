@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Eye, Plus } from 'lucide-react';
 import { TransferActions } from '@/components/transfers/transfer-actions';
 import { Badge } from '@/components/ui/badge';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,7 @@ interface AdminTransfersPageProps {
 }
 
 export default async function AdminTransfersPage({ searchParams }: AdminTransfersPageProps) {
+  const session = await getSession();
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
@@ -32,12 +34,23 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
       sc.nome as source_company_name
     FROM transfer_requests t
     JOIN client_companies sc ON t.source_company_id = sc.id
+    WHERE 1=1
   `;
 
   const params: any[] = [];
 
+  if (session) {
+    if (session.role === 'client_user') {
+      query += ` AND t.source_company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
+    } else if (session.role === 'operator') {
+      query += ` AND (t.source_company_id IS NULL OR t.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      params.push(session.user_id);
+    }
+  }
+
   if (q) {
-    query += ` WHERE (t.protocol_number LIKE ? OR t.employee_name LIKE ? OR sc.nome LIKE ? OR t.target_company_name LIKE ?)`;
+    query += ` AND (t.protocol_number LIKE ? OR t.employee_name LIKE ? OR sc.nome LIKE ? OR t.target_company_name LIKE ?)`;
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ, likeQ, likeQ);
   }

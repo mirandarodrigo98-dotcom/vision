@@ -27,7 +27,12 @@ export interface SocioData {
   uf?: string;
 }
 
+import { getSession } from '@/lib/auth';
+
 export async function getSocios(q: string = '') {
+  const session = await getSession();
+  if (!session) return [];
+
   try {
     let query = `
       SELECT 
@@ -40,12 +45,21 @@ export async function getSocios(q: string = '') {
       FROM societario_socios ss
       LEFT JOIN societario_company_socios scs ON scs.socio_id = ss.id
       LEFT JOIN client_companies cc ON cc.id = scs.company_id
+      WHERE 1=1
     `;
     
     const params: any[] = [];
     
+    if (session.role === 'client_user') {
+      query += ` AND scs.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
+    } else if (session.role === 'operator') {
+      query += ` AND (scs.company_id IS NULL OR scs.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      params.push(session.user_id);
+    }
+    
     if (q) {
-      query += ` WHERE (ss.nome ILIKE $1 OR ss.cpf ILIKE $2 OR cc.razao_social ILIKE $3)`;
+      query += ` AND (ss.nome ILIKE ? OR ss.cpf ILIKE ? OR cc.razao_social ILIKE ?)`;
       const likeQ = `%${q}%`;
       params.push(likeQ, likeQ, likeQ);
     }
@@ -61,6 +75,9 @@ export async function getSocios(q: string = '') {
 }
 
 export async function getSocio(id: string) {
+  const session = await getSession();
+  if (!session) return null;
+
   try {
     const socio = await db.prepare(`
       SELECT 
@@ -73,7 +90,20 @@ export async function getSocio(id: string) {
       LEFT JOIN societario_company_socios scs ON scs.socio_id = ss.id
       LEFT JOIN client_companies cc ON cc.id = scs.company_id
       WHERE ss.id = ?
-    `).get(id);
+    `).get(id) as any;
+
+    if (!socio) return null;
+
+    if (session.role === 'client_user') {
+      const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, socio.company_id);
+      if (!hasAccess) return null;
+    } else if (session.role === 'operator') {
+      if (socio.company_id) {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, socio.company_id);
+        if (restricted) return null;
+      }
+    }
+
     return socio;
   } catch (error) {
     console.error('Error fetching socio:', error);
@@ -82,6 +112,17 @@ export async function getSocio(id: string) {
 }
 
 export async function saveSocio(data: SocioData) {
+  const session = await getSession();
+  if (!session) return { success: false, message: 'Não autorizado.' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, data.companyId);
+    if (!hasAccess) return { success: false, message: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, data.companyId);
+    if (restricted) return { success: false, message: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     if (!validateCPF(data.cpf)) {
       return { success: false, message: 'CPF inválido.' };
@@ -235,7 +276,40 @@ export async function saveSocio(data: SocioData) {
 }
 
 export async function deleteSocio(id: string) {
+  const session = await getSession();
+  if (!session) return { success: false, message: 'Não autorizado.' };
+
   try {
+    // Check if socio belongs to any restricted company for this user
+    if (session.role === 'operator') {
+      const restrictedLinks = await db.prepare(`
+        SELECT 1 
+        FROM societario_company_socios scs
+        JOIN user_restricted_companies urc ON urc.company_id = scs.company_id
+        WHERE scs.socio_id = ? AND urc.user_id = ?
+      `).get(id, session.user_id);
+      
+      if (restrictedLinks) {
+        return { success: false, message: 'Não é possível excluir este sócio pois ele está vinculado a uma empresa restrita.' };
+      }
+    } else if (session.role === 'client_user') {
+       // Client user can only delete if they have access to ALL companies the socio is linked to?
+       // Or maybe just check if they have access to at least one?
+       // Safe approach: Client users usually manage their own companies. 
+       // If a socio is shared with a company they don't access, deleting it would affect the other company.
+       // For now, let's just ensure they have access to the companies linked.
+       const unauthorizedLinks = await db.prepare(`
+          SELECT 1
+          FROM societario_company_socios scs
+          WHERE scs.socio_id = ? 
+          AND scs.company_id NOT IN (SELECT company_id FROM user_companies WHERE user_id = ?)
+       `).get(id, session.user_id);
+
+       if (unauthorizedLinks) {
+          return { success: false, message: 'Não é possível excluir este sócio pois ele está vinculado a outras empresas que você não tem acesso.' };
+       }
+    }
+
     // Delete links first
     await db.prepare('DELETE FROM societario_company_socios WHERE socio_id = ?').run(id);
     // Delete socio
@@ -250,6 +324,17 @@ export async function deleteSocio(id: string) {
 }
 
 export async function desligarSocio(socioId: string, companyId: string) {
+  const session = await getSession();
+  if (!session) return { success: false, message: 'Não autorizado.' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return { success: false, message: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { success: false, message: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     await db.prepare(`
       UPDATE societario_company_socios

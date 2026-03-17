@@ -58,6 +58,12 @@ export async function createEmployee(formData: FormData) {
     esocial_registration,
   } = validatedFields.data;
 
+  // Check operator access
+  if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     const id = uuidv4();
     await db.prepare(`
@@ -120,6 +126,12 @@ export async function updateEmployee(id: string, formData: FormData) {
     cpf,
     esocial_registration,
   } = validatedFields.data;
+
+  // Check operator access
+  if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
 
   try {
     await db.prepare(`
@@ -208,6 +220,9 @@ export async function getEmployees(optionsOrCompanyId?: string | { companyId?: s
     if (session.role === 'client_user') {
       query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
       params.push(session.user_id);
+    } else if (session.role === 'operator') {
+      query += ` AND e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
     }
 
     if (companyId) {
@@ -272,6 +287,14 @@ export async function toggleEmployeeStatus(employeeId: string, isActive: boolean
   }
 
   try {
+    if (session.role === 'operator') {
+      const employee = await db.prepare('SELECT company_id FROM employees WHERE id = ?').get(employeeId) as { company_id: string } | undefined;
+      if (employee) {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, employee.company_id);
+        if (restricted) return { error: 'Sem permissão para esta empresa.' };
+      }
+    }
+
     const status = isActive ? 1 : 0;
     await db.prepare(`
       UPDATE employees 
@@ -305,6 +328,11 @@ export async function fetchQuestorEmployees(questorCompanyCode: string) {
     return { success: false, error: 'Empresa não encontrada para este código.' };
   }
 
+  if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company.id);
+    if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     const result = await fetchFromIntegration(questorCompanyCode);
     revalidatePath('/admin/employees');
@@ -336,6 +364,14 @@ export async function deleteEmployee(id: string) {
   }
 
   try {
+    if (session.role === 'operator') {
+      const employee = await db.prepare('SELECT company_id FROM employees WHERE id = ?').get(id) as { company_id: string } | undefined;
+      if (employee) {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, employee.company_id);
+        if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
+      }
+    }
+
     // Check for movements
     const hasMovements = await db.prepare(`
       SELECT 1 FROM (
@@ -369,6 +405,17 @@ export async function deleteEmployeesBatch(ids: string[]) {
   }
 
   try {
+    if (session.role === 'operator') {
+      // Check all employees
+      for (const id of ids) {
+        const employee = await db.prepare('SELECT company_id FROM employees WHERE id = ?').get(id) as { company_id: string } | undefined;
+        if (employee) {
+            const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, employee.company_id);
+            if (restricted) return { success: false, error: `Sem permissão para excluir funcionário (ID: ${id}) de empresa restrita.` };
+        }
+      }
+    }
+
     // Helper to check one employee
     const checkEmployee = db.prepare(`
       SELECT 1 FROM (
@@ -407,6 +454,11 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
         return { success: false, error: 'Não autorizado' };
+    }
+
+    if (session.role === 'operator') {
+        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+        if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
     }
 
     try {

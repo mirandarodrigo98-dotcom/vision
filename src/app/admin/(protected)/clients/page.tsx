@@ -8,6 +8,7 @@ import { CompanyImportDialog } from '@/components/admin/companies/company-import
 import { QuestorCompanyImport } from '@/components/admin/companies/questor-company-import';
 import { ClientsStatusFilter } from './clients-status-filter';
 import { getUserPermissions } from '@/app/actions/permissions';
+import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ interface ClientsPageProps {
 }
 
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
+  const session = await getSession();
   const permissions = await getUserPermissions();
   if (!permissions.includes('clients.view')) {
     redirect('/admin/dashboard');
@@ -45,6 +47,16 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     WHERE 1=1
   `;
   const params: any[] = [];
+
+  if (session) {
+    if (session.role === 'client_user') {
+      query += ` AND c.id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
+    } else if (session.role === 'operator') {
+      query += ` AND c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
+    }
+  }
 
   if (q) {
     query += ' AND (c.nome LIKE ? OR c.razao_social LIKE ? OR c.cnpj LIKE ? OR c.email_contato LIKE ? OR c.code LIKE ?)';

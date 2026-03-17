@@ -20,7 +20,7 @@ import { checkPendingRequests } from './employees';
 
 export async function createTransfer(formData: FormData) {
     const session = await getSession();
-    if (!session || session.role !== 'client_user') {
+    if (!session || (session.role !== 'client_user' && session.role !== 'operator' && session.role !== 'admin')) {
         return { error: 'Unauthorized' };
     }
 
@@ -36,15 +36,37 @@ export async function createTransfer(formData: FormData) {
         }
 
         // Validate source company access and status
-        const userCompanyData = await db.prepare(`
-            SELECT cc.id, cc.nome, cc.cnpj, cc.is_active
-            FROM client_companies cc
-            JOIN user_companies uc ON uc.company_id = cc.id
-            WHERE uc.user_id = ? AND cc.id = ?
-        `).get(session.user_id, sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+        let userCompanyData;
+
+        if (session.role === 'client_user') {
+            userCompanyData = await db.prepare(`
+                SELECT cc.id, cc.nome, cc.cnpj, cc.is_active
+                FROM client_companies cc
+                JOIN user_companies uc ON uc.company_id = cc.id
+                WHERE uc.user_id = ? AND cc.id = ?
+            `).get(session.user_id, sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+        } else if (session.role === 'operator') {
+            // Operator: Check if company exists and is NOT restricted
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, sourceCompanyId);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa de origem.' };
+            }
+
+            userCompanyData = await db.prepare(`
+                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = ?
+            `).get(sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+        } else {
+            // Admin: Check if company exists
+            userCompanyData = await db.prepare(`
+                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = ?
+            `).get(sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+        }
 
         if (!userCompanyData) {
-            return { error: 'Você não tem permissão para esta empresa de origem.' };
+            return { error: 'Você não tem permissão para esta empresa de origem ou ela não existe.' };
         }
 
         if (!userCompanyData.is_active) {
@@ -136,7 +158,7 @@ export async function updateTransfer(id: string, formData: FormData) {
     if (!session) {
         return { error: 'Unauthorized' };
     }
-    if (session.role !== 'client_user' && session.role !== 'admin') {
+    if (session.role !== 'client_user' && session.role !== 'admin' && session.role !== 'operator') {
          return { error: 'Unauthorized' };
     }
 
@@ -153,6 +175,14 @@ export async function updateTransfer(id: string, formData: FormData) {
 
             if (!hasAccess && transfer.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
+            }
+        } else if (session.role === 'operator') {
+             const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, transfer.source_company_id);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa.' };
             }
         }
 
@@ -261,7 +291,7 @@ export async function cancelTransfer(id: string) {
     if (!session) {
         return { error: 'Unauthorized' };
     }
-    if (session.role !== 'client_user' && session.role !== 'admin') {
+    if (session.role !== 'client_user' && session.role !== 'admin' && session.role !== 'operator') {
          return { error: 'Unauthorized' };
     }
 
@@ -276,6 +306,14 @@ export async function cancelTransfer(id: string) {
 
             if (!hasAccess && transfer.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
+            }
+        } else if (session.role === 'operator') {
+            const isRestricted = db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, transfer.source_company_id);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa.' };
             }
         }
 
@@ -335,6 +373,16 @@ export async function approveTransfer(id: string) {
     try {
         const transfer = await db.prepare('SELECT * FROM transfer_requests WHERE id = ?').get(id) as any;
         if (!transfer) return { error: 'Transferência não encontrada.' };
+
+        if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, transfer.source_company_id);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa.' };
+            }
+        }
 
         if (transfer.status !== 'SUBMITTED' && transfer.status !== 'RECTIFIED') {
              return { error: 'Apenas transferências pendentes ou retificadas podem ser aprovadas.' };
@@ -536,7 +584,15 @@ export async function getTransfers(companyId?: string) {
             query += ` AND tr.source_company_id = ?`;
             params.push(companyId);
         }
-    } else if (session.role === 'admin' || session.role === 'operator') {
+    } else if (session.role === 'operator') {
+        query += ` WHERE (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        params.push(session.user_id);
+
+        if (companyId) {
+            query += ` AND tr.source_company_id = ?`;
+            params.push(companyId);
+        }
+    } else if (session.role === 'admin') {
         if (companyId) {
             query += ` WHERE tr.source_company_id = ?`;
             params.push(companyId);
@@ -568,6 +624,14 @@ export async function getTransfer(id: string) {
         `).get(session.user_id, transfer.source_company_id);
 
         if (!hasAccess && transfer.created_by_user_id !== session.user_id) {
+            return null;
+        }
+    } else if (session.role === 'operator') {
+        const isRestricted = await db.prepare(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+        `).get(session.user_id, transfer.source_company_id);
+
+        if (isRestricted) {
             return null;
         }
     }

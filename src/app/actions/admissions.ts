@@ -14,7 +14,7 @@ import { generateAdmissionPDF } from '@/lib/pdf-generator';
 
 export async function createAdmission(formData: FormData) {
     const session = await getSession();
-    if (!session || session.role !== 'client_user') {
+    if (!session || (session.role !== 'client_user' && session.role !== 'operator' && session.role !== 'admin')) {
         return { error: 'Unauthorized' };
     }
 
@@ -92,12 +92,29 @@ export async function createAdmission(formData: FormData) {
         const companyId = formData.get('company_id') as string;
         if (!companyId) return { error: 'Empresa é obrigatória' };
 
-        const userCompanyData = await db.prepare(`
-            SELECT cc.id, cc.nome, cc.cnpj 
-            FROM client_companies cc
-            JOIN user_companies uc ON uc.company_id = cc.id
-            WHERE uc.user_id = ? AND cc.id = ?
-        `).get(session.user_id, companyId) as { id: string, nome: string, cnpj: string };
+        let userCompanyData;
+        if (session.role === 'client_user') {
+            userCompanyData = await db.prepare(`
+                SELECT cc.id, cc.nome, cc.cnpj 
+                FROM client_companies cc
+                JOIN user_companies uc ON uc.company_id = cc.id
+                WHERE uc.user_id = ? AND cc.id = ?
+            `).get(session.user_id, companyId) as { id: string, nome: string, cnpj: string };
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, companyId);
+            
+            if (!isRestricted) {
+                userCompanyData = await db.prepare(`
+                    SELECT id, nome, cnpj FROM client_companies WHERE id = ?
+                `).get(companyId) as { id: string, nome: string, cnpj: string };
+            }
+        } else if (session.role === 'admin') {
+            userCompanyData = await db.prepare(`
+                SELECT id, nome, cnpj FROM client_companies WHERE id = ?
+            `).get(companyId) as { id: string, nome: string, cnpj: string };
+        }
 
         if (!userCompanyData) return { error: 'Você não tem permissão para esta empresa' };
 
@@ -295,7 +312,7 @@ export async function createAdmission(formData: FormData) {
 
 export async function cancelAdmission(admissionId: string) {
     const session = await getSession();
-    if (!session || (session.role !== 'client_user' && session.role !== 'admin')) {
+    if (!session || (session.role !== 'client_user' && session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
     }
 
@@ -313,6 +330,14 @@ export async function cancelAdmission(admissionId: string) {
             `).get(session.user_id, admission.company_id);
             
             if (!hasAccess && admission.created_by_user_id !== session.user_id) {
+                return { error: 'Você não tem permissão para cancelar esta admissão.' };
+            }
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, admission.company_id);
+            
+            if (isRestricted) {
                 return { error: 'Você não tem permissão para cancelar esta admissão.' };
             }
         }
@@ -380,7 +405,7 @@ export async function cancelAdmission(admissionId: string) {
 
 export async function updateAdmission(formData: FormData) {
     const session = await getSession();
-    if (!session || (session.role !== 'client_user' && session.role !== 'admin')) {
+    if (!session || (session.role !== 'client_user' && session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
     }
 
@@ -399,6 +424,14 @@ export async function updateAdmission(formData: FormData) {
 
             if (!hasAccess && existingAdmission.created_by_user_id !== session.user_id) {
                  return { error: 'Você não tem permissão para editar esta admissão.' };
+            }
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, existingAdmission.company_id);
+            
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para editar esta admissão.' };
             }
         }
 

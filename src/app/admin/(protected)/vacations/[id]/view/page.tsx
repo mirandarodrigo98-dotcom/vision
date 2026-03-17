@@ -11,23 +11,41 @@ export default async function AdminViewVacationPage({ params }: { params: Promis
 
     const { id } = await params;
 
-    const vacation = await db.prepare(`
+    let vacationQuery = `
         SELECT v.*, cc.nome as company_name, e.name as employee_name 
         FROM vacations v
         LEFT JOIN client_companies cc ON v.company_id = cc.id
         LEFT JOIN employees e ON v.employee_id = e.id
         WHERE v.id = ?
-    `).get(id) as any;
+    `;
+    const queryParams: any[] = [id];
+
+    if (session.role === 'operator') {
+        vacationQuery += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        queryParams.push(session.user_id);
+    }
+
+    const vacation = await db.prepare(vacationQuery).get(...queryParams) as any;
 
     if (!vacation) {
         redirect('/admin/vacations');
     }
 
-    const companies = await db.prepare(`
-        SELECT id, nome, cnpj 
-        FROM client_companies 
-        ORDER BY nome
-      `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+    let companies = [];
+    if (session.role === 'operator') {
+        companies = await db.prepare(`
+            SELECT id, nome, cnpj 
+            FROM client_companies 
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            ORDER BY nome
+        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    } else {
+        companies = await db.prepare(`
+            SELECT id, nome, cnpj 
+            FROM client_companies 
+            ORDER BY nome
+          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+    }
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">

@@ -45,6 +45,12 @@ export async function saveQuestorCompany(companyData: any) {
         }
 
         if (existingId) {
+            // Check operator access
+            if (session.role === 'operator') {
+                const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, existingId);
+                if (restricted) return { error: 'Sem permissão para esta empresa.' };
+            }
+
             // ATUALIZAÇÃO (UPDATE)
             await db.prepare(`
                 UPDATE client_companies SET
@@ -325,7 +331,7 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
 
 export async function createCompany(data: FormData) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
     return { error: 'Não autorizado' };
   }
 
@@ -415,8 +421,13 @@ export async function createCompany(data: FormData) {
 
 export async function updateCompany(companyId: string, data: FormData) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
     return { error: 'Não autorizado' };
+  }
+
+  if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
   const nome = data.get('nome') as string;
@@ -661,6 +672,9 @@ export async function getCompaniesForSelect() {
   if (session.role === 'client_user') {
     query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
     params.push(session.user_id);
+  } else if (session.role === 'operator') {
+    query += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+    params.push(session.user_id);
   }
 
   query += ` ORDER BY nome ASC`;
@@ -747,6 +761,9 @@ export async function getCompanies() {
   if (session.role === 'client_user') {
     query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
     params.push(session.user_id);
+  } else if (session.role === 'operator') {
+    query += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+    params.push(session.user_id);
   }
 
   query += ` ORDER BY nome ASC`;
@@ -763,6 +780,14 @@ export async function getCompanies() {
 export async function getCompanySocios(companyId: string) {
   const session = await getSession();
   if (!session) return [];
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return [];
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return [];
+  }
 
   try {
     const socios = await db.prepare(`
@@ -781,6 +806,14 @@ export async function getCompanySocios(companyId: string) {
 export async function getCompanyDetailsFull(companyId: string) {
   const session = await getSession();
   if (!session) return null;
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return null;
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return null;
+  }
 
   try {
     const company = await db.prepare(`

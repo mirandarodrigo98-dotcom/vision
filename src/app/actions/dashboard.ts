@@ -30,6 +30,16 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
   if (!session || !session.active_company_id) return null;
 
   const companyId = session.active_company_id;
+
+  // Verify access
+  if (session.role === 'client_user') {
+     const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+     if (!hasAccess) return null;
+  } else if (session.role === 'operator') {
+     const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+     if (restricted) return null;
+  }
+
   const now = new Date();
 
   // Dates

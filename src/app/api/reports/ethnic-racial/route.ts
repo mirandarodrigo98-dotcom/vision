@@ -8,13 +8,20 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     const session = await getSession();
     
-    if (!session || session.role !== 'client_user') {
+    if (!session || (session.role !== 'client_user' && session.role !== 'operator')) {
         return new NextResponse('Unauthorized', { status: 401 });
     }
     
     const activeCompanyId = session.active_company_id;
     if (!activeCompanyId) {
         return new NextResponse('Selecione uma empresa ativa para gerar o relatório.', { status: 400 });
+    }
+
+    if (session.role === 'operator') {
+         const restricted = await db.prepare(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+         `).get(session.user_id, activeCompanyId);
+         if (restricted) return new NextResponse('Unauthorized', { status: 401 });
     }
     
     try {

@@ -20,6 +20,15 @@ const societarioSchema = z.object({
 export async function getSocietarioProfile(companyId: string) {
   const session = await getSession();
   if (!session) return null;
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return null;
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return null;
+  }
+
   try {
     const profile = await db
       .prepare('SELECT * FROM societario_profiles WHERE company_id = ?')
@@ -33,6 +42,15 @@ export async function getSocietarioProfile(companyId: string) {
 export async function getSocietarioLogs(companyId: string) {
   const session = await getSession();
   if (!session) return [];
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return [];
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return [];
+  }
+
   try {
     const logs = await db
       .prepare(
@@ -84,6 +102,14 @@ export async function upsertSocietarioProfile(formData: FormData) {
 
   const data = societarioSchema.parse(input);
   if (!data.company_id) return { error: 'Empresa obrigatória' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, data.company_id);
+    if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, data.company_id);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
 
   const existing = await db
     .prepare('SELECT * FROM societario_profiles WHERE company_id = ?')
@@ -176,6 +202,15 @@ export async function searchSocios(term: string) {
 export async function changeStatus(companyId: string, status: 'EM_REGISTRO' | 'ATIVA' | 'INATIVA', motivo: string) {
   const session = await getSession();
   if (!session) return { error: 'Unauthorized' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
+
   let hasPermission = false;
   if (session.role === 'admin') hasPermission = true;
   else {

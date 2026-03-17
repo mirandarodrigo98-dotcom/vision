@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { LeaveActions } from '@/components/leaves/leave-actions';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ interface AdminLeavesPageProps {
 }
 
 export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageProps) {
+  const session = await getSession();
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
@@ -29,12 +31,23 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
     FROM leaves l
     JOIN client_companies sc ON l.company_id = sc.id
     JOIN employees e ON l.employee_id = e.id
+    WHERE 1=1
   `;
 
   const params: any[] = [];
 
+  if (session) {
+    if (session.role === 'client_user') {
+      query += ` AND l.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
+    } else if (session.role === 'operator') {
+      query += ` AND (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      params.push(session.user_id);
+    }
+  }
+
   if (q) {
-    query += ` WHERE (l.protocol_number LIKE ? OR e.name LIKE ? OR sc.nome LIKE ?)`;
+    query += ` AND (l.protocol_number LIKE ? OR e.name LIKE ? OR sc.nome LIKE ?)`;
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ, likeQ);
   }

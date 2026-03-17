@@ -21,7 +21,7 @@ import { checkPendingRequests } from './employees';
 
 export async function createLeave(formData: FormData) {
     const session = await getSession();
-    if (!session || session.role !== 'client_user') {
+    if (!session || (session.role !== 'client_user' && session.role !== 'operator' && session.role !== 'admin')) {
         return { error: 'Unauthorized' };
     }
 
@@ -38,12 +38,32 @@ export async function createLeave(formData: FormData) {
         }
 
         // Validate company access
-        const userCompanyData = await db.prepare(`
-            SELECT cc.id, cc.nome, cc.cnpj 
-            FROM client_companies cc
-            JOIN user_companies uc ON uc.company_id = cc.id
-            WHERE uc.user_id = ? AND cc.id = ?
-        `).get(session.user_id, companyId) as { id: string, nome: string, cnpj: string };
+        let userCompanyData;
+
+        if (session.role === 'client_user') {
+            userCompanyData = await db.prepare(`
+                SELECT cc.id, cc.nome, cc.cnpj 
+                FROM client_companies cc
+                JOIN user_companies uc ON uc.company_id = cc.id
+                WHERE uc.user_id = ? AND cc.id = ?
+            `).get(session.user_id, companyId) as { id: string, nome: string, cnpj: string };
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, companyId);
+
+            if (isRestricted) {
+                 return { error: 'Você não tem permissão para esta empresa.' };
+            }
+
+            userCompanyData = await db.prepare(`
+                SELECT id, nome, cnpj FROM client_companies WHERE id = ?
+            `).get(companyId) as { id: string, nome: string, cnpj: string };
+        } else {
+             userCompanyData = await db.prepare(`
+                SELECT id, nome, cnpj FROM client_companies WHERE id = ?
+            `).get(companyId) as { id: string, nome: string, cnpj: string };
+        }
 
         if (!userCompanyData) {
             return { error: 'Você não tem permissão para esta empresa.' };
@@ -153,7 +173,7 @@ export async function updateLeave(id: string, formData: FormData) {
     if (!session) {
         return { error: 'Unauthorized' };
     }
-    if (session.role !== 'client_user' && session.role !== 'admin') {
+    if (session.role !== 'client_user' && session.role !== 'admin' && session.role !== 'operator') {
          return { error: 'Unauthorized' };
     }
 
@@ -168,6 +188,14 @@ export async function updateLeave(id: string, formData: FormData) {
 
             if (!hasAccess && leave.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
+            }
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, leave.company_id);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa.' };
             }
         }
 
@@ -300,7 +328,7 @@ export async function cancelLeave(id: string) {
     if (!session) {
         return { error: 'Unauthorized' };
     }
-    if (session.role !== 'client_user' && session.role !== 'admin') {
+    if (session.role !== 'client_user' && session.role !== 'admin' && session.role !== 'operator') {
          return { error: 'Unauthorized' };
     }
 
@@ -315,6 +343,14 @@ export async function cancelLeave(id: string) {
 
             if (!hasAccess && leave.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
+            }
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, leave.company_id);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa.' };
             }
         }
 
@@ -376,6 +412,16 @@ export async function approveLeave(id: string) {
     try {
         const leave = await db.prepare('SELECT * FROM leaves WHERE id = ?').get(id) as any;
         if (!leave) return { error: 'Afastamento não encontrado.' };
+
+        if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, leave.company_id);
+
+            if (isRestricted) {
+                return { error: 'Você não tem permissão para esta empresa.' };
+            }
+        }
 
         if (leave.status !== 'SUBMITTED' && leave.status !== 'RECTIFIED') {
              return { error: 'Apenas solicitações pendentes ou retificadas podem ser aprovadas.' };
@@ -462,7 +508,31 @@ export async function getLeaves(companyId?: string) {
             query += ` AND l.company_id = ?`;
             params.push(companyId);
         }
-    } else if (session.role === 'admin' || session.role === 'operator') {
+    } else if (session.role === 'operator') {
+        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        params.push(session.user_id);
+
+        if (companyId) {
+            query += ` AND l.company_id = ?`;
+            params.push(companyId);
+        }
+    } else {
+        // Admin
+        query += ` WHERE 1=1`;
+        if (companyId) {
+            query += ` AND l.company_id = ?`;
+            params.push(companyId);
+        }
+    }
+    } else if (session.role === 'operator') {
+        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        params.push(session.user_id);
+
+        if (companyId) {
+            query += ` AND l.company_id = ?`;
+            params.push(companyId);
+        }
+    } else if (session.role === 'admin') {
         if (companyId) {
             query += ` WHERE l.company_id = ?`;
             params.push(companyId);
@@ -495,6 +565,14 @@ export async function getLeave(id: string) {
         `).get(session.user_id, leave.company_id);
 
         if (!hasAccess && leave.created_by_user_id !== session.user_id) {
+            return null;
+        }
+    } else if (session.role === 'operator') {
+         const isRestricted = await db.prepare(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+        `).get(session.user_id, leave.company_id);
+
+        if (isRestricted) {
             return null;
         }
     }

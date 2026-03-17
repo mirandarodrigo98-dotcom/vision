@@ -17,6 +17,7 @@ interface EmployeesPageProps {
 }
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
+  const session = await getSession();
   // Force re-render comment to fix ReferenceError cache
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'code';
@@ -51,6 +52,16 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   
   const params: any[] = [];
   
+  if (session) {
+    if (session.role === 'client_user') {
+      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      params.push(session.user_id);
+    } else if (session.role === 'operator') {
+      query += ` AND (e.company_id IS NULL OR e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      params.push(session.user_id);
+    }
+  }
+
   if (name) {
     query += ` AND e.name LIKE ?`;
     params.push(`%${name}%`);

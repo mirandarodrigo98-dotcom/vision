@@ -7,22 +7,51 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Check, ChevronsUpDown, X } from 'lucide-react';
 import { createTeamUser, updateTeamUser, TeamUser } from '@/app/actions/team';
 import { Department } from '@/app/actions/departments';
 import { AccessSchedule } from '@/types/access-schedule';
 import { validateCPF } from '@/lib/validators';
+import { cn } from '@/lib/utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface TeamFormProps {
     departments: Department[];
     schedules: AccessSchedule[];
-    initialData?: TeamUser;
+    companies: any[];
+    initialData?: TeamUser & { restricted_companies?: string[] };
     onCancel: () => void;
     onSuccess: () => void;
 }
 
-export default function TeamForm({ departments, schedules, initialData, onCancel, onSuccess }: TeamFormProps) {
+export default function TeamForm({ departments, schedules, companies, initialData, onCancel, onSuccess }: TeamFormProps) {
     const [isLoading, setIsLoading] = useState(false);
+    const [openCompanies, setOpenCompanies] = useState(false);
+    const [showRestrictionPrompt, setShowRestrictionPrompt] = useState(false);
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         email: initialData?.email || '',
@@ -31,6 +60,7 @@ export default function TeamForm({ departments, schedules, initialData, onCancel
         department_id: initialData?.department_id || '',
         role: initialData?.role || 'operator',
         access_schedule_id: initialData?.access_schedule_id || 'none',
+        restricted_company_ids: initialData?.restricted_companies || [],
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -92,11 +122,17 @@ export default function TeamForm({ departments, schedules, initialData, onCancel
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent, skipPrompt = false) => {
+        if (e) e.preventDefault();
         
         if (!validate()) {
             toast.error('Verifique os erros no formulário.');
+            return;
+        }
+
+        // Prompt if creating a new operator without restrictions
+        if (!initialData && !skipPrompt && formData.role === 'operator' && formData.restricted_company_ids.length === 0) {
+            setShowRestrictionPrompt(true);
             return;
         }
 
@@ -111,6 +147,7 @@ export default function TeamForm({ departments, schedules, initialData, onCancel
                 department_id: formData.department_id,
                 role: formData.role as 'admin' | 'operator',
                 access_schedule_id: formData.access_schedule_id === 'none' ? undefined : formData.access_schedule_id,
+                restricted_company_ids: formData.restricted_company_ids,
             };
 
             let res;
@@ -255,6 +292,110 @@ export default function TeamForm({ departments, schedules, initialData, onCancel
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {formData.role === 'operator' && (
+                        <div className="space-y-2">
+                            <Label>Restrições de Acesso a Empresas (Opcional)</Label>
+                            <div className="text-xs text-muted-foreground mb-2">
+                                Selecione as empresas que este operador <strong>NÃO</strong> deve ter acesso. Se vazio, terá acesso a todas.
+                            </div>
+                            
+                            <Popover open={openCompanies} onOpenChange={setOpenCompanies}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={openCompanies}
+                                        className="w-full justify-between"
+                                        disabled={isLoading}
+                                    >
+                                        {formData.restricted_company_ids && formData.restricted_company_ids.length > 0
+                                            ? `${formData.restricted_company_ids.length} empresa(s) restrita(s)`
+                                            : "Nenhuma restrição (Acesso Total)"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[400px] p-0" align="start">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar empresa..." />
+                                        <CommandList>
+                                            <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                                            <CommandGroup>
+                                                    {companies.map((company) => (
+                                                        <CommandItem
+                                                            key={company.id}
+                                                            value={company.nome}
+                                                            onSelect={() => {
+                                                                setFormData(prev => {
+                                                                    const current = prev.restricted_company_ids || [];
+                                                                    const exists = current.includes(company.id);
+                                                                    const newIds = exists
+                                                                        ? current.filter(id => id !== company.id)
+                                                                        : [...current, company.id];
+                                                                    
+                                                                    return {
+                                                                        ...prev,
+                                                                        restricted_company_ids: newIds
+                                                                    };
+                                                                });
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    (formData.restricted_company_ids || []).includes(company.id) ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            <div className="flex flex-col">
+                                                                <span>{company.nome}</span>
+                                                                <span className="text-xs text-muted-foreground">{company.cnpj}</span>
+                                                            </div>
+                                                        </CommandItem>
+                                                    ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+
+                            {formData.restricted_company_ids && formData.restricted_company_ids.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {formData.restricted_company_ids.map(id => {
+                                        const company = companies.find(c => c.id === id);
+                                        if (!company) return null;
+                                        return (
+                                            <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                                                {company.nome}
+                                                <button
+                                                    type="button"
+                                                    className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                    onClick={() => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            restricted_company_ids: (prev.restricted_company_ids || []).filter(cid => cid !== id)
+                                                        }));
+                                                    }}
+                                                >
+                                                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                                </button>
+                                            </Badge>
+                                        );
+                                    })}
+                                    {formData.restricted_company_ids.length > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-xs h-6 px-2"
+                                            onClick={() => setFormData(prev => ({ ...prev, restricted_company_ids: [] }))}
+                                        >
+                                            Limpar tudo
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="pt-4 flex justify-end">
@@ -264,6 +405,26 @@ export default function TeamForm({ departments, schedules, initialData, onCancel
                     </Button>
                 </div>
             </form>
+
+            <AlertDialog open={showRestrictionPrompt} onOpenChange={setShowRestrictionPrompt}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Acesso Total a Empresas</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Você está prestes a criar um operador <strong>sem nenhuma restrição de empresa</strong>. 
+                            Isso significa que este operador terá acesso a <strong>todas</strong> as empresas do sistema.
+                            <br /><br />
+                            Deseja continuar com o acesso total ou voltar para selecionar restrições?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar para restringir</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleSubmit(undefined, true)}>
+                            Continuar com Acesso Total
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

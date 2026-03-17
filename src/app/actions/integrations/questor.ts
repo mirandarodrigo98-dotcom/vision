@@ -6,6 +6,7 @@ import { z } from 'zod';
 import iconv from 'iconv-lite';
 import { getQuestorSynConfig, getQuestorSynRoutineBySystemCode, getQuestorSynTokenByModule, resolveQuestorUrl } from './questor-syn';
 import { QuestorSynRoutine } from '@/types/questor-syn';
+import { getSession } from '@/lib/auth';
 
 const QUESTOR_API_URLS = {
   homologation: 'https://synhomologacao.questor.com.br',
@@ -74,6 +75,17 @@ export async function checkRequestStatus(_companyId: string) {
 }
 
 export async function checkQuestorSyncStatus(companyId: string, filters: any) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     let query = `
       SELECT 
@@ -115,6 +127,17 @@ export async function checkQuestorSyncStatus(companyId: string, filters: any) {
 }
 
 export async function syncTransactionsToQuestor(companyId: string, filters: any) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     // 1. Fetch Transactions (Common Logic)
     let query = `
@@ -345,6 +368,17 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
 // --- Eklesia Versions ---
 
 export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: any) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     let query = `
       SELECT 
@@ -386,6 +420,17 @@ export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: 
 }
 
 export async function syncEklesiaTransactionsToQuestor(companyId: string, filters: any) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  if (session.role === 'client_user') {
+    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+  } else if (session.role === 'operator') {
+    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    if (restricted) return { error: 'Sem permissão para esta empresa.' };
+  }
+
   try {
     // 1. Fetch Transactions (Common Logic)
     let query = `

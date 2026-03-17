@@ -53,6 +53,9 @@ export async function getVacations(
         if (session.role === 'client_user') {
             query += ` AND v.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
             params.push(session.user_id);
+        } else if (session.role === 'operator') {
+            query += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+            params.push(session.user_id);
         }
 
         if (search) {
@@ -118,6 +121,11 @@ export async function getVacation(id: string) {
                 SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
             `).get(session.user_id, vacation.company_id);
             if (!hasAccess) return null;
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, vacation.company_id);
+            if (isRestricted) return null;
         }
 
         return vacation;
@@ -163,12 +171,17 @@ export async function createVacation(formData: FormData) {
             return { error: `Este funcionário já possui uma solicitação de ${pending.type} em andamento.` };
         }
 
-        // Validate company access for client_user
+        // Validate company access for client_user and operator
         if (session.role === 'client_user') {
             const hasAccess = await db.prepare(`
                 SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
             `).get(session.user_id, companyId);
             if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
+        } else if (session.role === 'operator') {
+            const isRestricted = await db.prepare(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
+            `).get(session.user_id, companyId);
+            if (isRestricted) return { error: 'Sem permissão para esta empresa.' };
         }
 
         // Calculate Return Date

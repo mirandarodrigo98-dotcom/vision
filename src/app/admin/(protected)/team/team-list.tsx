@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TeamForm from './team-form';
 
-export default function TeamManagementPage({ users, departments, schedules }: { users: TeamUser[], departments: Department[], schedules: AccessSchedule[] }) {
+export default function TeamManagementPage({ users, departments, schedules, companies }: { users: TeamUser[], departments: Department[], schedules: AccessSchedule[], companies: any[] }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<TeamUser | undefined>(undefined);
   
@@ -103,6 +103,7 @@ export default function TeamManagementPage({ users, departments, schedules }: { 
       <TeamForm 
         departments={departments}
         schedules={schedules}
+        companies={companies}
         initialData={editingUser}
         onCancel={() => setIsFormOpen(false)}
         onSuccess={handleSuccess}

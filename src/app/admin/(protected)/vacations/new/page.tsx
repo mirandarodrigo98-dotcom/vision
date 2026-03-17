@@ -27,11 +27,19 @@ export default async function NewVacationPage() {
   }
 
   let companies = [];
-  if (session.role === 'admin' || session.role === 'operator') {
-    // Admin/Operator sees all companies
+  if (session.role === 'admin') {
+    // Admin sees all companies
     companies = await db.prepare(`
         SELECT id, nome, cnpj FROM client_companies ORDER BY nome
     `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+  } else if (session.role === 'operator') {
+    // Operator sees all companies except restricted ones
+    companies = await db.prepare(`
+        SELECT id, nome, cnpj 
+        FROM client_companies 
+        WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+        ORDER BY nome
+    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
   } else {
     // Client User sees only their companies
     companies = await db.prepare(`
