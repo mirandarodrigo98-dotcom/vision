@@ -34,13 +34,23 @@ export function NotificationBell() {
     const fetchUnreadCount = async () => {
       const unread = await getUnreadNotifications();
       setUnreadCount(unread.length);
+      
+      // If popover is open, refresh the list to show new ones
+      if (isOpen) {
+        try {
+          const { notifications: newNotifs } = await getUserNotifications(20, 0);
+          setNotifications(newNotifs);
+        } catch (e) {
+          // ignore
+        }
+      }
     };
 
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // 30 seconds
+    const interval = setInterval(fetchUnreadCount, 15000); // 15 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isOpen]);
 
   // Fetch notifications when popover opens
   useEffect(() => {
@@ -127,18 +137,19 @@ export function NotificationBell() {
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 mr-4" align="end">
-        <div className="flex items-center justify-between border-b p-4">
+        <div className="flex items-center justify-between border-b p-3">
           <h4 className="font-semibold text-sm">Notificações</h4>
           <div className="flex gap-2">
             {unreadCount > 0 && (
               <Button 
                 variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                size="sm" 
+                className="text-xs h-8 text-muted-foreground hover:text-primary px-2"
                 onClick={handleMarkAllAsRead}
                 title="Marcar todas como lidas"
               >
-                <CheckCircleIcon className="h-5 w-5" />
+                <CheckCircleIcon className="h-4 w-4 mr-1" />
+                Lidas
               </Button>
             )}
              {/* Permission Request Button (only if needed/supported) */}
@@ -170,13 +181,15 @@ export function NotificationBell() {
                 <div 
                   key={notification.id}
                   className={`
-                    relative p-4 text-sm hover:bg-muted/50 transition-colors cursor-pointer
+                    relative p-4 text-sm hover:bg-muted/50 transition-colors 
                     ${!notification.read ? 'bg-blue-50/50' : ''}
                   `}
-                  onClick={() => handleMarkAsRead(notification.id, notification.link)}
                 >
                   <div className="flex gap-3">
-                    <div className="flex-1 space-y-1">
+                    <div 
+                      className="flex-1 space-y-1 cursor-pointer"
+                      onClick={() => handleMarkAsRead(notification.id, notification.link)}
+                    >
                       <p className={`font-medium leading-none ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
                         {notification.title}
                       </p>
@@ -188,7 +201,21 @@ export function NotificationBell() {
                       </p>
                     </div>
                     {!notification.read && (
-                      <span className="flex h-2 w-2 shrink-0 rounded-full bg-blue-600 mt-1.5" />
+                      <div className="flex flex-col items-center gap-2 pt-1">
+                        <span className="flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-blue-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notification.id, null);
+                          }}
+                          title="Marcar como lida"
+                        >
+                          <CheckCircleIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
