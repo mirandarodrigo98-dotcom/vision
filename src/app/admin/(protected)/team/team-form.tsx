@@ -7,20 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Save, ArrowLeft, Check, ChevronsUpDown, X } from 'lucide-react';
+import { Search, Loader2, Save, ArrowLeft, Check, ChevronsUpDown, X } from 'lucide-react';
 import { createTeamUser, updateTeamUser, TeamUser } from '@/app/actions/team';
 import { Department } from '@/app/actions/departments';
 import { AccessSchedule } from '@/types/access-schedule';
 import { validateCPF } from '@/lib/validators';
 import { cn } from '@/lib/utils';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
@@ -51,6 +43,7 @@ interface TeamFormProps {
 export default function TeamForm({ departments, schedules, companies, initialData, onCancel, onSuccess }: TeamFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [openCompanies, setOpenCompanies] = useState(false);
+    const [searchCompany, setSearchCompany] = useState('');
     const [showRestrictionPrompt, setShowRestrictionPrompt] = useState(false);
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
@@ -316,16 +309,38 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[400px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar empresa..." />
-                                        <CommandList>
-                                            <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
-                                            <CommandGroup>
-                                                    {companies.map((company) => (
-                                                        <CommandItem
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center border-b px-3">
+                                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                            <Input
+                                                placeholder="Digite a Razão Social ou CNPJ..."
+                                                value={searchCompany}
+                                                onChange={(e) => setSearchCompany(e.target.value)}
+                                                className="border-0 focus-visible:ring-0 shadow-none px-0"
+                                            />
+                                        </div>
+                                        <ScrollArea className="h-[300px]">
+                                            {(() => {
+                                                const filteredCompanies = companies.filter(company => 
+                                                    company.nome.toLowerCase().includes(searchCompany.toLowerCase()) || 
+                                                    (company.cnpj && company.cnpj.includes(searchCompany))
+                                                );
+
+                                                if (filteredCompanies.length === 0) {
+                                                    return (
+                                                        <div className="flex items-center justify-center h-full text-muted-foreground p-4 text-sm">
+                                                            Nenhuma empresa encontrada.
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return filteredCompanies.map((company) => {
+                                                    const isSelected = (formData.restricted_company_ids || []).includes(company.id);
+                                                    return (
+                                                        <div
                                                             key={company.id}
-                                                            value={company.nome}
-                                                            onSelect={() => {
+                                                            className="flex items-center justify-between px-3 py-2 hover:bg-muted cursor-pointer"
+                                                            onClick={() => {
                                                                 setFormData(prev => {
                                                                     const current = prev.restricted_company_ids || [];
                                                                     const exists = current.includes(company.id);
@@ -340,63 +355,76 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                                                                 });
                                                             }}
                                                         >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    (formData.restricted_company_ids || []).includes(company.id) ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            <div className="flex flex-col">
-                                                                <span>{company.nome}</span>
-                                                                <span className="text-xs text-muted-foreground">{company.cnpj}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <Check
+                                                                    className={cn(
+                                                                        "h-4 w-4",
+                                                                        isSelected ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                <div>
+                                                                    <div className="font-medium text-sm">{company.nome}</div>
+                                                                    <div className="flex gap-2 text-xs text-muted-foreground">
+                                                                        <span>{company.cnpj}</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        </CommandItem>
-                                                    ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
+                                                        </div>
+                                                    );
+                                                });
+                                            })()}
+                                        </ScrollArea>
+                                    </div>
                                 </PopoverContent>
                             </Popover>
-
-                            {formData.restricted_company_ids && formData.restricted_company_ids.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {formData.restricted_company_ids.map(id => {
-                                        const company = companies.find(c => c.id === id);
-                                        if (!company) return null;
-                                        return (
-                                            <Badge key={id} variant="secondary" className="flex items-center gap-1">
-                                                {company.nome}
-                                                <button
-                                                    type="button"
-                                                    className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                                    onClick={() => {
-                                                        setFormData(prev => ({
-                                                            ...prev,
-                                                            restricted_company_ids: (prev.restricted_company_ids || []).filter(cid => cid !== id)
-                                                        }));
-                                                    }}
-                                                >
-                                                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                                </button>
-                                            </Badge>
-                                        );
-                                    })}
-                                    {formData.restricted_company_ids.length > 0 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-xs h-6 px-2"
-                                            onClick={() => setFormData(prev => ({ ...prev, restricted_company_ids: [] }))}
-                                        >
-                                            Limpar tudo
-                                        </Button>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
+
+                {formData.role === 'operator' && formData.restricted_company_ids && formData.restricted_company_ids.length > 0 && (
+                    <div className="mt-6 pt-4 border-t">
+                        <div className="flex items-center justify-between mb-4">
+                            <Label className="text-base font-semibold">Empresas Restritas Selecionadas ({formData.restricted_company_ids.length})</Label>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-8 px-3"
+                                onClick={() => setFormData(prev => ({ ...prev, restricted_company_ids: [] }))}
+                            >
+                                Limpar todas
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {formData.restricted_company_ids.map(id => {
+                                const company = companies.find(c => c.id === id);
+                                if (!company) return null;
+                                return (
+                                    <div key={id} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+                                        <div className="flex flex-col overflow-hidden mr-2">
+                                            <span className="text-sm font-medium truncate" title={company.nome}>{company.nome}</span>
+                                            <span className="text-xs text-muted-foreground">{company.cnpj}</span>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                                            onClick={() => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    restricted_company_ids: (prev.restricted_company_ids || []).filter(cid => cid !== id)
+                                                }));
+                                            }}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 <div className="pt-4 flex justify-end">
                     <Button type="submit" disabled={isLoading}>
