@@ -13,9 +13,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Calendar, Paperclip, FileText, Download } from 'lucide-react';
+import { User, Calendar, Paperclip, FileText, Download, ArrowLeft } from 'lucide-react';
 import { TicketAttachmentList } from '@/components/tickets/ticket-attachment-list';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -60,15 +62,23 @@ async function TicketDetails({ id }: { id: string }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-mono font-medium text-foreground">{ticket.protocol || '#' + ticket.id.substring(0, 8)}</span>
-            <span>•</span>
-            <TicketStatusBadge status={ticket.status} />
-            <span>•</span>
-            <TicketPriorityBadge priority={ticket.priority} />
+        <div className="flex flex-col gap-4">
+          <div>
+            <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2 text-muted-foreground hover:text-foreground">
+              <Link href="/admin/tickets">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar para Chamados
+              </Link>
+            </Button>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="font-mono font-medium text-foreground">{ticket.protocol || '#' + ticket.id.substring(0, 8)}</span>
+              <span>•</span>
+              <TicketStatusBadge status={ticket.status} />
+              <span>•</span>
+              <TicketPriorityBadge priority={ticket.priority} />
+            </div>
+            <h1 className="text-3xl font-bold mt-2">{ticket.title}</h1>
           </div>
-          <h1 className="text-3xl font-bold">{ticket.title}</h1>
         </div>
 
         <Card>
@@ -81,18 +91,18 @@ async function TicketDetails({ id }: { id: string }) {
                 <span className="text-sm font-medium text-muted-foreground block">Categoria</span>
                 <span>{ticket.category || 'Não informada'}</span>
               </div>
-              {ticket.company_name && (
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground block">Unidade/Empresa</span>
-                  <span>{ticket.company_name}</span>
-                </div>
-              )}
-              {ticket.due_date && (
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground block">Prazo Desejado</span>
-                  <span>{format(new Date(ticket.due_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
-                </div>
-              )}
+              <div>
+                <span className="text-sm font-medium text-muted-foreground block">Unidade/Empresa</span>
+                <span>{ticket.company_name || 'Não informada'}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-muted-foreground block">Prazo Desejado</span>
+                <span>{ticket.due_date ? format(new Date(ticket.due_date), 'dd/MM/yyyy', { locale: ptBR }) : 'Não informado'}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-muted-foreground block">Destinatário</span>
+                <span>{ticket.assignee_name || 'Não atribuído'}</span>
+              </div>
             </div>
             
             <div className="pt-2">
