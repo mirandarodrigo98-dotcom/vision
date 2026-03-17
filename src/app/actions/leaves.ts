@@ -524,20 +524,6 @@ export async function getLeaves(companyId?: string) {
             params.push(companyId);
         }
     }
-    } else if (session.role === 'operator') {
-        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
-        params.push(session.user_id);
-
-        if (companyId) {
-            query += ` AND l.company_id = ?`;
-            params.push(companyId);
-        }
-    } else if (session.role === 'admin') {
-        if (companyId) {
-            query += ` WHERE l.company_id = ?`;
-            params.push(companyId);
-        }
-    }
 
     query += ` ORDER BY l.created_at DESC`;
 
