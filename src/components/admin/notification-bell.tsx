@@ -125,45 +125,42 @@ export function NotificationBell() {
       <PopoverTrigger asChild>
         <button 
           type="button" 
-          className="relative -m-2.5 p-2.5 text-gray-400 hover:text-gray-500 focus:outline-none"
+          className="relative rounded-full p-1 text-gray-400 hover:text-gray-500 focus:outline-none"
         >
           <span className="sr-only">Ver notificações</span>
           <BellIcon className="h-6 w-6" aria-hidden="true" />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white ring-2 ring-white shadow-sm">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 mr-4" align="end">
-        <div className="flex items-center justify-between border-b p-3">
+        <div className="flex flex-col items-center justify-center border-b p-3 relative">
           <h4 className="font-semibold text-sm">Notificações</h4>
-          <div className="flex gap-2">
-            {unreadCount > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs h-8 text-muted-foreground hover:text-primary px-2"
-                onClick={handleMarkAllAsRead}
-                title="Marcar todas como lidas"
-              >
-                <CheckCircleIcon className="h-4 w-4 mr-1" />
-                Lidas
-              </Button>
-            )}
-             {/* Permission Request Button (only if needed/supported) */}
-             {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
-                <Button 
-                  variant="ghost" 
-                  size="xs" 
-                  className="text-xs h-8 px-2"
-                  onClick={handleRequestPermission}
-                >
-                  Ativar
-                </Button>
-             )}
-          </div>
+          {unreadCount > 0 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkAllAsRead();
+              }}
+              className="text-xs text-blue-600 hover:text-blue-800 mt-1 hover:underline focus:outline-none"
+            >
+              Marcar todas como lidas
+            </button>
+          )}
+          {/* Permission Request Button (only if needed/supported) */}
+          {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+            <Button 
+              variant="ghost" 
+              size="xs" 
+              className="text-[10px] h-6 px-2 absolute right-2 top-2"
+              onClick={handleRequestPermission}
+            >
+              Ativar
+            </Button>
+          )}
         </div>
         <ScrollArea className="h-[300px]">
           {loading ? (
