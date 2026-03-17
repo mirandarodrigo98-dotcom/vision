@@ -1,0 +1,29 @@
+[33mcommit 9ea04579567c01cbbef5151eb3dfe8ca755cd4f7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Mon Mar 16 17:55:36 2026 -0300
+
+    fix: resolve ticket details 404 and clean up debugs
+
+[33mcommit bf0dfe2def03f9b4a1441d542c7fec2da16a4b1b[m
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Mon Mar 16 17:32:01 2026 -0300
+
+    fix: use postgres compatible syntax for checking protocol column existence
+
+[33mcommit 41697cc3f6dd979d09d01c1f7992f068531cc45d[m
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Mon Mar 16 17:26:42 2026 -0300
+
+    fix: add autoincrement compatibility for postgres adapter
+
+[33mcommit 3d629cc8a423e1656cd45e3b9afd320a7eea39ed[m
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Mon Mar 16 17:17:20 2026 -0300
+
+    fix: prevent server crash by wrapping entire ticket creation logic in try-catch
+
+[33mcommit 6c172e780be1cf8200611d7696ebc691e0afe575[m
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Mon Mar 16 17:11:04 2026 -0300
+
+    fix: expose detailed error messages for ticket creation debugging

@@ -21,7 +21,7 @@ export async function getUnreadNotifications() {
   try {
     const notifications = await db.prepare(`
       SELECT * FROM notifications 
-      WHERE user_id = ? AND read = 0 
+      WHERE user_id = ? AND read = FALSE 
       ORDER BY created_at DESC
     `).all(session.user_id);
     
@@ -71,7 +71,7 @@ export async function markNotificationAsRead(id: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(id, session.user_id);
+    await db.prepare('UPDATE notifications SET read = TRUE WHERE id = ? AND user_id = ?').run(id, session.user_id);
     return { success: true };
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -84,7 +84,7 @@ export async function markAllNotificationsAsRead() {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0').run(session.user_id);
+    await db.prepare('UPDATE notifications SET read = TRUE WHERE user_id = ? AND read = FALSE').run(session.user_id);
     return { success: true };
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
