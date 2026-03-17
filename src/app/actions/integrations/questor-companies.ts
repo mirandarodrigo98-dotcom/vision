@@ -347,7 +347,6 @@ export async function fetchCompanyFromQuestor(identifier: string, source: 'zen' 
             code: existing.code
         } : undefined
       };
-    }
 
   } catch (error: any) {
     console.error('Fetch Company Error:', error);
