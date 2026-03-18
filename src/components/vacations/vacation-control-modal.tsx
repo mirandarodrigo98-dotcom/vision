@@ -115,7 +115,7 @@ export function VacationControlModal() {
           Controle de Férias
         </Button>
       </DialogTrigger>
-      <DialogContent className={step === 'results' ? "max-w-[95vw] w-full max-h-[90vh] flex flex-col" : "sm:max-w-[425px]"}>
+      <DialogContent className={step === 'results' ? "max-w-[100vw] w-screen h-[100vh] m-0 p-6 flex flex-col" : "sm:max-w-[425px]"}>
         <DialogHeader>
           <DialogTitle>Controle de Férias</DialogTitle>
           <DialogDescription>
@@ -146,7 +146,7 @@ export function VacationControlModal() {
           <div className="flex-1 overflow-hidden flex flex-col gap-4 py-4">
              {vacationData.length > 0 ? (
                 <div className="border rounded-md flex-1 overflow-hidden flex flex-col">
-                  <ScrollArea className="flex-1 max-h-[60vh] overflow-auto">
+                  <ScrollArea className="flex-1 h-full overflow-auto">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                         <TableRow>
