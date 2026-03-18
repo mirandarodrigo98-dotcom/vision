@@ -128,6 +128,9 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
       payload.dontOpenTicket = true;
   }
 
+  // LOG DE DEBUG ANTES DO ENVIO
+  await logSystemError('Digisac API - Tentativa de Envio (DEBUG)', { endpoint, payload });
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
