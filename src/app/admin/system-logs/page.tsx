@@ -24,6 +24,7 @@ export default async function SystemLogsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Logs de Erros do Sistema</h1>
         <p className="text-muted-foreground">
           Visualização dos últimos 50 erros registrados pela aplicação (útil para debug de integrações como o Digisac).
+          <span className="block text-xs mt-1 text-yellow-600">* Horários exibidos no fuso horário de Brasília (America/Sao_Paulo).</span>
         </p>
       </div>
 

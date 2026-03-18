@@ -110,6 +110,76 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
         return { success: false, error: 'Erro de configuração: connection_phone não definido.' };
     }
     
+    // Tentar resolver serviceId se não for um UUID (assumindo que seja um número de telefone)
+    let finalServiceId = message.serviceId;
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!UUID_REGEX.test(finalServiceId)) {
+         try {
+             console.log(`Tentando resolver Service ID para o telefone: ${finalServiceId}`);
+             await logSystemError('Digisac API - Resolução de Service ID', { message: `Iniciando busca de ID para o telefone: ${finalServiceId}`, url: `${config.base_url}/api/v1/services` });
+
+             const controller = new AbortController();
+             const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout para busca de serviços
+             
+             const servicesResponse = await fetch(`${config.base_url}/api/v1/services`, {
+                 headers: {
+                     'Authorization': `Bearer ${config.api_token}`,
+                     'Content-Type': 'application/json',
+                 },
+                 signal: controller.signal
+             });
+             
+             clearTimeout(timeoutId);
+             
+             if (servicesResponse.ok) {
+                 const services = await servicesResponse.json();
+                 if (Array.isArray(services)) {
+                     const phoneToMatch = finalServiceId.replace(/\D/g, '');
+                     const matchedService = services.find((s: any) => {
+                         const myNumber = String(s.data?.status?.myNumber || '');
+                         const myId = String(s.data?.myId || '');
+                         return myNumber.includes(phoneToMatch) || myId.startsWith(phoneToMatch);
+                     });
+                     
+                     if (matchedService) {
+                         console.log(`Service ID resolvido: ${matchedService.id} (Salvo no banco para futuro)`);
+                         await logSystemError('Digisac API - Service ID Resolvido', { original: finalServiceId, resolved: matchedService.id });
+                         finalServiceId = matchedService.id;
+                         
+                         // Atualizar o banco para evitar buscas futuras
+                         await saveDigisacConfig({
+                             ...config,
+                             connection_phone: matchedService.id
+                         });
+                     } else {
+                         console.warn(`Nenhum serviço encontrado para o telefone ${phoneToMatch}.`);
+                         await logSystemError('Digisac API - Service ID Não Encontrado', { 
+                            phoneBuscado: phoneToMatch, 
+                            servicosDisponiveis: services.map((s: any) => ({ 
+                                id: s.id, 
+                                name: s.name, 
+                                number: s.data?.status?.myNumber 
+                            })) 
+                         });
+                         return { success: false, error: `Não foi possível encontrar um canal Digisac conectado com o número ${finalServiceId}. Verifique a conexão no painel do Digisac.` };
+                     }
+                 } else {
+                    await logSystemError('Digisac API - Resposta de Serviços Inválida', { response: services });
+                    return { success: false, error: 'A API do Digisac retornou uma lista de serviços inválida.' };
+                 }
+             } else {
+                 const errorText = await servicesResponse.text();
+                 await logSystemError('Digisac API - Falha ao Buscar Serviços', { status: servicesResponse.status, error: errorText });
+                 return { success: false, error: `Falha ao validar conexão com Digisac (Status ${servicesResponse.status}).` };
+             }
+         } catch (e: any) {
+             console.error('Erro ao resolver service ID:', e);
+             await logSystemError('Digisac API - Erro na Resolução de ID', e);
+             return { success: false, error: `Erro ao tentar resolver o ID do serviço Digisac: ${e.message}` };
+         }
+     }
+
     // Garantir que number é string e remover não-números
     let cleanNumber = String(message.number || '').replace(/\D/g, '');
     
@@ -119,7 +189,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     }
 
     payload.number = cleanNumber;
-    payload.serviceId = message.serviceId;
+    payload.serviceId = finalServiceId;
   }
 
   if (message.fileUrl) {
