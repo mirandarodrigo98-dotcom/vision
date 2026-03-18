@@ -9,7 +9,7 @@ export async function fetchVacationControlFromQuestor(companyCode: string) {
 
     try {
         const body = {
-            "F.CODIGOEMPRESA": String(companyCode)
+            "p.CodigoEmpresa": String(companyCode)
         };
 
         const result = await executeQuestorProcess('PeriodoAquisitivo', body);
