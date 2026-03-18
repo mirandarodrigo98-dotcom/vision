@@ -75,11 +75,16 @@ export function VacationControlModal() {
     }
   };
 
+  const getVisibleColumns = (data: any[]) => {
+    if (!data || data.length === 0) return [];
+    return Object.keys(data[0]).filter(key => key.toUpperCase() !== 'INDICE');
+  };
+
   const exportToCSV = () => {
     if (vacationData.length === 0) return;
     
-    // Obter todas as chaves (colunas) únicas do primeiro objeto
-    const headers = Object.keys(vacationData[0]);
+    // Obter colunas visíveis (filtrando INDICE)
+    const headers = getVisibleColumns(vacationData);
     
     const csvContent = [
       headers.join(';'), // Cabeçalho
@@ -159,7 +164,7 @@ export function VacationControlModal() {
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                         <TableRow>
-                          {Object.keys(vacationData[0]).map((key) => (
+                          {getVisibleColumns(vacationData).map((key) => (
                             <TableHead key={key} className="whitespace-nowrap">{key}</TableHead>
                           ))}
                         </TableRow>
@@ -167,7 +172,7 @@ export function VacationControlModal() {
                       <TableBody>
                         {vacationData.map((row, index) => (
                           <TableRow key={index}>
-                            {Object.keys(vacationData[0]).map((key) => (
+                            {getVisibleColumns(vacationData).map((key) => (
                               <TableCell key={`${index}-${key}`} className="whitespace-nowrap">
                                 {cleanText(row[key], key)}
                               </TableCell>
