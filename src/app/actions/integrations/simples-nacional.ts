@@ -84,6 +84,15 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         // If it's a JSON with Data field inside (nested)
         if (dataObj.Data) {
             csvData = dataObj.Data;
+        } else if (Array.isArray(dataObj) && dataObj.length > 0 && (dataObj[0].SEQ || dataObj[0].DESCRICAO)) {
+             // Handle raw JSON array with SEQ, TIPO, DESCRICAO, etc.
+             console.log('Detected flat JSON array from Questor, converting to CSV');
+             try {
+                 csvData = Papa.unparse(dataObj, { delimiter: ';' });
+             } catch (e) {
+                 console.error('Error unparsing raw JSON array:', e);
+                 return { success: false, error: 'Erro ao processar array JSON do Questor' };
+             }
         } else if (dataObj.FormClass && dataObj.Widgets) {
              // Handle FormClass/Widgets structure (Questor Grid Response)
              // Structure: { Widgets: { bottom: [ { Itens: [ { grids: [ { nomegrid: "...", dados: [ ... ] } ] } ] } ] } }
