@@ -318,6 +318,36 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                 console.log(`Row Candidate: ${desc}`);
             }
 
+            // Extract unique Aliquotas from ANY row that has an Aliquota column
+            for (const mPrefix of monthPrefixes) {
+                const mStr = mPrefix.substring(0,3);
+                const yStr = mPrefix.substring(3);
+                if (!monthsMap[mStr]) continue;
+                const competence = `${yStr}-${monthsMap[mStr]}`;
+                
+                if (monthData[competence]) {
+                     let aliqStr = row[`${mPrefix}_ALIQUOTA`] || row[`${mPrefix}_ALIQ`];
+                     
+                     if (!aliqStr) {
+                         const aliqKey = headerKeys.find(k => k.startsWith(mPrefix) && (k.toUpperCase().includes('ALIQUOTA') || k.toUpperCase().includes('ALIQ')));
+                         if (aliqKey) aliqStr = row[aliqKey];
+                     }
+
+                     if (aliqStr) {
+                         const aliqVal = parseValue(aliqStr);
+                         // Some rows might have 0 or empty for Aliquota, we only want positive values
+                         if (aliqVal > 0) {
+                             const monthDataEntry = monthData[competence] as any;
+                             if (!monthDataEntry._aliquotas) monthDataEntry._aliquotas = [];
+                             // Use unique values to avoid double counting if a Total row repeats the Anexo's aliquota
+                             if (!monthDataEntry._aliquotas.includes(aliqVal)) {
+                                 monthDataEntry._aliquotas.push(aliqVal);
+                             }
+                         }
+                     }
+                }
+            }
+
             // Map Description to Field
             let targetField: keyof SimplesNacionalBillingData | null = null;
             
@@ -391,26 +421,6 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                              if (!valStr) {
                                  const valKey = headerKeys.find(k => k.startsWith(mPrefix) && k.toUpperCase().includes('VALOR'));
                                  if (valKey) valStr = row[valKey];
-                             }
-
-                             // ALSO Extract "Alíq.Efetiva" (rpa_cash) from _ALIQUOTA column of this same row
-                             let aliqStr = row[`${mPrefix}_ALIQUOTA`] || row[`${mPrefix}_ALIQ`];
-                             
-                             if (!aliqStr) {
-                                 // Search for any column containing 'ALIQUOTA' or 'ALIQ'
-                                 const aliqKey = headerKeys.find(k => k.startsWith(mPrefix) && (k.toUpperCase().includes('ALIQUOTA') || k.toUpperCase().includes('ALIQ')));
-                                 if (aliqKey) aliqStr = row[aliqKey];
-                             }
-
-                             if (aliqStr) {
-                                 const aliqVal = parseValue(aliqStr);
-                                 if (aliqVal > 0) {
-                                     const monthDataEntry = monthData[competence] as any;
-                                     if (!monthDataEntry._aliquotas) monthDataEntry._aliquotas = [];
-                                     monthDataEntry._aliquotas.push(aliqVal);
-                                 }
-                             } else {
-                                 console.log(`[Questor Warning] No Aliquota column found for ${competence} (prefix: ${mPrefix})`);
                              }
 
                         } else if (targetField === 'rbt12') {
