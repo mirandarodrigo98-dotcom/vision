@@ -281,7 +281,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         });
 
         // Initialize data structure for each month found
-        const monthData: {[competence: string]: Partial<SimplesNacionalBillingData>} = {};
+        const monthData: {[competence: string]: Partial<SimplesNacionalBillingData> & { _aliquotas?: number[] }} = {};
 
         for (const mPrefix of monthPrefixes) {
              const mStr = mPrefix.substring(0,3); // JAN
@@ -294,7 +294,8 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
              monthData[competence] = {
                  company_id: params.companyId,
                  competence,
-                 rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0
+                 rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0,
+                 _aliquotas: []
              };
         }
 
@@ -403,7 +404,11 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
 
                              if (aliqStr) {
                                  const aliqVal = parseValue(aliqStr);
-                                 (monthData[competence] as any)['rpa_cash'] = aliqVal;
+                                 if (aliqVal > 0) {
+                                     const monthDataEntry = monthData[competence] as any;
+                                     if (!monthDataEntry._aliquotas) monthDataEntry._aliquotas = [];
+                                     monthDataEntry._aliquotas.push(aliqVal);
+                                 }
                              } else {
                                  console.log(`[Questor Warning] No Aliquota column found for ${competence} (prefix: ${mPrefix})`);
                              }
@@ -454,8 +459,16 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             }
         }
 
-        // 3. Convert map to array
-        Object.values(monthData).forEach(d => processedData.push(d as SimplesNacionalBillingData));
+        // 3. Convert map to array and calculate mean for Aliquota Efetiva
+        Object.values(monthData).forEach(d => {
+            const md = d as any;
+            if (md._aliquotas && md._aliquotas.length > 0) {
+                const sum = md._aliquotas.reduce((a: number, b: number) => a + b, 0);
+                md.rpa_cash = sum / md._aliquotas.length;
+            }
+            delete md._aliquotas;
+            processedData.push(md as SimplesNacionalBillingData);
+        });
     }
 
     if (processedData.length > 0) {
