@@ -34,6 +34,7 @@ export function DigisacConfigForm({ initialConfig }: DigisacConfigFormProps) {
     defaultValues: {
       base_url: initialConfig?.base_url || 'https://api.digisac.com.br',
       api_token: initialConfig?.api_token || '',
+      connection_phone: initialConfig?.connection_phone || '',
       is_active: initialConfig?.is_active || false,
     },
   });
@@ -126,6 +127,23 @@ export function DigisacConfigForm({ initialConfig }: DigisacConfigFormProps) {
                               <FormLabel className="text-gray-500 font-normal">Token de Acesso Pessoal:</FormLabel>
                               <FormControl>
                               <Input type="text" placeholder="Cole seu token aqui..." {...field} />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+
+                  <div className="space-y-2">
+                      <p className="text-sm text-gray-600">4. Insira o número de telefone da conexão (opcional, para referência)</p>
+                      <FormField
+                          control={form.control}
+                          name="connection_phone"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel className="text-gray-500 font-normal">Telefone da Conexão:</FormLabel>
+                              <FormControl>
+                              <Input type="text" placeholder="Ex: 5511999999999" {...field} />
                               </FormControl>
                               <FormMessage />
                           </FormItem>

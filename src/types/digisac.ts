@@ -5,6 +5,7 @@ import { z } from 'zod';
 export const digisacConfigSchema = z.object({
   base_url: z.string().url('URL inválida').default('https://api.digisac.com.br'),
   api_token: z.string().min(1, 'Token é obrigatório').optional(),
+  connection_phone: z.string().optional().describe('Número do telefone da conexão'),
   is_active: z.boolean().default(false),
 });
 

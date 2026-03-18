@@ -24,14 +24,14 @@ export async function saveDigisacConfig(data: DigisacConfig) {
   if (existing) {
     await db.prepare(
       `UPDATE digisac_config 
-       SET base_url = ?, api_token = ?, is_active = ?, updated_at = datetime('now')
+       SET base_url = ?, api_token = ?, connection_phone = ?, is_active = ?, updated_at = datetime('now')
        WHERE id = 1`
-    ).run(baseUrl, data.api_token || null, isActive);
+    ).run(baseUrl, data.api_token || null, data.connection_phone || null, isActive);
   } else {
     await db.prepare(
-      `INSERT INTO digisac_config (id, base_url, api_token, is_active) 
-       VALUES (1, ?, ?, ?)`
-    ).run(baseUrl, data.api_token || null, isActive);
+      `INSERT INTO digisac_config (id, base_url, api_token, connection_phone, is_active) 
+       VALUES (1, ?, ?, ?, ?)`
+    ).run(baseUrl, data.api_token || null, data.connection_phone || null, isActive);
   }
   revalidatePath('/admin/integrations/digisac');
   return { success: true };
