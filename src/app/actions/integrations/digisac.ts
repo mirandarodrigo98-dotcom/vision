@@ -3,6 +3,46 @@
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { DigisacConfig, DigisacMessage, DigisacResponse } from '@/types/digisac';
+import fs from 'fs';
+import path from 'path';
+
+async function logSystemError(context: string, details: any) {
+  try {
+    let detailStr = details;
+    if (details instanceof Error) {
+      detailStr = `${details.message}\n${details.stack}`;
+    } else if (typeof details === 'object') {
+      try {
+        detailStr = JSON.stringify(details, Object.getOwnPropertyNames(details), 2);
+      } catch (e) {
+        detailStr = String(details);
+      }
+    }
+    
+    // Tentar criar a tabela se não existir (apenas por garantia)
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS system_errors (
+        id SERIAL PRIMARY KEY,
+        context VARCHAR(255),
+        details TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `).run();
+
+    // Inserir o erro
+    await db.prepare(`
+      INSERT INTO system_errors (context, details) VALUES (?, ?)
+    `).run(context, detailStr);
+
+    // Também tentar gravar em arquivo como fallback local
+    const logPath = path.join(process.cwd(), 'system_errors.log');
+    const timestamp = new Date().toISOString();
+    const logMessage = `\n[${timestamp}] [${context}] ===========================\n${detailStr}\n========================================================\n`;
+    fs.appendFileSync(logPath, logMessage);
+  } catch (e) {
+    console.error('Falha ao salvar log no banco ou arquivo', e);
+  }
+}
 
 // --- Actions: Config ---
 
@@ -62,6 +102,10 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     // Formatar número se necessário (apenas números)
     if (payload.number) {
         payload.number = payload.number.replace(/\D/g, '');
+        // Adicionar DDI do Brasil (55) se o número tiver 10 ou 11 dígitos
+        if (payload.number.length === 10 || payload.number.length === 11) {
+            payload.number = `55${payload.number}`;
+        }
     }
   }
 
@@ -85,6 +129,9 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -92,18 +139,27 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Digisac API Error:', response.status, errorText);
-      return { success: false, error: `Erro na API Digisac (${response.status}): ${errorText}` };
+      await logSystemError('Digisac API - Status Not OK', { status: response.status, responseText: errorText, payloadSent: payload });
+      // Se a resposta for HTML (ex: erro 524 do Cloudflare), retornar mensagem genérica
+      if (errorText.toLowerCase().includes('<html') || response.status === 524) {
+          return { success: false, error: `A API do Digisac não respondeu a tempo (Timeout ${response.status}). Tente novamente mais tarde.` };
+      }
+      return { success: false, error: `Erro na API Digisac (${response.status}): ${errorText.slice(0, 100)}` };
     }
 
     const data = await response.json();
     return { success: true, data };
   } catch (error: any) {
     console.error('Erro ao enviar mensagem Digisac:', error);
+    await logSystemError('Digisac API - Fetch Exception', error);
     return { success: false, error: `Erro de conexão: ${error.message}` };
   }
 }

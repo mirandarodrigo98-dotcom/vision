@@ -2,6 +2,46 @@
 
 import db from '@/lib/db';
 import { getDigisacConfig, sendDigisacMessage } from '@/app/actions/integrations/digisac';
+import fs from 'fs';
+import path from 'path';
+
+async function logSystemError(context: string, details: any) {
+  try {
+    let detailStr = details;
+    if (details instanceof Error) {
+      detailStr = `${details.message}\n${details.stack}`;
+    } else if (typeof details === 'object') {
+      try {
+        detailStr = JSON.stringify(details, Object.getOwnPropertyNames(details), 2);
+      } catch (e) {
+        detailStr = String(details);
+      }
+    }
+    
+    // Tentar criar a tabela se não existir
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS system_errors (
+        id SERIAL PRIMARY KEY,
+        context VARCHAR(255),
+        details TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `).run();
+
+    // Inserir o erro
+    await db.prepare(`
+      INSERT INTO system_errors (context, details) VALUES (?, ?)
+    `).run(context, detailStr);
+
+    // Salvar localmente por precaução
+    const logPath = path.join(process.cwd(), 'system_errors.log');
+    const timestamp = new Date().toISOString();
+    const logMessage = `\n[${timestamp}] [${context}] ===========================\n${detailStr}\n========================================================\n`;
+    fs.appendFileSync(logPath, logMessage);
+  } catch (e) {
+    console.error('Falha ao salvar log no banco ou arquivo', e);
+  }
+}
 
 interface EmployeeVacationData {
     nome: string;
@@ -67,12 +107,22 @@ NZD Contabilidade.`;
         });
 
         if (!result.success) {
+            await logSystemError('sendVacationNoticeMessage - Falha no retorno do Digisac', {
+                companyCode, 
+                targetPhone, 
+                error: result.error 
+            });
             return { success: false, error: result.error || 'Falha ao enviar a mensagem pelo Digisac.' };
         }
 
         return { success: true };
     } catch (error: any) {
         console.error('Error in sendVacationNoticeMessage:', error);
+        await logSystemError('sendVacationNoticeMessage - Exceção', {
+            message: error.message,
+            stack: error.stack,
+            companyCode
+        });
         return { success: false, error: `Erro interno: ${error.message}` };
     }
 }
