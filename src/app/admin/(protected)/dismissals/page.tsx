@@ -1,16 +1,12 @@
 import db from '@/lib/db';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { DismissalActions } from '@/components/dismissals/dismissal-actions';
+import { DismissalFilters } from '@/components/dismissals/dismissal-filters';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +40,14 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filter params
+  const name = typeof resolvedSearchParams.name === 'string' ? resolvedSearchParams.name : '';
+  const company = typeof resolvedSearchParams.company === 'string' ? resolvedSearchParams.company : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
+  const startDate = typeof resolvedSearchParams.start_date === 'string' ? resolvedSearchParams.start_date : '';
+  const endDate = typeof resolvedSearchParams.end_date === 'string' ? resolvedSearchParams.end_date : '';
+  const dismissalDate = typeof resolvedSearchParams.dismissal_date === 'string' ? resolvedSearchParams.dismissal_date : '';
 
   // Whitelist allowed sort columns
   const allowedSorts = ['protocol_number', 'created_at', 'company_name', 'employee_name', 'dismissal_date', 'status'];
@@ -73,10 +76,34 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
     params.push(session.user_id);
   }
 
-  if (q) {
-    query += ` AND (d.protocol_number LIKE ? OR e.name LIKE ? OR cc.nome LIKE ?)`;
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ);
+  if (name) {
+    query += ` AND e.name LIKE ?`;
+    params.push(`%${name}%`);
+  }
+
+  if (company && company.length >= 3) {
+    query += ` AND (cc.razao_social LIKE ? OR cc.nome LIKE ?)`;
+    params.push(`%${company}%`, `%${company}%`);
+  }
+
+  if (status && status !== 'all') {
+    query += ` AND d.status = ?`;
+    params.push(status);
+  }
+
+  if (startDate) {
+    query += ` AND date(d.created_at) >= date(?)`;
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    query += ` AND date(d.created_at) <= date(?)`;
+    params.push(endDate);
+  }
+
+  if (dismissalDate) {
+    query += ` AND date(d.dismissal_date) = date(?)`;
+    params.push(dismissalDate);
   }
 
   const orderBy = safeSort === 'company_name' ? 'cc.nome' : 
@@ -85,7 +112,14 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const dismissals = await db.prepare(query).all(...params) as any[];
+  const dismissalsData = await db.prepare(query).all(...params) as any[];
+
+  // Serialize dates to avoid Server Components render error
+  const dismissals = dismissalsData.map(dismissal => ({
+    ...dismissal,
+    dismissal_date: dismissal.dismissal_date ? new Date(dismissal.dismissal_date).toISOString() : null,
+    created_at: dismissal.created_at ? new Date(dismissal.created_at).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -93,9 +127,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
         <h2 className="text-2xl font-bold">Rescisões</h2>
       </div>
 
-      <div className="flex items-center justify-between">
-        <SearchInput placeholder="Buscar por protocolo, funcionário ou empresa..." />
-      </div>
+      <DismissalFilters />
 
       <div className="border rounded-md bg-white">
         <Table>

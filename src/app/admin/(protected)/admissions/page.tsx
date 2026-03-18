@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { AdmissionActions } from '@/components/admissions/admission-actions';
-import { getSession } from '@/lib/auth';
+import { AdmissionFilters } from '@/components/admissions/admission-filters';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,14 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filters
+  const name = typeof resolvedSearchParams.name === 'string' ? resolvedSearchParams.name : '';
+  const company = typeof resolvedSearchParams.company === 'string' ? resolvedSearchParams.company : '';
+  const startDate = typeof resolvedSearchParams.start_date === 'string' ? resolvedSearchParams.start_date : '';
+  const endDate = typeof resolvedSearchParams.end_date === 'string' ? resolvedSearchParams.end_date : '';
+  const admissionDate = typeof resolvedSearchParams.admission_date === 'string' ? resolvedSearchParams.admission_date : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
 
   // Whitelist allowed sort columns
   const allowedSorts = ['protocol_number', 'created_at', 'company_name', 'employee_full_name', 'job_role', 'status'];
@@ -48,16 +55,48 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
     params.push(session.user_id);
   }
 
-  if (q) {
-    query += ` AND (ar.protocol_number LIKE ? OR ar.employee_full_name LIKE ? OR cc.nome LIKE ?)`;
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ);
+  if (name) {
+    query += ` AND ar.employee_full_name LIKE ?`;
+    params.push(`%${name}%`);
+  }
+
+  if (company && company.length >= 3) {
+    query += ` AND cc.razao_social LIKE ?`;
+    params.push(`%${company}%`);
+  }
+
+  if (startDate) {
+    query += ` AND ar.created_at >= ?`;
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    // Add 1 day to include the end date fully if it's just a date string, or handle timestamp
+    query += ` AND ar.created_at <= ?`;
+    params.push(endDate + ' 23:59:59');
+  }
+
+  if (admissionDate) {
+    query += ` AND date(ar.admission_date) = date(?)`;
+    params.push(admissionDate);
+  }
+
+  if (status && status !== 'all') {
+    query += ` AND ar.status = ?`;
+    params.push(status);
   }
 
   const orderBy = safeSort === 'company_name' ? 'cc.nome' : `ar.${safeSort}`;
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const admissions = await db.prepare(query).all(...params) as any[];
+  const admissionsData = await db.prepare(query).all(...params) as any[];
+
+  // Serialize dates
+  const admissions = admissionsData.map(adm => ({
+    ...adm,
+    admission_date: adm.admission_date ? new Date(adm.admission_date).toISOString() : null,
+    created_at: adm.created_at ? new Date(adm.created_at).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -65,9 +104,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
         <h2 className="text-2xl font-bold">Admissões Recebidas</h2>
       </div>
 
-      <div className="flex items-center justify-between">
-        <SearchInput placeholder="Buscar por protocolo, funcionário ou empresa..." />
-      </div>
+      <AdmissionFilters />
 
       <div className="border rounded-md bg-white">
         <Table>

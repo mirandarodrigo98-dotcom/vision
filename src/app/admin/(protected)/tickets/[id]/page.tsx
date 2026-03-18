@@ -55,9 +55,9 @@ async function TicketDetails({ id }: { id: string }) {
 
   const canReturn = (isAdmin || isAssignee || hasEditPermission) && ticket.status === 'in_progress';
   const canFinalize = (isAdmin || isAssignee || hasEditPermission) && ticket.status === 'in_progress';
-  const canResubmit = (isAdmin || isRequester || hasEditPermission) && ticket.status === 'returned';
+  const canResubmit = isRequester && ticket.status === 'returned';
   const canReopen = (isAdmin || isRequester || hasEditPermission) && ticket.status === 'resolved' && daysSinceClosed <= 15;
-  const canCancel = (isAdmin || isAssignee || hasEditPermission) && ticket.status !== 'closed' && ticket.status !== 'cancelled';
+  const canCancel = isRequester && ticket.status !== 'closed' && ticket.status !== 'cancelled';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

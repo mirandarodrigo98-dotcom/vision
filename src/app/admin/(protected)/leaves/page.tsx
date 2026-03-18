@@ -1,9 +1,9 @@
 import db from '@/lib/db';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { LeaveActions } from '@/components/leaves/leave-actions';
+import { LeaveFilters } from '@/components/leaves/leave-filters';
 import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,14 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filters
+  const name = typeof resolvedSearchParams.name === 'string' ? resolvedSearchParams.name : '';
+  const company = typeof resolvedSearchParams.company === 'string' ? resolvedSearchParams.company : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
+  const startDate = typeof resolvedSearchParams.start_date === 'string' ? resolvedSearchParams.start_date : '';
+  const endDate = typeof resolvedSearchParams.end_date === 'string' ? resolvedSearchParams.end_date : '';
+  const leaveDate = typeof resolvedSearchParams.leave_date === 'string' ? resolvedSearchParams.leave_date : '';
 
   const allowedSorts = ['protocol_number', 'created_at', 'company_name', 'employee_name', 'status', 'start_date', 'type'];
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
@@ -46,10 +53,34 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
     }
   }
 
-  if (q) {
-    query += ` AND (l.protocol_number LIKE ? OR e.name LIKE ? OR sc.nome LIKE ?)`;
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ);
+  if (name) {
+    query += ` AND e.name LIKE ?`;
+    params.push(`%${name}%`);
+  }
+
+  if (company && company.length >= 3) {
+    query += ` AND (sc.razao_social LIKE ? OR sc.nome LIKE ?)`;
+    params.push(`%${company}%`, `%${company}%`);
+  }
+
+  if (status && status !== 'all') {
+    query += ` AND l.status = ?`;
+    params.push(status);
+  }
+
+  if (startDate) {
+    query += ` AND date(l.created_at) >= date(?)`;
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    query += ` AND date(l.created_at) <= date(?)`;
+    params.push(endDate);
+  }
+
+  if (leaveDate) {
+    query += ` AND date(l.start_date) = date(?)`;
+    params.push(leaveDate);
   }
 
   const orderBy = safeSort === 'company_name' ? 'sc.nome' : 
@@ -58,7 +89,15 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const leaves = await db.prepare(query).all(...params) as any[];
+  const leavesData = await db.prepare(query).all(...params) as any[];
+
+  // Serialize dates to avoid Server Components render error
+  const leaves = leavesData.map(leave => ({
+    ...leave,
+    start_date: leave.start_date ? new Date(leave.start_date).toISOString() : null,
+    end_date: leave.end_date ? new Date(leave.end_date).toISOString() : null,
+    created_at: leave.created_at ? new Date(leave.created_at).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -66,9 +105,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
         <h2 className="text-2xl font-bold">Afastamentos</h2>
       </div>
 
-      <div className="flex items-center justify-between">
-        <SearchInput placeholder="Buscar por protocolo, funcionário ou empresa..." />
-      </div>
+      <LeaveFilters />
 
       <div className="border rounded-md bg-white">
         <Table>
@@ -114,11 +151,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
                         formattedCreatedAt = format(new Date(leave.created_at), 'dd/MM/yyyy HH:mm');
                     }
                     if (leave.start_date) {
-                         // Parse local date explicitly to avoid timezone issues
-                         const cleanDate = leave.start_date.trim().split('T')[0];
-                         const [y, m, d] = cleanDate.split('-').map(Number);
-                         const localDate = new Date(y, m - 1, d);
-                         formattedStartDate = format(localDate, 'dd/MM/yyyy');
+                         formattedStartDate = format(new Date(leave.start_date), 'dd/MM/yyyy');
                     }
                 } catch (e) {
                     console.error('Error formatting date', e);
@@ -130,7 +163,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
                     <TableCell>{formattedCreatedAt}</TableCell>
                     <TableCell>{leave.company_name}</TableCell>
                     <TableCell>{leave.employee_name}</TableCell>
-                    <TableCell>{leave.type}</TableCell>
+                    <TableCell>{leave.type || leave.leave_type}</TableCell>
                     <TableCell>{formattedStartDate}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold

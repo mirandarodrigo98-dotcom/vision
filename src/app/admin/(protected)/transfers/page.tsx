@@ -1,13 +1,9 @@
 import db from '@/lib/db';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
-import Link from 'next/link';
-import { Eye, Plus } from 'lucide-react';
 import { TransferActions } from '@/components/transfers/transfer-actions';
-import { Badge } from '@/components/ui/badge';
+import { TransferFilters } from '@/components/transfers/transfer-filters';
 import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +17,14 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filter params
+  const name = typeof resolvedSearchParams.name === 'string' ? resolvedSearchParams.name : '';
+  const company = typeof resolvedSearchParams.company === 'string' ? resolvedSearchParams.company : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
+  const startDate = typeof resolvedSearchParams.start_date === 'string' ? resolvedSearchParams.start_date : '';
+  const endDate = typeof resolvedSearchParams.end_date === 'string' ? resolvedSearchParams.end_date : '';
+  const transferDate = typeof resolvedSearchParams.transfer_date === 'string' ? resolvedSearchParams.transfer_date : '';
 
   // Whitelist allowed sort columns
   const allowedSorts = ['protocol_number', 'created_at', 'source_company_name', 'target_company_name', 'employee_name', 'status', 'transfer_date'];
@@ -49,16 +52,47 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
     }
   }
 
-  if (q) {
-    query += ` AND (t.protocol_number LIKE ? OR t.employee_name LIKE ? OR sc.nome LIKE ? OR t.target_company_name LIKE ?)`;
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ, likeQ);
+  if (name) {
+    query += ` AND t.employee_name LIKE ?`;
+    params.push(`%${name}%`);
+  }
+
+  if (company && company.length >= 3) {
+    query += ` AND (sc.razao_social LIKE ? OR sc.nome LIKE ?)`;
+    params.push(`%${company}%`, `%${company}%`);
+  }
+
+  if (status && status !== 'all') {
+    query += ` AND t.status = ?`;
+    params.push(status);
+  }
+
+  if (startDate) {
+    query += ` AND date(t.created_at) >= date(?)`;
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    query += ` AND date(t.created_at) <= date(?)`;
+    params.push(endDate);
+  }
+
+  if (transferDate) {
+    query += ` AND date(t.transfer_date) = date(?)`;
+    params.push(transferDate);
   }
 
   const orderBy = safeSort === 'source_company_name' ? 'sc.nome' : `t.${safeSort}`;
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const transfers = await db.prepare(query).all(...params) as any[];
+  const transfersData = await db.prepare(query).all(...params) as any[];
+
+  // Serialize dates to avoid Server Components render error
+  const transfers = transfersData.map(transfer => ({
+    ...transfer,
+    transfer_date: transfer.transfer_date ? new Date(transfer.transfer_date).toISOString() : null,
+    created_at: transfer.created_at ? new Date(transfer.created_at).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -66,9 +100,7 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
         <h2 className="text-2xl font-bold">Transferências</h2>
       </div>
 
-      <div className="flex items-center justify-between">
-        <SearchInput placeholder="Buscar por protocolo, funcionário ou empresa..." />
-      </div>
+      <TransferFilters />
 
       <div className="border rounded-md bg-white">
         <Table>

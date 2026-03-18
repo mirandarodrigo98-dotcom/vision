@@ -1,16 +1,12 @@
 import db from '@/lib/db';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { VacationActions } from '@/components/vacations/vacation-actions';
+import { VacationFilters } from '@/components/vacations/vacation-filters';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +40,14 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filter params
+  const name = typeof resolvedSearchParams.name === 'string' ? resolvedSearchParams.name : '';
+  const company = typeof resolvedSearchParams.company === 'string' ? resolvedSearchParams.company : '';
+  const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
+  const startDate = typeof resolvedSearchParams.start_date === 'string' ? resolvedSearchParams.start_date : '';
+  const endDate = typeof resolvedSearchParams.end_date === 'string' ? resolvedSearchParams.end_date : '';
+  const vacationDate = typeof resolvedSearchParams.vacation_date === 'string' ? resolvedSearchParams.vacation_date : '';
 
   // Whitelist allowed sort columns
   const allowedSorts = ['protocol_number', 'created_at', 'company_name', 'employee_name', 'start_date', 'status'];
@@ -73,10 +76,34 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
     params.push(session.user_id);
   }
 
-  if (q) {
-    query += ` AND (v.protocol_number LIKE ? OR e.name LIKE ? OR cc.nome LIKE ?)`;
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ);
+  if (name) {
+    query += ` AND e.name LIKE ?`;
+    params.push(`%${name}%`);
+  }
+
+  if (company && company.length >= 3) {
+    query += ` AND (cc.razao_social LIKE ? OR cc.nome LIKE ?)`;
+    params.push(`%${company}%`, `%${company}%`);
+  }
+
+  if (status && status !== 'all') {
+    query += ` AND v.status = ?`;
+    params.push(status);
+  }
+
+  if (startDate) {
+    query += ` AND date(v.created_at) >= date(?)`;
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    query += ` AND date(v.created_at) <= date(?)`;
+    params.push(endDate);
+  }
+
+  if (vacationDate) {
+    query += ` AND date(v.start_date) = date(?)`;
+    params.push(vacationDate);
   }
 
   const orderBy = safeSort === 'company_name' ? 'cc.nome' : 
@@ -85,7 +112,15 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const vacations = await db.prepare(query).all(...params) as any[];
+  const vacationsData = await db.prepare(query).all(...params) as any[];
+
+  // Serialize dates to avoid Server Components render error
+  const vacations = vacationsData.map(vacation => ({
+    ...vacation,
+    start_date: vacation.start_date ? new Date(vacation.start_date).toISOString() : null,
+    return_date: vacation.return_date ? new Date(vacation.return_date).toISOString() : null,
+    created_at: vacation.created_at ? new Date(vacation.created_at).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -93,9 +128,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
         <h2 className="text-2xl font-bold">Férias</h2>
       </div>
 
-      <div className="flex items-center justify-between">
-        <SearchInput placeholder="Buscar por protocolo, funcionário ou empresa..." />
-      </div>
+      <VacationFilters />
 
       <div className="border rounded-md bg-white">
         <Table>

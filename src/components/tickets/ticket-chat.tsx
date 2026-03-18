@@ -159,6 +159,10 @@ export function TicketChat({ ticketId, interactions, currentUserEmail, ticketSta
         <div className="p-4 border-t bg-muted/50 text-center text-sm text-muted-foreground">
           Apenas o solicitante pode enviar mensagens ou anexos antes do chamado ser aceito.
         </div>
+      ) : ticketStatus === 'returned' && isRequester ? (
+        <div className="p-4 border-t bg-muted/50 text-center text-sm text-muted-foreground">
+          Você precisa reenviar o chamado para interagir.
+        </div>
       ) : (
         <div className="p-4 border-t bg-background">
           <div className="space-y-2">

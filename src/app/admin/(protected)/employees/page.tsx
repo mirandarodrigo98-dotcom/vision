@@ -103,18 +103,25 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const employees = await db.prepare(query).all(...params) as Array<{
+  const employeesData = await db.prepare(query).all(...params) as Array<{
     id: string;
     code: string;
     name: string;
     company_name: string;
     cpf: string;
-    admission_date: string;
-    created_at: string;
+    admission_date: Date | string | null;
+    created_at: Date | string | null;
     is_active: number;
     status: string;
     has_movements: number;
   }>;
+
+  // Serialize dates to strings to avoid "Server Components render" error with Date objects
+  const employees = employeesData.map(emp => ({
+    ...emp,
+    admission_date: emp.admission_date ? new Date(emp.admission_date).toISOString() : null,
+    created_at: emp.created_at ? new Date(emp.created_at).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-6">

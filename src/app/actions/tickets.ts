@@ -263,18 +263,18 @@ export async function createTicket(prevState: any, formData: FormData) {
 
 export async function returnTicket(ticketId: string, reason: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticket = await db.prepare('SELECT assignee_id, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can return
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
     
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     await db.prepare(`
@@ -325,18 +325,18 @@ export async function returnTicket(ticketId: string, reason: string) {
 
 export async function resubmitTicket(ticketId: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticket = await db.prepare('SELECT requester_id, assignee_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only requester can resubmit
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
     
     if (session.role !== 'admin' && session.user_id !== ticket.requester_id && !canEdit) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     await db.prepare(`
@@ -387,11 +387,11 @@ export async function resubmitTicket(ticketId: string) {
 
 export async function acceptTicket(ticketId: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can accept, OR if it's unassigned (pickup)
     const permissions = await getUserPermissions();
@@ -399,11 +399,11 @@ export async function acceptTicket(ticketId: string) {
     const isUnassigned = !ticket.assignee_id;
     
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit && !isUnassigned) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
-    if (ticket.status !== 'open') {
-      return { error: 'Ticket must be open to accept' };
+    if (ticket.status?.trim().toLowerCase() !== 'open') {
+      return { error: `O chamado deve estar aberto para ser aceito (status atual: ${ticket.status})` };
     }
 
     // If unassigned, assign to current user
@@ -459,22 +459,22 @@ export async function acceptTicket(ticketId: string) {
 
 export async function resolveTicket(ticketId: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can resolve
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
     
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     if (ticket.status !== 'in_progress') {
-      return { error: 'Ticket must be in progress to resolve' };
+      return { error: 'O chamado deve estar em andamento para ser resolvido' };
     }
 
     await db.prepare(`
@@ -524,22 +524,22 @@ export async function resolveTicket(ticketId: string) {
 
 export async function reopenTicket(ticketId: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticket = await db.prepare('SELECT status, requester_id, closed_at, title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only requester or admin can reopen
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
     
     if (session.role !== 'admin' && session.user_id !== ticket.requester_id && !canEdit) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     if (ticket.status !== 'resolved') {
-      return { error: 'Ticket must be resolved to reopen' };
+      return { error: 'O chamado deve estar resolvido para ser reaberto' };
     }
 
     // Check 15 days limit
@@ -602,18 +602,18 @@ export async function reopenTicket(ticketId: string) {
 
 export async function cancelTicket(ticketId: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can cancel
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
     
     if (session.role !== 'admin' && session.user_id !== ticket.assignee_id && !canEdit) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     await db.prepare(`
@@ -679,11 +679,11 @@ export async function cancelTicket(ticketId: string) {
 
 export async function updateTicketStatus(ticketId: string, status: string) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const currentTicket = await db.prepare('SELECT status, requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!currentTicket) return { error: 'Ticket not found' };
+    if (!currentTicket) return { error: 'Chamado não encontrado' };
 
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
@@ -691,7 +691,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     const isRequester = currentTicket.requester_id === session.user_id;
     
     if (session.role !== 'admin' && !canEdit && !isAssignee && !isRequester) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     await db.prepare(`
@@ -736,17 +736,17 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     return { success: true };
   } catch (error) {
     console.error('Error updating ticket status:', error);
-    return { error: 'Failed to update status' };
+    return { error: 'Falha ao atualizar status' };
   }
 }
 
 export async function updateTicketAssignee(ticketId: string, assigneeId: string | null) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   try {
     const ticketInfo = await db.prepare('SELECT title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticketInfo) return { error: 'Ticket not found' };
+    if (!ticketInfo) return { error: 'Chamado não encontrado' };
 
     const permissions = await getUserPermissions();
     const canEdit = permissions.includes('tickets.edit') || permissions.includes('tickets.admin');
@@ -754,7 +754,7 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
     
     // Allow if admin, canEdit, is current assignee, OR ticket is unassigned (pickup)
     if (session.role !== 'admin' && !canEdit && session.user_id !== ticketInfo.assignee_id && !isUnassigned) {
-       return { error: 'Permission denied' };
+       return { error: 'Permissão negada' };
     }
 
     await db.prepare(`
@@ -808,20 +808,20 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
     return { success: true };
   } catch (error) {
     console.error('Error updating ticket assignee:', error);
-    return { error: 'Failed to update assignee' };
+    return { error: 'Falha ao atualizar responsável' };
   }
 }
 
 export async function addTicketComment(ticketId: string, formData: FormData) {
   const session = await getSession();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { error: 'Não autenticado' };
 
   const content = formData.get('content') as string;
   if (!content || !content.trim()) return { error: 'Comentário não pode ser vazio' };
 
   try {
     const ticket = await db.prepare('SELECT id, requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
-    if (!ticket) return { error: 'Ticket not found' };
+    if (!ticket) return { error: 'Chamado não encontrado' };
 
     const interactionId = uuidv4();
     await db.prepare(`
@@ -962,7 +962,7 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error('Error adding comment:', error);
-    return { error: 'Failed to add comment: ' + (error?.message || String(error)) };
+    return { error: 'Falha ao adicionar comentário: ' + (error?.message || String(error)) };
   }
 }
 
