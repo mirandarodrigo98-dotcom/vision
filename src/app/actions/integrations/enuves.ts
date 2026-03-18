@@ -54,15 +54,15 @@ export async function getCategories(
 
     if (filters) {
       if (filters.code) {
-        query += ` AND code LIKE ?`;
+        query += ` AND code ILIKE ?`;
         params.push(`%${filters.code}%`);
       }
       if (filters.description) {
-        query += ` AND description LIKE ?`;
+        query += ` AND description ILIKE ?`;
         params.push(`%${filters.description}%`);
       }
       if (filters.integration_code) {
-        query += ` AND integration_code LIKE ?`;
+        query += ` AND integration_code ILIKE ?`;
         params.push(`%${filters.integration_code}%`);
       }
       if (filters.nature && filters.nature !== 'all') {
@@ -377,6 +377,7 @@ export async function getTransactions(
     startDate?: string;
     endDate?: string;
     categoryId?: string;
+    categoryName?: string;
     accountId?: string;
     description?: string;
     minValue?: number;
@@ -417,8 +418,12 @@ export async function getTransactions(
         query += ` AND t.account_id = ?`;
         params.push(filters.accountId);
       }
+      if (filters.categoryName) {
+        query += ` AND c.description ILIKE ?`;
+        params.push(`%${filters.categoryName}%`);
+      }
       if (filters.description) {
-        query += ` AND t.description LIKE ?`;
+        query += ` AND t.description ILIKE ?`;
         params.push(`%${filters.description}%`);
       }
       if (filters.minValue !== undefined && filters.minValue !== null) {
@@ -575,15 +580,15 @@ export async function getAccounts(
 
     if (filters) {
       if (filters.code) {
-        query += ` AND code LIKE ?`;
+        query += ` AND code ILIKE ?`;
         params.push(`%${filters.code}%`);
       }
       if (filters.description) {
-        query += ` AND description LIKE ?`;
+        query += ` AND description ILIKE ?`;
         params.push(`%${filters.description}%`);
       }
       if (filters.integration_code) {
-        query += ` AND integration_code LIKE ?`;
+        query += ` AND integration_code ILIKE ?`;
         params.push(`%${filters.integration_code}%`);
       }
     }
@@ -784,16 +789,16 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
         query += ` AND t.date <= ?`;
         params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
       }
-      if (filters.categoryId && filters.categoryId !== 'all') {
-        query += ` AND t.category_id = ?`;
-        params.push(filters.categoryId);
+      if (filters.categoryName) {
+        query += ` AND c.description ILIKE ?`;
+        params.push(`%${filters.categoryName}%`);
       }
       if (filters.accountId && filters.accountId !== 'all') {
         query += ` AND t.account_id = ?`;
         params.push(filters.accountId);
       }
       if (filters.description) {
-        query += ` AND t.description LIKE ?`;
+        query += ` AND t.description ILIKE ?`;
         params.push(`%${filters.description}%`);
       }
       if (filters.minValue !== undefined && filters.minValue !== null && filters.minValue !== '') {

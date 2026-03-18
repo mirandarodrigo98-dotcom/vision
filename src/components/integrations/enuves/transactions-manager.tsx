@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PdfImportDialog } from './pdf-import-dialog';
-import { TransactionFilters } from './transaction-filters';
+import { TransactionFilters, TransactionFiltersState } from './transaction-filters';
 import { TransactionEditDialog } from './transaction-edit-dialog';
 import { Loader2, Trash2, Pencil, RefreshCw } from 'lucide-react';
 import { getTransactions, deleteTransaction, deleteTransactionsBatch, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/enuves';
@@ -35,7 +35,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState<TransactionFiltersState>({});
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);

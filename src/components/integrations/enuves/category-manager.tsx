@@ -192,10 +192,10 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
     }
   };
 
-  const handleFilter = async () => {
+  const handleFilter = async (currentFilters = filters) => {
     setIsFilterLoading(true);
     try {
-        const data = await getCategories(companyId, filters);
+        const data = await getCategories(companyId, currentFilters);
         setCategories(data);
     } catch (error) {
         toast.error("Erro ao filtrar categorias");
@@ -203,6 +203,13 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
         setIsFilterLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        handleFilter(filters);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters.description, filters.code, filters.integration_code, filters.nature]);
 
   const handleSeed = async () => {
     setIsSeeding(true);
@@ -272,14 +279,9 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
                     </Select>
                 </div>
             </div>
-            <div className="mt-4 flex justify-end">
-                <Button onClick={handleFilter} disabled={isFilterLoading} size="sm">
-                    {isFilterLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter className="mr-2 h-4 w-4" />}
-                    Filtrar
-                </Button>
-            </div>
         </CardContent>
       </Card>
+
 
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Listagem de Categorias</h3>
