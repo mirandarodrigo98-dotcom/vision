@@ -101,6 +101,12 @@ export function VacationControlModal() {
     document.body.removeChild(link);
   };
 
+  const cleanText = (text: any) => {
+    if (text === null || text === undefined) return '-';
+    // Substitui &nbsp e &nbsp; por espaço e remove espaços extras
+    return String(text).replace(/&nbsp;?/g, ' ').trim();
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -109,7 +115,7 @@ export function VacationControlModal() {
           Controle de Férias
         </Button>
       </DialogTrigger>
-      <DialogContent className={step === 'results' ? "max-w-6xl max-h-[90vh] flex flex-col" : "sm:max-w-[425px]"}>
+      <DialogContent className={step === 'results' ? "max-w-[95vw] w-full max-h-[90vh] flex flex-col" : "sm:max-w-[425px]"}>
         <DialogHeader>
           <DialogTitle>Controle de Férias</DialogTitle>
           <DialogDescription>
@@ -154,7 +160,7 @@ export function VacationControlModal() {
                           <TableRow key={index}>
                             {Object.keys(vacationData[0]).map((key) => (
                               <TableCell key={`${index}-${key}`} className="whitespace-nowrap">
-                                {row[key] !== null ? String(row[key]) : '-'}
+                                {cleanText(row[key])}
                               </TableCell>
                             ))}
                           </TableRow>
