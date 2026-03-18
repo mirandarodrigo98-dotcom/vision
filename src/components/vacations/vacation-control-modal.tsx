@@ -115,7 +115,7 @@ export function VacationControlModal() {
           Controle de Férias
         </Button>
       </DialogTrigger>
-      <DialogContent className={step === 'results' ? "max-w-[100vw] w-screen h-[100vh] m-0 p-6 flex flex-col" : "sm:max-w-[425px]"}>
+      <DialogContent className={step === 'results' ? "!max-w-[95vw] !w-[95vw] h-[95vh] flex flex-col" : "sm:max-w-[425px]"}>
         <DialogHeader>
           <DialogTitle>Controle de Férias</DialogTitle>
           <DialogDescription>
