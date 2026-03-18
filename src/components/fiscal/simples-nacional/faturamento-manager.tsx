@@ -125,11 +125,19 @@ export function SimplesNacionalFaturamentoManager() {
   }
 
   // Helper to format currency
-  const formatCurrency = (value: number) => {
+  const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatAliquot = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'decimal',
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
     }).format(value);
   };
 
@@ -272,12 +280,12 @@ export function SimplesNacionalFaturamentoManager() {
                   data.map((row) => (
                     <TableRow key={row.competence}>
                       <TableCell className="text-center">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(row.rpa_competence)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(row.rpa_cash)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(row.rpa_accumulated)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(row.rbt12)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(row.rba)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(row.rbaa)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rpa_competence || 0)}</TableCell>
+                      <TableCell className="text-center">{formatAliquot(row.rpa_cash || 0)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rpa_accumulated || 0)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rbt12)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rba)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rbaa)}</TableCell>
                     </TableRow>
                   ))
                 )}
