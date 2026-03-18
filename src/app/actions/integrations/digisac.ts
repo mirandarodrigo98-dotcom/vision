@@ -133,8 +133,11 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
              clearTimeout(timeoutId);
              
              if (servicesResponse.ok) {
-                 const services = await servicesResponse.json();
-                 if (Array.isArray(services)) {
+                 const servicesData = await servicesResponse.json();
+                 // A API pode retornar diretamente o array, um objeto com a propriedade data ou response.data
+                 const services = Array.isArray(servicesData) ? servicesData : (servicesData?.data || servicesData?.response?.data || []);
+
+                 if (Array.isArray(services) && services.length > 0) {
                      const phoneToMatch = finalServiceId.replace(/\D/g, '');
                      const matchedService = services.find((s: any) => {
                          const myNumber = String(s.data?.status?.myNumber || '');
