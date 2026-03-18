@@ -13,15 +13,26 @@ export async function sendVacationNoticeMessage(companyCode: string, employees: 
     try {
         // Buscar a empresa pelo código numérico do Questor
         const paddedCode = companyCode.padStart(4, '0');
-        const company = await db.prepare('SELECT nome, telefone FROM client_companies WHERE code = ? OR code = ?').get(companyCode, paddedCode) as any;
+        const company = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ? OR code = ?').get(companyCode, paddedCode) as any;
         
         if (!company) {
             return { success: false, error: 'Empresa não encontrada no banco de dados com o código informado.' };
         }
 
-        if (!company.telefone) {
-            return { success: false, error: 'Empresa não possui um número de telefone cadastrado.' };
+        // Buscar telefone na aba de contatos com categoria "Administrativo"
+        const adminPhone = await db.prepare(`
+            SELECT p.number 
+            FROM company_phones p
+            JOIN contact_categories c ON p.category_id = c.id
+            WHERE p.company_id = ? AND c.name LIKE '%Administrativo%'
+            LIMIT 1
+        `).get(company.id) as any;
+
+        if (!adminPhone || !adminPhone.number) {
+            return { success: false, error: 'Empresa não possui um contato com a categoria Administrativo cadastrado.' };
         }
+
+        const targetPhone = adminPhone.number;
 
         // Buscar a configuração do Digisac para pegar o serviceId (connection_phone)
         const config = await getDigisacConfig();
@@ -48,7 +59,7 @@ NZD Contabilidade.`;
 
         // Chamar sendDigisacMessage
         const result = await sendDigisacMessage({
-            number: company.telefone,
+            number: targetPhone,
             serviceId: config.connection_phone, // assumindo que connection_phone é o serviceId ou number da conexão que o Digisac aceita
             body: messageBody,
             origin: 'bot',
