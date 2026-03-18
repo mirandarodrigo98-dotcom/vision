@@ -111,6 +111,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     cpf: string;
     admission_date: Date | string | null;
     created_at: Date | string | null;
+    updated_at: Date | string | null;
+    birth_date: Date | string | null;
     is_active: number;
     status: string;
     has_movements: number;
@@ -121,6 +123,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     ...emp,
     admission_date: emp.admission_date ? new Date(emp.admission_date).toISOString() : null,
     created_at: emp.created_at ? new Date(emp.created_at).toISOString() : null,
+    updated_at: emp.updated_at ? new Date(emp.updated_at).toISOString() : null,
+    birth_date: emp.birth_date ? new Date(emp.birth_date).toISOString() : null,
   }));
 
   return (

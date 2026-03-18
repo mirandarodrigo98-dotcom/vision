@@ -96,6 +96,9 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
     ...adm,
     admission_date: adm.admission_date ? new Date(adm.admission_date).toISOString() : null,
     created_at: adm.created_at ? new Date(adm.created_at).toISOString() : null,
+    updated_at: adm.updated_at ? new Date(adm.updated_at).toISOString() : null,
+    submitted_at: adm.submitted_at ? new Date(adm.submitted_at).toISOString() : null,
+    emailed_at: adm.emailed_at ? new Date(adm.emailed_at).toISOString() : null,
   }));
 
   return (

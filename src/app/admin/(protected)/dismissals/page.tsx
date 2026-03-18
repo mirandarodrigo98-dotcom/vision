@@ -119,6 +119,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
     ...dismissal,
     dismissal_date: dismissal.dismissal_date ? new Date(dismissal.dismissal_date).toISOString() : null,
     created_at: dismissal.created_at ? new Date(dismissal.created_at).toISOString() : null,
+    updated_at: dismissal.updated_at ? new Date(dismissal.updated_at).toISOString() : null,
   }));
 
   return (

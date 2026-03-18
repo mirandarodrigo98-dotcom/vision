@@ -120,6 +120,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
     start_date: vacation.start_date ? new Date(vacation.start_date).toISOString() : null,
     return_date: vacation.return_date ? new Date(vacation.return_date).toISOString() : null,
     created_at: vacation.created_at ? new Date(vacation.created_at).toISOString() : null,
+    updated_at: vacation.updated_at ? new Date(vacation.updated_at).toISOString() : null,
   }));
 
   return (

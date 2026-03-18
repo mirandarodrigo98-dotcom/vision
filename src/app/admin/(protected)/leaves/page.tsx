@@ -97,6 +97,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
     start_date: leave.start_date ? new Date(leave.start_date).toISOString() : null,
     end_date: leave.end_date ? new Date(leave.end_date).toISOString() : null,
     created_at: leave.created_at ? new Date(leave.created_at).toISOString() : null,
+    updated_at: leave.updated_at ? new Date(leave.updated_at).toISOString() : null,
   }));
 
   return (

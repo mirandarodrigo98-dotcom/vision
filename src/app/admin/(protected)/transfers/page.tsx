@@ -92,6 +92,7 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
     ...transfer,
     transfer_date: transfer.transfer_date ? new Date(transfer.transfer_date).toISOString() : null,
     created_at: transfer.created_at ? new Date(transfer.created_at).toISOString() : null,
+    updated_at: transfer.updated_at ? new Date(transfer.updated_at).toISOString() : null,
   }));
 
   return (
