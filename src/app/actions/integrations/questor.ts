@@ -142,7 +142,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
     // 1. Fetch Transactions (Common Logic)
     let query = `
       SELECT t.*, 
-             c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
+             c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, c.nature as category_nature,
              a.description as account_name, a.code as account_code, a.integration_code as account_integration_code,
              comp.code as company_code, comp.filial as company_filial
       FROM enuves_transactions t
@@ -177,8 +177,9 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
     // 2. Validate Integration Codes
     const errors: string[] = [];
     transactions.forEach((t: any) => {
-        const hasDebit = t.value > 0 ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
-        const hasCredit = t.value > 0 ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
+        const isEntrada = t.category_nature === 'Entrada';
+        const hasDebit = isEntrada ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
+        const hasCredit = isEntrada ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
         
         if (!hasDebit || !hasCredit) {
             errors.push(`Lançamento de ${t.value} em ${t.date} sem códigos de integração (Conta/Categoria).`);
@@ -216,7 +217,9 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
       let debit = '';
       let credit = '';
 
-      if (value > 0) {
+      const isEntrada = t.category_nature === 'Entrada';
+
+      if (isEntrada) {
         debit = accountCode;
         credit = categoryCode;
       } else {
@@ -435,7 +438,7 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
     // 1. Fetch Transactions (Common Logic)
     let query = `
       SELECT t.*, 
-             c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
+             c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, c.nature as category_nature,
              a.description as account_name, a.code as account_code, a.integration_code as account_integration_code,
              comp.code as company_code, comp.filial as company_filial
       FROM eklesia_transactions t
@@ -470,8 +473,9 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
     // 2. Validate Integration Codes
     const errors: string[] = [];
     transactions.forEach((t: any) => {
-        const hasDebit = t.value > 0 ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
-        const hasCredit = t.value > 0 ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
+        const isEntrada = t.category_nature === 'Entrada';
+        const hasDebit = isEntrada ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
+        const hasCredit = isEntrada ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
         
         if (!hasDebit || !hasCredit) {
             errors.push(`Lançamento de ${t.value} em ${t.date} sem códigos de integração (Conta/Categoria).`);
@@ -499,7 +503,9 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
       let debit = '';
       let credit = '';
 
-      if (value > 0) {
+      const isEntrada = t.category_nature === 'Entrada';
+
+      if (isEntrada) {
         debit = accountCode;
         credit = categoryCode;
       } else {

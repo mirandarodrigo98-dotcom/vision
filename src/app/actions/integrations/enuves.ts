@@ -766,7 +766,7 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
   try {
     // 1. Fetch transactions with filters (reusing query logic)
     let query = `
-      SELECT t.*, c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
+      SELECT t.*, c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, c.nature as category_nature,
              a.description as account_name, a.code as account_code, a.integration_code as account_integration_code
       FROM enuves_transactions t
       LEFT JOIN enuves_categories c ON t.category_id = c.id
@@ -856,13 +856,15 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
       const formattedValue = absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // Determine Debit/Credit codes
-      const categoryCode = t.category_integration_code;
+      const categoryCode = t.category_integration_code || '';
       const accountCode = t.account_integration_code || '';
 
       let debit = '';
       let credit = '';
 
-      if (value > 0) {
+      const isEntrada = t.category_nature === 'Entrada';
+
+      if (isEntrada) {
         // Entrada (Positive)
         // Debit: Account (Bank/Cash increases)
         // Credit: Category (Revenue increases)
