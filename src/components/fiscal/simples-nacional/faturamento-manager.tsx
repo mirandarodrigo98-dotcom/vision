@@ -127,8 +127,9 @@ export function SimplesNacionalFaturamentoManager() {
   // Helper to format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
@@ -251,13 +252,13 @@ export function SimplesNacionalFaturamentoManager() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Competência</TableHead>
-                  <TableHead className="text-right">RPA Total</TableHead>
-                <TableHead className="text-right">Alíq.Efetiva</TableHead>
-                <TableHead className="text-right">Folha+Encargos</TableHead>
-                  <TableHead className="text-right">RBT12</TableHead>
-                  <TableHead className="text-right">RBA</TableHead>
-                  <TableHead className="text-right">RBAA</TableHead>
+                  <TableHead className="text-center">Competência</TableHead>
+                  <TableHead className="text-center">RPA Total</TableHead>
+                  <TableHead className="text-center">Alíq.Efetiva</TableHead>
+                  <TableHead className="text-center">Folha+Encargos</TableHead>
+                  <TableHead className="text-center">RBT12</TableHead>
+                  <TableHead className="text-center">RBA</TableHead>
+                  <TableHead className="text-center">RBAA</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -270,13 +271,13 @@ export function SimplesNacionalFaturamentoManager() {
                 ) : (
                   data.map((row) => (
                     <TableRow key={row.competence}>
-                      <TableCell>{row.competence}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.rpa_competence)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.rpa_cash)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.rpa_accumulated)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.rbt12)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.rba)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.rbaa)}</TableCell>
+                      <TableCell className="text-center">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(row.rpa_competence)}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(row.rpa_cash)}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(row.rpa_accumulated)}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(row.rbt12)}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(row.rba)}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(row.rbaa)}</TableCell>
                     </TableRow>
                   ))
                 )}
