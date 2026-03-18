@@ -56,6 +56,15 @@ export function VacationControlModal() {
     
     let strText = String(text);
 
+    // Formatação de números inteiros para colunas específicas (sem casas decimais)
+    const upperKey = key.toUpperCase();
+    if (upperKey.includes('SALDO') || upperKey.includes('DIAS_PAGOS') || upperKey.includes('DIAS_ABONO') || upperKey.includes('DIAS PAGOS') || upperKey.includes('DIAS ABONO')) {
+      const num = parseFloat(strText);
+      if (!isNaN(num)) {
+        return String(Math.floor(num));
+      }
+    }
+
     // Se parece ser uma data no formato YYYY-MM-DD ou YYYY-MM-DDT...
     if (strText.match(/^\d{4}-\d{2}-\d{2}/)) {
       const [year, month, day] = strText.split('T')[0].split('-');

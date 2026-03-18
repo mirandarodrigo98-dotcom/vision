@@ -85,17 +85,17 @@ export async function sendVacationNoticeMessage(companyCode: string, employees: 
         }
 
         // Construir a mensagem
-        const employeeListStr = employees.map(emp => `. ${emp.nome} - ${emp.saldoDias} - ${emp.limitePgto}`).join('\n');
+        const employeeListStr = employees.map(emp => `- *${emp.nome}* possui *${emp.saldoDias}* dias de férias para fruir até *${emp.limitePgto}*`).join('\n\n');
         
-        const messageBody = `Olá ${company.nome}
+        const messageBody = `Olá *${company.nome}*
+
 Você está recebendo uma informação importante sobre seus colaboradores. Segue abaixo a relação dos colaboradores com saldo de dias e prazo limite para gozo de férias.
 
 ${employeeListStr}
 
-Importante saber que isso é apenas um lembrete. É responsabilidade do cliente realizar o controle de vencimento de férias. O relatório completo foi enviado para o portal do cliente.
-Em caso de dúvidas entre em contato com nossa equipe atraves do link http://wa.me/552430265648
+Importante saber que isso é apenas um lembrete. É responsabilidade do cliente realizar o controle de vencimento de férias. O relatório completo foi enviado para o portal do cliente. A empresa estará sujeita a penalidades se o colaborador não fruir férias até a data limite.
 
-NZD Contabilidade.`;
+Em caso de dúvidas entre em contato com nossa equipe atraves do link http://wa.me/552430265648`;
 
         // Chamar sendDigisacMessage
         const result = await sendDigisacMessage({
