@@ -101,10 +101,19 @@ export function VacationControlModal() {
     document.body.removeChild(link);
   };
 
-  const cleanText = (text: any) => {
+  const cleanText = (text: any, key: string = '') => {
     if (text === null || text === undefined) return '-';
+    
+    let strText = String(text);
+
+    // Se parece ser uma data no formato YYYY-MM-DD ou YYYY-MM-DDT...
+    if (strText.match(/^\d{4}-\d{2}-\d{2}/)) {
+      const [year, month, day] = strText.split('T')[0].split('-');
+      return `${day}/${month}/${year}`;
+    }
+
     // Substitui &nbsp e &nbsp; por espaço e remove espaços extras
-    return String(text).replace(/&nbsp;?/g, ' ').trim();
+    return strText.replace(/&nbsp;?/g, ' ').trim();
   };
 
   return (
@@ -160,7 +169,7 @@ export function VacationControlModal() {
                           <TableRow key={index}>
                             {Object.keys(vacationData[0]).map((key) => (
                               <TableCell key={`${index}-${key}`} className="whitespace-nowrap">
-                                {cleanText(row[key])}
+                                {cleanText(row[key], key)}
                               </TableCell>
                             ))}
                           </TableRow>
