@@ -46,6 +46,31 @@ export function VacationControlModal() {
     }
   };
 
+  const cleanText = (text: any, key: string = '') => {
+    if (text === null || text === undefined) return '-';
+    
+    let strText = String(text);
+
+    // Se parece ser uma data no formato YYYY-MM-DD ou YYYY-MM-DDT...
+    if (strText.match(/^\d{4}-\d{2}-\d{2}/)) {
+      const [year, month, day] = strText.split('T')[0].split('-');
+      return `${day}/${month}/${year}`;
+    }
+
+    // Substitui &nbsp e &nbsp; por espaço e remove espaços extras
+    return strText.replace(/&nbsp;?/g, ' ').trim();
+  };
+
+  const processData = (data: any[]) => {
+    return data.map(row => {
+      const newRow: any = {};
+      Object.keys(row).forEach(key => {
+        newRow[key] = cleanText(row[key], key);
+      });
+      return newRow;
+    });
+  };
+
   const handleSearch = async () => {
     if (!questorCode) {
       toast.error('Informe o código da empresa.');
@@ -57,7 +82,8 @@ export function VacationControlModal() {
       const result = await fetchVacationControlFromQuestor(questorCode);
       
       if (result.success && result.data) {
-        setVacationData(result.data);
+        const cleanedData = processData(result.data);
+        setVacationData(cleanedData);
         setStep('results');
         if (result.data.length === 0) {
             toast.info('Nenhum dado retornado para esta empresa.');
@@ -104,21 +130,6 @@ export function VacationControlModal() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const cleanText = (text: any, key: string = '') => {
-    if (text === null || text === undefined) return '-';
-    
-    let strText = String(text);
-
-    // Se parece ser uma data no formato YYYY-MM-DD ou YYYY-MM-DDT...
-    if (strText.match(/^\d{4}-\d{2}-\d{2}/)) {
-      const [year, month, day] = strText.split('T')[0].split('-');
-      return `${day}/${month}/${year}`;
-    }
-
-    // Substitui &nbsp e &nbsp; por espaço e remove espaços extras
-    return strText.replace(/&nbsp;?/g, ' ').trim();
   };
 
   return (
@@ -174,7 +185,7 @@ export function VacationControlModal() {
                           <TableRow key={index}>
                             {getVisibleColumns(vacationData).map((key) => (
                               <TableCell key={`${index}-${key}`} className="whitespace-nowrap">
-                                {cleanText(row[key], key)}
+                                {row[key] !== null ? String(row[key]) : '-'}
                               </TableCell>
                             ))}
                           </TableRow>
