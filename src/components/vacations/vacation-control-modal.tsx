@@ -13,9 +13,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Search, Download } from 'lucide-react';
+import { Loader2, Search, Download, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchVacationControlFromQuestor } from '@/app/actions/integrations/questor-vacation-actions';
+import { sendVacationNoticeMessage } from '@/app/actions/integrations/vacation-message-actions';
 import {
   Table,
   TableBody,
@@ -25,18 +26,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function VacationControlModal() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [questorCode, setQuestorCode] = useState('');
   const [step, setStep] = useState<'search' | 'results'>('search');
   const [vacationData, setVacationData] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const resetState = () => {
     setStep('search');
     setVacationData([]);
     setQuestorCode('');
+    setSelectedRows(new Set());
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -132,6 +137,56 @@ export function VacationControlModal() {
     document.body.removeChild(link);
   };
 
+  const handleToggleAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(vacationData.map((_, i) => i)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleToggleRow = (index: number, checked: boolean) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(index);
+    } else {
+      newSelected.delete(index);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const handleSend = async () => {
+    if (selectedRows.size === 0) {
+      toast.error('Selecione pelo menos um funcionário.');
+      return;
+    }
+
+    setSending(true);
+    try {
+      const selectedEmployees = Array.from(selectedRows).map(index => {
+        const row = vacationData[index];
+        // Encontrar as chaves corretas baseando-se em nomes comuns ou no objeto
+        const nome = row['NOME FUNCIONARIO'] || row['NOME DO FUNCIONARIO'] || row['NOME'] || row['FUNCIONARIO'] || 'Funcionário Não Identificado';
+        const saldoDias = row['SALDO_DIAS'] || row['SALDO DIAS'] || row['SALDO'] || 'N/A';
+        const limitePgto = row['LIMITE_PGTO'] || row['LIMITE PGTO'] || row['LIMITE'] || 'N/A';
+        return { nome: String(nome), saldoDias: String(saldoDias), limitePgto: String(limitePgto) };
+      });
+
+      const result = await sendVacationNoticeMessage(questorCode, selectedEmployees);
+      if (result.success) {
+        toast.success('Mensagem enviada com sucesso para a empresa.');
+        setSelectedRows(new Set()); // Limpa a seleção após envio com sucesso
+      } else {
+        toast.error(result.error || 'Erro ao enviar mensagem.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao conectar com o servidor para envio.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -175,6 +230,12 @@ export function VacationControlModal() {
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                         <TableRow>
+                          <TableHead className="w-12 text-center">
+                            <Checkbox 
+                              checked={vacationData.length > 0 && selectedRows.size === vacationData.length}
+                              onCheckedChange={handleToggleAll}
+                            />
+                          </TableHead>
                           {getVisibleColumns(vacationData).map((key) => (
                             <TableHead key={key} className="whitespace-nowrap">{key}</TableHead>
                           ))}
@@ -182,7 +243,13 @@ export function VacationControlModal() {
                       </TableHeader>
                       <TableBody>
                         {vacationData.map((row, index) => (
-                          <TableRow key={index}>
+                          <TableRow key={index} className={selectedRows.has(index) ? "bg-muted/50" : ""}>
+                            <TableCell className="w-12 text-center">
+                              <Checkbox 
+                                checked={selectedRows.has(index)}
+                                onCheckedChange={(checked) => handleToggleRow(index, checked as boolean)}
+                              />
+                            </TableCell>
                             {getVisibleColumns(vacationData).map((key) => (
                               <TableCell key={`${index}-${key}`} className="whitespace-nowrap">
                                 {row[key] !== null ? String(row[key]) : '-'}
@@ -219,6 +286,10 @@ export function VacationControlModal() {
                 Nova Busca
               </Button>
               <div className="flex gap-2">
+                  <Button variant="default" onClick={handleSend} disabled={selectedRows.size === 0 || sending}>
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                    Enviar {selectedRows.size > 0 && `(${selectedRows.size})`}
+                  </Button>
                   <Button variant="outline" onClick={exportToCSV} disabled={vacationData.length === 0}>
                     <Download className="h-4 w-4 mr-2" />
                     Exportar CSV

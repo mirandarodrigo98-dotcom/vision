@@ -17,6 +17,8 @@ export const digisacMessageSchema = z.object({
   body: z.string().min(1, 'Conteúdo da mensagem é obrigatório'),
   fileUrl: z.string().url().optional().describe('URL do arquivo para envio de mídia'),
   isWhisper: z.boolean().optional().default(false).describe('Se true, envia como nota interna (whisper)'),
+  origin: z.string().optional().describe('Origem da mensagem (ex: bot)'),
+  dontOpenTicket: z.boolean().optional().describe('Se true, não abre chamado'),
 }).refine(data => data.contactId || (data.number && data.serviceId), {
   message: "É necessário fornecer 'contactId' OU ('number' E 'serviceId')",
   path: ['contactId'], 

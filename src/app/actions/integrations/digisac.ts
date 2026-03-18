@@ -76,6 +76,14 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
       payload.isWhisper = true; // Nota interna
   }
 
+  if (message.origin) {
+      payload.origin = message.origin;
+  }
+
+  if (message.dontOpenTicket) {
+      payload.dontOpenTicket = true;
+  }
+
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
