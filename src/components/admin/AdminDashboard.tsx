@@ -21,7 +21,8 @@ import {
   PuzzlePieceIcon,
   BanknotesIcon,
   CalculatorIcon,
-  TicketIcon
+  TicketIcon,
+  CommandLineIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
@@ -85,6 +86,7 @@ const navigation: NavigationItem[] = [
   },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon, permission: 'audit_logs.view' },
+  { name: 'Logs do Sistema', href: '/admin/system-logs', icon: CommandLineIcon, permission: 'system_logs.view' },
   { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon, permission: 'settings.view' },
   {
     name: 'Integrações',
