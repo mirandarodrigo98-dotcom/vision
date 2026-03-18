@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { VacationActions } from '@/components/vacations/vacation-actions';
 import { VacationFilters } from '@/components/vacations/vacation-filters';
+import { VacationControlModal } from '@/components/vacations/vacation-control-modal';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
@@ -127,6 +128,9 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Férias</h2>
+        <div className="flex items-center gap-2">
+            <VacationControlModal />
+        </div>
       </div>
 
       <VacationFilters />
