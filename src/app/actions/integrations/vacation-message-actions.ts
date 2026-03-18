@@ -12,7 +12,7 @@ async function logSystemError(context: string, details: any) {
       detailStr = `${details.message}\n${details.stack}`;
     } else if (typeof details === 'object') {
       try {
-        detailStr = JSON.stringify(details, Object.getOwnPropertyNames(details), 2);
+        detailStr = JSON.stringify(details, null, 2);
       } catch (e) {
         detailStr = String(details);
       }

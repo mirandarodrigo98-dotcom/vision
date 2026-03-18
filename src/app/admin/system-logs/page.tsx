@@ -50,7 +50,7 @@ export default async function SystemLogsPage() {
                     {log.context}
                   </CardTitle>
                   <span className="text-xs font-mono bg-white px-2 py-1 rounded border">
-                    {log.created_at ? format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : 'Data desconhecida'}
+                    {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Data desconhecida'}
                   </span>
                 </div>
               </CardHeader>

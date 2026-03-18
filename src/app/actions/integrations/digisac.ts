@@ -13,7 +13,7 @@ async function logSystemError(context: string, details: any) {
       detailStr = `${details.message}\n${details.stack}`;
     } else if (typeof details === 'object') {
       try {
-        detailStr = JSON.stringify(details, Object.getOwnPropertyNames(details), 2);
+        detailStr = JSON.stringify(details, null, 2);
       } catch (e) {
         detailStr = String(details);
       }
@@ -36,7 +36,7 @@ async function logSystemError(context: string, details: any) {
 
     // Também tentar gravar em arquivo como fallback local
     const logPath = path.join(process.cwd(), 'system_errors.log');
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const logMessage = `\n[${timestamp}] [${context}] ===========================\n${detailStr}\n========================================================\n`;
     fs.appendFileSync(logPath, logMessage);
   } catch (e) {
@@ -90,23 +90,36 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   
   // Montar payload
   const payload: any = {
-    text: message.body,
-    type: message.fileUrl ? 'image' : 'chat', // Básico, pode precisar de ajuste para arquivos
+    text: message.body || '', // Garantir que não seja undefined
+    type: message.fileUrl ? 'image' : 'chat', 
   };
+
+  // Debug direto no console para verificação na Vercel
+  console.log(' Preparing Digisac Payload:', { 
+    bodyLength: message.body?.length, 
+    hasFile: !!message.fileUrl,
+    number: message.number,
+    serviceId: message.serviceId
+  });
 
   if (message.contactId) {
     payload.contactId = message.contactId;
   } else {
-    payload.number = message.number;
-    payload.serviceId = message.serviceId;
-    // Formatar número se necessário (apenas números)
-    if (payload.number) {
-        payload.number = payload.number.replace(/\D/g, '');
-        // Adicionar DDI do Brasil (55) se o número tiver 10 ou 11 dígitos
-        if (payload.number.length === 10 || payload.number.length === 11) {
-            payload.number = `55${payload.number}`;
-        }
+    if (!message.serviceId) {
+        await logSystemError('Digisac API - Erro de Validação', { error: 'serviceId (connection_phone) é obrigatório', payload });
+        return { success: false, error: 'Erro de configuração: connection_phone não definido.' };
     }
+    
+    // Garantir que number é string e remover não-números
+    let cleanNumber = String(message.number || '').replace(/\D/g, '');
+    
+    // Adicionar DDI do Brasil (55) se o número tiver 10 ou 11 dígitos
+    if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+        cleanNumber = `55${cleanNumber}`;
+    }
+
+    payload.number = cleanNumber;
+    payload.serviceId = message.serviceId;
   }
 
   if (message.fileUrl) {
