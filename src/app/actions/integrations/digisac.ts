@@ -130,7 +130,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -159,6 +159,10 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     return { success: true, data };
   } catch (error: any) {
     console.error('Erro ao enviar mensagem Digisac:', error);
+    if (error.name === 'AbortError') {
+      await logSystemError('Digisac API - Timeout (AbortError)', { endpoint, payload });
+      return { success: false, error: 'A requisição ao Digisac expirou após 60 segundos. O servidor deles pode estar lento ou fora do ar.' };
+    }
     await logSystemError('Digisac API - Fetch Exception', error);
     return { success: false, error: `Erro de conexão: ${error.message}` };
   }
