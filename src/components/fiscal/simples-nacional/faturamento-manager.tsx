@@ -36,6 +36,7 @@ interface SimplesNacionalBillingData {
   rpa_competence: number;
   rpa_cash: number;
   rpa_accumulated: number;
+  payroll_12_months: number;
   rbt12: number;
   rba: number;
   rbaa: number;
@@ -264,6 +265,7 @@ export function SimplesNacionalFaturamentoManager() {
                   <TableHead className="text-center">RPA Total</TableHead>
                   <TableHead className="text-center">Alíq.Efetiva</TableHead>
                   <TableHead className="text-center">Folha+Encargos</TableHead>
+                  <TableHead className="text-center">Folha 12 meses</TableHead>
                   <TableHead className="text-center">RBT12</TableHead>
                   <TableHead className="text-center">RBA</TableHead>
                   <TableHead className="text-center">RBAA</TableHead>
@@ -272,7 +274,7 @@ export function SimplesNacionalFaturamentoManager() {
               <TableBody>
                 {data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={8} className="h-24 text-center">
                       Nenhum dado encontrado.
                     </TableCell>
                   </TableRow>
@@ -283,9 +285,10 @@ export function SimplesNacionalFaturamentoManager() {
                       <TableCell className="text-center">{formatNumber(row.rpa_competence || 0)}</TableCell>
                       <TableCell className="text-center">{formatAliquot(row.rpa_cash || 0)}</TableCell>
                       <TableCell className="text-center">{formatNumber(row.rpa_accumulated || 0)}</TableCell>
-                      <TableCell className="text-center">{formatNumber(row.rbt12)}</TableCell>
-                      <TableCell className="text-center">{formatNumber(row.rba)}</TableCell>
-                      <TableCell className="text-center">{formatNumber(row.rbaa)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.payroll_12_months || 0)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rbt12 || 0)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rba || 0)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.rbaa || 0)}</TableCell>
                     </TableRow>
                   ))
                 )}

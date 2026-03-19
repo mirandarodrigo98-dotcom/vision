@@ -13,7 +13,7 @@ interface SimplesNacionalParams {
   endCompetence: string;   // YYYY-MM
 }
 
-interface SimplesNacionalBillingData {
+export interface SimplesNacionalBillingData {
   company_id: string;
   competence: string;
   rpa_competence: number;
@@ -22,6 +22,7 @@ interface SimplesNacionalBillingData {
   rbt12: number;
   rba: number;
   rbaa: number;
+  payroll_12_months: number;
 }
 
 export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams) {
@@ -294,7 +295,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
              monthData[competence] = {
                  company_id: params.companyId,
                  competence,
-                 rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0,
+                 rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0, payroll_12_months: 0,
                  _aliquotas: []
              };
         }
@@ -311,7 +312,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                  rawDesc = row[headerKeys[0]] || '';
             }
             
-            let desc = rawDesc.replace(/&nbsp;/gi, ' ').replace(/&NBSP/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+            let desc = rawDesc.replace(/&nbsp;/gi, ' ').replace(/&NBSP/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             
             // Debug: Log specific rows to help identification
             if (desc.includes('FOLHA') || desc.includes('RECEITA')) {
@@ -366,12 +367,15 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             else if (desc.includes('RECEITA DO PA') && desc.includes('TOTAL')) targetField = 'rpa_competence';
             else if (desc.includes('RECEITA') && desc.includes('PA') && desc.includes('TOTAL')) targetField = 'rpa_competence'; // Broader match for RPA
             
-            // Mapping for "Folha+Encargos" (formerly Acumulado)
-            // User reported incorrect values for some months, suggesting multiple rows might be matching or wrong row selected.
-            // Strict match: Must contain FOLHA, ENCARGOS. Must NOT contain ANTERIORES, ACUMULADO, 12 MESES.
-            // NEW: Must contain 'MES' (for 'NO MES', 'DO MES') and NOT contain '13' (for 13th salary)
+            // Mapping for "Folha+Encargos" (Folha de Salários Incluídos Encargos no Mês)
+            // Image: "9.01.02 Folha de Salários Incluídos Encargos no Mês"
             else if (desc.includes('FOLHA') && desc.includes('ENCARGOS') && (desc.includes('MES') || desc.includes('MENSAL')) && !desc.includes('ANTERIORES') && !desc.includes('ACUMULADO') && !desc.includes('12 MESES') && !desc.includes('13') && !desc.includes('DECIMO')) {
                  targetField = 'rpa_accumulated';
+            }
+            // Mapping for "Folha 12 meses" (Folha de Salários Incluídos Encargos Períodos Anteriores)
+            // Image: "9.02.02 Folha de Salários Incluídos Encargos Períodos Anteriores"
+            else if (desc.includes('FOLHA') && desc.includes('ENCARGOS') && desc.includes('ANTERIORES')) {
+                 targetField = 'payroll_12_months';
             }
 
             // REMOVED mapping for "SIMPLES Devido no Mês" -> rpa_cash as it is now "Alíq.Efetiva" derived from RPA row
@@ -432,8 +436,8 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                         } else if (targetField === 'rbaa') {
                              // RBAA - Total -> Likely BASE
                              valStr = row[`${mPrefix}_BASE`] || row[`${mPrefix}_VALOR`] || row[`${mPrefix}`];
-                        } else if (targetField === 'rpa_accumulated') {
-                             // Folha+Encargos -> Value column
+                        } else if (targetField === 'rpa_accumulated' || targetField === 'payroll_12_months') {
+                             // Folha+Encargos OR Folha 12 Meses -> Value column
                              valStr = row[`${mPrefix}_VALOR`] || row[`${mPrefix}_BASE`] || row[`${mPrefix}`];
                         } else {
                              // Default fallback
@@ -488,9 +492,9 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                 const id = crypto.randomUUID();
                 db.prepare(`
                   INSERT INTO simples_nacional_billing (
-                    id, company_id, competence, rpa_competence, rpa_cash, rpa_accumulated, rbt12, rba, rbaa, updated_at
+                    id, company_id, competence, rpa_competence, rpa_cash, rpa_accumulated, rbt12, rba, rbaa, payroll_12_months, updated_at
                   ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')
                   )
                   ON CONFLICT(company_id, competence) DO UPDATE SET
                     rpa_competence = excluded.rpa_competence,
@@ -499,6 +503,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                     rbt12 = excluded.rbt12,
                     rba = excluded.rba,
                     rbaa = excluded.rbaa,
+                    payroll_12_months = excluded.payroll_12_months,
                     updated_at = datetime('now')
                 `).run(
                     id,
@@ -509,7 +514,8 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                     item.rpa_accumulated,
                     item.rbt12,
                     item.rba,
-                    item.rbaa
+                    item.rbaa,
+                    item.payroll_12_months
                 );
             }
         });

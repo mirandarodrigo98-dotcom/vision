@@ -1,3 +1,4 @@
+import db from './src/lib/db';
 import { executeQuestorProcess } from './src/app/actions/integrations/questor-syn';
 
 async function test() {
@@ -11,11 +12,6 @@ async function test() {
   };
   
   const result = await executeQuestorProcess('TnFisDPGerarSSimplesFederal', questorParams);
-  
-  if (result.error) {
-    console.error(result.error);
-    process.exit(1);
-  }
   
   const dataObj = result.data;
   let foundData = [];
@@ -133,6 +129,19 @@ async function test() {
   });
 
   console.log('Final data:', monthData);
+
+  const companyId = '36ba042a-85a1-4214-9ced-fafba7277617';
+  
+  for (const competence of Object.keys(monthData)) {
+      const rpa_cash = monthData[competence].rpa_cash;
+      await db.prepare(`
+          UPDATE simples_nacional_billing
+          SET rpa_cash = ?
+          WHERE company_id = ? AND competence = ?
+      `).run(rpa_cash, companyId, competence);
+  }
+  
+  console.log("Updated DB");
   process.exit(0);
 }
 
