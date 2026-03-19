@@ -24,9 +24,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { fetchSimplesNacionalBilling, getStoredSimplesNacionalBilling } from '@/app/actions/integrations/simples-nacional';
-import { searchEnuvesCompanies } from '@/app/actions/integrations/companies';
-import { useDebounce } from '@/hooks/use-debounce';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CompanySelector, type Company } from '@/components/ui/company-selector';
 
 import { CompetenceInput } from '@/components/ui/competence-input';
 
@@ -51,28 +50,6 @@ export function SimplesNacionalFaturamentoManager() {
   const [startCompetence, setStartCompetence] = React.useState(''); // YYYY-MM
   const [endCompetence, setEndCompetence] = React.useState('');   // YYYY-MM
   const [selectedCompany, setSelectedCompany] = React.useState<{ id: string, label: string } | null>(null);
-
-  // Company Search State
-  const [openCompany, setOpenCompany] = React.useState(false);
-  const [companySearch, setCompanySearch] = React.useState('');
-  const [companies, setCompanies] = React.useState<any[]>([]);
-  const [searchingCompanies, setSearchingCompanies] = React.useState(false);
-  const debouncedCompanySearch = useDebounce(companySearch, 300);
-
-  // Load Companies
-  React.useEffect(() => {
-    async function loadCompanies() {
-      if (debouncedCompanySearch.length < 2) {
-        setCompanies([]);
-        return;
-      }
-      setSearchingCompanies(true);
-      const results = await searchEnuvesCompanies(debouncedCompanySearch);
-      setCompanies(results);
-      setSearchingCompanies(false);
-    }
-    loadCompanies();
-  }, [debouncedCompanySearch]);
 
   // Load Data from DB when filters change (if valid)
   React.useEffect(() => {
@@ -153,64 +130,17 @@ export function SimplesNacionalFaturamentoManager() {
             {/* Company Selector */}
             <div className="flex flex-col space-y-2 md:col-span-2">
               <Label>Empresa</Label>
-              <Popover open={openCompany} onOpenChange={setOpenCompany}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openCompany}
-                    className="justify-between"
-                  >
-                    {selectedCompany ? selectedCompany.label : "Selecione a empresa..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
-                   <div className="flex flex-col">
-                      <div className="flex items-center border-b px-3">
-                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <Input
-                          placeholder="Buscar empresa..."
-                          value={companySearch}
-                          onChange={(e) => setCompanySearch(e.target.value)}
-                          className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                      </div>
-                      <ScrollArea className="max-h-[300px] overflow-y-auto">
-                        <div className="p-1">
-                          {searchingCompanies && <div className="py-6 text-center text-sm text-muted-foreground">Buscando...</div>}
-                          {!searchingCompanies && companies.length === 0 && companySearch.length >= 2 && (
-                            <div className="py-6 text-center text-sm">Nenhuma empresa encontrada.</div>
-                          )}
-                           {!searchingCompanies && companies.length === 0 && companySearch.length < 2 && (
-                            <div className="py-6 text-center text-sm text-muted-foreground">Digite pelo menos 2 caracteres</div>
-                          )}
-                          {companies.map((company) => (
-                            <div
-                              key={company.id}
-                              className={cn(
-                                "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-                                selectedCompany?.id === company.id ? "bg-accent text-accent-foreground" : ""
-                              )}
-                              onClick={() => {
-                                setSelectedCompany({ id: company.id, label: `${company.code} - ${company.razao_social}` });
-                                setOpenCompany(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedCompany?.id === company.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {company.code} - {company.razao_social}
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                   </div>
-                </PopoverContent>
-              </Popover>
+              <CompanySelector
+                value={selectedCompany?.id}
+                selectedLabel={selectedCompany?.label}
+                onChange={(company) => {
+                  if (company) {
+                    setSelectedCompany({ id: company.id, label: `${company.code ? company.code + ' - ' : ''}${company.razao_social}` });
+                  } else {
+                    setSelectedCompany(null);
+                  }
+                }}
+              />
             </div>
 
             {/* Start Competence */}

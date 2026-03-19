@@ -45,9 +45,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { CompanySelector, type Company } from '@/components/ui/company-selector';
 import Papa from 'papaparse';
 
 // --- Step 1: Parameters Schema ---
@@ -65,7 +63,6 @@ const paramsSchema = z.object({
 
 interface FaturamentoWizardProps {
   accountants: any[];
-  companies: Array<{ id: string; razao_social: string; cnpj: string }>;
 }
 
 // Helper component for Complemento Input to only sum on blur
@@ -136,7 +133,7 @@ function ComplementoInput({
     );
 }
 
-export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardProps) {
+export function FaturamentoWizard({ accountants }: FaturamentoWizardProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [partners, setPartners] = useState<any[]>([]);
@@ -144,10 +141,6 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
   const [companyName, setCompanyName] = useState('');
   const [companyCnpj, setCompanyCnpj] = useState('');
   const [companyCode, setCompanyCode] = useState<string | null>(null);
-  
-  // Company Search State
-  const [openCompany, setOpenCompany] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   const form = useForm<z.infer<typeof paramsSchema>>({
     resolver: zodResolver(paramsSchema),
@@ -629,93 +622,21 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel>Empresa</FormLabel>
-                            <Popover open={openCompany} onOpenChange={setOpenCompany}>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={openCompany}
-                                    className={cn(
-                                      "w-full justify-between",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value
-                                      ? companies.find((company) => company.id === field.value)?.razao_social
-                                      : "Selecione a empresa"}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                                <div className="flex flex-col">
-                                  <div className="flex items-center border-b px-3">
-                                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                                    <Input
-                                      placeholder="Digite 3 caracteres..."
-                                      value={searchTerm}
-                                      onChange={(e) => setSearchTerm(e.target.value)}
-                                      className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
-                                    />
-                                  </div>
-                                  
-                                  <ScrollArea className="max-h-[300px] overflow-y-auto">
-                                    <div className="p-1">
-                                      {searchTerm.length >= 3 ? (
-                                        <>
-                                          {companies
-                                            .filter(company => 
-                                              company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                              company.cnpj.includes(searchTerm)
-                                            )
-                                            .length === 0 && (
-                                              <div className="py-6 text-center text-sm text-muted-foreground">
-                                                Nenhuma empresa encontrada.
-                                              </div>
-                                            )}
-
-                                          {companies
-                                            .filter(company => 
-                                              company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                              company.cnpj.includes(searchTerm)
-                                            )
-                                            .slice(0, 50)
-                                            .map((company) => (
-                                              <div
-                                                key={company.id}
-                                                onClick={() => {
-                                                  form.setValue("companyId", company.id);
-                                                  setCompanyName(company.razao_social);
-                                                  setOpenCompany(false);
-                                                }}
-                                                className={cn(
-                                                  "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                                  company.id === field.value && "bg-accent text-accent-foreground"
-                                                )}
-                                              >
-                                                <div className="w-full">
-                                                  <div className="flex w-full justify-between items-center">
-                                                    <span className="font-medium">{company.razao_social}</span>
-                                                    {company.id === field.value && <Check className="h-4 w-4" />}
-                                                  </div>
-                                                  <div className="flex gap-2 text-xs text-muted-foreground">
-                                                    <span>CNPJ: {company.cnpj}</span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ))}
-                                        </>
-                                      ) : (
-                                        <div className="py-6 text-center text-sm text-muted-foreground">
-                                          Digite pelo menos 3 caracteres para pesquisar...
-                                        </div>
-                                      )}
-                                    </div>
-                                  </ScrollArea>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                            <FormControl>
+                              <CompanySelector
+                                value={field.value}
+                                selectedLabel={companyName}
+                                onChange={(company) => {
+                                  if (company) {
+                                    form.setValue("companyId", company.id);
+                                    setCompanyName(company.razao_social);
+                                  } else {
+                                    form.setValue("companyId", "");
+                                    setCompanyName("");
+                                  }
+                                }}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
