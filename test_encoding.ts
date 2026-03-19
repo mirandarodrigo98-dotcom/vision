@@ -1,0 +1,1 @@
+import * as fs from 'fs'; import parsePDF from './src/lib/pdf-parser'; async function run() { const buffer = fs.readFileSync('public/Relatorio[1504].pdf'); const data = await parsePDF(buffer); console.log(JSON.stringify(data.lines.slice(0, 100), null, 2)); } run().catch(console.error);

@@ -1099,17 +1099,42 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // console.log('Starting PDF parse (Razão Gerencial)...');
-    
-    const data = await parsePDF(buffer);
-    let lines: string[] = [];
-    
-    if (data.lines && data.lines.length > 0) {
-        lines = data.lines.map(l => l.text);
-    } else {
-        lines = data.text.split('\n');
-    }
-    
+    // Parse PDF directly to preserve column spacing
+    const PDFParser = (await import('pdf2json')).default;
+    const lines: string[] = await new Promise((resolve, reject) => {
+        const pdfParser = new PDFParser(null, 1);
+        pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
+        pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+            let extractedLines: string[] = [];
+            if (pdfData && pdfData.Pages) {
+                pdfData.Pages.forEach((page: any) => {
+                    let pageLines: any[] = [];
+                    if (page.Texts) {
+                        page.Texts.forEach((t: any) => {
+                            let textStr = decodeURIComponent(t.R[0].T);
+                            let y = t.y;
+                            let x = t.x;
+                            let line = pageLines.find(l => Math.abs(l.y - y) < 0.3);
+                            if (!line) {
+                                line = { y: y, items: [] };
+                                pageLines.push(line);
+                            }
+                            line.items.push({ x: x, text: textStr });
+                        });
+                        pageLines.sort((a, b) => a.y - b.y);
+                        pageLines.forEach(l => {
+                            l.items.sort((a: any, b: any) => a.x - b.x);
+                            let lineText = l.items.map((i: any) => i.text).join('   ');
+                            extractedLines.push(lineText);
+                        });
+                    }
+                });
+            }
+            resolve(extractedLines);
+        });
+        pdfParser.parseBuffer(buffer);
+    });
+
     const categories = await getCategories(targetCompanyId);
     const accounts = await getAccounts(targetCompanyId);
     
@@ -1118,103 +1143,129 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     accounts.sort((a, b) => b.description.length - a.description.length);
 
     const transactionsToInsert: any[] = [];
-    const ignoredLines: any[] = [];
+    const ignoredTransactions: any[] = [];
 
     let currentCategory: { id: string, name: string } | null = null;
-    let isEntradaBlock = true; // Default, will be updated by headers
+    let ignoreBlock = false;
+    let pendingTransaction: any = null;
 
-    // Regex for Category Header: Code + Description + Value
-    // We allow flexible code (digits/dots)
-    const categoryHeaderRegex = /^([\d\.]+)\s+(.+?)\s+(-?[\d\.,]+)$/;
-    
-    // Regex for Transaction Line: Date + Description + Value
-    // Date: DD/MM/YYYY or DD/MM/YY
-    const transactionRegex = /^(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+(-?[\d\.,]+)$/;
-    
-    // Regex for Entry/Exit Block Headers
-    const entryBlockRegex = /RECEITAS|ENTRADAS/i;
-    const exitBlockRegex = /DESPESAS|SAIDAS|SAÍDAS/i;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
 
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        // 1. Detect Entry/Exit Block
-        if (entryBlockRegex.test(trimmed)) {
-            isEntradaBlock = true;
-            currentCategory = null; // Reset category on block change
-            continue;
-        }
-        if (exitBlockRegex.test(trimmed)) {
-            isEntradaBlock = false;
-            currentCategory = null; // Reset category on block change
+        if (line.includes('0000004904 TRANSFERÊNCIAS/DEPÓSITOS')) {
+            ignoreBlock = true;
             continue;
         }
 
-        // 2. Detect Category Header
-        const catMatch = trimmed.match(categoryHeaderRegex);
-        if (catMatch) {
-            // It might be a category header OR a transaction line if description is simple.
-            // But transactions usually start with Date.
-            // Categories start with Code (e.g. 1.01).
-            // We assume if it starts with digits/dots and NOT date, it's a category.
-            if (!/^\d{2}\/\d{2}/.test(trimmed)) {
-                 const catDesc = catMatch[2].trim();
-                 // Try to match with existing categories
-                 // Exact match first
-                 let matchedCat = categories.find(c => c.description.toUpperCase() === catDesc.toUpperCase());
-                 
-                 // If not found, create a temporary one? No, we need ID.
-                 // If we can't match, we can't import transactions for it.
-                 if (matchedCat) {
-                     currentCategory = { id: matchedCat.id, name: matchedCat.description };
-                 } else {
-                     // Try partial match or ignore
-                     currentCategory = null;
-                 }
-                 continue;
-            }
-        }
-
-        // 3. Detect Transaction Line
-        const transMatch = trimmed.match(transactionRegex);
-        if (transMatch && currentCategory) {
-            const dateStr = transMatch[1];
-            const description = transMatch[2].trim();
-            const valueStr = transMatch[3].replace(/\./g, '').replace(',', '.');
-            let value = parseFloat(valueStr);
-
-            // Apply Sign Logic based on Block
-            // If Entry Block: Value should be Positive
-            // If Exit Block: Value should be Negative
-            // The PDF might show everything as positive.
-            
-            if (isEntradaBlock) {
-                value = Math.abs(value);
+        // Category header: "0000002654   DÍZIMOS       75.487,02"
+        const catMatch = line.match(/^(\d{10})\s+(.+)$/);
+        if (catMatch && !line.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+            let integrationCode = catMatch[1];
+            if (parseInt(integrationCode, 10) === 0) {
+                integrationCode = '0';
             } else {
-                value = -Math.abs(value);
+                integrationCode = parseInt(integrationCode, 10).toString();
+            }
+            
+            let catName = catMatch[2].trim();
+            catName = catName.replace(/\s+[-0-9\.,]+(?:\s+[CD])?$/, '').trim();
+
+            // Try to match with existing categories
+            let matchedCat = null;
+            if (integrationCode !== '0') {
+                matchedCat = categories.find(c => c.integration_code === integrationCode);
+            }
+            if (!matchedCat) {
+                matchedCat = categories.find(c => c.description.toUpperCase() === catName.toUpperCase());
             }
 
-            // Attempt to link Account
-            // Check if description matches any Account Description exactly
+            if (matchedCat) {
+                currentCategory = { id: matchedCat.id, name: matchedCat.description };
+            } else {
+                currentCategory = { id: '', name: catName }; 
+            }
+            continue;
+        }
+
+        // Transaction line 1
+        const transMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d+)\s+(.+?)\s{2,}(.+?)\s{2,}(.+?)\s{2,}([-0-9\.,]+)\s+[CD]\s+[-0-9\.,]+$/);
+        if (transMatch) {
+            if (ignoreBlock) continue;
+            
+            const dateStr = transMatch[1];
+            const fornecedor = transMatch[3].trim();
+            const conta = transMatch[4].trim();
+            const valorStr = transMatch[6].replace(/\./g, '').replace(',', '.');
+            const valor = Math.abs(parseFloat(valorStr)); // ignore negative sign
+
+            // Match account
             let accountId = null;
-            const matchedAccount = accounts.find(a => description.toUpperCase() === a.description.toUpperCase());
+            let accountName = null;
+            const matchedAccount = accounts.find(a => conta.toUpperCase().includes(a.description.toUpperCase()) || a.description.toUpperCase().includes(conta.toUpperCase()));
             if (matchedAccount) {
                 accountId = matchedAccount.id;
+                accountName = matchedAccount.description;
             }
 
-            transactionsToInsert.push({
-                company_id: targetCompanyId,
-                category_id: currentCategory.id,
-                account_id: accountId,
+            pendingTransaction = {
                 date: convertDate(dateStr),
-                description: description,
-                value: value
-            });
+                fornecedor,
+                conta,
+                valor,
+                category: currentCategory,
+                accountId,
+                accountName
+            };
+            continue;
+        }
+
+        // Transaction line 2: Centro de Custo / Histórico
+        if (pendingTransaction) {
+            let centroCusto = '';
+            let historico = '';
+
+            if (line.includes('/')) {
+                const parts = line.split('/');
+                centroCusto = parts[0].trim();
+                historico = parts.slice(1).join('/').trim();
+            } else {
+                centroCusto = line.trim();
+                historico = '';
+            }
+
+            let catName = pendingTransaction.category ? pendingTransaction.category.name : 'Desconhecida';
+            let composedHistorico = `${catName} = ${centroCusto}`;
+            if (historico) {
+                composedHistorico += ` / ${historico}`;
+            }
+
+            if (pendingTransaction.category && pendingTransaction.category.id) {
+                transactionsToInsert.push({
+                    company_id: targetCompanyId,
+                    category_id: pendingTransaction.category.id,
+                    categoryName: pendingTransaction.category.name,
+                    account_id: pendingTransaction.accountId,
+                    accountName: pendingTransaction.accountName,
+                    date: pendingTransaction.date,
+                    description: composedHistorico,
+                    value: pendingTransaction.valor,
+                    original_description: pendingTransaction.fornecedor
+                });
+            } else {
+                ignoredTransactions.push({
+                    date: pendingTransaction.date,
+                    value: pendingTransaction.valor,
+                    reason: 'Categoria não encontrada ou não cadastrada no sistema',
+                    line: `${pendingTransaction.fornecedor} - ${composedHistorico}`
+                });
+            }
+
+            pendingTransaction = null;
         }
     }
 
-    return { success: transactionsToInsert, count: transactionsToInsert.length };
+    return { success: transactionsToInsert, ignored: ignoredTransactions, count: transactionsToInsert.length };
 
   } catch (error: any) {
     console.error('Error parsing PDF:', error);
