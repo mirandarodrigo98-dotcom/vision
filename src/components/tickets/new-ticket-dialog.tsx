@@ -303,8 +303,8 @@ export function NewTicketDialog() {
                   <FormControl>
                     <TicketCompanySelector
                       value={field.value}
-                      onSelect={(company) => {
-                        field.onChange(company?.id);
+                      onSelect={(companyId) => {
+                        field.onChange(companyId);
                       }}
                     />
                   </FormControl>
