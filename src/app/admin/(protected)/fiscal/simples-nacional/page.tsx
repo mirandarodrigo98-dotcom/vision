@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ReceiptText } from "lucide-react";
+import { ReceiptText, Calculator } from "lucide-react";
 
 export default function SimplesNacionalPage() {
   return (
@@ -26,6 +26,23 @@ export default function SimplesNacionalPage() {
           <CardContent>
             <Link href="/admin/fiscal/simples-nacional/faturamento">
               <Button className="w-full">Acessar Faturamento</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Fator R
+            </CardTitle>
+            <CardDescription>
+              Visualize e sincronize os dados para cálculo do Fator R via Questor SYN.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/simples-nacional/fator-r">
+              <Button className="w-full">Acessar Fator R</Button>
             </Link>
           </CardContent>
         </Card>
