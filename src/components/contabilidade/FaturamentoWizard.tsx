@@ -68,6 +68,74 @@ interface FaturamentoWizardProps {
   companies: Array<{ id: string; razao_social: string; cnpj: string }>;
 }
 
+// Helper component for Complemento Input to only sum on blur
+function ComplementoInput({ 
+    initialValue, 
+    onBlurUpdate 
+}: { 
+    initialValue: number, 
+    onBlurUpdate: (val: number) => void 
+}) {
+    const [localValue, setLocalValue] = useState('');
+
+    // Initialize formatting
+    useEffect(() => {
+        setLocalValue(
+            new Intl.NumberFormat('pt-BR', {
+                style: 'decimal',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(initialValue)
+        );
+    }, [initialValue]);
+
+    const handleBlur = () => {
+        // Parse BRL currency input back to number
+        let cleaned = localValue.trim();
+        if (!cleaned) cleaned = '0';
+        
+        // If there's no comma, assume it's a whole number
+        if (!cleaned.includes(',')) {
+            cleaned = cleaned + ',00';
+        }
+        
+        // Remove thousand separators (dots) and replace decimal comma with dot
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        
+        // Remove any remaining non-digit/dot characters
+        cleaned = cleaned.replace(/[^\d.-]/g, '');
+        
+        const numericValue = parseFloat(cleaned);
+        const finalValue = isNaN(numericValue) ? 0 : numericValue;
+        
+        // Re-format locally
+        setLocalValue(
+            new Intl.NumberFormat('pt-BR', {
+                style: 'decimal',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(finalValue)
+        );
+        
+        // Update parent
+        onBlurUpdate(finalValue);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setLocalValue(e.target.value);
+    };
+
+    return (
+        <Input 
+            type="text" 
+            value={localValue} 
+            onChange={handleChange}
+            onBlur={handleBlur}
+            className="w-32 text-right h-8" 
+        />
+    );
+}
+
 export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -824,21 +892,13 @@ export function FaturamentoWizard({ accountants, companies }: FaturamentoWizardP
                                 <TableCell className="text-right">R$ {formatCurrency(item.faturado)}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end">
-                                    <Input 
-                                        type="text" 
-                                        value={formatCurrency(item.complemento)} 
-                                        onChange={(e) => {
-                                            // Parse BRL currency input back to number
-                                            // Remove all non-digits
-                                            const rawValue = e.target.value.replace(/\D/g, '');
-                                            // Convert to float (divide by 100 for cents)
-                                            const numericValue = rawValue ? parseFloat(rawValue) / 100 : 0;
-                                            
+                                    <ComplementoInput 
+                                        initialValue={item.complemento} 
+                                        onBlurUpdate={(newVal) => {
                                             const newData = [...billingData];
-                                            newData[index].complemento = numericValue;
+                                            newData[index].complemento = newVal;
                                             setBillingData(newData);
-                                        }}
-                                        className="w-32 text-right h-8" 
+                                        }} 
                                     />
                                 </div>
                             </TableCell>
