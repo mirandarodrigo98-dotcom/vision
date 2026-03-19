@@ -16,6 +16,7 @@ import {
   sendTicketStatusChangedEmail, 
   sendTicketCommentEmail 
 } from '@/lib/emails/ticket-notifications';
+import { sendTicketDigisacNotification } from '@/app/actions/integrations/ticket-digisac';
 
 const TicketSchema = z.object({
   title: z.string()
@@ -246,6 +247,13 @@ export async function createTicket(prevState: any, formData: FormData) {
             creator: { name: session.name || 'Usuário', email: session.email || '' },
             assignee: { name: assignee.name, email: assignee.email }
           });
+
+          await sendTicketDigisacNotification({
+            userId: assignee.id,
+            ticketTitle: title,
+            requesterName: session.name || 'Usuário',
+            type: 'abertura'
+          });
         }
       } catch (notifyError) {
          console.error('Error sending notifications:', notifyError);
@@ -311,6 +319,14 @@ export async function returnTicket(ticketId: string, reason: string) {
           <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
         `,
         category: 'ticket_returned'
+      });
+
+      await sendTicketDigisacNotification({
+        userId: ticket.requester_id,
+        ticketTitle: ticket.title,
+        requesterName: session.name || 'Atendente',
+        type: 'devolucao',
+        customText: reason
       });
     }
     
@@ -510,6 +526,13 @@ export async function resolveTicket(ticketId: string) {
           <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
         `,
         category: 'ticket_resolved'
+      });
+
+      await sendTicketDigisacNotification({
+        userId: ticket.requester_id,
+        ticketTitle: ticket.title,
+        requesterName: session.name || 'Atendente',
+        type: 'finalizacao'
       });
     }
 
@@ -728,6 +751,13 @@ export async function updateTicketStatus(ticketId: string, status: string) {
           updater: { name: session.name || 'Atendente' },
           recipient: { name: requester.name, email: requester.email }
         });
+
+        await sendTicketDigisacNotification({
+          userId: currentTicket.requester_id,
+          ticketTitle: currentTicket.title,
+          requesterName: session.name || 'Atendente',
+          type: 'finalizacao'
+        });
       }
     }
 
@@ -896,6 +926,14 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
                 author: { name: senderName },
                 recipient: { name: assignee.name, email: assignee.email }
             });
+
+            await sendTicketDigisacNotification({
+                userId: ticket.assignee_id,
+                ticketTitle: ticket.title,
+                requesterName: senderName,
+                type: 'movimentacao',
+                customText: content
+            });
         }
     } 
     // Se o remetente é o responsável, notifica o solicitante
@@ -914,6 +952,14 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
                 comment: content,
                 author: { name: senderName },
                 recipient: { name: requester.name, email: requester.email }
+            });
+
+            await sendTicketDigisacNotification({
+                userId: ticket.requester_id,
+                ticketTitle: ticket.title,
+                requesterName: senderName,
+                type: 'movimentacao',
+                customText: content
             });
         }
     }
@@ -935,6 +981,14 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
                 author: { name: senderName },
                 recipient: { name: requester.name, email: requester.email }
             });
+
+            await sendTicketDigisacNotification({
+                userId: ticket.requester_id,
+                ticketTitle: ticket.title,
+                requesterName: senderName,
+                type: 'movimentacao',
+                customText: content
+            });
         }
 
         // Notifica responsável
@@ -953,6 +1007,14 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
                     comment: content,
                     author: { name: senderName },
                     recipient: { name: assignee.name, email: assignee.email }
+                });
+
+                await sendTicketDigisacNotification({
+                    userId: ticket.assignee_id,
+                    ticketTitle: ticket.title,
+                    requesterName: senderName,
+                    type: 'movimentacao',
+                    customText: content
                 });
             }
         }

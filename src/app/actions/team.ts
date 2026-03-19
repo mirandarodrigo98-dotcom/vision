@@ -18,6 +18,7 @@ export type TeamUser = {
   created_at: string;
   cpf?: string;
   phone?: string;
+  receive_ticket_messages?: boolean;
   department_id?: string;
   department_name?: string;
   access_schedule_id?: string | null;
@@ -32,7 +33,7 @@ export async function getTeamUsers() {
   }
 
   const users = await db.prepare(`
-    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name,
+    SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.receive_ticket_messages, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name,
     (SELECT GROUP_CONCAT(urc.company_id) FROM user_restricted_companies urc WHERE urc.user_id = u.id) as restricted_company_ids
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.id
@@ -47,13 +48,13 @@ export async function getTeamUsers() {
   }));
 }
 
-export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string; restricted_company_ids?: string[] }) {
+export async function createTeamUser(data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; receive_ticket_messages?: boolean; department_id?: string; access_schedule_id?: string; restricted_company_ids?: string[] }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role, cpf, phone, department_id, access_schedule_id, restricted_company_ids } = data;
+  const { name, email, role, cpf, phone, receive_ticket_messages, department_id, access_schedule_id, restricted_company_ids } = data;
 
   // Validate email unique
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -77,9 +78,9 @@ export async function createTeamUser(data: { name: string; email: string; role: 
 
   try {
     await db.prepare(`
-      INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, department_id, access_schedule_id)
-      VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?)
-    `).run(id, name, email, role, hash, cpf || null, phone || null, department_id || null, access_schedule_id || null);
+      INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, receive_ticket_messages, department_id, access_schedule_id)
+      VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?, ?)
+    `).run(id, name, email, role, hash, cpf || null, phone || null, receive_ticket_messages ? 1 : 0, department_id || null, access_schedule_id || null);
 
     if (restricted_company_ids && restricted_company_ids.length > 0) {
       const insertRestriction = db.prepare('INSERT INTO user_restricted_companies (user_id, company_id) VALUES (?, ?)');
@@ -124,13 +125,13 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   }
 }
 
-export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; department_id?: string; access_schedule_id?: string; restricted_company_ids?: string[] }) {
+export async function updateTeamUser(id: string, data: { name: string; email: string; role: 'admin' | 'operator'; cpf?: string; phone?: string; receive_ticket_messages?: boolean; department_id?: string; access_schedule_id?: string; restricted_company_ids?: string[] }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
     return { error: 'Não autorizado' };
   }
 
-  const { name, email, role, cpf, phone, department_id, access_schedule_id, restricted_company_ids } = data;
+  const { name, email, role, cpf, phone, receive_ticket_messages, department_id, access_schedule_id, restricted_company_ids } = data;
 
   // Validate email unique (excluding current user)
   const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
@@ -149,9 +150,9 @@ export async function updateTeamUser(id: string, data: { name: string; email: st
   try {
     await db.prepare(`
       UPDATE users 
-      SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, department_id = ?, access_schedule_id = ?, updated_at = datetime('now')
+      SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, receive_ticket_messages = ?, department_id = ?, access_schedule_id = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(name, email, role, cpf || null, phone || null, department_id || null, access_schedule_id || null, id);
+    `).run(name, email, role, cpf || null, phone || null, receive_ticket_messages ? 1 : 0, department_id || null, access_schedule_id || null, id);
 
     // Update restrictions
     await db.prepare('DELETE FROM user_restricted_companies WHERE user_id = ?').run(id);

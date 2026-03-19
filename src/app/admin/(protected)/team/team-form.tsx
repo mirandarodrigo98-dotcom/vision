@@ -13,6 +13,7 @@ import { Department } from '@/app/actions/departments';
 import { AccessSchedule } from '@/types/access-schedule';
 import { validateCPF } from '@/lib/validators';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 import {
   Popover,
   PopoverContent,
@@ -50,6 +51,7 @@ export default function TeamForm({ departments, schedules, companies, initialDat
         email: initialData?.email || '',
         cpf: initialData?.cpf || '',
         phone: initialData?.phone || '',
+        receive_ticket_messages: initialData?.receive_ticket_messages || false,
         department_id: initialData?.department_id || '',
         role: initialData?.role || 'operator',
         access_schedule_id: initialData?.access_schedule_id || 'none',
@@ -67,22 +69,29 @@ export default function TeamForm({ departments, schedules, companies, initialDat
     };
 
     const formatPhone = (value: string) => {
-        const digits = value.replace(/\D/g, '');
-        if (digits.length <= 10) {
-            return digits
-                .replace(/(\d{2})(\d)/, '($1) $2')
-                .replace(/(\d{4})(\d)/, '$1-$2');
-        } else {
-            return digits
-                .replace(/(\d{2})(\d)/, '($1) $2')
-                .replace(/(\d{5})(\d)/, '$1-$2');
+        // Keep only + and digits
+        let formatted = value.replace(/[^\d+]/g, '');
+        // Ensure + is only at the beginning
+        if (formatted.indexOf('+') > 0) {
+            formatted = formatted.replace(/\+/g, (match, offset) => offset === 0 ? '+' : '');
         }
+        
+        // Auto-prepend +55 if user starts typing a number without DDI
+        if (formatted.length > 0 && !formatted.startsWith('+')) {
+            if (formatted.startsWith('55')) {
+                formatted = '+' + formatted;
+            } else {
+                formatted = '+55' + formatted;
+            }
+        }
+        
+        return formatted;
     };
 
-    const handleChange = (field: string, value: string) => {
+    const handleChange = (field: string, value: string | boolean) => {
         let formattedValue = value;
-        if (field === 'cpf') formattedValue = formatCPF(value);
-        if (field === 'phone') formattedValue = formatPhone(value);
+        if (field === 'cpf' && typeof value === 'string') formattedValue = formatCPF(value);
+        if (field === 'phone' && typeof value === 'string') formattedValue = formatPhone(value);
 
         setFormData(prev => ({ ...prev, [field]: formattedValue }));
         
@@ -136,7 +145,8 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                 name: formData.name,
                 email: formData.email,
                 cpf: formData.cpf.replace(/\D/g, ''),
-                phone: formData.phone.replace(/\D/g, ''),
+                phone: formData.phone, // Already formatted with + and digits
+                receive_ticket_messages: formData.receive_ticket_messages,
                 department_id: formData.department_id,
                 role: formData.role as 'admin' | 'operator',
                 access_schedule_id: formData.access_schedule_id === 'none' ? undefined : formData.access_schedule_id,
@@ -217,14 +227,29 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="phone">Celular</Label>
+                        <Label htmlFor="phone">Celular (Ex: +5524992206821)</Label>
                         <Input
                             id="phone"
                             value={formData.phone}
                             onChange={(e) => handleChange('phone', e.target.value)}
                             disabled={isLoading}
-                            maxLength={15}
+                            maxLength={20}
                         />
+                    </div>
+
+                    <div className="space-y-2 flex flex-col justify-center">
+                        <Label htmlFor="receive_ticket_messages">Receber Mensagens Digisac</Label>
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Switch
+                                id="receive_ticket_messages"
+                                checked={formData.receive_ticket_messages}
+                                onCheckedChange={(val) => handleChange('receive_ticket_messages', val)}
+                                disabled={isLoading}
+                            />
+                            <Label htmlFor="receive_ticket_messages" className="font-normal text-muted-foreground">
+                                {formData.receive_ticket_messages ? 'Sim, enviar notificações' : 'Não, desativado'}
+                            </Label>
+                        </div>
                     </div>
 
                     <div className="space-y-2">
