@@ -100,5 +100,33 @@ export async function removeSystemLogo() {
 
 export async function getSystemLogoUrl() {
     const logo = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
-    return logo?.value || null;
+    
+    if (!logo?.value) return null;
+
+    let url = logo.value;
+
+    // If it's a pre-signed R2 URL, it might be expired. We need to extract the file key and regenerate it.
+    if (url.includes('X-Amz-Algorithm=AWS4-HMAC-SHA256') && url.includes('X-Amz-Expires=')) {
+        try {
+            // Extract the file key from the URL.
+            // Example URL: https://<account-id>.r2.cloudflarestorage.com/<bucket-name>/system-logo-1773278568739.png?X-Amz-...
+            const parsedUrl = new URL(url);
+            
+            // The pathname is typically /<bucket-name>/<file-key> or just /<file-key>
+            // We just need everything after the first slash, or we can extract the filename.
+            const pathParts = parsedUrl.pathname.split('/');
+            const fileName = pathParts[pathParts.length - 1]; // system-logo-123.png
+            
+            if (fileName && fileName.startsWith('system-logo-')) {
+                const { getR2DownloadLink } = await import('@/lib/r2');
+                const freshUrl = await getR2DownloadLink(fileName);
+                return freshUrl;
+            }
+        } catch (e) {
+            console.error('Failed to regenerate pre-signed logo URL:', e);
+            // Fall back to returning the expired one or null
+        }
+    }
+
+    return url;
 }

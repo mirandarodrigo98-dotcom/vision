@@ -3,16 +3,17 @@ import { SettingsForm } from './settings-form';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CalendarClock } from 'lucide-react';
+import { getSystemLogoUrl } from '@/app/actions/upload-logo';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
   const emailSetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('NZD_DEST_EMAIL') as { value: string } | undefined;
-  const logoSetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('SYSTEM_LOGO_PATH') as { value: string } | undefined;
+  const logoUrl = await getSystemLogoUrl();
 
   const initialData = {
     email: emailSetting?.value || '',
-    logoUrl: logoSetting?.value || null,
+    logoUrl: logoUrl,
   };
 
   return (

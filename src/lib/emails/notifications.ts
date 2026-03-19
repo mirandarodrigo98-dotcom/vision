@@ -12,11 +12,34 @@ async function getLogoBase64(): Promise<string | null> {
         const logoSetting = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
         if (!logoSetting?.value) return null;
 
-        const logoPath = join(process.cwd(), 'public', logoSetting.value);
-        const buffer = await readFile(logoPath);
-        const ext = logoSetting.value.split('.').pop()?.toLowerCase();
+        let buffer: Buffer;
+        let ext = 'png';
+
+        if (logoSetting.value.startsWith('http://') || logoSetting.value.startsWith('https://')) {
+            // It's a URL (R2 or other)
+            // Try to use getSystemLogoUrl to get a valid URL (regenerate if expired)
+            const { getSystemLogoUrl } = await import('@/app/actions/upload-logo');
+            const validUrl = await getSystemLogoUrl();
+            if (!validUrl) return null;
+
+            const response = await fetch(validUrl);
+            if (!response.ok) throw new Error(`Failed to fetch logo from URL: ${response.statusText}`);
+            const arrayBuffer = await response.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+            
+            // Extract extension from original URL
+            const urlObj = new URL(logoSetting.value);
+            const pathParts = urlObj.pathname.split('/');
+            const fileName = pathParts[pathParts.length - 1];
+            ext = fileName.split('.').pop()?.toLowerCase() || 'png';
+        } else {
+            // It's a local path
+            const logoPath = join(process.cwd(), 'public', logoSetting.value);
+            buffer = await readFile(logoPath);
+            ext = logoSetting.value.split('.').pop()?.toLowerCase() || 'png';
+        }
+
         const mimeType = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png');
-        
         return `data:${mimeType};base64,${buffer.toString('base64')}`;
     } catch (e) {
         console.error('Error fetching logo for email:', e);
