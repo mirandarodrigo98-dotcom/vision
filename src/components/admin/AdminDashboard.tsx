@@ -82,6 +82,7 @@ const navigation: NavigationItem[] = [
     icon: CalculatorIcon,
     children: [
       { name: 'Faturamento', href: '/admin/contabilidade/faturamento', permission: 'contabilidade.faturamento.view' },
+      { name: 'Faturamento SN', href: '/admin/contabilidade/faturamento-sn', permission: 'contabilidade.faturamento.view' },
     ]
   },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
