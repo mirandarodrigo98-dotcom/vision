@@ -19,31 +19,46 @@ export async function createAdmission(formData: FormData) {
     }
 
     try {
-        const fileKey = formData.get('file_key') as string;
-        const file = formData.get('file') as File;
+        const uploadedFilesJson = formData.get('uploaded_files') as string;
+        let uploadedFiles: Array<{ fileKey: string, originalName: string, fileType: string, fileSize: number }> = [];
         
-        let originalName = '';
-        
-        if (fileKey) {
-             originalName = formData.get('original_file_name') as string;
-             if (!originalName) return { error: 'Nome do arquivo original não fornecido.' };
+        if (uploadedFilesJson) {
+            try {
+                uploadedFiles = JSON.parse(uploadedFilesJson);
+                
+                if (uploadedFiles.length > 10) {
+                    return { error: 'O limite máximo é de 10 arquivos anexados.' };
+                }
+                
+                for (const file of uploadedFiles) {
+                    if (file.fileSize > 3 * 1024 * 1024) {
+                        return { error: `O arquivo ${file.originalName} excede o limite de 3MB.` };
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse uploaded_files:", e);
+                return { error: 'Erro ao processar arquivos anexados.' };
+            }
         } else {
-            if (!file || file.size === 0) {
-                return { error: 'Arquivo obrigatório (.zip ou .rar)' };
+            // Fallback for single file upload
+            const fileKey = formData.get('file_key') as string;
+            const file = formData.get('file') as File;
+            
+            if (fileKey) {
+                 const originalName = formData.get('original_file_name') as string;
+                 if (!originalName) return { error: 'Nome do arquivo original não fornecido.' };
+                 uploadedFiles.push({
+                     fileKey: fileKey,
+                     originalName: originalName,
+                     fileType: formData.get('file_type') as string || 'application/octet-stream',
+                     fileSize: parseInt(formData.get('file_size') as string || '0')
+                 });
+            } else if (file && file.size > 0) {
+                // Not supported fallback in new multi-file flow without R2, but we keep it for safety
+                // We will handle it below
+            } else {
+                return { error: 'É obrigatório anexar ao menos um arquivo.' };
             }
-
-            // Validate file size (50MB Limit)
-            const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-            if (file.size > MAX_SIZE) {
-                return { error: 'O arquivo excede o limite máximo de 50MB.' };
-            }
-            originalName = file.name;
-        }
-
-        // Validate file extension
-        const ext = path.extname(originalName).toLowerCase();
-        if (ext !== '.zip' && ext !== '.rar') {
-            return { error: 'Apenas arquivos .zip ou .rar são permitidos.' };
         }
 
         const employeeFullName = formData.get('employee_full_name') as string;
@@ -152,54 +167,56 @@ export async function createAdmission(formData: FormData) {
         );
 
         // Prepare File Handling
-        let fileName = '';
-        let fileType = '';
-        let fileSize = 0;
-        
         const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-        let saveLocalPromise = Promise.resolve();
-        let r2Promise: Promise<{ downloadLink: string; fileKey: string } | null> = Promise.resolve(null);
+        
+        let downloadLink: string | null = null;
+        let r2Success = true;
 
-        if (fileKey) {
-            // Client-side upload
-            fileName = fileKey;
-            fileType = formData.get('file_type') as string;
-            fileSize = parseInt(formData.get('file_size') as string || '0');
-            
-            r2Promise = (async () => {
-                try {
-                    const link = await getR2DownloadLink(fileName);
-                    return { downloadLink: link, fileKey: fileName };
-                } catch (e) {
-                    console.error('Failed to generate download link:', e);
-                    return null;
+        if (uploadedFiles.length > 0) {
+            for (const fileData of uploadedFiles) {
+                // Save Attachment Metadata
+                await db.prepare(`
+                    INSERT INTO admission_attachments (
+                        id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                `).run(
+                    randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey
+                );
+
+                // Get download link for the first file to include in email, or handle all?
+                // The email can just link to the admission details page.
+                if (!downloadLink) {
+                    try {
+                        downloadLink = await getR2DownloadLink(fileData.fileKey);
+                    } catch (e) {
+                        console.error('Failed to generate download link for email:', e);
+                    }
                 }
-            })();
+            }
         } else {
-            // Server-side upload fallback
-            const fileBuffer = Buffer.from(await file.arrayBuffer());
-            fileName = `${protocolNumber}-${file.name}`;
-            fileType = file.type;
-            fileSize = file.size;
-            
-            const filePath = path.join(uploadDir, fileName);
-
-            // 1. Local Save (Non-blocking failure)
-            saveLocalPromise = (async () => {
+            // Handle server-side single file upload fallback
+            const file = formData.get('file') as File;
+            if (file && file.size > 0) {
+                const fileBuffer = Buffer.from(await file.arrayBuffer());
+                const fileName = `${protocolNumber}-${file.name}`;
+                const fileType = file.type;
+                const fileSize = file.size;
+                
                 try {
-                    await mkdir(uploadDir, { recursive: true });
-                    await writeFile(filePath, fileBuffer);
+                    await uploadToR2(fileBuffer, fileName, fileType);
+                    await db.prepare(`
+                        INSERT INTO admission_attachments (
+                            id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    `).run(
+                        randomUUID(), admissionId, file.name, fileType, fileSize, fileName
+                    );
+                    downloadLink = await getR2DownloadLink(fileName);
                 } catch (e) {
-                    console.error('Local save failed:', e);
+                    console.error('R2 Upload Failed:', e);
+                    r2Success = false;
                 }
-            })();
-
-            // 2. R2 Upload
-            r2Promise = uploadToR2(fileBuffer, fileName, fileType)
-                .catch(error => {
-                    console.error('R2 Upload Failed:', error);
-                    return null;
-                });
+            }
         }
 
         // 3. Generate PDF
@@ -480,61 +497,73 @@ export async function updateAdmission(formData: FormData) {
         const changes: string[] = [];
 
         // Handle File Upload (Client-side or Server-side)
-        const fileKey = formData.get('file_key') as string;
-        const file = formData.get('file') as File;
-        let r2Result = null;
-        let originalName = '';
-        let fileName = '';
-        let fileType = '';
-        let fileSize = 0;
-        let r2Promise: Promise<{ downloadLink: string; fileKey: string } | null> | null = null;
-
-        if (fileKey) {
-             // Client-side upload
-             fileName = fileKey;
-             originalName = formData.get('original_file_name') as string;
-             fileType = formData.get('file_type') as string;
-             fileSize = parseInt(formData.get('file_size') as string || '0');
-             
-             if (originalName) {
-                 r2Promise = (async () => {
-                    try {
-                        const link = await getR2DownloadLink(fileName);
-                        return { downloadLink: link, fileKey: fileName };
-                    } catch (e) {
-                        console.error('Failed to generate download link:', e);
-                        return null;
+        const uploadedFilesJson = formData.get('uploaded_files') as string;
+        let uploadedFiles: Array<{ fileKey: string, originalName: string, fileType: string, fileSize: number }> = [];
+        
+        if (uploadedFilesJson) {
+            try {
+                uploadedFiles = JSON.parse(uploadedFilesJson);
+                
+                if (uploadedFiles.length > 10) {
+                    return { error: 'O limite máximo é de 10 arquivos anexados.' };
+                }
+                
+                for (const file of uploadedFiles) {
+                    if (file.fileSize > 3 * 1024 * 1024) {
+                        return { error: `O arquivo ${file.originalName} excede o limite de 3MB.` };
                     }
-                })();
-             }
-        } else if (file && file.size > 0) {
-             // Server-side upload fallback
-             const fileBuffer = Buffer.from(await file.arrayBuffer());
-             fileName = `${existingAdmission.protocol_number}-${file.name}`;
-             fileType = file.type;
-             fileSize = file.size;
-             originalName = file.name;
-
-             r2Promise = uploadToR2(fileBuffer, fileName, fileType);
+                }
+            } catch (e) {
+                console.error("Failed to parse uploaded_files:", e);
+                return { error: 'Erro ao processar arquivos anexados.' };
+            }
+        } else {
+            const fileKey = formData.get('file_key') as string;
+            const file = formData.get('file') as File;
+            
+            if (fileKey) {
+                 const originalName = formData.get('original_file_name') as string;
+                 if (!originalName) return { error: 'Nome do arquivo original não fornecido.' };
+                 uploadedFiles.push({
+                     fileKey: fileKey,
+                     originalName: originalName,
+                     fileType: formData.get('file_type') as string || 'application/octet-stream',
+                     fileSize: parseInt(formData.get('file_size') as string || '0')
+                 });
+            } else if (file && file.size > 0) {
+                 // Server-side single file fallback
+                 const fileBuffer = Buffer.from(await file.arrayBuffer());
+                 const fileName = `${existingAdmission.protocol_number}-${file.name}`;
+                 const fileType = file.type;
+                 
+                 try {
+                     await uploadToR2(fileBuffer, fileName, fileType);
+                     uploadedFiles.push({
+                         fileKey: fileName,
+                         originalName: file.name,
+                         fileType: fileType,
+                         fileSize: file.size
+                     });
+                 } catch (e) {
+                     console.error('Fallback upload failed', e);
+                 }
+            }
         }
 
-        if (r2Promise) {
-            try {
-                r2Result = await r2Promise;
-                if (r2Result) {
-                     await db.prepare(`
+        if (uploadedFiles.length > 0) {
+            for (const fileData of uploadedFiles) {
+                try {
+                    await db.prepare(`
                         INSERT INTO admission_attachments (
                             id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
                         ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     `).run(
-                        randomUUID(), admissionId, originalName, fileType, fileSize, fileName
+                        randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey
                     );
                     changes.push('file_attachment');
+                } catch (e) {
+                    console.error('Failed to insert attachment metadata:', e);
                 }
-            } catch (e) {
-                console.error('File upload failed during update:', e);
-                // We don't block update if upload fails, but we should warn? 
-                // For now just log.
             }
         }
 

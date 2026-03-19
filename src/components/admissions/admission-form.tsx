@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from "date-fns";
-import { Copy, AlertTriangle, Loader2 } from "lucide-react";
+import { Copy, AlertTriangle, Loader2, UploadCloud, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Tooltip,
@@ -61,9 +61,15 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
     // State initialization with initialData support
     const [hasVt, setHasVt] = useState(!!initialData?.has_vt);
     const [hasAdv, setHasAdv] = useState(!!initialData?.has_adv);
-    const [trialPeriod, setTrialPeriod] = useState(
-        initialData ? `${initialData.trial1_days}+${initialData.trial2_days}` : '30+30'
-    );
+    
+    const standardPeriods = ['30+30', '45+45', '30+60', '60+30', '90+0'];
+    const initialPeriod = initialData ? `${initialData.trial1_days}+${initialData.trial2_days}` : '30+30';
+    const isCustomPeriod = initialData && !standardPeriods.includes(initialPeriod);
+    
+    const [trialPeriod, setTrialPeriod] = useState(isCustomPeriod ? 'custom' : initialPeriod);
+    const [customTrial1, setCustomTrial1] = useState(isCustomPeriod ? initialData.trial1_days.toString() : '');
+    const [customTrial2, setCustomTrial2] = useState(isCustomPeriod ? initialData.trial2_days.toString() : '');
+    
     const [date, setDate] = useState<Date | undefined>(
         initialData?.admission_date ? parseDate(initialData.admission_date) : undefined
     );
@@ -79,8 +85,42 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
     const [contractType, setContractType] = useState(initialData?.contract_type || 'clt');
     
     // File handling
-    const [fileName, setFileName] = useState(isEditing ? (readOnly ? 'Arquivo anexado' : 'Arquivo atual mantido (selecione para alterar)') : '');
+    const [files, setFiles] = useState<File[]>([]);
     const [fileError, setFileError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFilesAdded = (newFiles: File[]) => {
+        setFileError(null);
+        
+        const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+        const maxFileSize = 3 * 1024 * 1024; // 3MB
+        
+        let validFiles = newFiles.filter(file => {
+            if (!allowedTypes.includes(file.type)) {
+                setFileError(`Arquivo ${file.name} ignorado. Apenas PDF, PNG e JPG são permitidos.`);
+                return false;
+            }
+            if (file.size > maxFileSize) {
+                setFileError(`Arquivo ${file.name} ignorado. Tamanho máximo é 3MB.`);
+                return false;
+            }
+            return true;
+        });
+
+        setFiles(prev => {
+            const combined = [...prev, ...validFiles];
+            if (combined.length > 10) {
+                setFileError('Limite máximo de 10 arquivos excedido. Alguns arquivos foram ignorados.');
+                return combined.slice(0, 10);
+            }
+            return combined;
+        });
+    };
+
+    const removeFile = (index: number) => {
+        setFiles(prev => prev.filter((_, i) => i !== index));
+        setFileError(null);
+    };
     const [cpfError, setCpfError] = useState('');
     
     // Money fields
@@ -420,68 +460,80 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
             return;
         }
 
-        // Check file size again before submission
-        const file = formData.get('file') as File;
-        if (file && file.size > 0) {
-             if (file.size > 50 * 1024 * 1024) { // 50MB
-                setFileError('O arquivo excede o limite máximo de 50MB.');
+        // Check file requirements
+        if (files.length > 0) {
+             const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+             if (totalSize > 50 * 1024 * 1024) { // 50MB total limit to be safe
+                setFileError('O tamanho total dos arquivos excede o limite máximo de 50MB.');
                 setLoading(false);
                 return;
             }
         } else if (!isEditing) {
              // File is mandatory for new admissions
-             setFileError('Arquivo obrigatório.');
+             setFileError('É obrigatório anexar ao menos um arquivo.');
              setLoading(false);
              return;
         }
         
         // Handle trial period
-        const [trial1, trial2] = trialPeriod.split('+').map(Number);
-        formData.set('trial1_days', trial1.toString());
-        formData.set('trial2_days', trial2.toString());
+        if (trialPeriod === 'custom') {
+            formData.set('trial1_days', customTrial1.toString());
+            formData.set('trial2_days', customTrial2.toString());
+        } else {
+            const [trial1, trial2] = trialPeriod.split('+').map(Number);
+            formData.set('trial1_days', trial1.toString());
+            formData.set('trial2_days', trial2.toString());
+        }
 
         // Handle checkboxes (manually set because unchecked checkboxes are not sent)
         formData.set('has_vt', hasVt.toString());
         formData.set('has_adv', hasAdv.toString());
 
         // Client-side Upload Logic
-        const fileToUpload = formData.get('file') as File;
-        // Perform upload via Presigned URL if a file is present (Create or Update)
-        if (fileToUpload && fileToUpload.size > 0) {
-            const toastId = toast.loading('Preparando envio do arquivo...');
+        if (files.length > 0) {
+            const toastId = toast.loading('Preparando envio dos arquivos...');
             try {
-                 // 1. Get Presigned URL
-                const fileType = fileToUpload.type || 'application/octet-stream';
-                const presigned = await getUploadUrl(fileToUpload.name, fileType);
-                if (!presigned.success || !presigned.uploadUrl || !presigned.fileKey) {
-                    throw new Error(presigned.error || 'Falha ao gerar URL de upload');
-                }
+                 const uploadedFiles = [];
+                 
+                 for (let i = 0; i < files.length; i++) {
+                     const fileToUpload = files[i];
+                     toast.loading(`Enviando arquivo ${i + 1} de ${files.length}...`, { id: toastId });
+                     
+                     // 1. Get Presigned URL
+                     const fileType = fileToUpload.type || 'application/octet-stream';
+                     const presigned = await getUploadUrl(fileToUpload.name, fileType);
+                     if (!presigned.success || !presigned.uploadUrl || !presigned.fileKey) {
+                         throw new Error(presigned.error || `Falha ao gerar URL para ${fileToUpload.name}`);
+                     }
 
-                // 2. Upload to R2
-                toast.loading('Enviando arquivo para a nuvem...', { id: toastId });
-                
-                const uploadRes = await fetch(presigned.uploadUrl, {
-                    method: 'PUT',
-                    body: fileToUpload,
-                    headers: {
-                        'Content-Type': fileType
-                    }
-                });
- 
-                 if (!uploadRes.ok) {
-                     throw new Error('Falha no upload para o armazenamento nuvem');
+                     // 2. Upload to R2
+                     const uploadRes = await fetch(presigned.uploadUrl, {
+                         method: 'PUT',
+                         body: fileToUpload,
+                         headers: {
+                             'Content-Type': fileType
+                         }
+                     });
+      
+                      if (!uploadRes.ok) {
+                          throw new Error(`Falha no upload do arquivo ${fileToUpload.name}`);
+                      }
+                      
+                      uploadedFiles.push({
+                          fileKey: presigned.fileKey,
+                          originalName: fileToUpload.name,
+                          fileType: fileToUpload.type,
+                          fileSize: fileToUpload.size
+                      });
                  }
  
-                 // 3. Update FormData
-                 formData.append('file_key', presigned.fileKey);
-                 formData.append('original_file_name', fileToUpload.name);
-                 formData.append('file_type', fileToUpload.type);
-                 formData.append('file_size', fileToUpload.size.toString());
+                 // 3. Update FormData with JSON array
+                 formData.append('uploaded_files', JSON.stringify(uploadedFiles));
                  
-                 // Remove file from formData to avoid server-side upload payload
+                 // Remove original file input if it exists
                  formData.delete('file');
                  
-                 toast.success('Arquivo enviado com sucesso!', { id: toastId });
+                 toast.success('Arquivos enviados com sucesso!', { id: toastId });
  
             } catch (uploadError: any) {
                  console.error('Upload error:', uploadError);
@@ -771,7 +823,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                         I will proceed with the fields that ARE in the form.
                     */}
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="contract_type">Tipo de Contrato <span className="text-red-500">*</span></Label>
                             <input type="hidden" name="contract_type" value={contractType} />
@@ -812,8 +864,51 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                                     <SelectItem value="30+60">30 + 60 dias</SelectItem>
                                     <SelectItem value="60+30">60 + 30 dias</SelectItem>
                                     <SelectItem value="90+0">90 dias (único)</SelectItem>
+                                    <SelectItem value="custom">Personalizado</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {trialPeriod === 'custom' && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom_trial1">Experiência (dias) <span className="text-red-500">*</span></Label>
+                                    <Input 
+                                        id="custom_trial1" 
+                                        type="number" 
+                                        min="0"
+                                        value={customTrial1} 
+                                        onChange={(e) => setCustomTrial1(e.target.value)} 
+                                        required={trialPeriod === 'custom'} 
+                                        readOnly={readOnly}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom_trial2">Prorrogação (dias)</Label>
+                                    <Input 
+                                        id="custom_trial2" 
+                                        type="number" 
+                                        min="0"
+                                        value={customTrial2} 
+                                        onChange={(e) => setCustomTrial2(e.target.value)} 
+                                        readOnly={readOnly}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="job_role">Função / Cargo <span className="text-red-500">*</span></Label>
+                            <Input 
+                                id="job_role" 
+                                name="job_role" 
+                                required 
+                                defaultValue={initialData?.job_role}
+                                onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()}
+                                readOnly={readOnly}
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -829,18 +924,6 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                             />
                             <input type="hidden" name="salary_cents" value={salaryDisplay ? parseInt(salaryDisplay.replace(/\D/g, ''), 10) : ''} />
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="job_role">Função / Cargo <span className="text-red-500">*</span></Label>
-                        <Input 
-                            id="job_role" 
-                            name="job_role" 
-                            required 
-                            defaultValue={initialData?.job_role}
-                            onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()}
-                            readOnly={readOnly}
-                        />
                     </div>
 
                     <div className="space-y-2">
@@ -1142,70 +1225,111 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 text-sm text-yellow-800">
-                        <p className="font-bold mb-2">Checklist de Documentos (Incluir no arquivo ZIP/RAR):</p>
-                        <ul className="list-disc list-inside grid grid-cols-1 gap-1">
-                            <li>Documento com foto (RG/CNH)</li>
-                            <li>CPF</li>
-                            <li>Comprovação de escolaridade</li>
-                            <li>CTPS Digital (Print)</li>
-                            <li>Título de Eleitor</li>
-                            <li>Comprovante de Residência</li>
-                            <li>Termo étnico-racial - Disponível no menu Relatórios</li>
-                            <li>CPF dependentes (&gt;8 anos)</li>
-                            <li>Ofício de pensão (se houver)</li>
-                            <li>Certidão de nascimento (filhos)</li>
-                            <li>Certidão de nascimento/casamento</li>
-                            <li>Cartão de Vacinação (filho até 7 anos)</li>
-                            <li>Frequência Escolar (filho &gt;7 anos)</li>
-                            <li>Exame Admissional (com data)</li>
+                        <p className="font-bold mb-2">Checklist de Documentos:</p>
+                        <ul className="list-decimal list-inside grid grid-cols-1 gap-1 pl-2">
+                            <li>CPF (Obrigatório)</li>
+                            <li>Grau de instrução (Obrigatório)</li>
+                            <li>Carteira de trabalho (Digital)</li>
+                            <li>Documento de Identificação com foto (CNH, RG e CPF)</li>
+                            <li>Certificado de Reservista (Obrigatório)</li>
+                            <li>Comprovante de residência (Obrigatório)</li>
+                            <li>Carteira de habilitação (Obrigatório se for motorista)</li>
+                            <li>Termo Étnico racial (Obrigatório)</li>
+                            <li>Exame Médico Admissional (com a data efetiva do registro) (Obrigatório)</li>
+                            <li>Certidão de nascimento ou casamento (Obrigatório se for casado)</li>
+                            <li>Documento de Identificação com foto do cônjuge (CNH, RG e CPF) (Obrigatório se for casado)</li>
+                        </ul>
+                        <p className="font-bold mt-4 mb-2">Dependentes:</p>
+                        <ul className="list-decimal list-inside grid grid-cols-1 gap-1 pl-2" start={12}>
+                            <li>CPF dependentes acima de 8 anos de idade (Obrigatório)</li>
+                            <li>Ofício de pensão alimentícia (Obrigatório quando houver)</li>
+                            <li>Certidão de nascimento dos filhos (Obrigatório quando houver)</li>
+                            <li>Caderneta de vacinação (Quando houver filho até 06 anos)</li>
+                            <li>Declaração Escolar (Obrigatório de 04 a 14 anos)</li>
                             <li>Cartão Transporte (RIOCARD/SINDPASS)</li>
                         </ul>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="file">
-                            Arquivo de Documentos (.zip ou .rar) 
-                            <span className={isEditing ? "text-gray-400 ml-1" : "text-red-500 ml-1"}>
-                                {isEditing ? "(Opcional)" : "*"}
+                        <Label>
+                            Anexar Arquivos (PDF, PNG, JPG)
+                            <span className={isEditing && files.length === 0 ? "text-gray-400 ml-1" : "text-red-500 ml-1"}>
+                                {isEditing && files.length === 0 ? "(Opcional se já anexado)" : "*"}
                             </span>
                         </Label>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => document.getElementById('file')?.click()}
-                                disabled={readOnly}
-                            >
-                                Selecionar Arquivo
-                            </Button>
-                            <span className="text-sm text-gray-500">{fileName}</span>
+                        
+                        <div 
+                            className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors ${readOnly ? 'bg-gray-50 border-gray-200 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300 cursor-pointer'}`}
+                            onClick={() => !readOnly && fileInputRef.current?.click()}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (readOnly) return;
+                                
+                                const droppedFiles = Array.from(e.dataTransfer.files);
+                                handleFilesAdded(droppedFiles);
+                            }}
+                        >
+                            <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-600 text-center mb-1">
+                                <span className="font-semibold text-primary">Clique para selecionar</span> ou arraste os arquivos aqui
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                PDF, PNG, JPG (Max 3MB/arquivo, até 10 arquivos)
+                            </p>
                         </div>
+
                         <Input 
+                            ref={fileInputRef}
                             id="file" 
                             name="file" 
                             type="file" 
-                            accept=".zip,.rar" 
-                            required={!isEditing}
+                            multiple
+                            accept=".pdf,.png,.jpg,.jpeg" 
                             className="hidden"
                             disabled={readOnly}
                             onChange={(e) => {
                                 if (e.target.files && e.target.files.length > 0) {
-                                    const file = e.target.files[0];
-                                    if (file.size > 50 * 1024 * 1024) {
-                                        setFileError('O arquivo selecionado excede o limite máximo de 50MB.');
-                                        setFileName('');
-                                        e.target.value = ''; // Clear input
-                                    } else {
-                                        setFileError(null);
-                                        setFileName(file.name);
-                                    }
-                                } else {
-                                    setFileName(isEditing ? 'Arquivo atual mantido (selecione para alterar)' : '');
-                                    setFileError(null);
+                                    handleFilesAdded(Array.from(e.target.files));
                                 }
+                                // Clear input to allow selecting the same file again if removed
+                                e.target.value = '';
                             }}
                         />
-                        <p className="text-xs text-gray-500">Tamanho máximo: 50MB.</p>
+
+                        {files.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                                <p className="text-sm font-medium">Arquivos selecionados ({files.length}/10):</p>
+                                <ul className="space-y-2">
+                                    {files.map((f, index) => (
+                                        <li key={index} className="flex items-center justify-between p-2 bg-gray-50 border rounded text-sm">
+                                            <span className="truncate max-w-[80%]">{f.name} ({(f.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                            {!readOnly && (
+                                                <Button 
+                                                    type="button" 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeFile(index);
+                                                    }}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {isEditing && files.length === 0 && (
+                            <p className="text-sm text-gray-500 mt-2">Arquivos atuais mantidos. Enviar novos arquivos substituirá os anteriores.</p>
+                        )}
                     </div>
                 </CardContent>
             </Card>
