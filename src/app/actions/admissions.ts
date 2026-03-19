@@ -169,8 +169,8 @@ export async function createAdmission(formData: FormData) {
         // Prepare File Handling
         const uploadDir = path.join(process.cwd(), 'public', 'uploads');
         
-        let downloadLink: string | null = null;
         let r2Success = true;
+        let finalDownloadLink: string | null = null;
 
         if (uploadedFiles.length > 0) {
             for (const fileData of uploadedFiles) {
@@ -185,9 +185,9 @@ export async function createAdmission(formData: FormData) {
 
                 // Get download link for the first file to include in email, or handle all?
                 // The email can just link to the admission details page.
-                if (!downloadLink) {
+                if (!finalDownloadLink) {
                     try {
-                        downloadLink = await getR2DownloadLink(fileData.fileKey);
+                        finalDownloadLink = await getR2DownloadLink(fileData.fileKey);
                     } catch (e) {
                         console.error('Failed to generate download link for email:', e);
                     }
@@ -211,7 +211,7 @@ export async function createAdmission(formData: FormData) {
                     `).run(
                         randomUUID(), admissionId, file.name, fileType, fileSize, fileName
                     );
-                    downloadLink = await getR2DownloadLink(fileName);
+                    finalDownloadLink = await getR2DownloadLink(fileName);
                 } catch (e) {
                     console.error('R2 Upload Failed:', e);
                     r2Success = false;
@@ -244,26 +244,7 @@ export async function createAdmission(formData: FormData) {
                 return Buffer.from('Erro ao gerar relatório PDF'); 
             });
 
-        // Save Attachment Metadata (DB is fast, do it now)
-        await db.prepare(`
-            INSERT INTO admission_attachments (
-                id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `).run(
-            randomUUID(), admissionId, originalName, fileType, fileSize, fileName
-        );
-
-        // Await Parallel Tasks
-        // We must await all tasks because in Serverless environments (Vercel), 
-        // background tasks may be killed immediately after response is sent.
-        // Parallel execution still provides performance benefits over sequential.
-        const [_, r2Result, pdfBuffer] = await Promise.all([
-            saveLocalPromise, 
-            r2Promise, 
-            pdfPromise
-        ]);
-
-        const downloadLink = r2Result?.downloadLink || null;
+        const pdfBuffer = await pdfPromise;
 
         // Send Email
         const user = await db.prepare(`SELECT name, email FROM users WHERE id = ?`).get(session.user_id) as any;
@@ -278,7 +259,7 @@ export async function createAdmission(formData: FormData) {
                 employeeName: employeeFullName,
                 admissionDate: format(new Date(admissionDate), 'dd/MM/yyyy'),
                 pdfBuffer: pdfBuffer,
-                downloadLink: downloadLink || undefined
+                downloadLink: finalDownloadLink || undefined
             });
             
             if ('data' in emailResult && emailResult.data) {
@@ -307,8 +288,8 @@ export async function createAdmission(formData: FormData) {
         return { 
             success: true, 
             protocolNumber, 
-            downloadLink,
-            r2Success: !!r2Result,
+            downloadLink: finalDownloadLink,
+            r2Success,
             emailSuccess
         };
 
