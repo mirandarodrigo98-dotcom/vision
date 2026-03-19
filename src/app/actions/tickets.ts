@@ -36,7 +36,7 @@ const CommentSchema = z.object({
 
 async function getUserEmail(userId: string) {
   try {
-    const user = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as any;
+    const user = await db.prepare('SELECT id, email, name FROM users WHERE id = ?').get(userId) as any;
     return user;
   } catch (error) {
     return null;
