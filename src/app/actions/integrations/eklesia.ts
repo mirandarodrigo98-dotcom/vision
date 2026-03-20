@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import parsePDF from '@/lib/pdf-parser';
+import PDFParser from 'pdf2json';
 
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
@@ -834,7 +835,7 @@ export async function parseEklesiaCategoriesPDF(formData: FormData, companyId: s
 
         // Heuristic: If integrationCode is empty, but 'code' looks like a reduced code (no dots, just digits), use it.
         if (!integrationCode && code && !code.includes('.') && /^\d+$/.test(code)) {
-             integrationCode = code;
+             integrationCode = code.replace(/^0+/, '');
         }
 
         // Use the Reduced Code as integration_code if available, else maybe the main code?
@@ -975,7 +976,7 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
           }
 
           accountsToInsert.push({
-              code: code,
+              code: code.replace(/^0+/, ''),
               description: fullDescription, // User explicitly requested full description: "10-CAIXA GERAL"
               integration_code: integrationCode || null
           });
@@ -1020,7 +1021,7 @@ export async function parseEklesiaAccountsPDF(formData: FormData, companyId: str
 
         // Heuristic: If integrationCode is empty, but 'code' looks like a reduced code (no dots, just digits), use it.
         if (!integrationCode && code && !code.includes('.') && /^\d+$/.test(code)) {
-             integrationCode = code;
+             integrationCode = code.replace(/^0+/, '');
         }
 
         accountsToInsert.push({
@@ -1100,7 +1101,6 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Parse PDF directly to preserve column spacing
-    const PDFParser = (await import('pdf2json')).default;
     const lines: string[] = await new Promise((resolve, reject) => {
         const pdfParser = new PDFParser(null, 1);
         pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
