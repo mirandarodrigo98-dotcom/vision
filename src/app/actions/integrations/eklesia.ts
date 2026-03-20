@@ -1312,6 +1312,16 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
         continue; // Ignore if not a valid date DD/MM/YYYY
       }
 
+      // Pre-validate that it's a real date
+      const parts = dateStr.split('/');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      
+      if (isNaN(day) || isNaN(month) || isNaN(year) || month < 1 || month > 12 || day < 1 || day > 31) {
+        continue; // Invalid date components
+      }
+
       // Column D - Categoria
       const categoria = row[3] || '';
       if (categoria.toUpperCase().includes('TRANSFERÊNCIAS/DEPÓSITOS')) {

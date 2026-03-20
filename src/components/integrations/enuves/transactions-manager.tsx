@@ -258,13 +258,19 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const getPeriodText = () => {
     const f = filters as any;
     if (f.startDate && f.endDate) {
-        return `${format(new Date(f.startDate), 'dd/MM/yyyy')} a ${format(new Date(f.endDate), 'dd/MM/yyyy')}`;
+        const start = new Date(f.startDate + 'T12:00:00');
+        const end = new Date(f.endDate + 'T12:00:00');
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+            return `${format(start, 'dd/MM/yyyy')} a ${format(end, 'dd/MM/yyyy')}`;
+        }
     }
     if (syncStats?.minDate && syncStats?.maxDate) {
         // Parse dates which might come as strings from DB
-        const min = new Date(syncStats.minDate);
-        const max = new Date(syncStats.maxDate);
-        return `${format(min, 'dd/MM/yyyy')} a ${format(max, 'dd/MM/yyyy')}`;
+        const min = new Date(syncStats.minDate + 'T12:00:00');
+        const max = new Date(syncStats.maxDate + 'T12:00:00');
+        if (!isNaN(min.getTime()) && !isNaN(max.getTime())) {
+            return `${format(min, 'dd/MM/yyyy')} a ${format(max, 'dd/MM/yyyy')}`;
+        }
     }
     return 'Todos os lançamentos filtrados';
   };
@@ -506,7 +512,11 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                       aria-label="Select row"
                     />
                   </TableCell>
-                  <TableCell>{format(new Date(t.date), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell>
+                    {t.date && !isNaN(new Date(t.date + 'T12:00:00').getTime()) 
+                      ? format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy') 
+                      : '-'}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                         <span className="font-medium">{t.category_name}</span>
