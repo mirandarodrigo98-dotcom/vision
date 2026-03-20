@@ -17,7 +17,6 @@ import { RefreshCw, Search, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveQuestorCompany } from '@/app/actions/companies';
 import { fetchCompanyFromQuestor, QuestorCompanyData } from '@/app/actions/integrations/questor-companies';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -34,7 +33,7 @@ export function QuestorCompanyImport() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'search' | 'select'>('search');
   const [identifier, setIdentifier] = useState('');
-  const [source, setSource] = useState<'zen' | 'syn'>('zen');
+  const [source, setSource] = useState<'syn'>('syn');
   const [fetchedCompanies, setFetchedCompanies] = useState<QuestorCompanyData[]>([]);
   const [selectedCompanyCode, setSelectedCompanyCode] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -60,7 +59,7 @@ export function QuestorCompanyImport() {
 
   const handleSearch = async () => {
     if (!identifier) {
-      toast.error(source === 'zen' ? 'Informe o CNPJ.' : 'Informe o código.');
+      toast.error('Informe o código.');
       return;
     }
 
@@ -167,7 +166,7 @@ export function QuestorCompanyImport() {
       <DialogTrigger asChild>
         <Button variant="outline">
           <RefreshCw className="mr-2 h-4 w-4" />
-          Questor Import
+          Questor SYN
         </Button>
       </DialogTrigger>
       <DialogContent className={step === 'select' ? "max-w-[95vw] w-full sm:max-w-[1200px]" : "sm:max-w-[600px]"}>
@@ -175,44 +174,30 @@ export function QuestorCompanyImport() {
           <DialogTitle>Importar Empresa do Questor</DialogTitle>
           <DialogDescription>
             {step === 'search' 
-              ? 'Busque a empresa no Questor Zen ou SYN.'
+              ? 'Busque a empresa no Questor SYN.'
               : 'Confira os dados retornados e selecione para importar.'}
           </DialogDescription>
         </DialogHeader>
 
         {step === 'search' && (
           <div className="grid gap-4 py-4">
-             <Tabs value={source} onValueChange={(v) => setSource(v as 'zen' | 'syn')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="zen">Questor Zen (API)</TabsTrigger>
-                <TabsTrigger value="syn">Questor SYN (Banco)</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="identifier" className="text-right">
-                {source === 'zen' ? 'CNPJ' : 'Cód. Empresa'}
+                Cód. Empresa
               </Label>
               <div className="col-span-3">
                 <Input
                   id="identifier"
                   value={identifier}
-                  onChange={(e) => {
-                    let val = e.target.value;
-                    if (source === 'zen') val = val.replace(/\D/g, '');
-                    setIdentifier(val);
-                  }}
-                  placeholder={source === 'zen' ? "Ex: 12345678000199" : "Ex: 123"}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Ex: 123"
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   autoFocus
-                  maxLength={source === 'zen' ? 14 : undefined}
                 />
               </div>
             </div>
              <p className="text-xs text-muted-foreground text-center px-4">
-                 {source === 'zen' 
-                    ? 'Busca dados no Gerenciador de Empresas (Zen) via API. É obrigatório informar o CNPJ.' 
-                    : 'Busca dados no Questor SYN. Requer a rotina "EmpresasVision" configurada no nWeb.'}
+                 Busca dados no Questor SYN. Requer a rotina "EmpresasVision" configurada no nWeb.
               </p>
           </div>
         )}

@@ -1,12 +1,11 @@
 import db from '@/lib/db';
 import { CompanyList } from './client-components';
-import { SearchInput } from '@/components/ui/search-input';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { CompanyImportDialog } from '@/components/admin/companies/company-import-dialog';
 import { QuestorCompanyImport } from '@/components/admin/companies/questor-company-import';
-import { ClientsStatusFilter } from './clients-status-filter';
+import { CompanyFilters } from '@/components/admin/companies/company-filters';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -27,7 +26,12 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'razao_social';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'asc';
-  const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
+  
+  // Filter params
+  const razao_social = typeof resolvedSearchParams.razao_social === 'string' ? resolvedSearchParams.razao_social : '';
+  const cnpj = typeof resolvedSearchParams.cnpj === 'string' ? resolvedSearchParams.cnpj : '';
+  const nome = typeof resolvedSearchParams.nome === 'string' ? resolvedSearchParams.nome : '';
+  const code = typeof resolvedSearchParams.code === 'string' ? resolvedSearchParams.code : '';
   const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : 'all';
 
   // Whitelist allowed sort columns
@@ -58,10 +62,24 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     }
   }
 
-  if (q) {
-    query += ' AND (c.nome LIKE ? OR c.razao_social LIKE ? OR c.cnpj LIKE ? OR c.email_contato LIKE ? OR c.code LIKE ?)';
-    const likeQ = `%${q}%`;
-    params.push(likeQ, likeQ, likeQ, likeQ, likeQ);
+  if (razao_social) {
+    query += ' AND c.razao_social LIKE ?';
+    params.push(`%${razao_social}%`);
+  }
+
+  if (cnpj) {
+    query += ' AND c.cnpj LIKE ?';
+    params.push(`%${cnpj}%`);
+  }
+
+  if (nome) {
+    query += ' AND c.nome LIKE ?';
+    params.push(`%${nome}%`);
+  }
+
+  if (code) {
+    query += ' AND c.code = ?';
+    params.push(code);
   }
 
   if (status === 'active') {
@@ -92,10 +110,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <SearchInput placeholder="Buscar por nome, CNPJ, email ou código..." />
-        <ClientsStatusFilter />
-      </div>
+      <CompanyFilters />
 
       <CompanyList companies={companies} />
     </div>

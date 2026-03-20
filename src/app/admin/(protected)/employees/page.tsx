@@ -9,6 +9,7 @@ import { EmployeeImportDialog } from '@/components/admin/employees/employee-impo
 import { QuestorEmployeeImport } from '@/components/admin/employees/questor-employee-import';
 import { EmployeeFilters } from '@/components/admin/employees/employee-filters';
 import { EmployeeTable } from '@/components/admin/employees/employee-table';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 

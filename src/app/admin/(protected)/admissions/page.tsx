@@ -6,6 +6,7 @@ import { SearchInput } from '@/components/ui/search-input';
 import { ColumnHeader } from '@/components/ui/column-header';
 import { AdmissionActions } from '@/components/admissions/admission-actions';
 import { AdmissionFilters } from '@/components/admissions/admission-filters';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
