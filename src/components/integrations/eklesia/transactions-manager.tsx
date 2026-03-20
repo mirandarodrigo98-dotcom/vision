@@ -255,22 +255,41 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     }
   };
 
+  const safeFormatDate = (dateVal: any) => {
+    if (!dateVal) return '-';
+    try {
+      let parsed: Date;
+      if (dateVal instanceof Date) {
+        parsed = dateVal;
+      } else if (typeof dateVal === 'string') {
+        // Handle "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" or ISO strings
+        const cleanDateStr = dateVal.trim();
+        if (cleanDateStr.includes('T')) {
+          parsed = new Date(cleanDateStr);
+        } else if (cleanDateStr.length === 10) {
+          // YYYY-MM-DD
+          parsed = new Date(cleanDateStr + 'T12:00:00');
+        } else {
+          // Maybe YYYY-MM-DD HH:mm:ss
+          parsed = new Date(cleanDateStr.replace(' ', 'T'));
+        }
+      } else {
+        parsed = new Date(dateVal);
+      }
+      return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
+    } catch (e) {
+      return '-';
+    }
+  };
+
   const getPeriodText = () => {
     const f = filters as any;
     
-    const safeFormat = (dateStr: string) => {
-      try {
-        const parsed = typeof dateStr === 'string' && dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T12:00:00');
-        if (isValid(parsed)) return format(parsed, 'dd/MM/yyyy');
-      } catch (e) {}
-      return '-';
-    };
-
     if (f.startDate && f.endDate) {
-        return `${safeFormat(f.startDate)} a ${safeFormat(f.endDate)}`;
+        return `${safeFormatDate(f.startDate)} a ${safeFormatDate(f.endDate)}`;
     }
     if (syncStats?.minDate && syncStats?.maxDate) {
-        return `${safeFormat(syncStats.minDate)} a ${safeFormat(syncStats.maxDate)}`;
+        return `${safeFormatDate(syncStats.minDate)} a ${safeFormatDate(syncStats.maxDate)}`;
     }
     return 'Todos os lançamentos filtrados';
   };
@@ -297,11 +316,11 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                     Excluir Selecionados ({selectedIds.length})
                 </Button>
             )}
-            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting}>
+            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting || transactions.length === 0}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                 Sincronizar Questor
             </Button>
-            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing}>
+            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing || transactions.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
             </Button>
@@ -513,16 +532,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                     />
                   </TableCell>
                   <TableCell>
-                    {t.date ? (
-                      (() => {
-                        try {
-                          const parsed = typeof t.date === 'string' && t.date.includes('T') ? new Date(t.date) : new Date(t.date + 'T12:00:00');
-                          return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
-                        } catch (e) {
-                          return '-';
-                        }
-                      })()
-                    ) : '-'}
+                    {safeFormatDate(t.date)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">

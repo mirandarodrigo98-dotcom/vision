@@ -297,11 +297,11 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                     Excluir Selecionados ({selectedIds.length})
                 </Button>
             )}
-            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting}>
+            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting || transactions.length === 0}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                 Sincronizar Questor
             </Button>
-            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing}>
+            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing || transactions.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
             </Button>

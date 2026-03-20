@@ -1549,8 +1549,14 @@ export async function exportTransactionsCsv(
         const header = ['Data', 'Categoria', 'Natureza', 'Histórico', 'Valor', 'Conta', 'Cód. Conta'];
         const rows = transactions.map(t => [
             t.date ? (() => {
-              const d = new Date(t.date + 'T12:00:00');
-              return !isNaN(d.getTime()) ? d.toLocaleDateString('pt-BR') : '';
+              try {
+                const parsed = t.date instanceof Date 
+                  ? t.date 
+                  : (typeof t.date === 'string' ? (t.date.includes('T') ? new Date(t.date) : new Date(t.date + 'T12:00:00')) : new Date(t.date));
+                return !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('pt-BR') : '';
+              } catch (e) {
+                return '';
+              }
             })() : '',
             t.category_name || '',
             t.category_nature || '',

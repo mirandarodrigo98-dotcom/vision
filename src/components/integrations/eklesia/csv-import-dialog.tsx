@@ -253,7 +253,9 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                                                   {item.date ? (
                                                     (() => {
                                                       try {
-                                                        const parsed = typeof item.date === 'string' && item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00');
+                                                        const parsed = item.date instanceof Date 
+                                                          ? item.date 
+                                                          : (typeof item.date === 'string' ? (item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00')) : new Date(item.date));
                                                         return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
                                                       } catch (e) {
                                                         return '-';
@@ -278,7 +280,9 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                                               {item.date ? (
                                                 (() => {
                                                   try {
-                                                    const parsed = typeof item.date === 'string' && item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00');
+                                                    const parsed = item.date instanceof Date 
+                                                      ? item.date 
+                                                      : (typeof item.date === 'string' ? (item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00')) : new Date(item.date));
                                                     return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
                                                   } catch (e) {
                                                     return '-';
