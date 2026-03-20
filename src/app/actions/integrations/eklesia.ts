@@ -55,15 +55,15 @@ export async function getCategories(
 
     if (filters) {
       if (filters.code) {
-        query += ` AND code LIKE ?`;
+        query += ` AND code ILIKE ?`;
         params.push(`%${filters.code}%`);
       }
       if (filters.description) {
-        query += ` AND description LIKE ?`;
+        query += ` AND description ILIKE ?`;
         params.push(`%${filters.description}%`);
       }
       if (filters.integration_code) {
-        query += ` AND integration_code LIKE ?`;
+        query += ` AND integration_code ILIKE ?`;
         params.push(`%${filters.integration_code}%`);
       }
       if (filters.nature && filters.nature !== 'all') {
@@ -1322,15 +1322,18 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
       const conta = row[5] || '';
 
       // Column G - Histórico
-      let historico = row[6] || '';
-      if (!historico) {
-        historico = categoria;
-      }
+      const historicoG = row[6] || '';
+      let historico = historicoG ? `${categoria} - ${historicoG}`.trim() : categoria;
 
       // Column H - Valor
       let valorStr = row[7] || '0';
-      valorStr = valorStr.replace(/-/g, '').replace(/\./g, '').replace(',', '.');
-      const valor = Math.abs(parseFloat(valorStr));
+      const isNegative = valorStr.includes('-');
+      valorStr = valorStr.replace(/-/g, '').replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.');
+      const valor = parseFloat(valorStr);
+
+      if (valor === 0 || isNaN(valor)) {
+        continue; // Ignora se estiver zerado
+      }
 
       // Match Category
       let categoryId = null;
@@ -1367,6 +1370,8 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
         ignoredTransactions.push({
             date: convertDate(dateStr),
             value: valor,
+            isNegative: isNegative,
+            originalCategory: categoria,
             reason: 'Categoria não encontrada ou não cadastrada no sistema',
             line: `${historico} - Categoria Original: ${categoria}`
         });
