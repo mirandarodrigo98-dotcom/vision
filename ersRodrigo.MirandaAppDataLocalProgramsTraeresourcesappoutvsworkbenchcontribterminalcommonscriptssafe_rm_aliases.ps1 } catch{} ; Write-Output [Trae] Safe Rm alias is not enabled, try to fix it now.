@@ -1,0 +1,183 @@
+[1mdiff --git a/src/app/actions/integrations/eklesia.ts b/src/app/actions/integrations/eklesia.ts[m
+[1mindex c539e66..c60541c 100644[m
+[1m--- a/src/app/actions/integrations/eklesia.ts[m
+[1m+++ b/src/app/actions/integrations/eklesia.ts[m
+[36m@@ -1549,8 +1549,14 @@[m [mexport async function exportTransactionsCsv([m
+         const header = ['Data', 'Categoria', 'Natureza', 'Histórico', 'Valor', 'Conta', 'Cód. Conta'];[m
+         const rows = transactions.map(t => [[m
+             t.date ? (() => {[m
+[31m-              const d = new Date(t.date + 'T12:00:00');[m
+[31m-              return !isNaN(d.getTime()) ? d.toLocaleDateString('pt-BR') : '';[m
+[32m+[m[32m              try {[m
+[32m+[m[32m                const parsed = t.date instanceof Date[m[41m [m
+[32m+[m[32m                  ? t.date[m[41m [m
+[32m+[m[32m                  : (typeof t.date === 'string' ? (t.date.includes('T') ? new Date(t.date) : new Date(t.date + 'T12:00:00')) : new Date(t.date));[m
+[32m+[m[32m                return !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('pt-BR') : '';[m
+[32m+[m[32m              } catch (e) {[m
+[32m+[m[32m                return '';[m
+[32m+[m[32m              }[m
+             })() : '',[m
+             t.category_name || '',[m
+             t.category_nature || '',[m
+[1mdiff --git a/src/components/integrations/eklesia/csv-import-dialog.tsx b/src/components/integrations/eklesia/csv-import-dialog.tsx[m
+[1mindex 8d42fdc..684b7e2 100644[m
+[1m--- a/src/components/integrations/eklesia/csv-import-dialog.tsx[m
+[1m+++ b/src/components/integrations/eklesia/csv-import-dialog.tsx[m
+[36m@@ -253,7 +253,9 @@[m [mexport function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps)[m
+                                                   {item.date ? ([m
+                                                     (() => {[m
+                                                       try {[m
+[31m-                                                        const parsed = typeof item.date === 'string' && item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00');[m
+[32m+[m[32m                                                        const parsed = item.date instanceof Date[m[41m [m
+[32m+[m[32m                                                          ? item.date[m[41m [m
+[32m+[m[32m                                                          : (typeof item.date === 'string' ? (item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00')) : new Date(item.date));[m
+                                                         return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';[m
+                                                       } catch (e) {[m
+                                                         return '-';[m
+[36m@@ -278,7 +280,9 @@[m [mexport function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps)[m
+                                               {item.date ? ([m
+                                                 (() => {[m
+                                                   try {[m
+[31m-                                                    const parsed = typeof item.date === 'string' && item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00');[m
+[32m+[m[32m                                                    const parsed = item.date instanceof Date[m[41m [m
+[32m+[m[32m                                                      ? item.date[m[41m [m
+[32m+[m[32m                                                      : (typeof item.date === 'string' ? (item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00')) : new Date(item.date));[m
+                                                     return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';[m
+                                                   } catch (e) {[m
+                                                     return '-';[m
+[1mdiff --git a/src/components/integrations/eklesia/transactions-manager.tsx b/src/components/integrations/eklesia/transactions-manager.tsx[m
+[1mindex 9d4a4b5..682031a 100644[m
+[1m--- a/src/components/integrations/eklesia/transactions-manager.tsx[m
+[1m+++ b/src/components/integrations/eklesia/transactions-manager.tsx[m
+[36m@@ -255,22 +255,41 @@[m [mexport function TransactionsManager({ companyId }: TransactionsManagerProps) {[m
+     }[m
+   };[m
+ [m
+[32m+[m[32m  const safeFormatDate = (dateVal: any) => {[m
+[32m+[m[32m    if (!dateVal) return '-';[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      let parsed: Date;[m
+[32m+[m[32m      if (dateVal instanceof Date) {[m
+[32m+[m[32m        parsed = dateVal;[m
+[32m+[m[32m      } else if (typeof dateVal === 'string') {[m
+[32m+[m[32m        // Handle "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" or ISO strings[m
+[32m+[m[32m        const cleanDateStr = dateVal.trim();[m
+[32m+[m[32m        if (cleanDateStr.includes('T')) {[m
+[32m+[m[32m          parsed = new Date(cleanDateStr);[m
+[32m+[m[32m        } else if (cleanDateStr.length === 10) {[m
+[32m+[m[32m          // YYYY-MM-DD[m
+[32m+[m[32m          parsed = new Date(cleanDateStr + 'T12:00:00');[m
+[32m+[m[32m        } else {[m
+[32m+[m[32m          // Maybe YYYY-MM-DD HH:mm:ss[m
+[32m+[m[32m          parsed = new Date(cleanDateStr.replace(' ', 'T'));[m
+[32m+[m[32m        }[m
+[32m+[m[32m      } else {[m
+[32m+[m[32m        parsed = new Date(dateVal);[m
+[32m+[m[32m      }[m
+[32m+[m[32m      return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';[m
+[32m+[m[32m    } catch (e) {[m
+[32m+[m[32m      return '-';[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+   const getPeriodText = () => {[m
+     const f = filters as any;[m
+     [m
+[31m-    const safeFormat = (dateStr: string) => {[m
+[31m-      try {[m
+[31m-        const parsed = typeof dateStr === 'string' && dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T12:00:00');[m
+[31m-        if (isValid(parsed)) return format(parsed, 'dd/MM/yyyy');[m
+[31m-      } catch (e) {}[m
+[31m-      return '-';[m
+[31m-    };[m
+[31m-[m
+     if (f.startDate && f.endDate) {[m
+[31m-        return `${safeFormat(f.startDate)} a ${safeFormat(f.endDate)}`;[m
+[32m+[m[32m        return `${safeFormatDate(f.startDate)} a ${safeFormatDate(f.endDate)}`;[m
+     }[m
+     if (syncStats?.minDate && syncStats?.maxDate) {[m
+[31m-        return `${safeFormat(syncStats.minDate)} a ${safeFormat(syncStats.maxDate)}`;[m
+[32m+[m[32m        return `${safeFormatDate(syncStats.minDate)} a ${safeFormatDate(syncStats.maxDate)}`;[m
+     }[m
+     return 'Todos os lançamentos filtrados';[m
+   };[m
+[36m@@ -297,11 +316,11 @@[m [mexport function TransactionsManager({ companyId }: TransactionsManagerProps) {[m
+                     Excluir Selecionados ({selectedIds.length})[m
+                 </Button>[m
+             )}[m
+[31m-            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting}>[m
+[32m+[m[32m            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting || transactions.length === 0}>[m
+                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />[m
+                 Sincronizar Questor[m
+             </Button>[m
+[31m-            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing}>[m
+[32m+[m[32m            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing || transactions.length === 0}>[m
+                 <Download className="mr-2 h-4 w-4" />[m
+                 Exportar CSV[m
+             </Button>[m
+[36m@@ -513,16 +532,7 @@[m [mexport function TransactionsManager({ companyId }: TransactionsManagerProps) {[m
+                     />[m
+                   </TableCell>[m
+                   <TableCell>[m
+[31m-                    {t.date ? ([m
+[31m-                      (() => {[m
+[31m-                        try {[m
+[31m-                          const parsed = typeof t.date === 'string' && t.date.includes('T') ? new Date(t.date) : new Date(t.date + 'T12:00:00');[m
+[31m-                          return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';[m
+[31m-                        } catch (e) {[m
+[31m-                          return '-';[m
+[31m-                        }[m
+[31m-                      })()[m
+[31m-                    ) : '-'}[m
+[32m+[m[32m                    {safeFormatDate(t.date)}[m
+                   </TableCell>[m
+                   <TableCell>[m
+                     <div className="flex flex-col">[m
+[1mdiff --git a/src/components/integrations/enuves/transactions-manager.tsx b/src/components/integrations/enuves/transactions-manager.tsx[m
+[1mindex f3ed04b..0497774 100644[m
+[1m--- a/src/components/integrations/enuves/transactions-manager.tsx[m
+[1m+++ b/src/components/integrations/enuves/transactions-manager.tsx[m
+[36m@@ -297,11 +297,11 @@[m [mexport function TransactionsManager({ companyId }: TransactionsManagerProps) {[m
+                     Excluir Selecionados ({selectedIds.length})[m
+                 </Button>[m
+             )}[m
+[31m-            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting}>[m
+[32m+[m[32m            <Button onClick={handleSyncClick} variant="outline" disabled={isLoading || isSyncing || isExporting || transactions.length === 0}>[m
+                 <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />[m
+                 Sincronizar Questor[m
+             </Button>[m
+[31m-            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing}>[m
+[32m+[m[32m            <Button onClick={handleExport} variant="outline" disabled={isLoading || isExporting || isSyncing || transactions.length === 0}>[m
+                 <Download className="mr-2 h-4 w-4" />[m
+                 Exportar CSV[m
+             </Button>[m
+[1mdiff --git a/src/app/actions/integrations/questor.ts b/src/app/actions/integrations/questor.ts[m
+[1mindex a6754ca..99b9bf3 100644[m
+[1m--- a/src/app/actions/integrations/questor.ts[m
+[1m+++ b/src/app/actions/integrations/questor.ts[m
+[36m@@ -409,16 +409,16 @@[m [mexport async function checkEklesiaQuestorSyncStatus(companyId: string, filters:[m
+     const result = await db.prepare(query).get(...params) as any;[m
+     [m
+     return {[m
+[31m-      total: result.total || 0,[m
+[31m-      synced: result.synced || 0,[m
+[31m-      pending: result.pending || 0,[m
+[31m-      minDate: result.min_date,[m
+[31m-      maxDate: result.max_date,[m
+[31m-      hasPriorSync: (result.synced || 0) > 0[m
+[32m+[m[32m      total: Number(result?.total || 0),[m
+[32m+[m[32m      synced: Number(result?.synced || 0),[m
+[32m+[m[32m      pending: Number(result?.pending || 0),[m
+[32m+[m[32m      minDate: result?.min_date,[m
+[32m+[m[32m      maxDate: result?.max_date,[m
+[32m+[m[32m      hasPriorSync: Number(result?.synced || 0) > 0[m
+     };[m
+[31m-  } catch (error) {[m
+[31m-    console.error('Error checking sync status (Eklesia):', error);[m
+[31m-    return { error: 'Erro ao verificar status da sincronização' };[m
+[32m+[m[32m  } catch (error: any) {[m
+[32m+[m[32m    console.error('Error checking sync status (Eklesia):', error, error.stack);[m
+[32m+[m[32m    return { error: `Erro ao verificar status da sincronização: ${error.message}` };[m
+   }[m
+ }[m
+ [m

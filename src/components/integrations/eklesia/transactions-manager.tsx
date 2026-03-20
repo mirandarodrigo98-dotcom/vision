@@ -212,7 +212,14 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const handleSyncClick = async () => {
     setIsSyncing(true);
     try {
-      const stats = await checkEklesiaQuestorSyncStatus(companyId, filters);
+      // Safely serialize dates before sending to Server Action
+      const safeFilters = {
+          ...filters,
+          startDate: (filters as any).startDate ? ((filters as any).startDate instanceof Date ? (filters as any).startDate.toISOString() : (filters as any).startDate) : undefined,
+          endDate: (filters as any).endDate ? ((filters as any).endDate instanceof Date ? (filters as any).endDate.toISOString() : (filters as any).endDate) : undefined,
+      };
+      
+      const stats = await checkEklesiaQuestorSyncStatus(companyId, safeFilters);
       if (stats.error) {
         toast.error(stats.error);
         setIsSyncing(false);
@@ -222,9 +229,9 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
       setResync(false);
       setIsSyncing(false); // Reset loading state before showing confirmation
       setShowConfirmSyncDialog(true);
-    } catch (error) {
-        console.error(error);
-        toast.error('Erro ao verificar status da sincronização');
+    } catch (error: any) {
+        console.error('Error in handleSyncClick:', error);
+        toast.error(`Erro ao verificar status: ${error.message || 'Erro desconhecido'}`);
         setIsSyncing(false);
     }
   };
@@ -235,7 +242,12 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     setIsSyncing(true);
     setSyncResult(null);
     try {
-        const result = await syncEklesiaTransactionsToQuestor(companyId, { ...filters, resync });
+        const safeFilters = {
+            ...filters,
+            startDate: (filters as any).startDate ? ((filters as any).startDate instanceof Date ? (filters as any).startDate.toISOString() : (filters as any).startDate) : undefined,
+            endDate: (filters as any).endDate ? ((filters as any).endDate instanceof Date ? (filters as any).endDate.toISOString() : (filters as any).endDate) : undefined,
+        };
+        const result = await syncEklesiaTransactionsToQuestor(companyId, { ...safeFilters, resync });
         setSyncResult(result);
         if (result.success) {
             toast.success('Sincronização concluída');

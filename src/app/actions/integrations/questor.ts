@@ -409,16 +409,16 @@ export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: 
     const result = await db.prepare(query).get(...params) as any;
     
     return {
-      total: result.total || 0,
-      synced: result.synced || 0,
-      pending: result.pending || 0,
-      minDate: result.min_date,
-      maxDate: result.max_date,
-      hasPriorSync: (result.synced || 0) > 0
+      total: Number(result?.total || 0),
+      synced: Number(result?.synced || 0),
+      pending: Number(result?.pending || 0),
+      minDate: result?.min_date,
+      maxDate: result?.max_date,
+      hasPriorSync: Number(result?.synced || 0) > 0
     };
-  } catch (error) {
-    console.error('Error checking sync status (Eklesia):', error);
-    return { error: 'Erro ao verificar status da sincronização' };
+  } catch (error: any) {
+    console.error('Error checking sync status (Eklesia):', error, error.stack);
+    return { error: `Erro ao verificar status da sincronização: ${error.message}` };
   }
 }
 

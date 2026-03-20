@@ -87,6 +87,17 @@ export async function ensureMigrations() {
         console.log('Migration 027 (accounts) result:', e.message);
     }
 
+    // Migration 028: Add questor sync columns to eklesia_transactions
+    try {
+      console.log('Applying migration 028 (questor sync columns)...');
+      await db.prepare('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_synced_at TIMESTAMP').run();
+      await db.prepare('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_sync_id TEXT').run();
+      await db.prepare('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_sync_error TEXT').run();
+      console.log('Migration 028 applied.');
+    } catch (e: any) {
+      console.log('Migration 028 result:', e.message);
+    }
+
     console.log('Auto-migration check completed.');
   } catch (error) {
     console.error('Auto-migration failed:', error);
