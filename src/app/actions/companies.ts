@@ -747,16 +747,39 @@ export async function importCompanies(formData: FormData) {
   }
 }
 
-export async function getCompanies() {
+export async function getCompanies(filters?: { razao_social?: string, cnpj?: string, nome?: string, code?: string, status?: string }) {
   const session = await getSession();
   if (!session) return [];
 
   let query = `
     SELECT * 
     FROM client_companies 
-    WHERE is_active = 1
+    WHERE 1=1
   `;
   const params: any[] = [];
+
+  if (filters?.status === 'active') {
+    query += ` AND is_active = 1`;
+  } else if (filters?.status === 'inactive') {
+    query += ` AND is_active = 0`;
+  }
+
+  if (filters?.razao_social) {
+    query += ` AND razao_social ILIKE '%' || ? || '%'`;
+    params.push(filters.razao_social);
+  }
+  if (filters?.cnpj) {
+    query += ` AND cnpj ILIKE '%' || ? || '%'`;
+    params.push(filters.cnpj);
+  }
+  if (filters?.nome) {
+    query += ` AND nome ILIKE '%' || ? || '%'`;
+    params.push(filters.nome);
+  }
+  if (filters?.code) {
+    query += ` AND code ILIKE '%' || ? || '%'`;
+    params.push(filters.code);
+  }
 
   if (session.role === 'client_user') {
     query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;

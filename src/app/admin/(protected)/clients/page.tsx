@@ -63,22 +63,22 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   }
 
   if (razao_social) {
-    query += ' AND c.razao_social LIKE ?';
-    params.push(`%${razao_social}%`);
+    query += " AND c.razao_social ILIKE '%' || ? || '%'";
+    params.push(razao_social);
   }
 
   if (cnpj) {
-    query += ' AND c.cnpj LIKE ?';
-    params.push(`%${cnpj}%`);
+    query += " AND c.cnpj ILIKE '%' || ? || '%'";
+    params.push(cnpj);
   }
 
   if (nome) {
-    query += ' AND c.nome LIKE ?';
-    params.push(`%${nome}%`);
+    query += " AND c.nome ILIKE '%' || ? || '%'";
+    params.push(nome);
   }
 
   if (code) {
-    query += ' AND c.code = ?';
+    query += " AND c.code ILIKE '%' || ? || '%'";
     params.push(code);
   }
 

@@ -265,7 +265,7 @@ export function CategoryManager({ initialCategories, companyId }: CategoryListPr
 
   return (
     <div className="space-y-6">
-      {/* Filtros */}
+      {/* Filtros de Pesquisa */}
       <Card>
         <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Filtros de Pesquisa</CardTitle>

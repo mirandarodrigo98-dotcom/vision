@@ -55,16 +55,16 @@ export async function getCategories(
 
     if (filters) {
       if (filters.code) {
-        query += ` AND code ILIKE ?`;
-        params.push(`%${filters.code}%`);
+        query += ` AND code ILIKE '%' || ? || '%'`;
+        params.push(filters.code);
       }
       if (filters.description) {
-        query += ` AND description ILIKE ?`;
-        params.push(`%${filters.description}%`);
+        query += ` AND description ILIKE '%' || ? || '%'`;
+        params.push(filters.description);
       }
       if (filters.integration_code) {
-        query += ` AND integration_code ILIKE ?`;
-        params.push(`%${filters.integration_code}%`);
+        query += ` AND integration_code ILIKE '%' || ? || '%'`;
+        params.push(filters.integration_code);
       }
       if (filters.nature && filters.nature !== 'all') {
         query += ` AND nature = ?`;

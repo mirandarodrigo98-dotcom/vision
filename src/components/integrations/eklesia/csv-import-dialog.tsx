@@ -164,12 +164,12 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-[95vw] sm:max-w-[95vw] md:max-w-[95vw] lg:max-w-[90vw] xl:max-w-[85vw] w-full max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>Importar Lançamentos via CSV</DialogTitle>
-            <DialogDescription>
-              Selecione o arquivo CSV contendo os lançamentos.
-            </DialogDescription>
-          </DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Importar Lançamentos via CSV</DialogTitle>
+              <DialogDescription>
+                Selecione o arquivo CSV contendo os lançamentos.
+              </DialogDescription>
+            </DialogHeader>
 
           <div className="grid gap-4 py-4 overflow-hidden flex-1 min-h-0">
             {!result ? (
@@ -231,10 +231,10 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                     </div>
                   )}
 
-                  <div className="flex-1 border rounded-md overflow-hidden flex flex-col min-h-0">
+                  <div className="flex-1 border rounded-md overflow-hidden flex flex-col min-h-0 shadow-inner">
                       <div className="h-full overflow-auto relative">
-                          <div className="min-w-[1200px] w-full">
-                              <Table>
+                            <div className="min-w-[1200px] w-full">
+                                <Table>
                               <TableHeader className="bg-muted sticky top-0 z-10 shadow-sm">
                                   <TableRow>
                                       <TableHead className="w-[50px] bg-muted">Status</TableHead>
@@ -322,15 +322,15 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
 
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
         <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>Cadastrar Categorias Não Localizadas</DialogTitle>
-            <DialogDescription>
-              As categorias abaixo foram encontradas no arquivo mas não existem no sistema. Preencha o código de integração (opcional) para cadastrá-las e reprocessar o arquivo.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto py-4">
-            <Table>
+            <DialogHeader>
+              <DialogTitle>Cadastrar Categorias Não Localizadas</DialogTitle>
+              <DialogDescription>
+                As categorias abaixo foram encontradas no arquivo mas não existem no sistema. Preencha o código de integração (opcional) para cadastrá-las e reprocessar o arquivo.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-auto py-4 relative">
+              <Table className="w-full min-w-[600px]">
               <TableHeader className="bg-muted sticky top-0 z-10 shadow-sm">
                 <TableRow>
                   <TableHead className="bg-muted">Categoria</TableHead>
