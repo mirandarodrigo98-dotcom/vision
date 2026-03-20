@@ -4,6 +4,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   serverExternalPackages: ['pdf2json'],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 };
 
 module.exports = nextConfig;

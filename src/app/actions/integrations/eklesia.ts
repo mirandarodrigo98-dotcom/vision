@@ -11,7 +11,7 @@ import PDFParser from 'pdf2json';
 const categorySchema = z.object({
   description: z.string().max(50, 'A descrição deve ter no máximo 50 caracteres'),
   integration_code: z.string().max(20, 'O código de integração deve ter no máximo 20 caracteres').optional(),
-  nature: z.enum(['Saída', 'Entrada', 'Transferência'], { error: 'Natureza inválida' }),
+  nature: z.enum(['Saída', 'Entrada', 'Transferência'], { errorMap: () => ({ message: 'Natureza inválida' }) }),
 });
 
 const updateCategorySchema = z.object({
@@ -1102,7 +1102,7 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
     
     // Parse PDF directly to preserve column spacing
     const lines: string[] = await new Promise((resolve, reject) => {
-        const pdfParser = new PDFParser(null, 1);
+        const pdfParser = new PDFParser(null, 1 as any);
         pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
         pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
             let extractedLines: string[] = [];
