@@ -169,7 +169,9 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                                 {result.success.map((item: any, i: number) => (
                                     <TableRow key={`success-${i}`}>
                                         <TableCell><CheckCircle2 className="h-4 w-4 text-green-500" /></TableCell>
-                                        <TableCell className="whitespace-nowrap">{item.date ? format(new Date(item.date), 'dd/MM/yyyy') : '-'}</TableCell>
+                                        <TableCell className="whitespace-nowrap">
+                                            {item.date ? format(new Date(item.date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}
+                                        </TableCell>
                                         <TableCell>{item.categoryName}</TableCell>
                                         <TableCell className="text-right font-mono whitespace-nowrap">
                                             {item.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -183,7 +185,7 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                                 {result.ignored.map((item: any, i: number) => (
                                     <TableRow key={`ignored-${i}`} className="bg-muted/30">
                                         <TableCell><AlertCircle className="h-4 w-4 text-yellow-500" /></TableCell>
-                                        <TableCell>{item.date ? format(new Date(item.date), 'dd/MM/yyyy') : '-'}</TableCell>
+                                        <TableCell>{item.date ? format(new Date(item.date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}</TableCell>
                                         <TableCell className="text-muted-foreground italic">Não identificada</TableCell>
                                         <TableCell className="text-right font-mono text-muted-foreground">
                                             {item.value ? item.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}

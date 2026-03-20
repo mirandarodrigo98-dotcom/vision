@@ -1365,7 +1365,7 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
         });
       } else {
         ignoredTransactions.push({
-            date: dateStr,
+            date: convertDate(dateStr),
             value: valor,
             reason: 'Categoria não encontrada ou não cadastrada no sistema',
             line: `${historico} - Categoria Original: ${categoria}`
