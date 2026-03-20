@@ -11,7 +11,7 @@ import { TransactionEditDialog } from './transaction-edit-dialog';
 import { Loader2, Trash2, Pencil, RefreshCw } from 'lucide-react';
 import { getTransactions, deleteTransaction, deleteTransactionsBatch, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/eklesia';
 import { syncEklesiaTransactionsToQuestor, checkEklesiaQuestorSyncStatus } from '@/app/actions/integrations/questor';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -257,20 +257,20 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
 
   const getPeriodText = () => {
     const f = filters as any;
+    
+    const safeFormat = (dateStr: string) => {
+      try {
+        const parsed = typeof dateStr === 'string' && dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T12:00:00');
+        if (isValid(parsed)) return format(parsed, 'dd/MM/yyyy');
+      } catch (e) {}
+      return '-';
+    };
+
     if (f.startDate && f.endDate) {
-        const start = new Date(f.startDate + 'T12:00:00');
-        const end = new Date(f.endDate + 'T12:00:00');
-        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-            return `${format(start, 'dd/MM/yyyy')} a ${format(end, 'dd/MM/yyyy')}`;
-        }
+        return `${safeFormat(f.startDate)} a ${safeFormat(f.endDate)}`;
     }
     if (syncStats?.minDate && syncStats?.maxDate) {
-        // Parse dates which might come as strings from DB
-        const min = new Date(syncStats.minDate + 'T12:00:00');
-        const max = new Date(syncStats.maxDate + 'T12:00:00');
-        if (!isNaN(min.getTime()) && !isNaN(max.getTime())) {
-            return `${format(min, 'dd/MM/yyyy')} a ${format(max, 'dd/MM/yyyy')}`;
-        }
+        return `${safeFormat(syncStats.minDate)} a ${safeFormat(syncStats.maxDate)}`;
     }
     return 'Todos os lançamentos filtrados';
   };
@@ -513,9 +513,16 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                     />
                   </TableCell>
                   <TableCell>
-                    {t.date && !isNaN(new Date(t.date + 'T12:00:00').getTime()) 
-                      ? format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy') 
-                      : '-'}
+                    {t.date ? (
+                      (() => {
+                        try {
+                          const parsed = typeof t.date === 'string' && t.date.includes('T') ? new Date(t.date) : new Date(t.date + 'T12:00:00');
+                          return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
+                        } catch (e) {
+                          return '-';
+                        }
+                      })()
+                    ) : '-'}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">

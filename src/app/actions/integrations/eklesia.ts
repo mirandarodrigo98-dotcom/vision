@@ -1308,8 +1308,8 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
 
       // Validate data column (A) - index 0
       const dateStr = row[0];
-      if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        continue; // Ignore if not a valid date DD/MM/YYYY
+      if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/(\d{2}|\d{4})$/)) {
+        continue; // Ignore if not a valid date DD/MM/YYYY or DD/MM/YY
       }
 
       // Pre-validate that it's a real date
@@ -1548,7 +1548,10 @@ export async function exportTransactionsCsv(
         // Generate CSV
         const header = ['Data', 'Categoria', 'Natureza', 'Histórico', 'Valor', 'Conta', 'Cód. Conta'];
         const rows = transactions.map(t => [
-            t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '',
+            t.date ? (() => {
+              const d = new Date(t.date + 'T12:00:00');
+              return !isNaN(d.getTime()) ? d.toLocaleDateString('pt-BR') : '';
+            })() : '',
             t.category_name || '',
             t.category_nature || '',
             t.description || '',

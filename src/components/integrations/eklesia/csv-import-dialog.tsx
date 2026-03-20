@@ -18,7 +18,7 @@ import { parseEklesiaCsv, saveTransactionsBatch, createCategory } from '@/app/ac
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface CsvImportDialogProps {
   companyId: string;
@@ -250,8 +250,17 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                                       <TableRow key={`success-${i}`}>
                                           <TableCell><CheckCircle2 className="h-4 w-4 text-green-500" /></TableCell>
                                           <TableCell className="whitespace-nowrap">
-                                              {item.date && !isNaN(new Date(item.date + 'T12:00:00').getTime()) ? format(new Date(item.date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}
-                                          </TableCell>
+                                                  {item.date ? (
+                                                    (() => {
+                                                      try {
+                                                        const parsed = typeof item.date === 'string' && item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00');
+                                                        return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
+                                                      } catch (e) {
+                                                        return '-';
+                                                      }
+                                                    })()
+                                                  ) : '-'}
+                                              </TableCell>
                                           <TableCell>{item.categoryName}</TableCell>
                                           <TableCell className="text-right font-mono whitespace-nowrap">
                                               {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -265,7 +274,18 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
                                   {result.ignored.map((item: any, i: number) => (
                                       <TableRow key={`ignored-${i}`} className="bg-muted/30">
                                           <TableCell><AlertCircle className="h-4 w-4 text-yellow-500" /></TableCell>
-                                          <TableCell>{item.date && !isNaN(new Date(item.date + 'T12:00:00').getTime()) ? format(new Date(item.date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}</TableCell>
+                                          <TableCell>
+                                              {item.date ? (
+                                                (() => {
+                                                  try {
+                                                    const parsed = typeof item.date === 'string' && item.date.includes('T') ? new Date(item.date) : new Date(item.date + 'T12:00:00');
+                                                    return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
+                                                  } catch (e) {
+                                                    return '-';
+                                                  }
+                                                })()
+                                              ) : '-'}
+                                          </TableCell>
                                           <TableCell className="text-muted-foreground italic">Não identificada</TableCell>
                                           <TableCell className="text-right font-mono text-muted-foreground whitespace-nowrap">
                                               {item.value ? item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
