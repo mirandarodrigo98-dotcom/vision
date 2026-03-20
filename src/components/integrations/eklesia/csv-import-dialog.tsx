@@ -163,7 +163,7 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
             Importar CSV
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-4">
+        <DialogContent className="max-w-[95vw] sm:max-w-[95vw] md:max-w-[95vw] lg:max-w-[90vw] xl:max-w-[85vw] w-full max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Importar Lançamentos via CSV</DialogTitle>
             <DialogDescription>
@@ -301,7 +301,7 @@ export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) 
       </Dialog>
 
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Cadastrar Categorias Não Localizadas</DialogTitle>
             <DialogDescription>
