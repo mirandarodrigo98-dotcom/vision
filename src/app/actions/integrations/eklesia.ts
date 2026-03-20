@@ -1087,6 +1087,8 @@ export async function saveAccountsBatch(accounts: any[], companyId: string) {
     }
 }
 
+import Papa from 'papaparse';
+
 export async function parseEklesiaPdf(formData: FormData, companyId: string) {
   const session = await getSession();
   if (!session) return { error: 'Não autorizado' };
@@ -1269,6 +1271,112 @@ export async function parseEklesiaPdf(formData: FormData, companyId: string) {
 
   } catch (error: any) {
     console.error('Error parsing PDF:', error);
+    return { error: `Erro ao processar arquivo: ${error.message}` };
+  }
+}
+
+export async function parseEklesiaCsv(formData: FormData, companyId: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Não autorizado' };
+
+  const targetCompanyId = companyId || session.active_company_id;
+  if (!targetCompanyId) return { error: 'Empresa não selecionada' };
+
+  const file = formData.get('file') as File;
+  if (!file) return { error: 'Arquivo não fornecido' };
+
+  try {
+    const text = await file.text();
+    
+    // Parse CSV
+    const parsed = Papa.parse(text, {
+      skipEmptyLines: true,
+      header: false,
+      delimiter: '' // Let Papa Parse guess between comma, tab, pipe, semicolon
+    });
+
+    const rows = parsed.data as string[][];
+
+    const categories = await getCategories(targetCompanyId);
+    const accounts = await getAccounts(targetCompanyId);
+
+    const transactionsToInsert: any[] = [];
+    const ignoredTransactions: any[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].map(col => typeof col === 'string' ? col.trim() : col);
+
+      // Validate data column (A) - index 0
+      const dateStr = row[0];
+      if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        continue; // Ignore if not a valid date DD/MM/YYYY
+      }
+
+      // Column D - Categoria
+      const categoria = row[3] || '';
+      if (categoria.toUpperCase().includes('TRANSFERÊNCIAS/DEPÓSITOS')) {
+        continue;
+      }
+
+      // Column F - Conta
+      const conta = row[5] || '';
+
+      // Column G - Histórico
+      let historico = row[6] || '';
+      if (!historico) {
+        historico = categoria;
+      }
+
+      // Column H - Valor
+      let valorStr = row[7] || '0';
+      valorStr = valorStr.replace(/-/g, '').replace(/\./g, '').replace(',', '.');
+      const valor = Math.abs(parseFloat(valorStr));
+
+      // Match Category
+      let categoryId = null;
+      let categoryName = categoria;
+      
+      let matchedCat = categories.find(c => c.description.toUpperCase() === categoria.toUpperCase());
+      if (matchedCat) {
+        categoryId = matchedCat.id;
+        categoryName = matchedCat.description;
+      }
+
+      // Match Account
+      let accountId = null;
+      let accountName = conta;
+      let matchedAccount = accounts.find(a => conta.toUpperCase().includes(a.description.toUpperCase()) || a.description.toUpperCase().includes(conta.toUpperCase()));
+      if (matchedAccount) {
+        accountId = matchedAccount.id;
+        accountName = matchedAccount.description;
+      }
+
+      if (categoryId) {
+        transactionsToInsert.push({
+            company_id: targetCompanyId,
+            category_id: categoryId,
+            categoryName: categoryName,
+            account_id: accountId,
+            accountName: accountName,
+            date: convertDate(dateStr),
+            description: historico,
+            value: valor,
+            original_description: historico
+        });
+      } else {
+        ignoredTransactions.push({
+            date: dateStr,
+            value: valor,
+            reason: 'Categoria não encontrada ou não cadastrada no sistema',
+            line: `${historico} - Categoria Original: ${categoria}`
+        });
+      }
+    }
+
+    return { success: transactionsToInsert, ignored: ignoredTransactions, count: transactionsToInsert.length };
+
+  } catch (error: any) {
+    console.error('Error parsing CSV:', error);
     return { error: `Erro ao processar arquivo: ${error.message}` };
   }
 }

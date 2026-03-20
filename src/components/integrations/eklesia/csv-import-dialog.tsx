@@ -14,19 +14,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Upload, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
-import { parseEklesiaPdf, saveTransactionsBatch } from '@/app/actions/integrations/eklesia';
+import { parseEklesiaCsv, saveTransactionsBatch } from '@/app/actions/integrations/eklesia';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
-interface PdfImportDialogProps {
+interface CsvImportDialogProps {
   companyId: string;
   onSuccess: () => void;
 }
 
-export function PdfImportDialog({ companyId, onSuccess }: PdfImportDialogProps) {
+export function CsvImportDialog({ companyId, onSuccess }: CsvImportDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -46,7 +46,7 @@ export function PdfImportDialog({ companyId, onSuccess }: PdfImportDialogProps) 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await parseEklesiaPdf(formData, companyId);
+      const res = await parseEklesiaCsv(formData, companyId);
       if (res.error) {
         toast.error(res.error);
       } else {
@@ -96,14 +96,14 @@ export function PdfImportDialog({ companyId, onSuccess }: PdfImportDialogProps) 
       <DialogTrigger asChild>
         <Button variant="outline">
           <Upload className="mr-2 h-4 w-4" />
-          Importar PDF
+          Importar CSV
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] sm:max-w-[1200px] w-full max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-4">
         <DialogHeader>
-          <DialogTitle>Importar Lançamentos via PDF</DialogTitle>
+          <DialogTitle>Importar Lançamentos via CSV</DialogTitle>
           <DialogDescription>
-            Selecione o arquivo PDF contendo os lançamentos. O sistema identificará data, valor e categoria automaticamente.
+            Selecione o arquivo CSV contendo os lançamentos.
           </DialogDescription>
         </DialogHeader>
 
@@ -111,14 +111,14 @@ export function PdfImportDialog({ companyId, onSuccess }: PdfImportDialogProps) 
           {!result ? (
             <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/50 h-[300px]">
                 <FileText className="h-10 w-10 text-muted-foreground mb-4" />
-                <Label htmlFor="pdf-upload" className="cursor-pointer">
+                <Label htmlFor="csv-upload" className="cursor-pointer">
                     <span className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium transition-colors">
                         Selecionar Arquivo
                     </span>
                     <Input 
-                        id="pdf-upload" 
+                        id="csv-upload" 
                         type="file" 
-                        accept=".pdf" 
+                        accept=".csv" 
                         className="hidden" 
                         onChange={handleFileChange}
                     />

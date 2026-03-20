@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PdfImportDialog } from './pdf-import-dialog';
+import { CsvImportDialog } from './csv-import-dialog';
 import { TransactionFilters } from './transaction-filters';
 import { TransactionEditDialog } from './transaction-edit-dialog';
 import { Loader2, Trash2, Pencil, RefreshCw } from 'lucide-react';
@@ -299,7 +299,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
             </Button>
-            <PdfImportDialog companyId={companyId} onSuccess={fetchTransactions} />
+            <CsvImportDialog companyId={companyId} onSuccess={fetchTransactions} />
         </div>
       </div>
 
