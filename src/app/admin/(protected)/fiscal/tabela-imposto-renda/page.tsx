@@ -1,4 +1,4 @@
-import { ImpostoRendaManager } from "@/components/fiscal/imposto-renda/imposto-renda-manager";
+import { ImpostoRendaManager } from "@/components/fiscal/tabela-imposto-renda/imposto-renda-manager";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -13,7 +13,7 @@ export default function ImpostoRendaPage() {
           </Button>
         </Link>
         <div>
-          <h3 className="text-2xl font-bold tracking-tight">Imposto de Renda</h3>
+          <h3 className="text-2xl font-bold tracking-tight">Tabela de Imposto de Renda</h3>
           <p className="text-sm text-muted-foreground">
             Tabelas de alíquotas e isenções (fonte: SECOM, novas regras 2026).
           </p>

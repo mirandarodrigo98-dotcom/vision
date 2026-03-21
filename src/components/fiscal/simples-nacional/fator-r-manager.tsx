@@ -20,17 +20,21 @@ import { fetchSimplesNacionalBilling, getStoredSimplesNacionalBilling } from '@/
 import { CompanySelector } from '@/components/ui/company-selector';
 import { CompetenceInput } from '@/components/ui/competence-input';
 import { Input } from '@/components/ui/input';
+import { calcularINSSProLabore } from '@/lib/inss';
+import { calcularIRRFProLabore } from '@/lib/imposto-renda';
 
 interface SimplesNacionalBillingData {
   company_id: string;
   competence: string;
   rpa_competence: number;
+  recebimento: number;
   rpa_cash: number;
   rpa_accumulated: number;
   payroll_12_months: number;
   rbt12: number;
   rba: number;
   rbaa: number;
+  aliquota_efetiva: number;
 }
 
 export function SimplesNacionalFatorRManager() {
@@ -45,6 +49,10 @@ export function SimplesNacionalFatorRManager() {
   // Simulation State
   const [customSims, setCustomSims] = React.useState<Record<string, { rpa?: string, folha?: string }>>({});
 
+  // Pro-labore State
+  const [proLaboreStr, setProLaboreStr] = React.useState('');
+  const [dependentesStr, setDependentesStr] = React.useState('0');
+
   const getFilterDates = (refComp: string) => {
     if (!refComp || refComp.length !== 7) return null;
     const refDate = parseISO(`${refComp}-01`);
@@ -55,6 +63,12 @@ export function SimplesNacionalFatorRManager() {
       endCompetence: format(endCompDate, 'yyyy-MM')
     };
   };
+
+  React.useEffect(() => {
+    if (selectedCompany && referenceCompetence && referenceCompetence.length === 7) {
+      loadDataFromDB();
+    }
+  }, [selectedCompany, referenceCompetence]);
 
   async function loadDataFromDB() {
     const dates = getFilterDates(referenceCompetence);
@@ -165,6 +179,8 @@ export function SimplesNacionalFatorRManager() {
       const last12 = fullTimeline.slice(-12);
       const avgRpa = last12.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0) / 12;
       const avgFolha = last12.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0) / 12;
+      const avgRecebimento = last12.reduce((acc, curr) => acc + Number(curr.recebimento || 0), 0) / 12;
+      const avgAliquota = last12.reduce((acc, curr) => acc + Number(curr.aliquota_efetiva || 0), 0) / 12;
 
       const custom = customSims[compStr] || {};
       const customRpaVal = custom.rpa !== undefined ? parseFormattedNumber(custom.rpa) : avgRpa;
@@ -186,6 +202,8 @@ export function SimplesNacionalFatorRManager() {
         fatorR: fatorR,
         suggestedRpa: avgRpa,
         suggestedFolha: avgFolha,
+        suggestedRecebimento: avgRecebimento,
+        suggestedAliquota: avgAliquota,
         customRpaStr: custom.rpa,
         customFolhaStr: custom.folha,
         isCustomRpa: custom.rpa !== undefined,
@@ -201,7 +219,9 @@ export function SimplesNacionalFatorRManager() {
         rpa_cash: 0, 
         rba: 0, 
         rbaa: 0, 
-        payroll_12_months: folha12
+        payroll_12_months: folha12,
+        recebimento: avgRecebimento,
+        aliquota_efetiva: avgAliquota
       });
     }
   }
@@ -214,6 +234,11 @@ export function SimplesNacionalFatorRManager() {
       </span>
     );
   };
+
+  const proLaboreVal = parseFormattedNumber(proLaboreStr);
+  const dependentesVal = parseInt(dependentesStr, 10) || 0;
+  const proLaboreINSS = calcularINSSProLabore(proLaboreVal);
+  const proLaboreIRRF = calcularIRRFProLabore(proLaboreVal, dependentesVal, proLaboreINSS);
 
   return (
     <div className="space-y-6">
@@ -281,23 +306,31 @@ export function SimplesNacionalFatorRManager() {
                     <TableRow>
                       <TableHead className="text-center">Competência</TableHead>
                       <TableHead className="text-center">RPA Total</TableHead>
+                      <TableHead className="text-center">Recebimento</TableHead>
                       <TableHead className="text-center">RBT12</TableHead>
-                      <TableHead className="text-center">Folha+Encargos</TableHead>
+                      <TableHead className="text-center">Folha+Enc.</TableHead>
                       <TableHead className="text-center">Folha 12M</TableHead>
+                      <TableHead className="text-center">Alíq. Efetiva</TableHead>
                       <TableHead className="text-center">Fator R</TableHead>
+                      <TableHead className="text-center">DAS</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.map((row) => {
                       const fatorR = row.rbt12 > 0 ? (row.payroll_12_months / row.rbt12) * 100 : 0;
+                      const baseDas = row.recebimento > 0 ? row.recebimento : (row.rpa_competence || 0);
+                      const das = baseDas * ((row.aliquota_efetiva || 0) / 100);
                       return (
                         <TableRow key={row.competence}>
                           <TableCell className="text-center font-medium">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
                           <TableCell className="text-center">{formatNumber(row.rpa_competence || 0)}</TableCell>
+                          <TableCell className="text-center">{formatNumber(row.recebimento || 0)}</TableCell>
                           <TableCell className="text-center">{formatNumber(row.rbt12 || 0)}</TableCell>
                           <TableCell className="text-center">{formatNumber(row.rpa_accumulated || 0)}</TableCell>
                           <TableCell className="text-center">{formatNumber(row.payroll_12_months || 0)}</TableCell>
+                          <TableCell className="text-center">{formatPercent(row.aliquota_efetiva || 0)}</TableCell>
                           <TableCell className="text-center">{renderFatorR(fatorR)}</TableCell>
+                          <TableCell className="text-center">{formatNumber(das)}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -319,14 +352,20 @@ export function SimplesNacionalFatorRManager() {
                     <TableRow>
                       <TableHead className="text-center">Competência</TableHead>
                       <TableHead className="text-center min-w-[140px]">RPA Total</TableHead>
+                      <TableHead className="text-center">Recebimento</TableHead>
                       <TableHead className="text-center">RBT12</TableHead>
-                      <TableHead className="text-center min-w-[140px]">Folha+Encargos</TableHead>
+                      <TableHead className="text-center min-w-[140px]">Folha+Enc.</TableHead>
                       <TableHead className="text-center">Folha 12M</TableHead>
+                      <TableHead className="text-center">Alíq. Efetiva</TableHead>
                       <TableHead className="text-center">Fator R</TableHead>
+                      <TableHead className="text-center">DAS</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {simRows.map((row) => (
+                    {simRows.map((row) => {
+                      const baseDas = row.suggestedRecebimento > 0 ? row.suggestedRecebimento : row.rpa_competence;
+                      const das = baseDas * (row.suggestedAliquota / 100);
+                      return (
                       <TableRow key={row.competence} className={row.isCustomRpa || row.isCustomFolha ? "bg-muted/30" : ""}>
                         <TableCell className="text-center font-medium">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
                         <TableCell className="text-center">
@@ -347,6 +386,7 @@ export function SimplesNacionalFatorRManager() {
                             </Button>
                           </div>
                         </TableCell>
+                        <TableCell className="text-center">{formatNumber(row.suggestedRecebimento)}</TableCell>
                         <TableCell className="text-center">{formatNumber(row.rbt12)}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-1">
@@ -367,11 +407,55 @@ export function SimplesNacionalFatorRManager() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{formatNumber(row.payroll_12_months)}</TableCell>
+                        <TableCell className="text-center">{formatPercent(row.suggestedAliquota)}</TableCell>
                         <TableCell className="text-center">{renderFatorR(row.fatorR)}</TableCell>
+                        <TableCell className="text-center">{formatNumber(das)}</TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pro-labore Section */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Cálculo de Pró-labore</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div className="flex flex-col space-y-2">
+                  <Label>Valor do Pró-labore</Label>
+                  <Input 
+                    value={proLaboreStr}
+                    onChange={(e) => setProLaboreStr(e.target.value)}
+                    placeholder="0,00"
+                    className="text-right"
+                  />
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label>Dependentes</Label>
+                  <Input 
+                    type="number"
+                    min="0"
+                    value={dependentesStr}
+                    onChange={(e) => setDependentesStr(e.target.value)}
+                    className="text-right"
+                  />
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label>INSS Retido</Label>
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium">
+                    {formatNumber(proLaboreINSS)}
+                  </div>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label>IRRF Retido</Label>
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium">
+                    {formatNumber(proLaboreIRRF)}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

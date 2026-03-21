@@ -51,14 +51,31 @@ export default async function FiscalPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Imposto de Renda
+              Tabela de Imposto de Renda
             </CardTitle>
             <CardDescription>
               Tabelas, faixas e cálculos do Imposto de Renda (IRPF).
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/fiscal/imposto-renda">
+            <Link href="/admin/fiscal/tabela-imposto-renda">
+              <Button className="w-full">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Tabela de INSS
+            </CardTitle>
+            <CardDescription>
+              Tabelas de contribuição e regras do INSS 2026.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/tabela-inss">
               <Button className="w-full">Acessar Módulo</Button>
             </Link>
           </CardContent>

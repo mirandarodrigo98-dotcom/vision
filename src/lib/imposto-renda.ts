@@ -54,3 +54,39 @@ export function getAliquotaIRMensal(baseCalculo: number): { aliquota: number; de
   const faixa = IR_2026.mensalTabela.find(f => baseCalculo >= f.baseMin && baseCalculo <= f.baseMax) || IR_2026.mensalTabela[IR_2026.mensalTabela.length - 1];
   return { aliquota: faixa.aliquota, deducao: faixa.deducao };
 }
+
+export function calcularIRRFProLabore(rendaBruta: number, dependentes: number = 0, inss: number = 0): number {
+  if (rendaBruta <= 0) return 0;
+
+  // Dedução por dependente em 2026 (assumindo o valor padrão mantido, que é R$ 189,59 por dependente, 
+  // mas com as novas regras, precisamos verificar se tem isenção)
+  const deducaoDependentes = dependentes * 189.59;
+  
+  // Opcional: Desconto simplificado padrão (20% da renda, até limite) 
+  // vs Deduções legais (INSS + Dependentes). Usaremos as deduções legais para o pró-labore.
+  const baseCalculo = rendaBruta - inss - deducaoDependentes;
+
+  if (baseCalculo <= 0) return 0;
+
+  // Regra de isenção/redução 2026
+  if (rendaBruta <= 5000) {
+    return 0; // "Até R$ 312,89, zerando o imposto"
+  }
+
+  let impostoBruto = 0;
+  const faixa = getAliquotaIRMensal(baseCalculo);
+  impostoBruto = (baseCalculo * faixa.aliquota) / 100 - faixa.deducao;
+  
+  if (impostoBruto <= 0) return 0;
+
+  // Redução para quem ganha até R$ 7.350
+  if (rendaBruta > 5000 && rendaBruta <= 7350) {
+    const reducao = 978.62 - (0.133145 * rendaBruta);
+    if (reducao > 0) {
+      impostoBruto = Math.max(0, impostoBruto - reducao);
+    }
+  }
+
+  return impostoBruto;
+}
+

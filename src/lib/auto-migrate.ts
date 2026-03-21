@@ -98,6 +98,16 @@ export async function ensureMigrations() {
       console.log('Migration 028 result:', e.message);
     }
 
+    // Migration 029: Add recebimento and aliquota_efetiva to simples_nacional_billing
+    try {
+      console.log('Applying migration 029 (simples_nacional_billing columns)...');
+      await db.prepare('ALTER TABLE simples_nacional_billing ADD COLUMN IF NOT EXISTS recebimento DECIMAL(15,2) DEFAULT 0').run();
+      await db.prepare('ALTER TABLE simples_nacional_billing ADD COLUMN IF NOT EXISTS aliquota_efetiva DECIMAL(10,4) DEFAULT 0').run();
+      console.log('Migration 029 applied.');
+    } catch (e: any) {
+      console.log('Migration 029 result:', e.message);
+    }
+
     console.log('Auto-migration check completed.');
   } catch (error) {
     console.error('Auto-migration failed:', error);

@@ -33,12 +33,14 @@ interface SimplesNacionalBillingData {
   company_id: string;
   competence: string;
   rpa_competence: number;
+  recebimento: number;
   rpa_cash: number;
   rpa_accumulated: number;
   payroll_12_months: number;
   rbt12: number;
   rba: number;
   rbaa: number;
+  aliquota_efetiva: number;
 }
 
 export function SimplesNacionalFaturamentoManager() {
@@ -191,10 +193,11 @@ export function SimplesNacionalFaturamentoManager() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-center">Competência</TableHead>
+                  <TableHead className="text-center">Competência (RPA)</TableHead>
                   <TableHead className="text-center">RPA Total</TableHead>
+                  <TableHead className="text-center">Recebimento</TableHead>
                   <TableHead className="text-center">Alíq.Efetiva</TableHead>
-                  <TableHead className="text-center">Folha+Encargos</TableHead>
+                  <TableHead className="text-center">Folha + Encargos</TableHead>
                   <TableHead className="text-center">Folha 12 meses</TableHead>
                   <TableHead className="text-center">RBT12</TableHead>
                   <TableHead className="text-center">RBA</TableHead>
@@ -204,7 +207,7 @@ export function SimplesNacionalFaturamentoManager() {
               <TableBody>
                 {data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={9} className="h-24 text-center">
                       Nenhum dado encontrado.
                     </TableCell>
                   </TableRow>
@@ -213,7 +216,8 @@ export function SimplesNacionalFaturamentoManager() {
                     <TableRow key={row.competence}>
                       <TableCell className="text-center">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
                       <TableCell className="text-center">{formatNumber(row.rpa_competence || 0)}</TableCell>
-                      <TableCell className="text-center">{formatAliquot(row.rpa_cash || 0)}</TableCell>
+                      <TableCell className="text-center">{formatNumber(row.recebimento || 0)}</TableCell>
+                      <TableCell className="text-center">{formatAliquot(row.aliquota_efetiva || row.rpa_cash || 0)}</TableCell>
                       <TableCell className="text-center">{formatNumber(row.rpa_accumulated || 0)}</TableCell>
                       <TableCell className="text-center">{formatNumber(row.payroll_12_months || 0)}</TableCell>
                       <TableCell className="text-center">{formatNumber(row.rbt12 || 0)}</TableCell>
