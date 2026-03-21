@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ReceiptText } from 'lucide-react';
+import { ReceiptText, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function FiscalPage() {
@@ -42,6 +42,23 @@ export default async function FiscalPage() {
           </CardHeader>
           <CardContent>
             <Link href="/admin/fiscal/simples-nacional">
+              <Button className="w-full">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Imposto de Renda
+            </CardTitle>
+            <CardDescription>
+              Tabelas, faixas e cálculos do Imposto de Renda (IRPF).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/imposto-renda">
               <Button className="w-full">Acessar Módulo</Button>
             </Link>
           </CardContent>

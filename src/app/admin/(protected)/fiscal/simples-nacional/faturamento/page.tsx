@@ -8,7 +8,7 @@ export default function FaturamentoPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/admin/fiscal/simples-nacional">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="bg-orange-500 text-white hover:bg-orange-600 border-orange-500">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
