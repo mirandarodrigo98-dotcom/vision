@@ -20,7 +20,7 @@ import { fetchSimplesNacionalBilling, getStoredSimplesNacionalBilling } from '@/
 import { CompanySelector } from '@/components/ui/company-selector';
 import { CompetenceInput } from '@/components/ui/competence-input';
 import { Input } from '@/components/ui/input';
-import { calcularINSSProgressivo } from '@/lib/inss';
+import { calcularINSSProLabore } from '@/lib/inss';
 import { calcularIRRFProLabore } from '@/lib/imposto-renda';
 
 interface SimplesNacionalBillingData {
@@ -239,7 +239,7 @@ export function SimplesNacionalFatorRManager() {
 
   const proLaboreVal = parseFormattedNumber(proLaboreStr);
   const dependentesVal = parseInt(dependentesStr, 10) || 0;
-  const proLaboreINSS = calcularINSSProgressivo(proLaboreVal);
+  const proLaboreINSS = calcularINSSProLabore(proLaboreVal);
   const proLaboreIRRF = calcularIRRFProLabore(proLaboreVal, dependentesVal, proLaboreINSS);
 
   return (
