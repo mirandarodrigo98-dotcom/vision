@@ -68,18 +68,33 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     let interval: NodeJS.Timeout;
     if (isSyncing && !syncResult) {
       setSyncProgress(0);
+      
+      // Estima o tempo baseado na quantidade de registros (ex: 300ms por registro), mínimo de 2s, máximo de 45s
+      const pendingCount = syncStats?.pending || 10;
+      const estimatedTimeMs = Math.min(Math.max(2000, pendingCount * 300), 45000); 
+      
+      // Atualiza a cada 100ms para uma animação mais fluida
+      const intervalMs = 100;
+      const totalStepsTo90 = estimatedTimeMs / intervalMs;
+      const incrementPerStep = 90 / totalStepsTo90;
+
       interval = setInterval(() => {
         setSyncProgress((prev) => {
-          if (prev >= 95) return 95;
-          const increment = Math.random() * 8 + 2;
-          return Math.min(prev + increment, 95);
+          if (prev < 90) {
+            // Cresce proporcionalmente ao tempo estimado até 90%
+            return Math.min(90, prev + incrementPerStep);
+          } else if (prev < 98) {
+            // Se passar do tempo estimado e a resposta ainda não chegou, continua subindo bem devagar até 98%
+            return prev + 0.05;
+          }
+          return prev; // Trava em 98% aguardando o servidor
         });
-      }, 500);
+      }, intervalMs);
     } else if (syncResult) {
       setSyncProgress(100);
     }
     return () => clearInterval(interval);
-  }, [isSyncing, syncResult]);
+  }, [isSyncing, syncResult, syncStats]);
 
   const fetchData = async () => {
     setIsLoading(true);
