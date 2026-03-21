@@ -68,18 +68,18 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
   }
 
   if (startDate) {
-    query += ` AND date(t.created_at) >= date(?)`;
+    query += ` AND t.created_at >= ?`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND date(t.created_at) <= date(?)`;
-    params.push(endDate);
+    query += ` AND t.created_at <= ?`;
+    params.push(endDate + ' 23:59:59');
   }
 
   if (transferDate) {
-    query += ` AND date(t.transfer_date) = date(?)`;
-    params.push(transferDate);
+    query += ` AND t.transfer_date LIKE ?`;
+    params.push(transferDate + '%');
   }
 
   const orderBy = safeSort === 'source_company_name' ? 'sc.nome' : `t.${safeSort}`;

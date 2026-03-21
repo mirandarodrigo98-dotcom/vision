@@ -93,18 +93,18 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
   }
 
   if (startDate) {
-    query += ` AND date(v.created_at) >= date(?)`;
+    query += ` AND v.created_at >= ?`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND date(v.created_at) <= date(?)`;
-    params.push(endDate);
+    query += ` AND v.created_at <= ?`;
+    params.push(endDate + ' 23:59:59');
   }
 
   if (vacationDate) {
-    query += ` AND date(v.start_date) = date(?)`;
-    params.push(vacationDate);
+    query += ` AND v.start_date LIKE ?`;
+    params.push(vacationDate + '%');
   }
 
   const orderBy = safeSort === 'company_name' ? 'cc.nome' : 

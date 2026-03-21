@@ -272,17 +272,18 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     try {
       let parsed: Date;
       if (dateVal instanceof Date) {
-        parsed = dateVal;
+        // Prevent timezone shift for midnight UTC dates
+        parsed = new Date(dateVal.getUTCFullYear(), dateVal.getUTCMonth(), dateVal.getUTCDate());
       } else if (typeof dateVal === 'string') {
-        // Handle "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" or ISO strings
         const cleanDateStr = dateVal.trim();
         if (cleanDateStr.includes('T')) {
-          parsed = new Date(cleanDateStr);
+          // Extract just the date part to avoid timezone shift
+          const datePart = cleanDateStr.split('T')[0];
+          parsed = new Date(datePart + 'T12:00:00');
         } else if (cleanDateStr.length === 10) {
           // YYYY-MM-DD
           parsed = new Date(cleanDateStr + 'T12:00:00');
         } else {
-          // Maybe YYYY-MM-DD HH:mm:ss
           parsed = new Date(cleanDateStr.replace(' ', 'T'));
         }
       } else {

@@ -2,7 +2,6 @@
 
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { fetchQuestorZenCompany } from './questor-zen';
 import { executeQuestorProcess } from './questor-syn';
 
 const parseQuestorNumber = (val: any): number => {
@@ -61,7 +60,7 @@ export interface QuestorCompanyData {
     cep: string;
   };
   socios: QuestorSocioData[];
-  source: 'zen' | 'syn';
+  source: 'syn';
   raw?: any; // To store raw data from Questor
 }
 
@@ -85,41 +84,30 @@ export interface QuestorSocioData {
   is_representative?: boolean;
 }
 
-export async function fetchCompanyFromQuestor(identifier: string, source: 'zen' | 'syn') {
+export async function fetchCompanyFromQuestor(identifier: string) {
   try {
     let normalizedData: QuestorCompanyData | null = null;
 
-    if (source === 'zen') {
-      const cleanCode = identifier.replace(/\D/g, '');
-      if (cleanCode.length < 11) {
-        return { error: 'Para integração com Questor Zen, é necessário informar o CNPJ completo (14 dígitos).' };
-      }
-      
-      const result = await fetchQuestorZenCompany(identifier);
-      if (result.error) return { error: result.error };
-      
-      normalizedData = normalizeZenData(result.data, identifier);
-    } else {
-      // SYN Integration via Custom Process (Questor Vision Routines)
-      // Uses the same pattern as Employee Import to avoid permission errors
-      
-      // Routine 1: Company Data
-      // Requires a configured Questor Routine named 'EmpresasVision'
-      const companyRoutine = 'EmpresasVision';
-      const companyResult = await executeQuestorProcess(companyRoutine, {
-          "E.CODIGOEMPRESA": identifier
-      });
+    // SYN Integration via Custom Process (Questor Vision Routines)
+    // Uses the same pattern as Employee Import to avoid permission errors
+    
+    // Routine 1: Company Data
+    // Requires a configured Questor Routine named 'EmpresasVision'
+    const companyRoutine = 'EmpresasVision';
+    const companyResult = await executeQuestorProcess(companyRoutine, {
+        "E.CODIGOEMPRESA": identifier
+    });
 
-      if (companyResult.error) {
-        return { error: `Erro ao buscar empresa: ${companyResult.error}` };
-      }
+    if (companyResult.error) {
+      return { error: `Erro ao buscar empresa: ${companyResult.error}` };
+    }
 
-      const companies = companyResult.data as any[];
-      if (!companies || companies.length === 0) {
-         return { error: `Empresa não encontrada (Cód: ${identifier}). Verifique se o código está correto e se a rotina ${companyRoutine} está configurada.` };
-      }
-      
-      const companyRow = companies[0];
+    const companies = companyResult.data as any[];
+    if (!companies || companies.length === 0) {
+       return { error: `Empresa não encontrada (Cód: ${identifier}). Verifique se o código está correto e se a rotina ${companyRoutine} está configurada.` };
+    }
+    
+    const companyRow = companies[0];
 
       const cleanQuestorString = (val: any) => {
         if (!val) return '';
@@ -300,7 +288,6 @@ export async function fetchCompanyFromQuestor(identifier: string, source: 'zen' 
         source: 'syn',
         raw: cleanRaw
       };
-    }
 
     if (!normalizedData) {
         return { error: 'Falha ao normalizar dados da empresa.' };
@@ -352,49 +339,6 @@ export async function fetchCompanyFromQuestor(identifier: string, source: 'zen' 
     console.error('Fetch Company Error:', error);
     return { error: error.message || 'Erro ao buscar empresa no Questor.' };
   }
-}
-
-function normalizeZenData(zenData: any, identifier: string): QuestorCompanyData {
-    const rawSocios = zenData.Socios || zenData.socios || [];
-    
-    const socios: QuestorSocioData[] = Array.isArray(rawSocios) ? rawSocios.map((s: any) => ({
-        nome: s.Nome || s.nome,
-        cpf: s.Cpf || s.cpf || s.cpfCnpj || s.InscricaoFederal,
-        percentual: parseQuestorNumber(s.Percentual || s.participacao || '0'),
-        // Zen might provide address for socios, but we map basic info for now
-        logradouro: s.Logradouro || s.logradouro,
-        numero: s.Numero || s.numero,
-        complemento: s.Complemento || s.complemento,
-        bairro: s.Bairro || s.bairro,
-        municipio: s.Cidade || s.cidade,
-        uf: s.Estado || s.estado,
-        cep: s.Cep || s.cep
-    })) : [];
-
-    return {
-        company: {
-            code: zenData.CompanyId || zenData.codigo || identifier,
-            name: zenData.Nome || zenData.nome || zenData.razaoSocial || zenData.nomeFantasia,
-            razao_social: zenData.Nome || zenData.razaoSocial || zenData.nome,
-            cnpj: zenData.InscricaoFederal || zenData.cnpj || zenData.cpfCnpj,
-            data_abertura: zenData.DataInicioRegime || zenData.dataAbertura,
-            email: zenData.Email || zenData.email,
-            telefone: zenData.Telefone || zenData.telefone,
-            capital_social: parseQuestorNumber(zenData.CapitalSocial || zenData.capitalSocial || zenData.capital)
-        },
-        address: {
-            tipo_logradouro: zenData.TipoLogradouro || zenData.tipoLogradouro || zenData.tipo,
-            logradouro: zenData.Logradouro || zenData.logradouro || zenData.endereco,
-            numero: zenData.Numero || zenData.numero,
-            complemento: zenData.Complemento || zenData.complemento,
-            bairro: zenData.Bairro || zenData.bairro,
-            cidade: zenData.Cidade || zenData.cidade,
-            uf: zenData.Estado || zenData.uf || zenData.estado,
-            cep: zenData.Cep || zenData.cep
-        },
-        socios,
-        source: 'zen'
-    };
 }
 
 

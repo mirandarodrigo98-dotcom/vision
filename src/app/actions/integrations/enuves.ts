@@ -853,8 +853,24 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
     // 2. Generate CSV Content
     const header = 'DATA;DÉBITO;CRÉDITO;HISTÓRICO;DESCRIÇÃO; VALOR';
     const rows = transactions.map(t => {
-      const date = new Date(t.date);
-      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      let parsedDate: Date;
+      if (t.date instanceof Date) {
+        parsedDate = new Date(t.date.getUTCFullYear(), t.date.getUTCMonth(), t.date.getUTCDate());
+      } else if (typeof t.date === 'string') {
+        const cleanDateStr = t.date.trim();
+        if (cleanDateStr.includes('T')) {
+          const datePart = cleanDateStr.split('T')[0];
+          parsedDate = new Date(datePart + 'T12:00:00');
+        } else if (cleanDateStr.length === 10) {
+          parsedDate = new Date(cleanDateStr + 'T12:00:00');
+        } else {
+          parsedDate = new Date(cleanDateStr.replace(' ', 'T'));
+        }
+      } else {
+        parsedDate = new Date(t.date);
+      }
+      
+      const formattedDate = `${String(parsedDate.getDate()).padStart(2, '0')}/${String(parsedDate.getMonth() + 1).padStart(2, '0')}/${parsedDate.getFullYear()}`;
       
       const value = parseFloat(t.value);
       const absValue = Math.abs(value);

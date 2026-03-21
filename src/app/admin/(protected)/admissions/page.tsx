@@ -78,8 +78,8 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   }
 
   if (admissionDate) {
-    query += ` AND date(ar.admission_date) = date(?)`;
-    params.push(admissionDate);
+    query += ` AND ar.admission_date LIKE ?`;
+    params.push(admissionDate + '%');
   }
 
   if (status && status !== 'all') {
@@ -93,13 +93,24 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   const admissionsData = await db.prepare(query).all(...params) as any[];
 
   // Serialize dates
+  const safeToISOString = (dateVal: any) => {
+    if (!dateVal) return null;
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString();
+    } catch (e) {
+      return null;
+    }
+  };
+
   const admissions = admissionsData.map(adm => ({
     ...adm,
-    admission_date: adm.admission_date ? new Date(adm.admission_date).toISOString() : null,
-    created_at: adm.created_at ? new Date(adm.created_at).toISOString() : null,
-    updated_at: adm.updated_at ? new Date(adm.updated_at).toISOString() : null,
-    submitted_at: adm.submitted_at ? new Date(adm.submitted_at).toISOString() : null,
-    emailed_at: adm.emailed_at ? new Date(adm.emailed_at).toISOString() : null,
+    admission_date: safeToISOString(adm.admission_date),
+    created_at: safeToISOString(adm.created_at),
+    updated_at: safeToISOString(adm.updated_at),
+    submitted_at: safeToISOString(adm.submitted_at),
+    emailed_at: safeToISOString(adm.emailed_at),
   }));
 
   return (

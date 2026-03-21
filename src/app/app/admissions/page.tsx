@@ -30,8 +30,8 @@ export default async function AdmissionsListPage() {
       return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa para visualizar as admissões.</div>;
   }
 
-  const admissions = await db.prepare(`
-    SELECT a.*, to_char(a.admission_date::date, 'YYYY-MM-DD') as admission_date, c.nome as company_name
+  const admissionsData = await db.prepare(`
+    SELECT a.*, c.nome as company_name
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
     WHERE a.company_id = ?
@@ -40,13 +40,18 @@ export default async function AdmissionsListPage() {
     id: string;
     employee_full_name: string;
     job_role: string;
-    admission_date: string;
+    admission_date: string | null;
     status: string;
     protocol_number: string;
     created_at: string;
     company_name: string;
     created_by_user_id: string;
   }>;
+
+  const admissions = admissionsData.map(adm => ({
+      ...adm,
+      admission_date: adm.admission_date ? adm.admission_date.split('T')[0] : null
+  }));
 
   return (
     <div className="space-y-6">

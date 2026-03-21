@@ -265,22 +265,38 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     }
   };
 
+  const safeFormatDate = (dateVal: any) => {
+    if (!dateVal) return '-';
+    try {
+      let parsed: Date;
+      if (dateVal instanceof Date) {
+        parsed = new Date(dateVal.getUTCFullYear(), dateVal.getUTCMonth(), dateVal.getUTCDate());
+      } else if (typeof dateVal === 'string') {
+        const cleanDateStr = dateVal.trim();
+        if (cleanDateStr.includes('T')) {
+          const datePart = cleanDateStr.split('T')[0];
+          parsed = new Date(datePart + 'T12:00:00');
+        } else if (cleanDateStr.length === 10) {
+          parsed = new Date(cleanDateStr + 'T12:00:00');
+        } else {
+          parsed = new Date(cleanDateStr.replace(' ', 'T'));
+        }
+      } else {
+        parsed = new Date(dateVal);
+      }
+      return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : '-';
+    } catch (e) {
+      return '-';
+    }
+  };
+
   const getPeriodText = () => {
     const f = filters as any;
     if (f.startDate && f.endDate) {
-        const start = new Date(f.startDate + 'T12:00:00');
-        const end = new Date(f.endDate + 'T12:00:00');
-        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-            return `${format(start, 'dd/MM/yyyy')} a ${format(end, 'dd/MM/yyyy')}`;
-        }
+        return `${safeFormatDate(f.startDate)} a ${safeFormatDate(f.endDate)}`;
     }
     if (syncStats?.minDate && syncStats?.maxDate) {
-        // Parse dates which might come as strings from DB
-        const min = new Date(syncStats.minDate + 'T12:00:00');
-        const max = new Date(syncStats.maxDate + 'T12:00:00');
-        if (!isNaN(min.getTime()) && !isNaN(max.getTime())) {
-            return `${format(min, 'dd/MM/yyyy')} a ${format(max, 'dd/MM/yyyy')}`;
-        }
+        return `${safeFormatDate(syncStats.minDate)} a ${safeFormatDate(syncStats.maxDate)}`;
     }
     return 'Todos os lançamentos filtrados';
   };
@@ -523,9 +539,7 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                     />
                   </TableCell>
                   <TableCell>
-                    {t.date && !isNaN(new Date(t.date + 'T12:00:00').getTime()) 
-                      ? format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy') 
-                      : '-'}
+                    {safeFormatDate(t.date)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">

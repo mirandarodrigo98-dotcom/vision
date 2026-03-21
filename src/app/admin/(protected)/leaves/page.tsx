@@ -69,18 +69,18 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
   }
 
   if (startDate) {
-    query += ` AND date(l.created_at) >= date(?)`;
+    query += ` AND l.created_at >= ?`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND date(l.created_at) <= date(?)`;
-    params.push(endDate);
+    query += ` AND l.created_at <= ?`;
+    params.push(endDate + ' 23:59:59');
   }
 
   if (leaveDate) {
-    query += ` AND date(l.start_date) = date(?)`;
-    params.push(leaveDate);
+    query += ` AND l.start_date LIKE ?`;
+    params.push(leaveDate + '%');
   }
 
   const orderBy = safeSort === 'company_name' ? 'sc.nome' : 

@@ -1322,9 +1322,25 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
         continue; // Invalid date components
       }
 
-      // Column D - Categoria
-      const categoria = row[3] || '';
-      if (categoria.toUpperCase().includes('TRANSFERÊNCIAS/DEPÓSITOS')) {
+      // Column D - Categoria (remover zeros à esquerda e espaços extras)
+      let categoria = row[3] || '';
+      categoria = categoria.trim();
+      
+      // Extract code and name if format is like "0000002654 DÍZIMOS"
+      let categoryCode = '';
+      let categoryName = categoria;
+      
+      const catMatch = categoria.match(/^(\d+)\s+(.+)$/);
+      if (catMatch) {
+        categoryCode = catMatch[1].replace(/^0+/, '');
+        if (!categoryCode) categoryCode = '0';
+        categoryName = catMatch[2].trim();
+      } else {
+        categoria = categoria.replace(/^0+/, '').trim();
+        categoryName = categoria;
+      }
+
+      if (categoryName.toUpperCase().includes('TRANSFERÊNCIAS/DEPÓSITOS')) {
         continue;
       }
 
@@ -1347,12 +1363,19 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
 
       // Match Category
       let categoryId = null;
-      let categoryName = categoria;
+      let finalCategoryName = categoryName;
       
-      let matchedCat = categories.find(c => c.description.toUpperCase() === categoria.toUpperCase());
+      let matchedCat = null;
+      if (categoryCode && categoryCode !== '0') {
+        matchedCat = categories.find(c => c.integration_code === categoryCode);
+      }
+      if (!matchedCat) {
+        matchedCat = categories.find(c => c.description.toUpperCase() === categoryName.toUpperCase());
+      }
+
       if (matchedCat) {
         categoryId = matchedCat.id;
-        categoryName = matchedCat.description;
+        finalCategoryName = matchedCat.description;
       }
 
       // Match Account
@@ -1368,7 +1391,7 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
         transactionsToInsert.push({
             company_id: targetCompanyId,
             category_id: categoryId,
-            categoryName: categoryName,
+            categoryName: finalCategoryName,
             account_id: accountId,
             accountName: accountName,
             date: convertDate(dateStr),
@@ -1381,7 +1404,7 @@ export async function parseEklesiaCsv(formData: FormData, companyId: string) {
             date: convertDate(dateStr),
             value: valor,
             isNegative: isNegative,
-            originalCategory: categoria,
+            originalCategory: categoryName,
             reason: 'Categoria não encontrada ou não cadastrada no sistema',
             line: `${historico} - Categoria Original: ${categoria}`
         });
@@ -1550,10 +1573,26 @@ export async function exportTransactionsCsv(
         const rows = transactions.map(t => [
             t.date ? (() => {
               try {
-                const parsed = t.date instanceof Date 
-                  ? t.date 
-                  : (typeof t.date === 'string' ? (t.date.includes('T') ? new Date(t.date) : new Date(t.date + 'T12:00:00')) : new Date(t.date));
-                return !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('pt-BR') : '';
+                let parsed: Date;
+                if (t.date instanceof Date) {
+                  parsed = new Date(t.date.getUTCFullYear(), t.date.getUTCMonth(), t.date.getUTCDate());
+                } else if (typeof t.date === 'string') {
+                  const cleanDateStr = t.date.trim();
+                  if (cleanDateStr.includes('T')) {
+                    const datePart = cleanDateStr.split('T')[0];
+                    parsed = new Date(datePart + 'T12:00:00');
+                  } else if (cleanDateStr.length === 10) {
+                    parsed = new Date(cleanDateStr + 'T12:00:00');
+                  } else {
+                    parsed = new Date(cleanDateStr.replace(' ', 'T'));
+                  }
+                } else {
+                  parsed = new Date(t.date);
+                }
+                const day = String(parsed.getDate()).padStart(2, '0');
+                const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                const year = parsed.getFullYear();
+                return !isNaN(parsed.getTime()) ? `${day}/${month}/${year}` : '';
               } catch (e) {
                 return '';
               }

@@ -93,13 +93,13 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     params.push(status);
   }
 
-  // Handle special case for company_name sorting and numeric code sorting
+  // Handle special case for company_name sorting
   let orderBy = `e.${safeSort}`;
   
   if (safeSort === 'company_name') {
     orderBy = 'c.nome';
   } else if (safeSort === 'code') {
-    orderBy = 'CAST(e.code AS INTEGER)';
+    orderBy = 'e.code';
   }
   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
@@ -120,12 +120,23 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   }>;
 
   // Serialize dates to strings to avoid "Server Components render" error with Date objects
+  const safeToISOString = (dateVal: any) => {
+    if (!dateVal) return null;
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString();
+    } catch (e) {
+      return null;
+    }
+  };
+
   const employees = employeesData.map(emp => ({
     ...emp,
-    admission_date: emp.admission_date ? new Date(emp.admission_date).toISOString() : null,
-    created_at: emp.created_at ? new Date(emp.created_at).toISOString() : null,
-    updated_at: emp.updated_at ? new Date(emp.updated_at).toISOString() : null,
-    birth_date: emp.birth_date ? new Date(emp.birth_date).toISOString() : null,
+    admission_date: safeToISOString(emp.admission_date),
+    created_at: safeToISOString(emp.created_at),
+    updated_at: safeToISOString(emp.updated_at),
+    birth_date: safeToISOString(emp.birth_date),
   }));
 
   return (

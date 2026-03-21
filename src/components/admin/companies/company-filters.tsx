@@ -1,11 +1,13 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Search } from 'lucide-react';
+import { X, Search, Loader2 } from 'lucide-react';
+import { searchCompanies } from '@/app/actions/search-companies';
+import { useDebounce } from 'use-debounce';
 
 export function CompanyFilters() {
   const router = useRouter();
@@ -18,6 +20,49 @@ export function CompanyFilters() {
     code: searchParams.get('code') || '',
     status: searchParams.get('status') || 'all',
   });
+
+  // Company Autocomplete State
+  const [companySuggestions, setCompanySuggestions] = useState<{id: string, razao_social: string}[]>([]);
+  const [isSearchingCompany, setIsSearchingCompany] = useState(false);
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+  const [debouncedCompany] = useDebounce(filters.razao_social, 300);
+  const companyWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+        if (companyWrapperRef.current && !companyWrapperRef.current.contains(event.target as Node)) {
+            setShowCompanySuggestions(false);
+        }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Fetch company suggestions
+  useEffect(() => {
+    const fetchCompanies = async () => {
+        if (debouncedCompany.length >= 3) {
+            setIsSearchingCompany(true);
+            try {
+                const results = await searchCompanies(debouncedCompany);
+                setCompanySuggestions(results);
+                setShowCompanySuggestions(true);
+            } catch (error) {
+                console.error("Error searching companies:", error);
+            } finally {
+                setIsSearchingCompany(false);
+            }
+        } else {
+            setCompanySuggestions([]);
+            setShowCompanySuggestions(false);
+        }
+    };
+
+    fetchCompanies();
+  }, [debouncedCompany]);
 
   const handleFilter = () => {
     const params = new URLSearchParams();
@@ -52,25 +97,48 @@ export function CompanyFilters() {
 
   return (
     <div className="space-y-4 bg-white p-4 rounded-md border mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Razão Social */}
-        <div className="space-y-2">
+        <div className="space-y-2 relative" ref={companyWrapperRef}>
             <label className="text-sm font-medium">Razão Social</label>
-            <Input 
-                placeholder="Razão Social" 
-                value={filters.razao_social} 
-                onChange={(e) => handleFilterChange('razao_social', e.target.value)} 
-            />
-        </div>
-
-        {/* CNPJ */}
-        <div className="space-y-2">
-            <label className="text-sm font-medium">CNPJ</label>
-            <Input 
-                placeholder="00.000.000/0000-00" 
-                value={filters.cnpj} 
-                onChange={(e) => handleFilterChange('cnpj', e.target.value)} 
-            />
+            <div className="relative">
+                <Input 
+                    placeholder="Razão Social (min 3 chars)" 
+                    value={filters.razao_social} 
+                    onChange={(e) => {
+                        handleFilterChange('razao_social', e.target.value);
+                        setShowCompanySuggestions(true);
+                    }}
+                    onFocus={() => {
+                        if (filters.razao_social.length >= 3) setShowCompanySuggestions(true);
+                    }}
+                    className="pr-8"
+                />
+                {isSearchingCompany && (
+                    <div className="absolute right-2 top-2.5">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                )}
+            </div>
+            
+            {showCompanySuggestions && companySuggestions.length > 0 && (
+                <div className="absolute z-50 w-full bg-white border border-gray-200 shadow-lg rounded-md mt-1 max-h-60 overflow-y-auto">
+                    <ul className="p-1">
+                        {companySuggestions.map((company) => (
+                            <li 
+                                key={company.id}
+                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                onClick={() => {
+                                    handleFilterChange('razao_social', company.razao_social);
+                                    setShowCompanySuggestions(false);
+                                }}
+                            >
+                                {company.razao_social}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
 
         {/* Nome Fantasia */}
@@ -83,6 +151,18 @@ export function CompanyFilters() {
             />
         </div>
 
+        {/* CNPJ */}
+        <div className="space-y-2">
+            <label className="text-sm font-medium">CNPJ</label>
+            <Input 
+                placeholder="00.000.000/0000-00" 
+                value={filters.cnpj} 
+                onChange={(e) => handleFilterChange('cnpj', e.target.value)} 
+            />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Código */}
         <div className="space-y-2">
             <label className="text-sm font-medium">Código</label>

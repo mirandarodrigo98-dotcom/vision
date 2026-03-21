@@ -33,7 +33,6 @@ export function QuestorCompanyImport() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'search' | 'select'>('search');
   const [identifier, setIdentifier] = useState('');
-  const [source, setSource] = useState<'syn'>('syn');
   const [fetchedCompanies, setFetchedCompanies] = useState<QuestorCompanyData[]>([]);
   const [selectedCompanyCode, setSelectedCompanyCode] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -65,7 +64,7 @@ export function QuestorCompanyImport() {
 
     setLoading(true);
     try {
-      const result = await fetchCompanyFromQuestor(identifier, source);
+      const result = await fetchCompanyFromQuestor(identifier);
       
       if (result.error) {
         toast.error(result.error);

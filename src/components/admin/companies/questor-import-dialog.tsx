@@ -33,7 +33,6 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
   const [fetchedData, setFetchedData] = useState<QuestorCompanyData | null>(null);
   const [importSocios, setImportSocios] = useState(true);
   const [selectedSocioIndex, setSelectedSocioIndex] = useState<number | null>(null);
-  const [source, setSource] = useState<'zen' | 'syn'>('zen');
 
   const resetState = () => {
     setStep('input');
@@ -58,7 +57,7 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
 
     setLoading(true);
     try {
-        const result = await fetchCompanyFromQuestor(companyCode, source);
+        const result = await fetchCompanyFromQuestor(companyCode);
         
         if (result.error) {
             toast.error(result.error);
@@ -219,9 +218,9 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            {mode === 'company' ? 'Questor SYN' : 'Importar do Questor'}
+          <Button variant="outline" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Questor SYN
           </Button>
         )}
       </DialogTrigger>
@@ -238,41 +237,24 @@ export function QuestorImportDialog({ mode, onImport, trigger }: QuestorImportDi
         <div className="py-4">
           {step === 'input' && (
             <div className="grid gap-4">
-              <div className="flex justify-center mb-4">
-                 <Tabs value={source} onValueChange={(v) => setSource(v as 'zen' | 'syn')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="zen">Questor Zen (Recomendado)</TabsTrigger>
-                        <TabsTrigger value="syn">nWeb (Legacy)</TabsTrigger>
-                    </TabsList>
-                 </Tabs>
-              </div>
-
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="company-code" className="text-right">
-                  {source === 'zen' ? 'CNPJ' : 'Cód. Empresa'}
+                  Cód. Empresa
                 </Label>
                 <div className="col-span-3">
                   <Input
                     id="company-code"
                     value={companyCode}
                     onChange={(e) => {
-                        let val = e.target.value;
-                        if (source === 'zen') {
-                            // Restrict to numbers only for Zen (CNPJ)
-                            val = val.replace(/\D/g, '');
-                        }
-                        setCompanyCode(val);
+                        setCompanyCode(e.target.value);
                     }}
-                    placeholder={source === 'zen' ? "Ex: 12345678000199 (Apenas Números)" : "Ex: 123"}
+                    placeholder="Ex: 123"
                     onKeyDown={(e) => e.key === 'Enter' && handleSync()}
-                    maxLength={source === 'zen' ? 14 : undefined}
                   />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground text-center px-4">
-                 {source === 'zen' 
-                    ? 'Busca dados no Gerenciador de Empresas (Zen) via API. É obrigatório informar o CNPJ.' 
-                    : 'Busca dados diretamente no Questor SYN/nWeb (requer permissão de usuário).'}
+                 Busca dados diretamente no Questor SYN.
               </p>
             </div>
           )}

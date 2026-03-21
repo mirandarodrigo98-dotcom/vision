@@ -92,18 +92,18 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   }
 
   if (startDate) {
-    query += ` AND date(d.created_at) >= date(?)`;
+    query += ` AND d.created_at >= ?`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND date(d.created_at) <= date(?)`;
-    params.push(endDate);
+    query += ` AND d.created_at <= ?`;
+    params.push(endDate + ' 23:59:59');
   }
 
   if (dismissalDate) {
-    query += ` AND date(d.dismissal_date) = date(?)`;
-    params.push(dismissalDate);
+    query += ` AND d.dismissal_date LIKE ?`;
+    params.push(dismissalDate + '%');
   }
 
   const orderBy = safeSort === 'company_name' ? 'cc.nome' : 

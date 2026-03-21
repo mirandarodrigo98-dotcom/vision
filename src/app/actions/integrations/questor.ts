@@ -178,11 +178,14 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
     const errors: string[] = [];
     transactions.forEach((t: any) => {
         const isEntrada = t.category_nature === 'Entrada';
-        const hasDebit = isEntrada ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
-        const hasCredit = isEntrada ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
+        const debitCode = isEntrada ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
+        const creditCode = isEntrada ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
+        
+        const hasDebit = debitCode !== null && debitCode !== undefined && debitCode !== '';
+        const hasCredit = creditCode !== null && creditCode !== undefined && creditCode !== '';
         
         if (!hasDebit || !hasCredit) {
-            errors.push(`Lançamento de ${t.value} em ${t.date} sem códigos de integração (Conta/Categoria).`);
+            errors.push(`Lançamento de ${t.value || t.amount || '0'} em ${t.date} sem códigos de integração (Conta/Categoria).`);
         }
     });
 
@@ -202,12 +205,46 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
     // Col 8: Valor
     
     const lines = transactions.map((t: any) => {
-      const date = new Date(t.date);
-      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      // Handle both YYYY-MM-DD strings and Date objects properly avoiding timezone shifts
+      let day, month, year;
+      const dateVal = t.date;
+
+      if (dateVal instanceof Date) {
+        day = String(dateVal.getUTCDate()).padStart(2, '0');
+        month = String(dateVal.getUTCMonth() + 1).padStart(2, '0');
+        year = dateVal.getUTCFullYear();
+      } else if (typeof dateVal === 'string') {
+        if (dateVal.includes('T')) {
+          const d = new Date(dateVal);
+          day = String(d.getUTCDate()).padStart(2, '0');
+          month = String(d.getUTCMonth() + 1).padStart(2, '0');
+          year = d.getUTCFullYear();
+        } else {
+          const parts = dateVal.split('-');
+          if (parts.length === 3) {
+            year = parts[0];
+            month = parts[1];
+            day = parts[2];
+          } else {
+            const d = new Date(dateVal);
+            day = String(d.getUTCDate()).padStart(2, '0');
+            month = String(d.getUTCMonth() + 1).padStart(2, '0');
+            year = d.getUTCFullYear();
+          }
+        }
+      } else {
+        // Fallback
+        const d = new Date();
+        day = String(d.getDate()).padStart(2, '0');
+        month = String(d.getMonth() + 1).padStart(2, '0');
+        year = d.getFullYear();
+      }
       
-      const value = parseFloat(t.value);
+      const formattedDate = `${day}/${month}/${year}`;
+          
+          const value = parseFloat(t.value || t.amount || '0');
       const absValue = Math.abs(value);
-      const formattedValue = absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const formattedValue = isNaN(absValue) ? '0,00' : absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const categoryCode = t.category_integration_code || t.category_code || '';
       const accountCode = t.account_integration_code || t.account_code || '';
@@ -334,6 +371,16 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
              const errText = await response.text();
              console.error('Questor SYN Error:', errText);
              return { error: `Erro na API Questor SYN: ${response.status} - ${errText}` };
+        }
+        
+        const responseData = await response.json().catch(() => null);
+        if (responseData) {
+            // Check for known error fields in Questor SYN response
+            if (responseData.Erro || responseData.MensagemErro || (responseData.Sucesso === false)) {
+                 const errMsg = responseData.Erro || responseData.MensagemErro || JSON.stringify(responseData);
+                 console.error('Questor SYN Logical Error:', errMsg);
+                 return { error: `Erro retornado pelo Questor SYN: ${errMsg}` };
+            }
         }
         
         // Success handling
@@ -474,11 +521,14 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
     const errors: string[] = [];
     transactions.forEach((t: any) => {
         const isEntrada = t.category_nature === 'Entrada';
-        const hasDebit = isEntrada ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
-        const hasCredit = isEntrada ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
+        const debitCode = isEntrada ? (t.account_integration_code || t.account_code) : (t.category_integration_code || t.category_code);
+        const creditCode = isEntrada ? (t.category_integration_code || t.category_code) : (t.account_integration_code || t.account_code);
+        
+        const hasDebit = debitCode !== null && debitCode !== undefined && debitCode !== '';
+        const hasCredit = creditCode !== null && creditCode !== undefined && creditCode !== '';
         
         if (!hasDebit || !hasCredit) {
-            errors.push(`Lançamento de ${t.value} em ${t.date} sem códigos de integração (Conta/Categoria).`);
+            errors.push(`Lançamento de ${t.value || t.amount || '0'} em ${t.date} sem códigos de integração (Conta/Categoria).`);
         }
     });
 
@@ -488,12 +538,46 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
 
     // 3. Generate Content (Posicional CSV aligned with NLI Layout)
     const lines = transactions.map((t: any) => {
-      const date = new Date(t.date);
-      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      // Handle both YYYY-MM-DD strings and Date objects properly avoiding timezone shifts
+      let day, month, year;
+      const dateVal = t.date;
+
+      if (dateVal instanceof Date) {
+        day = String(dateVal.getUTCDate()).padStart(2, '0');
+        month = String(dateVal.getUTCMonth() + 1).padStart(2, '0');
+        year = dateVal.getUTCFullYear();
+      } else if (typeof dateVal === 'string') {
+        if (dateVal.includes('T')) {
+          const d = new Date(dateVal);
+          day = String(d.getUTCDate()).padStart(2, '0');
+          month = String(d.getUTCMonth() + 1).padStart(2, '0');
+          year = d.getUTCFullYear();
+        } else {
+          const parts = dateVal.split('-');
+          if (parts.length === 3) {
+            year = parts[0];
+            month = parts[1];
+            day = parts[2];
+          } else {
+            const d = new Date(dateVal);
+            day = String(d.getUTCDate()).padStart(2, '0');
+            month = String(d.getUTCMonth() + 1).padStart(2, '0');
+            year = d.getUTCFullYear();
+          }
+        }
+      } else {
+        // Fallback
+        const d = new Date();
+        day = String(d.getDate()).padStart(2, '0');
+        month = String(d.getMonth() + 1).padStart(2, '0');
+        year = d.getFullYear();
+      }
       
-      const value = parseFloat(t.value);
+      const formattedDate = `${day}/${month}/${year}`;
+      
+      const value = parseFloat(t.value || t.amount || '0');
       const absValue = Math.abs(value);
-      const formattedValue = absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const formattedValue = isNaN(absValue) ? '0,00' : absValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const categoryCode = t.category_integration_code || t.category_code || '';
       const accountCode = t.account_integration_code || t.account_code || '';
@@ -615,6 +699,16 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
              const errText = await response.text();
              console.error('Questor SYN Error:', errText);
              return { error: `Erro na API Questor SYN: ${response.status} - ${errText}` };
+        }
+
+        const responseData = await response.json().catch(() => null);
+        if (responseData) {
+            // Check for known error fields in Questor SYN response
+            if (responseData.Erro || responseData.MensagemErro || (responseData.Sucesso === false) || (responseData.Status === 'Erro')) {
+                 const errMsg = responseData.Erro || responseData.MensagemErro || responseData.Mensagem || JSON.stringify(responseData);
+                 console.error('Questor SYN Logical Error:', errMsg);
+                 return { error: `Erro retornado pelo Questor SYN: ${errMsg}` };
+            }
         }
         
         // Success handling

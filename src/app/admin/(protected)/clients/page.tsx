@@ -88,8 +88,8 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     query += ' AND c.is_active = 0';
   }
 
-  // Use CAST to sort numerically if sorting by code
-  const orderBy = safeSort === 'code' ? 'CAST(code AS INTEGER)' : safeSort;
+  // Use CAST to sort numerically if sorting by code, but we use string sort to avoid postgres errors with non-numeric codes
+  const orderBy = safeSort === 'code' ? 'code' : safeSort;
 
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
