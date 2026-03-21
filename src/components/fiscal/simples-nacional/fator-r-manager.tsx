@@ -108,19 +108,21 @@ export function SimplesNacionalFatorRManager() {
 
   // Helpers to format currency and percentage
   const formatNumber = (value: number) => {
+    const safeValue = isNaN(value) || !value ? 0 : value;
     return new Intl.NumberFormat('pt-BR', {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(value || 0);
+    }).format(safeValue);
   };
 
   const formatPercent = (value: number) => {
+    const safeValue = isNaN(value) || !value ? 0 : value;
     return new Intl.NumberFormat('pt-BR', {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(value || 0) + '%';
+    }).format(safeValue) + '%';
   };
 
   const parseFormattedNumber = (valueStr: string) => {
@@ -161,8 +163,8 @@ export function SimplesNacionalFatorRManager() {
       const compStr = format(simDate, 'yyyy-MM');
       
       const last12 = fullTimeline.slice(-12);
-      const avgRpa = last12.reduce((acc, curr) => acc + curr.rpa_competence, 0) / 12;
-      const avgFolha = last12.reduce((acc, curr) => acc + curr.rpa_accumulated, 0) / 12;
+      const avgRpa = last12.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0) / 12;
+      const avgFolha = last12.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0) / 12;
 
       const custom = customSims[compStr] || {};
       const customRpaVal = custom.rpa !== undefined ? parseFormattedNumber(custom.rpa) : avgRpa;
@@ -171,8 +173,8 @@ export function SimplesNacionalFatorRManager() {
       const finalRpa = customRpaVal;
       const finalFolha = customFolhaVal;
 
-      const rbt12 = last12.reduce((acc, curr) => acc + curr.rpa_competence, 0);
-      const folha12 = last12.reduce((acc, curr) => acc + curr.rpa_accumulated, 0);
+      const rbt12 = last12.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0);
+      const folha12 = last12.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0);
       const fatorR = rbt12 > 0 ? (folha12 / rbt12) * 100 : 0;
 
       simRows.push({
@@ -278,10 +280,10 @@ export function SimplesNacionalFatorRManager() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-center">Competência</TableHead>
-                      <TableHead className="text-right">RPA Total</TableHead>
-                      <TableHead className="text-right">RBT12</TableHead>
-                      <TableHead className="text-right">Folha+Encargos</TableHead>
-                      <TableHead className="text-right">Folha 12M</TableHead>
+                      <TableHead className="text-center">RPA Total</TableHead>
+                      <TableHead className="text-center">RBT12</TableHead>
+                      <TableHead className="text-center">Folha+Encargos</TableHead>
+                      <TableHead className="text-center">Folha 12M</TableHead>
                       <TableHead className="text-center">Fator R</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -291,10 +293,10 @@ export function SimplesNacionalFatorRManager() {
                       return (
                         <TableRow key={row.competence}>
                           <TableCell className="text-center font-medium">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
-                          <TableCell className="text-right">{formatNumber(row.rpa_competence || 0)}</TableCell>
-                          <TableCell className="text-right">{formatNumber(row.rbt12 || 0)}</TableCell>
-                          <TableCell className="text-right">{formatNumber(row.rpa_accumulated || 0)}</TableCell>
-                          <TableCell className="text-right">{formatNumber(row.payroll_12_months || 0)}</TableCell>
+                          <TableCell className="text-center">{formatNumber(row.rpa_competence || 0)}</TableCell>
+                          <TableCell className="text-center">{formatNumber(row.rbt12 || 0)}</TableCell>
+                          <TableCell className="text-center">{formatNumber(row.rpa_accumulated || 0)}</TableCell>
+                          <TableCell className="text-center">{formatNumber(row.payroll_12_months || 0)}</TableCell>
                           <TableCell className="text-center">{renderFatorR(fatorR)}</TableCell>
                         </TableRow>
                       );
@@ -316,10 +318,10 @@ export function SimplesNacionalFatorRManager() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-center">Competência</TableHead>
-                      <TableHead className="text-right min-w-[140px]">RPA Total</TableHead>
-                      <TableHead className="text-right">RBT12</TableHead>
-                      <TableHead className="text-right min-w-[140px]">Folha+Encargos</TableHead>
-                      <TableHead className="text-right">Folha 12M</TableHead>
+                      <TableHead className="text-center min-w-[140px]">RPA Total</TableHead>
+                      <TableHead className="text-center">RBT12</TableHead>
+                      <TableHead className="text-center min-w-[140px]">Folha+Encargos</TableHead>
+                      <TableHead className="text-center">Folha 12M</TableHead>
                       <TableHead className="text-center">Fator R</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -327,8 +329,8 @@ export function SimplesNacionalFatorRManager() {
                     {simRows.map((row) => (
                       <TableRow key={row.competence} className={row.isCustomRpa || row.isCustomFolha ? "bg-muted/30" : ""}>
                         <TableCell className="text-center font-medium">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end space-x-1">
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center space-x-1">
                             <Input 
                               className={cn("w-28 text-right h-8", row.isCustomRpa && "border-primary")}
                               value={row.isCustomRpa ? row.customRpaStr : formatNumber(row.suggestedRpa)}
@@ -345,9 +347,9 @@ export function SimplesNacionalFatorRManager() {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">{formatNumber(row.rbt12)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end space-x-1">
+                        <TableCell className="text-center">{formatNumber(row.rbt12)}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center space-x-1">
                             <Input 
                               className={cn("w-28 text-right h-8", row.isCustomFolha && "border-primary")}
                               value={row.isCustomFolha ? row.customFolhaStr : formatNumber(row.suggestedFolha)}
@@ -364,7 +366,7 @@ export function SimplesNacionalFatorRManager() {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">{formatNumber(row.payroll_12_months)}</TableCell>
+                        <TableCell className="text-center">{formatNumber(row.payroll_12_months)}</TableCell>
                         <TableCell className="text-center">{renderFatorR(row.fatorR)}</TableCell>
                       </TableRow>
                     ))}
