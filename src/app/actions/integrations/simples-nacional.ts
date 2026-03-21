@@ -375,6 +375,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             else if (desc.includes('RECEITA') && desc.includes('CAIXA')) targetField = 'recebimento';
             else if (desc.includes('MERCADO INTERNO') && desc.includes('CAIXA')) targetField = 'recebimento';
             else if (desc.includes('RECEBIMENTO') || desc.includes('RECEBIMENTOS')) targetField = 'recebimento';
+            else if (desc.includes('MERCADO INTERNO')) targetField = 'recebimento'; // Fallback mais agressivo
             // Also check for partial matches if the prefix changes
             else if (desc.includes('RBT12') && desc.includes('TOTAL')) targetField = 'rbt12';
             else if (desc.includes('RBA') && desc.includes('TOTAL') && !desc.includes('RBAA')) targetField = 'rba';
@@ -446,6 +447,16 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                                  const baseKey = headerKeys.find(k => k.startsWith(mPrefix) && k.toUpperCase().includes('BASE'));
                                  if (baseKey) valStr = row[baseKey];
                              }
+                             // Look for ANY valid column starting with the prefix if it's still empty
+                             if (!valStr) {
+                                 const fallbackKey = headerKeys.find(k => k.startsWith(mPrefix) && row[k] && row[k].trim() !== '' && row[k] !== '0,00' && row[k] !== '0.00' && row[k] !== '0');
+                                 if (fallbackKey) {
+                                     // Prevent picking up Aliquota percentages accidentally
+                                     if (!fallbackKey.toUpperCase().includes('ALIQ')) {
+                                         valStr = row[fallbackKey];
+                                     }
+                                 }
+                             }
                         } else if (targetField === 'rbt12') {
                              // RBT12 - Total -> Likely BASE (Revenue 12 months)
                              valStr = row[`${mPrefix}_BASE`] || row[`${mPrefix}_VALOR`] || row[`${mPrefix}`];
@@ -485,12 +496,16 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                              if (val > 0) {
                                  if (currentVal > 0) {
                                      console.warn(`[Questor Accumulate] Field ${targetField} for ${competence} being accumulated! Old: ${currentVal}, Adding: ${val}. Row: ${desc}`);
+                                 } else {
+                                     console.log(`[Questor Success] Found ${targetField} for ${competence}: ${val} (Row: ${desc})`);
                                  }
                                  (monthData[competence] as any)[targetField] = currentVal + val;
                              } else if (currentVal === 0) {
                                  // If the new value is 0 and we don't have a value yet, set it to 0
                                  (monthData[competence] as any)[targetField] = 0;
                              }
+                        } else if (targetField === 'recebimento') {
+                             console.warn(`[Questor Missing] Could not find value for ${targetField} in ${competence} (Row: ${desc}). Checked keys:`, headerKeys.filter(k => k.startsWith(mPrefix)));
                         }
                     }
                 }
