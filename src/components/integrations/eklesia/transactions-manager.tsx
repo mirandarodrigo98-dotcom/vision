@@ -53,6 +53,17 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const [resync, setResync] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
+  // Sync Confirmation
+  const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
+  const [syncStats, setSyncStats] = useState<{ 
+    total: number, 
+    synced: number, 
+    pending: number, 
+    hasPriorSync: boolean,
+    minDate?: string,
+    maxDate?: string
+  } | null>(null);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isSyncing && !syncResult) {
@@ -85,17 +96,6 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     return () => clearInterval(interval);
   }, [isSyncing, syncResult, syncStats]);
   
-  // Sync Confirmation
-  const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
-  const [syncStats, setSyncStats] = useState<{ 
-    total: number, 
-    synced: number, 
-    pending: number, 
-    hasPriorSync: boolean,
-    minDate?: string,
-    maxDate?: string
-  } | null>(null);
-
   const fetchData = async () => {
     setIsLoading(true);
     try {
