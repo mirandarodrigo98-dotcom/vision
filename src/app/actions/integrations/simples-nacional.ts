@@ -228,10 +228,12 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
     if (!hasMonthColumns && colCompetence && !colDescription) {
         const colRpaCompetence = findKey('RPA Competência') || findKey('RPA Comp') || findKey('Receita');
         const colRpaCash = findKey('RPA Caixa');
+        const colRecebimento = findKey('Recebimento') || findKey('Mercado Interno Caixa') || findKey('Receita do PA - Mercado Interno Caixa');
         const colRpaAccumulated = findKey('Acumulado') || findKey('Acum');
         const colRbt12 = findKey('RBT12');
         const colRba = findKey('RBA', 'RBAA'); 
         const colRbaa = findKey('RBAA');
+        const colAliquotaEfetiva = findKey('Alíquota') || findKey('Aliquota') || findKey('Aliq Efetiva');
 
         for (const row of rows) {
             if (!row[colCompetence]) continue;
@@ -257,11 +259,14 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                 company_id: params.companyId,
                 competence,
                 rpa_competence: parseValue(colRpaCompetence ? row[colRpaCompetence] : '0'),
+                recebimento: parseValue(colRecebimento ? row[colRecebimento] : '0'),
                 rpa_cash: parseValue(colRpaCash ? row[colRpaCash] : '0'),
                 rpa_accumulated: parseValue(colRpaAccumulated ? row[colRpaAccumulated] : '0'),
                 rbt12: parseValue(colRbt12 ? row[colRbt12] : '0'),
                 rba: parseValue(colRba ? row[colRba] : '0'),
                 rbaa: parseValue(colRbaa ? row[colRbaa] : '0'),
+                aliquota_efetiva: parseValue(colAliquotaEfetiva ? row[colAliquotaEfetiva] : '0'),
+                payroll_12_months: 0 // Will need to be fetched/updated separately if not available
             });
         }
     } else {
@@ -359,18 +364,20 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             // "9.01.01 Receita do PA - Total" or "Receita do PA - Mercado Interno" depending on grouping
             
             if (desc.includes('RBT12 - TOTAL')) targetField = 'rbt12';
-    else if (desc.includes('RBA - TOTAL')) targetField = 'rba';
-    else if (desc.includes('RBAA - TOTAL')) targetField = 'rbaa';
-    else if (desc.includes('RECEITA DO PA - TOTAL')) targetField = 'rpa_competence';
-    else if (desc.includes('RECEITA DO PA - MERCADO INTERNO CAIXA')) targetField = 'recebimento';
-    else if (desc.includes('RECEITA DO PA - MERCADO INTERNO') && desc.includes('CAIXA')) targetField = 'recebimento';
+            else if (desc.includes('RBA - TOTAL')) targetField = 'rba';
+            else if (desc.includes('RBAA - TOTAL')) targetField = 'rbaa';
+            else if (desc.includes('RECEITA DO PA - TOTAL')) targetField = 'rpa_competence';
             else if (desc.includes('RECEITA DO PA - MERCADO INTERNO CAIXA')) targetField = 'recebimento';
+            else if (desc.includes('RECEITA DO PA - MERCADO INTERNO') && desc.includes('CAIXA')) targetField = 'recebimento';
+            else if (desc.includes('RECEITA DO PA') && desc.includes('MERCADO') && desc.includes('CAIXA')) targetField = 'recebimento';
+            else if (desc.includes('RECEITA') && desc.includes('MERCADO INTERNO') && desc.includes('CAIXA')) targetField = 'recebimento';
+            else if (desc.includes('RECEITA') && desc.includes('MERCADO') && desc.includes('CAIXA')) targetField = 'recebimento';
+            else if (desc.includes('RECEITA') && desc.includes('CAIXA')) targetField = 'recebimento';
             // Also check for partial matches if the prefix changes
             else if (desc.includes('RBT12') && desc.includes('TOTAL')) targetField = 'rbt12';
             else if (desc.includes('RBA') && desc.includes('TOTAL') && !desc.includes('RBAA')) targetField = 'rba';
             else if (desc.includes('RBAA') && desc.includes('TOTAL')) targetField = 'rbaa';
             else if (desc.includes('RECEITA DO PA') && desc.includes('TOTAL')) targetField = 'rpa_competence';
-            else if (desc.includes('RECEITA') && desc.includes('MERCADO INTERNO') && desc.includes('CAIXA')) targetField = 'recebimento';
             else if (desc.includes('RECEITA') && desc.includes('PA') && desc.includes('TOTAL')) targetField = 'rpa_competence'; // Broader match for RPA
             
             // Mapping for "Folha+Encargos" (Folha de Salários Incluídos Encargos no Mês)

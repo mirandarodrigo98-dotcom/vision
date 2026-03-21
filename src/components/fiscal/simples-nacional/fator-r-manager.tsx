@@ -20,7 +20,7 @@ import { fetchSimplesNacionalBilling, getStoredSimplesNacionalBilling } from '@/
 import { CompanySelector } from '@/components/ui/company-selector';
 import { CompetenceInput } from '@/components/ui/competence-input';
 import { Input } from '@/components/ui/input';
-import { calcularINSSProLabore } from '@/lib/inss';
+import { calcularINSSProgressivo } from '@/lib/inss';
 import { calcularIRRFProLabore } from '@/lib/imposto-renda';
 
 interface SimplesNacionalBillingData {
@@ -146,11 +146,13 @@ export function SimplesNacionalFatorRManager() {
   };
 
   const handleCustomChange = (comp: string, field: 'rpa' | 'folha', valueStr: string) => {
+    const numbers = valueStr.replace(/\D/g, '');
+    const formatted = numbers ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseInt(numbers, 10) / 100) : '';
     setCustomSims(prev => ({
       ...prev,
       [comp]: {
         ...prev[comp],
-        [field]: valueStr
+        [field]: formatted
       }
     }));
   };
@@ -237,7 +239,7 @@ export function SimplesNacionalFatorRManager() {
 
   const proLaboreVal = parseFormattedNumber(proLaboreStr);
   const dependentesVal = parseInt(dependentesStr, 10) || 0;
-  const proLaboreINSS = calcularINSSProLabore(proLaboreVal);
+  const proLaboreINSS = calcularINSSProgressivo(proLaboreVal);
   const proLaboreIRRF = calcularIRRFProLabore(proLaboreVal, dependentesVal, proLaboreINSS);
 
   return (
@@ -293,7 +295,7 @@ export function SimplesNacionalFatorRManager() {
       </Card>
 
       {data.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex flex-col space-y-6">
           {/* Histórico */}
           <Card>
             <CardHeader>
@@ -429,7 +431,10 @@ export function SimplesNacionalFatorRManager() {
                   <Label>Valor do Pró-labore</Label>
                   <Input 
                     value={proLaboreStr}
-                    onChange={(e) => setProLaboreStr(e.target.value)}
+                    onChange={(e) => {
+                      const numbers = e.target.value.replace(/\D/g, '');
+                      setProLaboreStr(numbers ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseInt(numbers, 10) / 100) : '');
+                    }}
                     placeholder="0,00"
                     className="text-right"
                   />
@@ -445,13 +450,13 @@ export function SimplesNacionalFatorRManager() {
                   />
                 </div>
                 <div className="flex flex-col space-y-2">
-                  <Label>INSS Retido</Label>
+                  <Label>INSS</Label>
                   <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium">
                     {formatNumber(proLaboreINSS)}
                   </div>
                 </div>
                 <div className="flex flex-col space-y-2">
-                  <Label>IRRF Retido</Label>
+                  <Label>IRRF</Label>
                   <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium">
                     {formatNumber(proLaboreIRRF)}
                   </div>
