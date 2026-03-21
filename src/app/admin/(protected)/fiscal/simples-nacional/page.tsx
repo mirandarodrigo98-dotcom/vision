@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ReceiptText, Calculator } from "lucide-react";
+import { ReceiptText, Calculator, FileText } from "lucide-react";
 
 export default function SimplesNacionalPage() {
   return (
@@ -37,12 +37,29 @@ export default function SimplesNacionalPage() {
               Fator R
             </CardTitle>
             <CardDescription>
-              Visualize e sincronize os dados para cálculo do Fator R via Questor SYN.
+              Acompanhe a proporção entre folha de salários e receita bruta para o Anexo V.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/admin/fiscal/simples-nacional/fator-r">
-              <Button className="w-full">Acessar Fator R</Button>
+              <Button className="w-full" variant="outline">Acessar Fator R</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Anexos e Tabelas
+            </CardTitle>
+            <CardDescription>
+              Consulte os Anexos do Simples Nacional (LC 123/2006) para base de cálculos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/simples-nacional/anexos">
+              <Button className="w-full" variant="outline">Ver Anexos</Button>
             </Link>
           </CardContent>
         </Card>
