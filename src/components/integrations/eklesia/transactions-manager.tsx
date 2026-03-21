@@ -14,6 +14,7 @@ import { syncEklesiaTransactionsToQuestor, checkEklesiaQuestorSyncStatus } from 
 import { format, isValid, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CircularProgress } from '@/components/ui/circular-progress';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +51,24 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
   const [showSyncDialog, setShowSyncDialog] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
   const [resync, setResync] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSyncing && !syncResult) {
+      setSyncProgress(0);
+      interval = setInterval(() => {
+        setSyncProgress((prev) => {
+          if (prev >= 95) return 95;
+          const increment = Math.random() * 8 + 2;
+          return Math.min(prev + increment, 95);
+        });
+      }, 500);
+    } else if (syncResult) {
+      setSyncProgress(100);
+    }
+    return () => clearInterval(interval);
+  }, [isSyncing, syncResult]);
   
   // Sync Confirmation
   const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
@@ -248,12 +267,16 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
             endDate: (filters as any).endDate ? ((filters as any).endDate instanceof Date ? (filters as any).endDate.toISOString() : (filters as any).endDate) : undefined,
         };
         const result = await syncEklesiaTransactionsToQuestor(companyId, { ...safeFilters, resync });
+        
+        // Force 100% and wait a moment for the user to see it complete
+        setSyncProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 600));
+
         setSyncResult(result);
         if (result.success) {
             toast.success('Sincronização concluída');
             fetchTransactions();
         } else {
-            // Check if error is "no transactions" to show info instead of error
             if (result.error && result.error.includes('Nenhum lançamento')) {
                 toast.info(result.error);
             } else {
@@ -261,6 +284,8 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
             }
         }
     } catch (e) {
+        setSyncProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 600));
         setSyncResult({ error: 'Erro inesperado' });
     } finally {
         setIsSyncing(false);
@@ -434,11 +459,11 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
                     Enviando lançamentos para o módulo Contábil...
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
+            <div className="py-8">
                 {isSyncing ? (
-                     <div className="flex flex-col items-center gap-4">
-                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                         <p>Processando...</p>
+                     <div className="flex flex-col items-center gap-6">
+                         <CircularProgress value={syncProgress} size={140} strokeWidth={8} />
+                         <p className="text-lg font-medium text-muted-foreground animate-pulse">Processando...</p>
                      </div>
                 ) : syncResult ? (
                     <div className="space-y-4">
