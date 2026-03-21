@@ -42,7 +42,7 @@ export default function SimplesNacionalPage() {
           </CardHeader>
           <CardContent>
             <Link href="/admin/fiscal/simples-nacional/fator-r">
-              <Button className="w-full" variant="outline">Acessar Fator R</Button>
+              <Button className="w-full">Acessar Fator R</Button>
             </Link>
           </CardContent>
         </Card>
@@ -59,7 +59,7 @@ export default function SimplesNacionalPage() {
           </CardHeader>
           <CardContent>
             <Link href="/admin/fiscal/simples-nacional/anexos">
-              <Button className="w-full" variant="outline">Ver Anexos</Button>
+              <Button className="w-full">Ver Anexos</Button>
             </Link>
           </CardContent>
         </Card>
