@@ -50,9 +50,12 @@ export function SimplesNacionalFatorRManager() {
   // Simulation State
   const [customSims, setCustomSims] = React.useState<Record<string, { rpa?: string, folha?: string, recebimento?: string }>>({});
 
-  // Pro-labore State
+  // Projeção Folha State
   const [proLaboreStr, setProLaboreStr] = React.useState('');
   const [dependentesStr, setDependentesStr] = React.useState('0');
+  const [folhaMesStr, setFolhaMesStr] = React.useState('');
+  const [fgtsMesStr, setFgtsMesStr] = React.useState('');
+  const [cppAnteriorStr, setCppAnteriorStr] = React.useState('');
 
   const getFilterDates = (refComp: string) => {
     if (!refComp || refComp.length !== 7) return null;
@@ -89,6 +92,11 @@ export function SimplesNacionalFatorRManager() {
       setData(fetchedData);
       // Reset simulations when loading new data
       setCustomSims({});
+      setProLaboreStr('');
+      setDependentesStr('0');
+      setFolhaMesStr('');
+      setFgtsMesStr('');
+      setCppAnteriorStr('');
       toast.success('Dados carregados com sucesso.');
     }
     setLoading(false);
@@ -169,6 +177,35 @@ export function SimplesNacionalFatorRManager() {
     });
   };
 
+  // Calculations for Projeção Folha
+  let cppCalculated = 0;
+  let baseAvgFolha = 0;
+
+  if (data.length > 0) {
+    const last12 = data.slice(-12);
+    baseAvgFolha = last12.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0) / 12;
+
+    const lastMonth = data[data.length - 1]; // This is the last element (which is the previous month)
+    const lastFatorR = lastMonth.rbt12 > 0 ? (lastMonth.payroll_12_months / lastMonth.rbt12) * 100 : 0;
+    const lastAnexo = lastFatorR >= 28 ? 'III' : 'V';
+    const aliquotaCPP = calcularAliquotaCPP(lastMonth.rbt12, lastAnexo, (lastMonth.aliquota_efetiva || 0) / 100);
+    const baseCalculo = lastMonth.rpa_competence || 0;
+    cppCalculated = baseCalculo * aliquotaCPP;
+  }
+
+  const proLaboreVal = parseFormattedNumber(proLaboreStr);
+  const dependentesVal = parseInt(dependentesStr, 10) || 0;
+  const proLaboreINSS = calcularINSSProLabore(proLaboreVal);
+  const proLaboreIRRF = calcularIRRFProLabore(proLaboreVal, dependentesVal, proLaboreINSS);
+
+  const folhaMesVal = folhaMesStr !== '' ? parseFormattedNumber(folhaMesStr) : baseAvgFolha;
+  const fgtsMesVal = fgtsMesStr !== '' ? parseFormattedNumber(fgtsMesStr) : folhaMesVal * 0.08;
+  const cppAnteriorVal = cppAnteriorStr !== '' ? parseFormattedNumber(cppAnteriorStr) : cppCalculated;
+
+  const totalFolha = proLaboreVal + folhaMesVal;
+  const totalEncargos = fgtsMesVal + cppAnteriorVal;
+  const totalFolhaEncargos = totalFolha + totalEncargos;
+
   // Build Simulation Rows
   const simRows = [];
   if (referenceCompetence && referenceCompetence.length === 7 && data.length > 0) {
@@ -187,7 +224,12 @@ export function SimplesNacionalFatorRManager() {
 
       const custom = customSims[compStr] || {};
       const customRpaVal = custom.rpa !== undefined ? parseFormattedNumber(custom.rpa) : avgRpa;
-      const customFolhaVal = custom.folha !== undefined ? parseFormattedNumber(custom.folha) : avgFolha;
+      
+      let customFolhaVal = custom.folha !== undefined ? parseFormattedNumber(custom.folha) : avgFolha;
+      if (i === 0) {
+        customFolhaVal = totalFolhaEncargos;
+      }
+
       const customRecebimentoVal = custom.recebimento !== undefined ? parseFormattedNumber(custom.recebimento) : avgRecebimento;
 
       const finalRpa = customRpaVal;
@@ -237,32 +279,11 @@ export function SimplesNacionalFatorRManager() {
   const renderFatorR = (fatorR: number) => {
     const isGreen = fatorR >= 28;
     return (
-      <span className={cn("font-bold", isGreen ? "text-emerald-600" : "text-red-600")}>
+      <span className={cn("font-bold", isGreen ? "text-green-600" : "text-red-600")}>
         {formatPercent(fatorR)}
       </span>
     );
   };
-
-  const proLaboreVal = parseFormattedNumber(proLaboreStr);
-  const dependentesVal = parseInt(dependentesStr, 10) || 0;
-  const proLaboreINSS = calcularINSSProLabore(proLaboreVal);
-  const proLaboreIRRF = calcularIRRFProLabore(proLaboreVal, dependentesVal, proLaboreINSS);
-
-  // CPP Calculation (Mês Anterior)
-  let cppMesAnterior = 0;
-  if (data.length > 0) {
-    const lastMonth = data[data.length - 1]; // This is the last element (which is the previous month)
-    const lastFatorR = lastMonth.rbt12 > 0 ? (lastMonth.payroll_12_months / lastMonth.rbt12) * 100 : 0;
-    const lastAnexo = lastFatorR >= 28 ? 'III' : 'V';
-    const aliquotaCPP = calcularAliquotaCPP(lastMonth.rbt12, lastAnexo, (lastMonth.aliquota_efetiva || 0) / 100);
-    const baseCalculo = lastMonth.rpa_competence || 0;
-    cppMesAnterior = baseCalculo * aliquotaCPP;
-  }
-
-  // Valores Folha do Mês (Simulation)
-  const firstSimRow = simRows.length > 0 ? simRows[0] : null;
-  const folhaDoMes = firstSimRow ? firstSimRow.rpa_accumulated : 0;
-  const fgtsDoMes = folhaDoMes * 0.08;
 
   return (
     <div className="space-y-6">
@@ -343,7 +364,8 @@ export function SimplesNacionalFatorRManager() {
                   <TableBody>
                     {data.map((row) => {
                       const fatorR = row.rbt12 > 0 ? (row.payroll_12_months / row.rbt12) * 100 : 0;
-                      const anexo = fatorR >= 28 ? 'Anexo III' : 'Anexo V';
+                      const anexoText = fatorR >= 28 ? 'Anexo III' : 'Anexo V';
+                      const anexoColor = fatorR >= 28 ? 'text-green-600' : 'text-red-600';
                       const baseDas = row.recebimento > 0 ? row.recebimento : (row.rpa_competence || 0);
                       const das = baseDas * ((row.aliquota_efetiva || 0) / 100);
                       return (
@@ -356,7 +378,7 @@ export function SimplesNacionalFatorRManager() {
                           <TableCell className="text-center">{formatNumber(row.payroll_12_months || 0)}</TableCell>
                           <TableCell className="text-center">{formatPercent(row.aliquota_efetiva || 0)}</TableCell>
                           <TableCell className="text-center">{renderFatorR(fatorR)}</TableCell>
-                          <TableCell className="text-center">{anexo}</TableCell>
+                          <TableCell className={cn("text-center font-bold", anexoColor)}>{anexoText}</TableCell>
                           <TableCell className="text-center">{formatNumber(das)}</TableCell>
                         </TableRow>
                       );
@@ -390,10 +412,11 @@ export function SimplesNacionalFatorRManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {simRows.map((row) => {
+                    {simRows.map((row, i) => {
                       const baseDas = row.recebimento > 0 ? row.recebimento : row.rpa_competence;
                       const das = baseDas * (row.suggestedAliquota / 100);
-                      const anexo = row.fatorR >= 28 ? 'Anexo III' : 'Anexo V';
+                      const anexoText = row.fatorR >= 28 ? 'Anexo III' : 'Anexo V';
+                      const anexoColor = row.fatorR >= 28 ? 'text-green-600' : 'text-red-600';
                       return (
                       <TableRow key={row.competence} className={row.isCustomRpa || row.isCustomFolha || row.isCustomRecebimento ? "bg-muted/30" : ""}>
                         <TableCell className="text-center font-medium">{format(parseISO(row.competence), 'MM/yyyy')}</TableCell>
@@ -437,25 +460,28 @@ export function SimplesNacionalFatorRManager() {
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Input 
-                              className={cn("w-28 text-right h-8", row.isCustomFolha && "border-primary")}
-                              value={row.isCustomFolha ? row.customFolhaStr : formatNumber(row.suggestedFolha)}
-                              onChange={(e) => handleCustomChange(row.competence, 'folha', e.target.value)}
+                              className={cn("w-28 text-right h-8", row.isCustomFolha && "border-primary", i === 0 && "bg-muted font-medium")}
+                              value={i === 0 ? formatNumber(totalFolhaEncargos) : (row.isCustomFolha ? row.customFolhaStr : formatNumber(row.suggestedFolha))}
+                              onChange={(e) => i !== 0 && handleCustomChange(row.competence, 'folha', e.target.value)}
+                              readOnly={i === 0}
                             />
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-muted-foreground hover:text-primary"
-                              onClick={() => restoreCustom(row.competence, 'folha')}
-                              title="Restaurar Média"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
+                            {i !== 0 && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                onClick={() => restoreCustom(row.competence, 'folha')}
+                                title="Restaurar Média"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{formatNumber(row.payroll_12_months)}</TableCell>
                         <TableCell className="text-center">{formatPercent(row.suggestedAliquota)}</TableCell>
                         <TableCell className="text-center">{renderFatorR(row.fatorR)}</TableCell>
-                        <TableCell className="text-center">{anexo}</TableCell>
+                        <TableCell className={cn("text-center font-bold", anexoColor)}>{anexoText}</TableCell>
                         <TableCell className="text-center">{formatNumber(das)}</TableCell>
                       </TableRow>
                     )})}
@@ -465,12 +491,13 @@ export function SimplesNacionalFatorRManager() {
             </CardContent>
           </Card>
 
-          {/* Pro-labore Section */}
+          {/* Projeção Folha Section */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Cálculo de Pró-labore</CardTitle>
+              <CardTitle>Projeção Folha</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Pro-labore */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                 <div className="flex flex-col space-y-2">
                   <Label>Valor do Pró-labore</Label>
@@ -507,32 +534,98 @@ export function SimplesNacionalFatorRManager() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Valores Folha Section */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Valores Folha</CardTitle>
-            </CardHeader>
-            <CardContent>
+              {/* Valores Folha */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                 <div className="flex flex-col space-y-2">
                   <Label>Folha do Mês</Label>
-                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium">
-                    {formatNumber(folhaDoMes)}
+                  <div className="flex items-center space-x-1">
+                    <Input 
+                      className="text-right h-10"
+                      value={folhaMesStr !== '' ? folhaMesStr : formatNumber(baseAvgFolha)}
+                      onChange={(e) => {
+                        const numbers = e.target.value.replace(/\D/g, '');
+                        setFolhaMesStr(numbers ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseInt(numbers, 10) / 100) : '');
+                      }}
+                      placeholder="0,00"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-10 w-10 text-muted-foreground hover:text-primary shrink-0"
+                      onClick={() => setFolhaMesStr('')}
+                      title="Restaurar Média"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 <div className="flex flex-col space-y-2">
                   <Label>FGTS do Mês</Label>
-                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium">
-                    {formatNumber(fgtsDoMes)}
+                  <div className="flex items-center space-x-1">
+                    <Input 
+                      className="text-right h-10"
+                      value={fgtsMesStr !== '' ? fgtsMesStr : formatNumber(folhaMesVal * 0.08)}
+                      onChange={(e) => {
+                        const numbers = e.target.value.replace(/\D/g, '');
+                        setFgtsMesStr(numbers ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseInt(numbers, 10) / 100) : '');
+                      }}
+                      placeholder="0,00"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-10 w-10 text-muted-foreground hover:text-primary shrink-0"
+                      onClick={() => setFgtsMesStr('')}
+                      title="Restaurar Sugestão (8%)"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 <div className="flex flex-col space-y-2">
                   <Label>CPP Mês Anterior</Label>
-                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-medium text-amber-700">
-                    {formatNumber(cppMesAnterior)}
+                  <div className="flex items-center space-x-1">
+                    <Input 
+                      className="text-right h-10"
+                      value={cppAnteriorStr !== '' ? cppAnteriorStr : formatNumber(cppCalculated)}
+                      onChange={(e) => {
+                        const numbers = e.target.value.replace(/\D/g, '');
+                        setCppAnteriorStr(numbers ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseInt(numbers, 10) / 100) : '');
+                      }}
+                      placeholder="0,00"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-10 w-10 text-muted-foreground hover:text-primary shrink-0"
+                      onClick={() => setCppAnteriorStr('')}
+                      title="Restaurar Sugestão"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Totalizadores */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pt-4 border-t">
+                <div className="flex flex-col space-y-2">
+                  <Label>Total Folha</Label>
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-bold text-primary">
+                    {formatNumber(totalFolha)}
+                  </div>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label>Total Encargos</Label>
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-bold text-primary">
+                    {formatNumber(totalEncargos)}
+                  </div>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label>Total Folha + Encargos</Label>
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted text-right font-bold text-primary">
+                    {formatNumber(totalFolhaEncargos)}
                   </div>
                 </div>
               </div>
