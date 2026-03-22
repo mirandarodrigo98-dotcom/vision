@@ -69,24 +69,23 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
     if (isSyncing && !syncResult) {
       setSyncProgress(0);
       
-      // Ajuste dinâmico baseado na quantidade de registros para a curva de progresso
       const pendingCount = syncStats?.pending || 10;
+      const estimatedTimeMs = Math.min(Math.max(2000, pendingCount * 300), 45000); 
       
-      // Quanto mais registros, menor o passo (avança mais lentamente)
-      // Base latency da API do Questor é alta (envio de arquivo), então a curva 
-      // começa em 0.06 (para poucos registros) e diminui até 0.01 (para muitos registros).
-      const decayFactor = Math.max(0.01, 0.06 - (pendingCount * 0.00005));
+      const intervalMs = 100;
+      const totalStepsTo90 = estimatedTimeMs / intervalMs;
+      const incrementPerStep = 90 / totalStepsTo90;
 
       interval = setInterval(() => {
         setSyncProgress((prev) => {
-          // Curva assintótica: calcula a distância até 99% e avança uma fração dessa distância.
-          // Isso cria um efeito visual onde o progresso começa rápido e vai desacelerando 
-          // suavemente, nunca parando de se mover, mas sem bater no 100% até a resposta chegar.
-          const remaining = 99 - prev;
-          const step = remaining * decayFactor;
-          return prev + step;
+          if (prev < 90) {
+            return Math.min(90, prev + incrementPerStep);
+          } else if (prev < 98) {
+            return prev + 0.05;
+          }
+          return prev;
         });
-      }, 300); // Atualiza a cada 300ms
+      }, intervalMs);
     } else if (syncResult) {
       setSyncProgress(100);
     }

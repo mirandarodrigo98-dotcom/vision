@@ -11,7 +11,7 @@ import { Search, X } from 'lucide-react';
 export interface TransactionFiltersState {
   startDate?: Date;
   endDate?: Date;
-  categoryName?: string;
+  categoryId?: string;
   accountId?: string;
   description?: string;
   minValue?: string;
@@ -69,15 +69,19 @@ export function TransactionFilters({
         </div>
         <div className="space-y-2">
             <Label>Categoria</Label>
-            <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Pesquisar categoria..." 
-                    className="pl-8"
-                    value={localFilters.categoryName || ''}
-                    onChange={(e) => handleChange('categoryName', e.target.value)}
-                />
-            </div>
+            <Select value={localFilters.categoryId || "all"} onValueChange={(val) => handleChange('categoryId', val === "all" ? undefined : val)}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                            {cat.description}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
         <div className="space-y-2">
             <Label>Conta</Label>

@@ -419,11 +419,11 @@ export async function getTransactions(
         params.push(filters.accountId);
       }
       if (filters.categoryName) {
-        query += ` AND c.description ILIKE ?`;
+        query += ` AND c.description LIKE ?`;
         params.push(`%${filters.categoryName}%`);
       }
       if (filters.description) {
-        query += ` AND t.description ILIKE ?`;
+        query += ` AND t.description LIKE ?`;
         params.push(`%${filters.description}%`);
       }
       if (filters.minValue !== undefined && filters.minValue !== null) {
@@ -1085,11 +1085,26 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
              const normalizedDesc = description.toUpperCase();
              let categoryId = null;
 
-             for (const cat of categories) {
-                 const catDesc = cat.description.trim().toUpperCase();
-                 if (normalizedDesc.includes(catDesc) || catDesc === normalizedDesc || normalizedSuffix.includes(catDesc)) {
-                     categoryId = cat.id;
-                     break;
+             const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+             const descNoAccents = removeAccents(normalizedDesc);
+             const rawTextNoAccents = removeAccents(fullRawTextNormalized);
+
+             // Hardcode específico para Fatura Cartão de Crédito
+             if (descNoAccents.includes('FATURA CARTAO DE CREDITO') || rawTextNoAccents.includes('FATURA CARTAO DE CREDITO')) {
+                 const ccCategory = categories.find(c => removeAccents(c.description.toUpperCase()) === 'CARTAO DE CREDITO');
+                 if (ccCategory) categoryId = ccCategory.id;
+                 
+                 const coraAccount = accounts.find(a => removeAccents(a.description.toUpperCase()) === 'CONTA CORRENTE CORA');
+                 if (coraAccount) accountId = coraAccount.id;
+             }
+
+             if (!categoryId) {
+                 for (const cat of categories) {
+                     const catDesc = cat.description.trim().toUpperCase();
+                     if (normalizedDesc.includes(catDesc) || catDesc === normalizedDesc || normalizedSuffix.includes(catDesc)) {
+                         categoryId = cat.id;
+                         break;
+                     }
                  }
              }
 
@@ -1227,17 +1242,32 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
             
             // Try to match category
             let categoryId = null;
+            let accountId = null; // in old layout we don't extract accountId by default but we can set it if we want
 
-            for (const cat of categories) {
-                    const catDesc = cat.description.trim().toUpperCase();
-                    if (normalizedDesc.includes(catDesc)) {
-                        categoryId = cat.id;
-                        break;
-                    }
-                    if (catDesc === normalizedDesc) {
-                        categoryId = cat.id;
-                        break;
-                    }
+            const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const descNoAccents = removeAccents(normalizedDesc);
+
+            // Hardcode específico para Fatura Cartão de Crédito
+            if (descNoAccents.includes('FATURA CARTAO DE CREDITO')) {
+                const ccCategory = categories.find(c => removeAccents(c.description.toUpperCase()) === 'CARTAO DE CREDITO');
+                if (ccCategory) categoryId = ccCategory.id;
+                
+                const coraAccount = accounts.find(a => removeAccents(a.description.toUpperCase()) === 'CONTA CORRENTE CORA');
+                if (coraAccount) accountId = coraAccount.id;
+            }
+
+            if (!categoryId) {
+                for (const cat of categories) {
+                        const catDesc = cat.description.trim().toUpperCase();
+                        if (normalizedDesc.includes(catDesc)) {
+                            categoryId = cat.id;
+                            break;
+                        }
+                        if (catDesc === normalizedDesc) {
+                            categoryId = cat.id;
+                            break;
+                        }
+                }
             }
 
             if (categoryId) {
@@ -1245,6 +1275,7 @@ export async function parseEnuvesPdf(formData: FormData, companyId: string) {
                     id: uuidv4(),
                     company_id: targetCompanyId,
                     category_id: categoryId,
+                    account_id: accountId, // Added accountId
                     date: isoDate,
                     description: description,
                     original_description: description,
