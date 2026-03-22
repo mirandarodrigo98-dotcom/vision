@@ -11,7 +11,7 @@ import { TransactionEditDialog } from './transaction-edit-dialog';
 import { Loader2, Trash2, Pencil, RefreshCw } from 'lucide-react';
 import { getTransactions, deleteTransaction, deleteTransactionsBatch, getCategories, getAccounts, exportTransactionsCsv } from '@/app/actions/integrations/enuves';
 import { syncTransactionsToQuestor, checkQuestorSyncStatus } from '@/app/actions/integrations/questor';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CircularProgress } from '@/components/ui/circular-progress';
