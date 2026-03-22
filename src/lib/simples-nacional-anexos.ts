@@ -4,6 +4,7 @@ export interface FaixaSimplesNacional {
   rbt12Max: number;
   aliquota: number;
   deducao: number;
+  cppPercentual?: number;
 }
 
 export interface AnexoSimplesNacional {
@@ -45,12 +46,12 @@ export const ANEXOS_SIMPLES_NACIONAL: AnexoSimplesNacional[] = [
     nome: 'Anexo III',
     descricao: 'Partilha do Simples Nacional - Receitas de Locação de Bens Móveis e de Prestação de Serviços descritos no inciso III do § 1º do art. 25 da Resolução CGSN nº 140, de 2018, e não relacionados nos Anexos IV ou V',
     faixas: [
-      { faixa: 1, rbt12Min: 0, rbt12Max: 180000.00, aliquota: 0.060, deducao: 0.00 },
-      { faixa: 2, rbt12Min: 180000.01, rbt12Max: 360000.00, aliquota: 0.112, deducao: 9360.00 },
-      { faixa: 3, rbt12Min: 360000.01, rbt12Max: 720000.00, aliquota: 0.135, deducao: 17640.00 },
-      { faixa: 4, rbt12Min: 720000.01, rbt12Max: 1800000.00, aliquota: 0.160, deducao: 35640.00 },
-      { faixa: 5, rbt12Min: 1800000.01, rbt12Max: 3600000.00, aliquota: 0.210, deducao: 125640.00 },
-      { faixa: 6, rbt12Min: 3600000.01, rbt12Max: 4800000.00, aliquota: 0.330, deducao: 648000.00 },
+      { faixa: 1, rbt12Min: 0, rbt12Max: 180000.00, aliquota: 0.060, deducao: 0.00, cppPercentual: 0.4340 },
+      { faixa: 2, rbt12Min: 180000.01, rbt12Max: 360000.00, aliquota: 0.112, deducao: 9360.00, cppPercentual: 0.4340 },
+      { faixa: 3, rbt12Min: 360000.01, rbt12Max: 720000.00, aliquota: 0.135, deducao: 17640.00, cppPercentual: 0.4340 },
+      { faixa: 4, rbt12Min: 720000.01, rbt12Max: 1800000.00, aliquota: 0.160, deducao: 35640.00, cppPercentual: 0.4340 },
+      { faixa: 5, rbt12Min: 1800000.01, rbt12Max: 3600000.00, aliquota: 0.210, deducao: 125640.00, cppPercentual: 0.4340 },
+      { faixa: 6, rbt12Min: 3600000.01, rbt12Max: 4800000.00, aliquota: 0.330, deducao: 648000.00, cppPercentual: 0.3050 },
     ],
   },
   {
@@ -71,12 +72,12 @@ export const ANEXOS_SIMPLES_NACIONAL: AnexoSimplesNacional[] = [
     nome: 'Anexo V',
     descricao: 'Partilha do Simples Nacional - Receitas decorrentes da prestação de serviços relacionados no inciso V do § 1º do art. 25 da Resolução CGSN nº 140, de 2018',
     faixas: [
-      { faixa: 1, rbt12Min: 0, rbt12Max: 180000.00, aliquota: 0.155, deducao: 0.00 },
-      { faixa: 2, rbt12Min: 180000.01, rbt12Max: 360000.00, aliquota: 0.180, deducao: 4500.00 },
-      { faixa: 3, rbt12Min: 360000.01, rbt12Max: 720000.00, aliquota: 0.195, deducao: 9900.00 },
-      { faixa: 4, rbt12Min: 720000.01, rbt12Max: 1800000.00, aliquota: 0.205, deducao: 17100.00 },
-      { faixa: 5, rbt12Min: 1800000.01, rbt12Max: 3600000.00, aliquota: 0.230, deducao: 62100.00 },
-      { faixa: 6, rbt12Min: 3600000.01, rbt12Max: 4800000.00, aliquota: 0.305, deducao: 540000.00 },
+      { faixa: 1, rbt12Min: 0, rbt12Max: 180000.00, aliquota: 0.155, deducao: 0.00, cppPercentual: 0.2885 },
+      { faixa: 2, rbt12Min: 180000.01, rbt12Max: 360000.00, aliquota: 0.180, deducao: 4500.00, cppPercentual: 0.2785 },
+      { faixa: 3, rbt12Min: 360000.01, rbt12Max: 720000.00, aliquota: 0.195, deducao: 9900.00, cppPercentual: 0.3215 },
+      { faixa: 4, rbt12Min: 720000.01, rbt12Max: 1800000.00, aliquota: 0.205, deducao: 17100.00, cppPercentual: 0.3285 },
+      { faixa: 5, rbt12Min: 1800000.01, rbt12Max: 3600000.00, aliquota: 0.230, deducao: 62100.00, cppPercentual: 0.3285 },
+      { faixa: 6, rbt12Min: 3600000.01, rbt12Max: 4800000.00, aliquota: 0.305, deducao: 540000.00, cppPercentual: 0.2385 },
     ],
   }
 ];
@@ -105,4 +106,17 @@ export function calcularAliquotaEfetiva(rbt12: number, anexoId: string): number 
   const aliquotaEfetiva = ((rbt12 * faixa.aliquota) - faixa.deducao) / rbt12;
   
   return aliquotaEfetiva > 0 ? aliquotaEfetiva : 0;
+}
+
+export function calcularAliquotaCPP(rbt12: number, anexoId: string, aliquotaEfetivaSimples: number): number {
+  const anexo = ANEXOS_SIMPLES_NACIONAL.find(a => a.id === anexoId);
+  if (!anexo) return 0;
+
+  const faixaNum = getFaixaPorRBT12(rbt12);
+  const faixa = anexo.faixas.find(f => f.faixa === faixaNum);
+  
+  if (!faixa || !faixa.cppPercentual) return 0;
+
+  // Alíquota efetiva CPP = percentual de repartição da CPP da faixa x alíquota efetiva do simples
+  return faixa.cppPercentual * aliquotaEfetivaSimples;
 }
