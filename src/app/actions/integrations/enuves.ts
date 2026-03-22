@@ -438,9 +438,26 @@ export async function getTransactions(
 
     query += ` ORDER BY t.date DESC`;
 
-    const transactions = await db.prepare(query).all(...params) as Transaction[];
+    const transactions = await db.prepare(query).all(...params) as any[];
     
-    return transactions;
+    return transactions.map(t => {
+      let dateStr = null;
+      if (t.date) {
+        if (t.date instanceof Date) {
+           const y = t.date.getFullYear();
+           const m = String(t.date.getMonth() + 1).padStart(2, '0');
+           const d = String(t.date.getDate()).padStart(2, '0');
+           dateStr = `${y}-${m}-${d}`;
+        } else {
+           dateStr = String(t.date).split('T')[0];
+        }
+      }
+      return {
+        ...t,
+        date: dateStr,
+        created_at: t.created_at ? (t.created_at instanceof Date ? t.created_at.toISOString() : String(t.created_at)) : null,
+      };
+    }) as Transaction[];
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return [];
