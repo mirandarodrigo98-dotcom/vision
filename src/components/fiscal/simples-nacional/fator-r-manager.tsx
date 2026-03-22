@@ -215,6 +215,7 @@ export function SimplesNacionalFatorRManager() {
     for (let i = 0; i < 3; i++) {
       const simDate = addMonths(refDate, i);
       const compStr = format(simDate, 'yyyy-MM');
+      const prevYearCompStr = format(subMonths(simDate, 12), 'yyyy-MM');
       
       const last12 = fullTimeline.slice(-12);
       const avgRpa = last12.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0) / 12;
@@ -222,15 +223,24 @@ export function SimplesNacionalFatorRManager() {
       const avgRecebimento = last12.reduce((acc, curr) => acc + Number(curr.recebimento || 0), 0) / 12;
       const avgAliquota = last12.reduce((acc, curr) => acc + Number(curr.aliquota_efetiva || 0), 0) / 12;
 
+      const prevYearData = fullTimeline.find(d => d.competence === prevYearCompStr);
+      const prevYearRpa = prevYearData ? Number(prevYearData.rpa_competence || 0) : 0;
+      const prevYearFolha = prevYearData ? Number(prevYearData.rpa_accumulated || 0) : 0;
+      const prevYearRecebimento = prevYearData ? Number(prevYearData.recebimento || 0) : 0;
+
+      const suggestedRpa = Math.max(avgRpa, prevYearRpa);
+      const suggestedFolha = Math.max(avgFolha, prevYearFolha);
+      const suggestedRecebimento = Math.max(avgRecebimento, prevYearRecebimento);
+
       const custom = customSims[compStr] || {};
-      const customRpaVal = custom.rpa !== undefined ? parseFormattedNumber(custom.rpa) : avgRpa;
+      const customRpaVal = custom.rpa !== undefined ? parseFormattedNumber(custom.rpa) : suggestedRpa;
       
-      let customFolhaVal = custom.folha !== undefined ? parseFormattedNumber(custom.folha) : avgFolha;
+      let customFolhaVal = custom.folha !== undefined ? parseFormattedNumber(custom.folha) : suggestedFolha;
       if (i === 0) {
         customFolhaVal = totalFolhaEncargos;
       }
 
-      const customRecebimentoVal = custom.recebimento !== undefined ? parseFormattedNumber(custom.recebimento) : avgRecebimento;
+      const customRecebimentoVal = custom.recebimento !== undefined ? parseFormattedNumber(custom.recebimento) : suggestedRecebimento;
 
       const finalRpa = customRpaVal;
       const finalFolha = customFolhaVal;
@@ -248,9 +258,9 @@ export function SimplesNacionalFatorRManager() {
         rbt12: rbt12,
         payroll_12_months: folha12,
         fatorR: fatorR,
-        suggestedRpa: avgRpa,
-        suggestedFolha: avgFolha,
-        suggestedRecebimento: avgRecebimento,
+        suggestedRpa: suggestedRpa,
+        suggestedFolha: suggestedFolha,
+        suggestedRecebimento: suggestedRecebimento,
         suggestedAliquota: avgAliquota,
         customRpaStr: custom.rpa,
         customFolhaStr: custom.folha,
