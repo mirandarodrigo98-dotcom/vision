@@ -56,6 +56,8 @@ export default function TeamForm({ departments, schedules, companies, initialDat
         role: initialData?.role || 'operator',
         access_schedule_id: initialData?.access_schedule_id || 'none',
         restricted_company_ids: initialData?.restricted_companies || [],
+        ir_commission_active: initialData?.ir_commission_active || false,
+        ir_commission_percent: initialData?.ir_commission_percent || '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -151,6 +153,8 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                 role: formData.role as 'admin' | 'operator',
                 access_schedule_id: formData.access_schedule_id === 'none' ? undefined : formData.access_schedule_id,
                 restricted_company_ids: formData.restricted_company_ids,
+                ir_commission_active: formData.ir_commission_active,
+                ir_commission_percent: formData.ir_commission_percent ? parseFloat(formData.ir_commission_percent.toString().replace(',', '.')) : undefined,
             };
 
             let res;
@@ -312,7 +316,7 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                     </div>
 
                     {formData.role === 'operator' && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 col-span-full">
                             <Label>Restrições de Acesso a Empresas (Opcional)</Label>
                             <div className="text-xs text-muted-foreground mb-2">
                                 Selecione as empresas que este operador <strong>NÃO</strong> deve ter acesso. Se vazio, terá acesso a todas.
@@ -392,7 +396,7 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                                                                     <div className="font-medium text-sm">{company.razao_social || company.nome}</div>
                                                                     <div className="flex gap-2 text-xs text-muted-foreground">
                                                                         <span>{company.cnpj}</span>
-                                                                        {company.code && <span>Cód: {company.code}</span>}
+                                                                        {company.codigo_questor && <span>• Cód: {company.codigo_questor}</span>}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -406,6 +410,45 @@ export default function TeamForm({ departments, schedules, companies, initialDat
                             </Popover>
                         </div>
                     )}
+
+                    {/* PREMIAÇÃO SECTION */}
+                    <div className="col-span-full border-t pt-4 mt-2">
+                        <h3 className="text-lg font-semibold mb-4">Premiação</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                            <div className="space-y-2 flex flex-col justify-center">
+                                <Label htmlFor="ir_commission_active">Imposto de Renda</Label>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="ir_commission_active"
+                                        checked={formData.ir_commission_active}
+                                        onCheckedChange={(val) => handleChange('ir_commission_active', val)}
+                                        disabled={isLoading}
+                                    />
+                                    <Label htmlFor="ir_commission_active" className="font-normal text-muted-foreground">
+                                        {formData.ir_commission_active ? 'Ativado' : 'Desativado'}
+                                    </Label>
+                                </div>
+                            </div>
+
+                            {formData.ir_commission_active && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="ir_commission_percent">% (Percentual de Premiação)</Label>
+                                    <Input
+                                        id="ir_commission_percent"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="100"
+                                        value={formData.ir_commission_percent}
+                                        onChange={(e) => handleChange('ir_commission_percent', e.target.value)}
+                                        disabled={isLoading}
+                                        placeholder="Ex: 10.50"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {/* FIM PREMIAÇÃO SECTION */}
                 </div>
 
                 {formData.role === 'operator' && formData.restricted_company_ids && formData.restricted_company_ids.length > 0 && (

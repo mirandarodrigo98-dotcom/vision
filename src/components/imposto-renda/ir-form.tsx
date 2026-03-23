@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createIRDeclaration } from '@/app/actions/imposto-renda';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { getTeamUsers } from '@/app/actions/team';
+import { getIRPartners } from '@/app/actions/ir-partners';
 
 // Usar o seletor de empresa existente nos tickets
 import { TicketCompanySelector } from '@/components/tickets/ticket-company-selector';
@@ -22,6 +25,31 @@ export function IRForm() {
   const [companyId, setCompanyId] = useState<string>('');
   const [sendWhatsapp, setSendWhatsapp] = useState(false);
   const [sendEmail, setSendEmail] = useState(false);
+  
+  // Novos campos de indicação
+  const [indicationType, setIndicationType] = useState<'none' | 'user' | 'partner'>('none');
+  const [indicatedByUserId, setIndicatedByUserId] = useState<string>('');
+  const [indicatedByPartnerId, setIndicatedByPartnerId] = useState<string>('');
+  const [serviceValue, setServiceValue] = useState<string>('');
+  
+  const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+  const [partners, setPartners] = useState<{id: string, name: string}[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [usersData, partnersData] = await Promise.all([
+          getTeamUsers(),
+          getIRPartners()
+        ]);
+        setUsers(usersData.filter(u => u.is_active));
+        setPartners(partnersData);
+      } catch (e) {
+        console.error("Failed to load indication options", e);
+      }
+    };
+    loadData();
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -39,10 +67,25 @@ export function IRForm() {
         company_id: type === 'Sócio' ? companyId : undefined,
         send_whatsapp: sendWhatsapp,
         send_email: sendEmail,
+        indicated_by_user_id: indicationType === 'user' ? indicatedByUserId : undefined,
+        indicated_by_partner_id: indicationType === 'partner' ? indicatedByPartnerId : undefined,
+        service_value: serviceValue ? parseFloat(serviceValue.replace(',', '.')) : undefined
       };
 
       if (type === 'Sócio' && !companyId) {
         toast.error('Selecione uma empresa para o sócio.');
+        setLoading(false);
+        return;
+      }
+      
+      if (indicationType === 'user' && !indicatedByUserId) {
+        toast.error('Selecione o usuário que indicou.');
+        setLoading(false);
+        return;
+      }
+
+      if (indicationType === 'partner' && !indicatedByPartnerId) {
+        toast.error('Selecione o parceiro que indicou.');
         setLoading(false);
         return;
       }
@@ -162,6 +205,78 @@ export function IRForm() {
               </p>
             </div>
           )}
+
+          <div className="space-y-4 border p-4 rounded-md">
+            <Label className="text-base font-semibold">Indicação e Valores</Label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo de Indicação</Label>
+                <Select value={indicationType} onValueChange={(val: any) => {
+                  setIndicationType(val);
+                  if (val !== 'user') setIndicatedByUserId('');
+                  if (val !== 'partner') setIndicatedByPartnerId('');
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    <SelectItem value="user">Usuário Interno</SelectItem>
+                    <SelectItem value="partner">Parceiro Externo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {indicationType === 'user' && (
+                <div className="space-y-2">
+                  <Label>Usuário</Label>
+                  <Select value={indicatedByUserId} onValueChange={setIndicatedByUserId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o usuário..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {indicationType === 'partner' && (
+                <div className="space-y-2">
+                  <Label>Parceiro</Label>
+                  <Select value={indicatedByPartnerId} onValueChange={setIndicatedByPartnerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o parceiro..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partners.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Label htmlFor="service_value">Valor do Serviço (R$)</Label>
+              <Input 
+                id="service_value" 
+                type="number" 
+                step="0.01" 
+                min="0"
+                placeholder="Ex: 150.00" 
+                value={serviceValue}
+                onChange={e => setServiceValue(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Usado para cálculo da premiação caso haja indicação.
+              </p>
+            </div>
+          </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/admin/pessoa-fisica/imposto-renda">
