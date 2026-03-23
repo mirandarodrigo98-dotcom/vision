@@ -208,7 +208,7 @@ export async function addIRComment(id: string, formData: FormData) {
       
       const buffer = Buffer.from(await file.arrayBuffer());
       const fileExtension = file.name.split('.').pop();
-      const fileName = \`ir_attachments/\${id}/\${uuidv4()}.\${fileExtension}\`;
+      const fileName = `ir_attachments/${id}/${uuidv4()}.${fileExtension}`;
       
       const uploadResult = await uploadToR2(buffer, fileName, file.type);
       
@@ -221,7 +221,7 @@ export async function addIRComment(id: string, formData: FormData) {
     }
   })();
 
-  revalidatePath(\`/admin/pessoa-fisica/imposto-renda/\${id}\`);
+  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
   return { success: true };
 }
 
@@ -263,7 +263,7 @@ export async function getIRInteractions(id: string) {
         try {
           if (att.url && !att.url.startsWith('http')) {
              if (process.env.R2_PUBLIC_DOMAIN) {
-               downloadLink = \`\${process.env.R2_PUBLIC_DOMAIN}/\${att.url}\`;
+               downloadLink = `${process.env.R2_PUBLIC_DOMAIN}/${att.url}`;
              } else {
                downloadLink = await getR2DownloadLink(att.url);
              }
