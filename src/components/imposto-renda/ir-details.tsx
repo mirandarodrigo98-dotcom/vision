@@ -227,7 +227,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                       <div className="flex-1 bg-muted/30 p-3 rounded-lg border">
                         <div className="flex justify-between items-start mb-1">
                           <span className="font-medium">{interaction.user_name || 'Usuário'}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                             {format(new Date(interaction.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </span>
                         </div>

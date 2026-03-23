@@ -40,7 +40,7 @@ export async function getIRDeclarations(): Promise<IRDeclaration[]> {
   `;
 
   const rows = await db.prepare(sql).all();
-  return rows;
+  return JSON.parse(JSON.stringify(rows));
 }
 
 export async function getIRStats() {
@@ -108,7 +108,8 @@ export async function getIRDeclarationById(id: string): Promise<IRDeclaration | 
   `;
 
   const row = await db.prepare(sql).get(id);
-  return row;
+  if (!row) return undefined;
+  return JSON.parse(JSON.stringify(row));
 }
 
 export async function updateIRStatus(id: string, newStatus: IRStatus, justification?: string) {
@@ -160,7 +161,8 @@ export async function getIRInteractions(id: string) {
     ORDER BY i.created_at ASC
   `;
 
-  return await db.prepare(sql).all();
+  const rows = await db.prepare(sql).all(id);
+  return JSON.parse(JSON.stringify(rows));
 }
 
 export async function markIRAsReceived(id: string) {
