@@ -166,6 +166,8 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
+
+export async function updateIRStatus(id: string, newStatus: IRStatus, justification?: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
 
