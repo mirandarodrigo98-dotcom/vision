@@ -1,0 +1,144 @@
+commit 4c97b9beaea0f91ea201e9c7d1d817c6b33851f8
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Sat Mar 21 15:28:57 2026 -0300
+
+    feat: reestruturacao da tela de fator r e ajuste eklesia progress
+
+diff --git a/src/components/integrations/eklesia/transactions-manager.tsx b/src/components/integrations/eklesia/transactions-manager.tsx
+index 0ec16c3..be686cc 100644
+--- a/src/components/integrations/eklesia/transactions-manager.tsx
++++ b/src/components/integrations/eklesia/transactions-manager.tsx
+@@ -69,24 +69,23 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
+     if (isSyncing && !syncResult) {
+       setSyncProgress(0);
+       
+-      // Ajuste dinâmico baseado na quantidade de registros para a curva de progresso
+       const pendingCount = syncStats?.pending || 10;
++      const estimatedTimeMs = Math.min(Math.max(2000, pendingCount * 300), 45000); 
+       
+-      // Quanto mais registros, menor o passo (avança mais lentamente)
+-      // Base latency da API do Questor é alta (envio de arquivo), então a curva 
+-      // começa em 0.06 (para poucos registros) e diminui até 0.01 (para muitos registros).
+-      const decayFactor = Math.max(0.01, 0.06 - (pendingCount * 0.00005));
++      const intervalMs = 100;
++      const totalStepsTo90 = estimatedTimeMs / intervalMs;
++      const incrementPerStep = 90 / totalStepsTo90;
+ 
+       interval = setInterval(() => {
+         setSyncProgress((prev) => {
+-          // Curva assintótica: calcula a distância até 99% e avança uma fração dessa distância.
+-          // Isso cria um efeito visual onde o progresso começa rápido e vai desacelerando 
+-          // suavemente, nunca parando de se mover, mas sem bater no 100% até a resposta chegar.
+-          const remaining = 99 - prev;
+-          const step = remaining * decayFactor;
+-          return prev + step;
++          if (prev < 90) {
++            return Math.min(90, prev + incrementPerStep);
++          } else if (prev < 98) {
++            return prev + 0.05;
++          }
++          return prev;
+         });
+-      }, 300); // Atualiza a cada 300ms
++      }, intervalMs);
+     } else if (syncResult) {
+       setSyncProgress(100);
+     }
+
+commit 09fbda92f8188a79a75d74d7a42d59b81876d8d6
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Sat Mar 21 12:07:31 2026 -0300
+
+    feat: recalibrar indicador de progresso para curva logaritmica suave
+
+diff --git a/src/components/integrations/eklesia/transactions-manager.tsx b/src/components/integrations/eklesia/transactions-manager.tsx
+index bd6328c..0ec16c3 100644
+--- a/src/components/integrations/eklesia/transactions-manager.tsx
++++ b/src/components/integrations/eklesia/transactions-manager.tsx
+@@ -69,27 +69,24 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
+     if (isSyncing && !syncResult) {
+       setSyncProgress(0);
+       
+-      // Estima o tempo baseado na quantidade de registros (ex: 300ms por registro), mínimo de 2s, máximo de 45s
++      // Ajuste dinâmico baseado na quantidade de registros para a curva de progresso
+       const pendingCount = syncStats?.pending || 10;
+-      const estimatedTimeMs = Math.min(Math.max(2000, pendingCount * 300), 45000); 
+       
+-      // Atualiza a cada 100ms para uma animação mais fluida
+-      const intervalMs = 100;
+-      const totalStepsTo90 = estimatedTimeMs / intervalMs;
+-      const incrementPerStep = 90 / totalStepsTo90;
++      // Quanto mais registros, menor o passo (avança mais lentamente)
++      // Base latency da API do Questor é alta (envio de arquivo), então a curva 
++      // começa em 0.06 (para poucos registros) e diminui até 0.01 (para muitos registros).
++      const decayFactor = Math.max(0.01, 0.06 - (pendingCount * 0.00005));
+ 
+       interval = setInterval(() => {
+         setSyncProgress((prev) => {
+-          if (prev < 90) {
+-            // Cresce proporcionalmente ao tempo estimado até 90%
+-            return Math.min(90, prev + incrementPerStep);
+-          } else if (prev < 98) {
+-            // Se passar do tempo estimado e a resposta ainda não chegou, continua subindo bem devagar até 98%
+-            return prev + 0.05;
+-          }
+-          return prev; // Trava em 98% aguardando o servidor
++          // Curva assintótica: calcula a distância até 99% e avança uma fração dessa distância.
++          // Isso cria um efeito visual onde o progresso começa rápido e vai desacelerando 
++          // suavemente, nunca parando de se mover, mas sem bater no 100% até a resposta chegar.
++          const remaining = 99 - prev;
++          const step = remaining * decayFactor;
++          return prev + step;
+         });
+-      }, intervalMs);
++      }, 300); // Atualiza a cada 300ms
+     } else if (syncResult) {
+       setSyncProgress(100);
+     }
+
+commit 97fcaffb15e868155a397f92c306c1407a709154
+Author: Rodrigo.Miranda <Rodrigo.Miranda@nzd.local>
+Date:   Sat Mar 21 11:03:59 2026 -0300
+
+    fix: resolver ReferenceError movendo declaracao de syncStats para antes do useEffect no eklesia
+
+diff --git a/src/components/integrations/eklesia/transactions-manager.tsx b/src/components/integrations/eklesia/transactions-manager.tsx
+index 102d4b3..bd6328c 100644
+--- a/src/components/integrations/eklesia/transactions-manager.tsx
++++ b/src/components/integrations/eklesia/transactions-manager.tsx
+@@ -53,6 +53,17 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
+   const [resync, setResync] = useState(false);
+   const [syncProgress, setSyncProgress] = useState(0);
+ 
++  // Sync Confirmation
++  const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
++  const [syncStats, setSyncStats] = useState<{ 
++    total: number, 
++    synced: number, 
++    pending: number, 
++    hasPriorSync: boolean,
++    minDate?: string,
++    maxDate?: string
++  } | null>(null);
++
+   useEffect(() => {
+     let interval: NodeJS.Timeout;
+     if (isSyncing && !syncResult) {
+@@ -85,17 +96,6 @@ export function TransactionsManager({ companyId }: TransactionsManagerProps) {
+     return () => clearInterval(interval);
+   }, [isSyncing, syncResult, syncStats]);
+   
+-  // Sync Confirmation
+-  const [showConfirmSyncDialog, setShowConfirmSyncDialog] = useState(false);
+-  const [syncStats, setSyncStats] = useState<{ 
+-    total: number, 
+-    synced: number, 
+-    pending: number, 
+-    hasPriorSync: boolean,
+-    minDate?: string,
+-    maxDate?: string
+-  } | null>(null);
+-
+   const fetchData = async () => {
+     setIsLoading(true);
+     try {

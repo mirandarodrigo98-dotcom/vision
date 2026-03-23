@@ -22,7 +22,8 @@ import {
   BanknotesIcon,
   CalculatorIcon,
   TicketIcon,
-  CommandLineIcon
+  CommandLineIcon,
+  UserIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
@@ -85,6 +86,7 @@ const navigation: NavigationItem[] = [
       { name: 'Faturamento SN', href: '/admin/contabilidade/faturamento-sn', permission: 'contabilidade.faturamento.view' },
     ]
   },
+  { name: 'Pessoa Física', href: '/admin/pessoa-fisica', icon: UserIcon },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon, permission: 'audit_logs.view' },
   { name: 'Logs do Sistema', href: '/admin/system-logs', icon: CommandLineIcon, permission: 'system_logs.view' },
