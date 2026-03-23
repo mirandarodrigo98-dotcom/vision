@@ -20,7 +20,8 @@ export function IRForm() {
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<'Sócio' | 'Particular'>('Particular');
   const [companyId, setCompanyId] = useState<string>('');
-  const [sendMessages, setSendMessages] = useState(false);
+  const [sendWhatsapp, setSendWhatsapp] = useState(false);
+  const [sendEmail, setSendEmail] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,7 +37,8 @@ export function IRForm() {
         email: formData.get('email') as string,
         type,
         company_id: type === 'Sócio' ? companyId : undefined,
-        send_messages: sendMessages,
+        send_whatsapp: sendWhatsapp,
+        send_email: sendEmail,
       };
 
       if (type === 'Sócio' && !companyId) {
@@ -94,15 +96,30 @@ export function IRForm() {
             <Input id="email" name="email" type="email" placeholder="joao@exemplo.com" />
           </div>
 
-          <div className="flex items-center space-x-2 border p-3 rounded-md">
-            <Switch
-              id="send_messages"
-              checked={sendMessages}
-              onCheckedChange={setSendMessages}
-            />
-            <Label htmlFor="send_messages" className="cursor-pointer">
-              Ativar envio de mensagens por e-mail e whatsapp via Digisac
-            </Label>
+          <div className="space-y-3 border p-4 rounded-md">
+            <Label className="text-base font-semibold">Ativar Envio de Notificações</Label>
+            <div className="flex flex-col space-y-4 pt-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="send_whatsapp" className="cursor-pointer text-sm font-medium">
+                  Whatsapp
+                </Label>
+                <Switch
+                  id="send_whatsapp"
+                  checked={sendWhatsapp}
+                  onCheckedChange={setSendWhatsapp}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="send_email" className="cursor-pointer text-sm font-medium">
+                  E-mail
+                </Label>
+                <Switch
+                  id="send_email"
+                  checked={sendEmail}
+                  onCheckedChange={setSendEmail}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">

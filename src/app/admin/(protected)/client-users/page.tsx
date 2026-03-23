@@ -53,7 +53,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   const users = await db.prepare(query).all(...params) as any[];
 
-  let companiesQuery = "SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1 AND nome IS NOT NULL AND nome != ''";
+  let companiesQuery = "SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1";
   const companiesParams: any[] = [];
 
   if (session && session.role === 'operator') {
@@ -61,7 +61,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       companiesParams.push(session.user_id);
   }
 
-  companiesQuery += " ORDER BY nome";
+  companiesQuery += " ORDER BY COALESCE(NULLIF(nome, ''), razao_social)";
 
   const companies = await db.prepare(companiesQuery).all(...companiesParams) as any[];
   

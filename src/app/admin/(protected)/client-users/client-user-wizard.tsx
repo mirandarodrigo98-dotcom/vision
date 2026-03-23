@@ -188,10 +188,12 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         return true;
     });
 
-    const filteredCompanies = companies.filter(c => 
-        c.nome.toLowerCase().includes(companySearch.toLowerCase()) || 
-        (c.razao_social && c.razao_social.toLowerCase().includes(companySearch.toLowerCase()))
-    );
+    const filteredCompanies = companies.filter(c => {
+        const searchLower = companySearch.toLowerCase();
+        const nomeMatch = c.nome ? c.nome.toLowerCase().includes(searchLower) : false;
+        const razaoMatch = c.razao_social ? c.razao_social.toLowerCase().includes(searchLower) : false;
+        return nomeMatch || razaoMatch;
+    });
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -232,9 +234,9 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                                                     htmlFor={`company-${company.id}`}
                                                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                                 >
-                                                    {company.nome}
+                                                    {company.nome || company.razao_social}
                                                 </label>
-                                                {company.razao_social && (
+                                                {company.razao_social && company.nome && company.nome !== company.razao_social && (
                                                     <p className="text-xs text-muted-foreground">{company.razao_social}</p>
                                                 )}
                                             </div>

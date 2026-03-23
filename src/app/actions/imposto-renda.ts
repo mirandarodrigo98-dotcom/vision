@@ -16,7 +16,8 @@ export interface IRDeclaration {
   company_id: string | null;
   status: IRStatus;
   is_received: boolean;
-  send_messages: boolean;
+  send_whatsapp: boolean;
+  send_email: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -63,15 +64,16 @@ export async function createIRDeclaration(data: {
   email?: string;
   type: 'Sócio' | 'Particular';
   company_id?: string;
-  send_messages?: boolean;
+  send_whatsapp?: boolean;
+  send_email?: boolean;
 }) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
 
   const sql = `
     INSERT INTO ir_declarations (
-      name, year, phone, email, type, company_id, status, is_received, send_messages, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'Não Iniciado', false, $7, $8)
+      name, year, phone, email, type, company_id, status, is_received, send_whatsapp, send_email, created_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'Não Iniciado', false, $7, $8, $9)
     RETURNING id
   `;
 
@@ -82,8 +84,9 @@ export async function createIRDeclaration(data: {
     data.email || null,
     data.type,
     data.company_id || null,
-    data.send_messages ? true : false,
-    session.id
+    data.send_whatsapp ? true : false,
+    data.send_email ? true : false,
+    session.user_id
   );
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -123,7 +126,7 @@ export async function updateIRStatus(id: string, newStatus: IRStatus, justificat
     await db.prepare(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content, old_status, new_status)
       VALUES ($1, $2, 'status_change', $3, $4, $5)
-    `).run(id, session.id, justification || null, oldStatus, newStatus);
+    `).run(id, session.user_id, justification || null, oldStatus, newStatus);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -137,7 +140,7 @@ export async function addIRComment(id: string, content: string) {
   await db.prepare(`
     INSERT INTO ir_interactions (declaration_id, user_id, type, content)
     VALUES ($1, $2, 'comment', $3)
-  `).run(id, session.id, content);
+  `).run(id, session.user_id, content);
 
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
@@ -170,7 +173,7 @@ export async function markIRAsReceived(id: string) {
     await db.prepare(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', 'Pagamento recebido (Quitação)')
-    `).run(id, session.id);
+    `).run(id, session.user_id);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
