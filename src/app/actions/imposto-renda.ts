@@ -1,7 +1,7 @@
 'use server';
 
-import { db } from '@/db';
-import { getSession } from './auth';
+import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { v4 as uuidv4 } from 'uuid';
