@@ -2,6 +2,9 @@ import { Metadata } from 'next';
 import { getIRDeclarations, getIRStats } from '@/app/actions/imposto-renda';
 import { IRDashboard } from '@/components/imposto-renda/ir-dashboard';
 import { IRGrid } from '@/components/imposto-renda/ir-grid';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { PlusIcon } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Imposto de Renda | VISION',
@@ -17,6 +20,12 @@ export default async function ImpostoRendaPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Imposto de Renda</h2>
+        <Link href="/admin/pessoa-fisica/imposto-renda/novo">
+          <Button>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Nova Declaração
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-4">

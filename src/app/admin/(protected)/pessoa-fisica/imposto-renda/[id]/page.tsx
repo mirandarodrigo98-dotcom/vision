@@ -7,14 +7,15 @@ export const metadata: Metadata = {
   title: 'Detalhes IR | VISION',
 };
 
-export default async function DetalhesImpostoRendaPage({ params }: { params: { id: string } }) {
-  const declaration = await getIRDeclarationById(params.id);
+export default async function DetalhesImpostoRendaPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const declaration = await getIRDeclarationById(id);
   
   if (!declaration) {
     notFound();
   }
 
-  const interactions = await getIRInteractions(params.id);
+  const interactions = await getIRInteractions(id);
 
   return (
     <div className="flex-1 p-4 md:p-8 pt-6">
