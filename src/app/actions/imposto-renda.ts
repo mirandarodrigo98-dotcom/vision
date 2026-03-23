@@ -16,6 +16,7 @@ export interface IRDeclaration {
   company_id: string | null;
   status: IRStatus;
   is_received: boolean;
+  send_messages: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -58,28 +59,30 @@ export async function getIRStats() {
 export async function createIRDeclaration(data: {
   name: string;
   year: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   type: 'Sócio' | 'Particular';
   company_id?: string;
+  send_messages?: boolean;
 }) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
 
   const sql = `
     INSERT INTO ir_declarations (
-      name, year, phone, email, type, company_id, status, is_received, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'Não Iniciado', false, $7)
+      name, year, phone, email, type, company_id, status, is_received, send_messages, created_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'Não Iniciado', false, $7, $8)
     RETURNING id
   `;
 
   const result = await db.prepare(sql).get(
     data.name,
     data.year,
-    data.phone,
-    data.email,
+    data.phone || null,
+    data.email || null,
     data.type,
     data.company_id || null,
+    data.send_messages ? true : false,
     session.id
   );
 

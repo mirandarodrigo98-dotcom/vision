@@ -22,7 +22,7 @@ export function IRDashboard({ stats }: IRDashboardProps) {
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <Card className="col-span-4 lg:col-span-1">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Status das Declarações</CardTitle>
       </CardHeader>

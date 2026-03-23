@@ -25,7 +25,7 @@ interface IRGridProps {
 
 export function IRGrid({ declarations }: IRGridProps) {
   return (
-    <Card className="col-span-4 lg:col-span-3">
+    <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Declarações</CardTitle>
         <Link href="/admin/pessoa-fisica/imposto-renda/novo">

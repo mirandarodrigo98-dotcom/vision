@@ -6,6 +6,7 @@ import { createIRDeclaration } from '@/app/actions/imposto-renda';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
@@ -19,6 +20,7 @@ export function IRForm() {
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<'Sócio' | 'Particular'>('Particular');
   const [companyId, setCompanyId] = useState<string>('');
+  const [sendMessages, setSendMessages] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,6 +36,7 @@ export function IRForm() {
         email: formData.get('email') as string,
         type,
         company_id: type === 'Sócio' ? companyId : undefined,
+        send_messages: sendMessages,
       };
 
       if (type === 'Sócio' && !companyId) {
@@ -81,14 +84,25 @@ export function IRForm() {
               <Input id="year" name="year" required placeholder="Ex: 2026" defaultValue={new Date().getFullYear().toString()} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input id="phone" name="phone" required placeholder="(00) 00000-0000" />
+              <Label htmlFor="phone">Telefone (Opcional)</Label>
+              <Input id="phone" name="phone" placeholder="+55 (00) 00000-0000" defaultValue="+55 " />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input id="email" name="email" type="email" required placeholder="joao@exemplo.com" />
+            <Label htmlFor="email">E-mail (Opcional)</Label>
+            <Input id="email" name="email" type="email" placeholder="joao@exemplo.com" />
+          </div>
+
+          <div className="flex items-center space-x-2 border p-3 rounded-md">
+            <Switch
+              id="send_messages"
+              checked={sendMessages}
+              onCheckedChange={setSendMessages}
+            />
+            <Label htmlFor="send_messages" className="cursor-pointer">
+              Ativar envio de mensagens por e-mail e whatsapp via Digisac
+            </Label>
           </div>
 
           <div className="space-y-3">
