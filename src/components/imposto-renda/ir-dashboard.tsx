@@ -83,28 +83,40 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         </CardHeader>
         <CardContent className="h-[360px] pb-6">
           {(receiptsStats && receiptsStats.length > 0) ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={donutReceipts}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={110}
-                  paddingAngle={2}
-                  dataKey="value"
-                  labelLine={false}
-                >
-                  {donutReceipts.map((entry, index) => (
-                    <Cell key={`rc-${index}`} fill={entry.name === 'Recebidas' ? '#10b981' : '#ef4444'} stroke="#ffffff" strokeWidth={2} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number, name: string) => [`${value}`, name]}
-                  contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="h-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={donutReceipts}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={120}
+                    paddingAngle={2}
+                    dataKey="value"
+                    labelLine={false}
+                    isAnimationActive
+                    animationDuration={600}
+                  >
+                    {donutReceipts.map((entry, index) => (
+                      <Cell key={`rc-${index}`} fill={entry.name === 'Recebidas' ? '#10b981' : '#ef4444'} stroke="#ffffff" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [`${value}`, name]}
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center">
+                  <span className="text-xl font-bold">
+                    {(receiptsStats.find(r => r.name === 'Recebidas')?.value || 0)}/{(receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0) + (receiptsStats.find(r => r.name === 'Recebidas')?.value || 0)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Recebimentos</span>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               Sem dados de recebimento

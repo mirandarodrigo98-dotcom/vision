@@ -129,14 +129,14 @@ export function PartnersDialog() {
           Parceiros
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[1200px] w-[1200px] max-h-[85vh] overflow-y-auto px-8 py-8">
+      <DialogContent className="w-[95vw] max-w-[1600px] max-h-[85vh] overflow-y-auto px-10 py-10">
         <DialogHeader>
           <DialogTitle>Cadastro de Parceiros (Indicação IR)</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Form */}
-          <div className="md:col-span-1 border-r pr-4">
+          <div className="md:col-span-2 border-r pr-6">
             <h3 className="font-semibold mb-4">{editingId ? 'Editar Parceiro' : 'Novo Parceiro'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
