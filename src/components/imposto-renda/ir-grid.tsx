@@ -12,13 +12,15 @@ import { useState } from 'react';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
-  'Em andamento': 'bg-blue-500',
-  'Pendente': 'bg-yellow-500',
-  'Em Validação': 'bg-purple-500',
-  'Cancelado': 'bg-red-500',
-  'Transmitido': 'bg-green-500',
-  'Processado': 'bg-emerald-500',
-  'Malha Fina': 'bg-orange-500'
+  'Iniciado': 'bg-blue-900',
+  'Pendente': 'bg-red-600',
+  'Validada': 'bg-yellow-500',
+  'Transmitida': 'bg-orange-500',
+  'Processada': 'bg-green-600',
+  'Malha Fina': 'bg-pink-600',
+  'Retificadora': 'bg-purple-600',
+  'Reaberta': 'bg-blue-400',
+  'Cancelada': 'bg-slate-900'
 };
 
 interface IRGridProps {
@@ -28,6 +30,12 @@ interface IRGridProps {
 export function IRGrid({ declarations }: IRGridProps) {
   const years = Array.from(new Set(declarations.map(d => d.year))).sort((a, b) => b - a);
   const [priorityFilter, setPriorityFilter] = useState<'Todas' | 'Baixa' | 'Média' | 'Alta' | 'Crítica'>('Todas');
+  const formatCpf = (s?: string) => {
+    if (!s) return 'Não informado';
+    const d = s.replace(/\D/g, '');
+    if (d.length !== 11) return s;
+    return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*$/, '$1.$2.$3-$4');
+  };
 
   const renderTable = (decls: IRDeclaration[]) => (
     <div className="overflow-x-auto">
@@ -55,12 +63,12 @@ export function IRGrid({ declarations }: IRGridProps) {
             decls.map((decl) => (
               <tr key={decl.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-3 font-medium">{decl.name}</td>
-                <td className="px-4 py-3">{decl.cpf || 'Não informado'}</td>
+                <td className="px-4 py-3">{formatCpf(decl.cpf)}</td>
                 <td className="px-4 py-3">{decl.priority || 'Média'}</td>
                 <td className="px-4 py-3">{decl.type}</td>
                 <td className="px-4 py-3">{decl.year}</td>
                 <td className="px-4 py-3">
-                  <Badge className={`${STATUS_COLORS[decl.status] || 'bg-gray-500'} hover:${STATUS_COLORS[decl.status] || 'bg-gray-500'}`}>
+                  <Badge className={`${STATUS_COLORS[decl.status] || 'bg-gray-500'} text-white`}>
                     {decl.status}
                   </Badge>
                 </td>

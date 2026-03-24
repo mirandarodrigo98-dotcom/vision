@@ -27,6 +27,18 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
 
   const donutReceipts = receiptsStats || [];
 
+  const RADIAN = Math.PI / 180;
+  const renderPercentLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="#fff" fontSize={12} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+        {`${Math.round(percent * 100)}%`}
+      </text>
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="w-full">
@@ -54,6 +66,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                     cornerRadius={8}
                     isAnimationActive
                     animationDuration={600}
+                    label={renderPercentLabel}
                   >
                     {stats.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#64748b'} stroke="#ffffff" strokeWidth={2} />
