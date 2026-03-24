@@ -32,6 +32,8 @@ export function IRGrid({ declarations }: IRGridProps) {
         <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
           <tr>
             <th className="px-4 py-3">Nome</th>
+            <th className="px-4 py-3">CPF</th>
+            <th className="px-4 py-3">Prioridade</th>
             <th className="px-4 py-3">Tipo</th>
             <th className="px-4 py-3">Exercício</th>
             <th className="px-4 py-3">Status</th>
@@ -50,6 +52,8 @@ export function IRGrid({ declarations }: IRGridProps) {
             decls.map((decl) => (
               <tr key={decl.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-3 font-medium">{decl.name}</td>
+                <td className="px-4 py-3">{decl.cpf || 'Não informado'}</td>
+                <td className="px-4 py-3">{decl.priority || 'Média'}</td>
                 <td className="px-4 py-3">{decl.type}</td>
                 <td className="px-4 py-3">{decl.year}</td>
                 <td className="px-4 py-3">

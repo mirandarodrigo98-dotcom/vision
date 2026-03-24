@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority } from '@/app/actions/imposto-renda';
 import { getTeamUsers } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -63,6 +63,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     partnerId: declaration.indicated_by_partner_id || '',
     serviceValue: declaration.service_value ? declaration.service_value.toString() : ''
   });
+  const [priority, setPriority] = useState<'Baixa' | 'Média' | 'Alta' | 'Crítica'>(declaration.priority || 'Média');
 
   useEffect(() => {
     const loadData = async () => {
@@ -94,6 +95,19 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
       setIndicationDialog(false);
     } catch (error) {
       toast.error('Erro ao atualizar indicação');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePriority = async (newPriority: 'Baixa' | 'Média' | 'Alta' | 'Crítica') => {
+    setLoading(true);
+    try {
+      await updateIRPriority(declaration.id, newPriority);
+      setPriority(newPriority);
+      toast.success('Prioridade atualizada');
+    } catch {
+      toast.error('Erro ao atualizar prioridade');
     } finally {
       setLoading(false);
     }
@@ -252,6 +266,20 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
           <Badge className={`text-sm px-3 py-1 ${STATUS_COLORS[declaration.status] || 'bg-gray-500'} hover:${STATUS_COLORS[declaration.status]} text-white`}>
             {declaration.status}
           </Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Prioridade:</span>
+            <Select value={priority} onValueChange={(v: any) => handleUpdatePriority(v)}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Definir..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Baixa">Baixa</SelectItem>
+                <SelectItem value="Média">Média</SelectItem>
+                <SelectItem value="Alta">Alta</SelectItem>
+                <SelectItem value="Crítica">Crítica</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {declaration.is_received ? (
             <Badge variant="outline" className="text-green-600 border-green-600 px-3 py-1 flex items-center gap-1">
               <CheckCircleIcon className="h-4 w-4" /> Recebido

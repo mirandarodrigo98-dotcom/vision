@@ -25,6 +25,8 @@ export interface IRDeclaration {
   updated_at: string;
   company_name?: string;
   company_cnpj?: string;
+  cpf?: string | null;
+  priority?: 'Baixa' | 'Média' | 'Alta' | 'Crítica';
   indicated_by_user_id?: string | null;
   indicated_by_partner_id?: string | null;
   indicated_by_user_name?: string;
@@ -82,6 +84,8 @@ export async function createIRDeclaration(data: {
   indicated_by_user_id?: string;
   indicated_by_partner_id?: string;
   service_value?: number;
+  cpf?: string;
+  priority?: 'Baixa' | 'Média' | 'Alta' | 'Crítica';
 }) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
@@ -89,8 +93,8 @@ export async function createIRDeclaration(data: {
   const sql = `
     INSERT INTO ir_declarations (
       name, year, phone, email, type, company_id, status, is_received, send_whatsapp, send_email, created_by,
-      indicated_by_user_id, indicated_by_partner_id, service_value
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'Não Iniciado', false, $7, $8, $9, $10, $11, $12)
+      indicated_by_user_id, indicated_by_partner_id, service_value, cpf, priority
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'Não Iniciado', false, $7, $8, $9, $10, $11, $12, $13, $14)
     RETURNING id
   `;
 
@@ -106,7 +110,9 @@ export async function createIRDeclaration(data: {
     session.user_id,
     data.indicated_by_user_id || null,
     data.indicated_by_partner_id || null,
-    data.service_value || null
+    data.service_value || null,
+    data.cpf || null,
+    data.priority || 'Média'
   );
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -163,6 +169,16 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
     WHERE id = $4
   `).run(data.indicated_by_user_id || null, data.indicated_by_partner_id || null, data.service_value || null, id);
 
+  revalidatePath('/admin/pessoa-fisica/imposto-renda');
+  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+}
+
+export async function updateIRPriority(id: string, priority: 'Baixa' | 'Média' | 'Alta' | 'Crítica') {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+  await db.prepare(`
+    UPDATE ir_declarations SET priority = $1, updated_at = NOW() WHERE id = $2
+  `).run(priority, id);
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
