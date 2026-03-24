@@ -57,13 +57,15 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                     dataKey="value"
                     labelLine={false}
                     cornerRadius={8}
+                    isAnimationActive
+                    animationDuration={600}
                   >
                     {stats.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#64748b'} stroke="#ffffff" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: number, name: string) => [`${value}`, name]}
+                    formatter={(value: number, name: string) => [`${value} (${Math.round(((value as number) / (total || 1)) * 100)}%)`, name]}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
                   />
                   <Legend verticalAlign="bottom" height={36} />
@@ -84,7 +86,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         <CardHeader>
           <CardTitle>Recebidas vs Não Recebidas</CardTitle>
         </CardHeader>
-        <CardContent className="h-[360px]">
+        <CardContent className="h-[360px] pb-6">
           {(receiptsStats && receiptsStats.length > 0) ? (
             <div className="h-full flex items-center">
               <ResponsiveContainer width="100%" height="100%">
@@ -92,7 +94,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                   <RadialBar minAngle={15} dataKey="value" cornerRadius={12} />
                   {/* Legend removida conforme orientação */}
                   <Tooltip 
-                    formatter={(value: number, name: string) => [`${value}%`, name]}
+                    formatter={(value: number, name: string) => [`${receiptsStats?.find(r => r.name === name)?.value || 0} (${value}%)`, name]}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
                   />
                 </RadialBarChart>
@@ -104,7 +106,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
             </div>
           )}
           {receiptsStats && (
-            <div className="mt-3 flex gap-2 justify-center">
+            <div className="mt-1 flex gap-2 justify-center">
               <Badge variant="outline" className="border-emerald-600 text-emerald-700">Recebidas: {receiptsStats.find(r => r.name === 'Recebidas')?.value || 0}</Badge>
               <Badge variant="outline" className="border-red-600 text-red-700">Não Recebidas: {receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0}</Badge>
             </div>
