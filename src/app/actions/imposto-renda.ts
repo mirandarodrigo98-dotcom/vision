@@ -82,6 +82,12 @@ export async function getIRReceiptStats() {
   ];
 }
 
+export async function cleanupIRTestEntries() {
+  try {
+    await db.prepare(`DELETE FROM ir_declarations WHERE lower(name) = 'test'`).run();
+  } catch {}
+}
+
 export async function updateIRCpf(id: string, cpf: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');

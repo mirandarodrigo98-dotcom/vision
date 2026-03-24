@@ -66,6 +66,21 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
   const [priority, setPriority] = useState<'Baixa' | 'Média' | 'Alta' | 'Crítica'>(declaration.priority || 'Média');
   const [cpfDialog, setCpfDialog] = useState(false);
   const [cpfInput, setCpfInput] = useState<string>(declaration.cpf || '');
+  const formatCpf = (s?: string) => {
+    if (!s) return 'Não informado';
+    const d = s.replace(/\D/g, '');
+    if (d.length !== 11) return s;
+    return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*$/, '$1.$2.$3-$4');
+  };
+  const formatDateSafe = (s?: string) => {
+    if (!s) return '';
+    try {
+      const d = new Date(`${s}T12:00:00Z`);
+      return format(d, 'dd/MM/yyyy');
+    } catch {
+      return s;
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -357,6 +372,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                 <UserCircleIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex items-center gap-2">
                   <p className="text-sm">CPF: {declaration.cpf || 'Não informado'}</p>
+                  <p className="text-sm">CPF: {formatCpf(declaration.cpf)}</p>
                   <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setCpfDialog(true)}>
                     Editar
                   </Button>
@@ -445,7 +461,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                     <div>
                       <p className="text-sm font-medium">Data do Recebimento:</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(declaration.receipt_date + 'T12:00:00'), 'dd/MM/yyyy')}
+                        {formatDateSafe(declaration.receipt_date)}
                       </p>
                     </div>
                   </div>

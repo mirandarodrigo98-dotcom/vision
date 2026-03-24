@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
-import { getIRDeclarations, getIRStats, getIRReceiptStats } from '@/app/actions/imposto-renda';
+import { getIRDeclarations, getIRStats, getIRReceiptStats, cleanupIRTestEntries } from '@/app/actions/imposto-renda';
+import { getUserPermissions } from '@/app/actions/permissions';
+import { redirect } from 'next/navigation';
 import { IRDashboard } from '@/components/imposto-renda/ir-dashboard';
 import { IRGrid } from '@/components/imposto-renda/ir-grid';
 import Link from 'next/link';
@@ -14,6 +16,11 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function ImpostoRendaPage() {
+  const permissions = await getUserPermissions();
+  if (!permissions.includes('ir.view')) {
+    redirect('/admin');
+  }
+  await cleanupIRTestEntries();
   const declarations = await getIRDeclarations();
   const stats = await getIRStats();
   const receiptsStats = await getIRReceiptStats();

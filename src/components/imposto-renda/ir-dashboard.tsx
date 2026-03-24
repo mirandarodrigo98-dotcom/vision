@@ -1,6 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, RadialBarChart, RadialBar } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,12 +25,7 @@ interface IRDashboardProps {
 export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
-  const receivedTotal = receiptsStats?.reduce((sum, item) => sum + item.value, 0) || 0;
-  const radialData = receiptsStats?.map(r => ({
-    name: r.name,
-    value: Math.round(((r.value || 0) / (receivedTotal || 1)) * 100),
-    fill: r.name === 'Recebidas' ? '#10b981' : '#ef4444'
-  })) || [];
+  const donutReceipts = receiptsStats || [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -88,18 +83,28 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         </CardHeader>
         <CardContent className="h-[360px] pb-6">
           {(receiptsStats && receiptsStats.length > 0) ? (
-            <div className="h-full flex items-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart innerRadius="30%" outerRadius="100%" data={radialData}>
-                  <RadialBar minAngle={15} dataKey="value" cornerRadius={12} />
-                  {/* Legend removida conforme orientação */}
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [`${receiptsStats?.find(r => r.name === name)?.value || 0} (${value}%)`, name]}
-                    contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
-                  />
-                </RadialBarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutReceipts}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={110}
+                  paddingAngle={2}
+                  dataKey="value"
+                  labelLine={false}
+                >
+                  {donutReceipts.map((entry, index) => (
+                    <Cell key={`rc-${index}`} fill={entry.name === 'Recebidas' ? '#10b981' : '#ef4444'} stroke="#ffffff" strokeWidth={2} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number, name: string) => [`${value}`, name]}
+                  contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               Sem dados de recebimento
