@@ -188,37 +188,47 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
   };
 
   // Status buttons visibility logic
-  const getAvailableActions = () => {
+  const getAllActions = () => {
     const status = declaration.status;
-    const actions: { label: string, target: IRStatus, justify: boolean, color: string }[] = [];
+    const actions: { label: string, target: IRStatus, justify: boolean, color: string, disabled: boolean }[] = [
+      { label: 'Iniciar', target: 'Iniciado', justify: false, color: 'bg-blue-900', disabled: true },
+      { label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600', disabled: true },
+      { label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500', disabled: true },
+      { label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500', disabled: true },
+      { label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600', disabled: true },
+      { label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600', disabled: true },
+      { label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600', disabled: true },
+      { label: 'Reabrir', target: 'Reaberta', justify: false, color: 'bg-blue-400', disabled: true },
+      { label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900', disabled: true },
+    ];
 
     if (status === 'Não Iniciado') {
-      actions.push({ label: 'Iniciar', target: 'Iniciado', justify: false, color: 'bg-blue-900' });
-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });
-    } else if (status === 'Iniciado' || status === 'Reaberta') { // Reaberta functions like Iniciado based on logic flow
-      actions.push({ label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500' });
-      actions.push({ label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600' });
-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });
+      actions.find(a => a.label === 'Iniciar')!.disabled = false;
+      actions.find(a => a.label === 'Cancelar')!.disabled = false;
+    } else if (status === 'Iniciado' || status === 'Reaberta') {
+      actions.find(a => a.label === 'Validada')!.disabled = false;
+      actions.find(a => a.label === 'Pendente')!.disabled = false;
+      actions.find(a => a.label === 'Cancelar')!.disabled = false;
     } else if (status === 'Pendente') {
-      actions.push({ label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500' });
-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });
+      actions.find(a => a.label === 'Validada')!.disabled = false;
+      actions.find(a => a.label === 'Cancelar')!.disabled = false;
     } else if (status === 'Validada') {
-      actions.push({ label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500' });
-      actions.push({ label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600' });
-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });
+      actions.find(a => a.label === 'Transmitida')!.disabled = false;
+      actions.find(a => a.label === 'Pendente')!.disabled = false;
+      actions.find(a => a.label === 'Cancelar')!.disabled = false;
     } else if (status === 'Transmitida') {
-      actions.push({ label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600' });
-      actions.push({ label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600' });
-      actions.push({ label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600' });
+      actions.find(a => a.label === 'Processada')!.disabled = false;
+      actions.find(a => a.label === 'Malha Fina')!.disabled = false;
+      actions.find(a => a.label === 'Retificadora')!.disabled = false;
     } else if (status === 'Processada' || status === 'Malha Fina') {
-      actions.push({ label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600' });
+      actions.find(a => a.label === 'Retificadora')!.disabled = false;
     } else if (status === 'Retificadora') {
-      actions.push({ label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500' });
-      actions.push({ label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600' });
-      actions.push({ label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600' });
-      actions.push({ label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600' });
+      actions.find(a => a.label === 'Transmitida')!.disabled = false;
+      actions.find(a => a.label === 'Processada')!.disabled = false;
+      actions.find(a => a.label === 'Malha Fina')!.disabled = false;
+      actions.find(a => a.label === 'Retificadora')!.disabled = false;
     } else if (status === 'Cancelada') {
-      actions.push({ label: 'Reabrir', target: 'Reaberta', justify: false, color: 'bg-blue-400' });
+      actions.find(a => a.label === 'Reabrir')!.disabled = false;
     }
 
     return actions;
@@ -387,15 +397,18 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
               <CardDescription>Ações disponíveis para o fluxo</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-              {getAvailableActions().map((action, idx) => (
+              {getAllActions().map((action, idx) => (
                 <Button 
                   key={idx} 
                   onClick={() => handleStatusChange(action.target, action.justify)} 
-                  disabled={loading} 
-                  className="w-full justify-start hover:bg-muted bg-transparent text-foreground border shadow-sm" 
-                  variant="outline"
+                  disabled={loading || action.disabled} 
+                  className={`w-full justify-start border shadow-sm transition-all ${action.color} text-white ${
+                    action.disabled 
+                      ? 'opacity-40 cursor-not-allowed saturate-50' 
+                      : 'hover:brightness-110 hover:shadow-md'
+                  }`}
+                  variant="default"
                 >
-                  <span className={`w-3 h-3 rounded-full ${action.color} mr-2 shadow-sm`}></span> 
                   {action.label}
                 </Button>
               ))}
