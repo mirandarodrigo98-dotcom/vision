@@ -302,47 +302,54 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
             </CardContent>
           </Card>
 
-          {(declaration.indicated_by_user_name || declaration.indicated_by_partner_name || declaration.service_value) && (
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Indicação e Valores</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {(declaration.indicated_by_user_name || declaration.indicated_by_partner_name) && (
-                  <div className="flex items-start gap-3">
-                    <UserGroupIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Indicado por:</p>
-                      <p className="text-sm text-muted-foreground">
-                        {declaration.indicated_by_user_name ? `${declaration.indicated_by_user_name} (Usuário)` : `${declaration.indicated_by_partner_name} (Parceiro)`}
+          <Card>
+            <CardHeader className="pb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Indicação e Valores</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIndicationDialog(true)} disabled={loading} className="h-8 w-8">
+                <FileEdit className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!(declaration.indicated_by_user_name || declaration.indicated_by_partner_name) && !declaration.service_value && (
+                <div className="text-sm text-muted-foreground italic text-center py-2">
+                  Nenhuma indicação ou valor informado.
+                </div>
+              )}
+              
+              {(declaration.indicated_by_user_name || declaration.indicated_by_partner_name) && (
+                <div className="flex items-start gap-3">
+                  <UserGroupIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Indicado por:</p>
+                    <p className="text-sm text-muted-foreground">
+                      {declaration.indicated_by_user_name ? `${declaration.indicated_by_user_name} (Usuário)` : `${declaration.indicated_by_partner_name} (Parceiro)`}
+                    </p>
+                    {((declaration.user_commission_percent && declaration.indicated_by_user_name) || (declaration.partner_commission_percent && declaration.indicated_by_partner_name)) && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Comissão: {declaration.indicated_by_user_name ? declaration.user_commission_percent : declaration.partner_commission_percent}%
                       </p>
-                      {((declaration.user_commission_percent && declaration.indicated_by_user_name) || (declaration.partner_commission_percent && declaration.indicated_by_partner_name)) && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Comissão: {declaration.indicated_by_user_name ? declaration.user_commission_percent : declaration.partner_commission_percent}%
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )}
-                {declaration.service_value && (
-                  <div className="flex items-start gap-3">
-                    <CurrencyDollarIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Valor do Serviço:</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(declaration.service_value)}
+                </div>
+              )}
+              {declaration.service_value && (
+                <div className="flex items-start gap-3">
+                  <CurrencyDollarIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Valor do Serviço:</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(declaration.service_value)}
+                    </p>
+                    {((declaration.user_commission_percent && declaration.indicated_by_user_name) || (declaration.partner_commission_percent && declaration.indicated_by_partner_name)) && declaration.service_value ? (
+                      <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                        Valor da Premiação: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(declaration.service_value * ((declaration.indicated_by_user_name ? (declaration.user_commission_percent || 0) : (declaration.partner_commission_percent || 0)) / 100))}
                       </p>
-                      {((declaration.user_commission_percent && declaration.indicated_by_user_name) || (declaration.partner_commission_percent && declaration.indicated_by_partner_name)) && declaration.service_value ? (
-                        <p className="text-xs text-emerald-600 font-medium mt-0.5">
-                          Valor da Premiação: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(declaration.service_value * ((declaration.indicated_by_user_name ? (declaration.user_commission_percent || 0) : (declaration.partner_commission_percent || 0)) / 100))}
-                        </p>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {declaration.is_received && (
             <Card>
@@ -569,6 +576,91 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
             </Button>
             <Button onClick={handleReceive} disabled={loading || !receiptData.method || !receiptData.account || !receiptData.date}>
               Confirmar Recebimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Indicação e Valores */}
+      <Dialog open={indicationDialog} onOpenChange={setIndicationDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Indicação e Valores</DialogTitle>
+            <DialogDescription>
+              Informe o valor do serviço e a indicação para cálculo de premiação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Valor do Serviço (R$)</Label>
+              <Input 
+                placeholder="0,00"
+                value={indicationData.serviceValue}
+                onChange={(e) => setIndicationData(prev => ({ ...prev, serviceValue: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipo de Indicação</Label>
+              <Select 
+                value={indicationData.type} 
+                onValueChange={(v) => setIndicationData(prev => ({ ...prev, type: v, userId: '', partnerId: '' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma / Sem Indicação</SelectItem>
+                  <SelectItem value="user">Usuário do Escritório</SelectItem>
+                  <SelectItem value="partner">Parceiro Externo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {indicationData.type === 'user' && (
+              <div className="space-y-2">
+                <Label>Usuário</Label>
+                <Select 
+                  value={indicationData.userId} 
+                  onValueChange={(v) => setIndicationData(prev => ({ ...prev, userId: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {indicationData.type === 'partner' && (
+              <div className="space-y-2">
+                <Label>Parceiro</Label>
+                <Select 
+                  value={indicationData.partnerId} 
+                  onValueChange={(v) => setIndicationData(prev => ({ ...prev, partnerId: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o parceiro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {partners.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIndicationDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateIndication} disabled={loading || (indicationData.type === 'user' && !indicationData.userId) || (indicationData.type === 'partner' && !indicationData.partnerId)}>
+              Salvar Alterações
             </Button>
           </DialogFooter>
         </DialogContent>
