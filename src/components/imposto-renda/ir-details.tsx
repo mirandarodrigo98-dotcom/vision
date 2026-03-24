@@ -488,7 +488,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
 
       {/* Modal de Recebimento */}
       <Dialog open={receiptDialog} onOpenChange={setReceiptDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[560px] w-[560px]">
           <DialogHeader>
             <DialogTitle>Registrar Recebimento</DialogTitle>
             <DialogDescription>
@@ -583,7 +583,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
 
       {/* Modal de Indicação e Valores */}
       <Dialog open={indicationDialog} onOpenChange={setIndicationDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[640px] w-[640px]">
           <DialogHeader>
             <DialogTitle>Indicação e Valores</DialogTitle>
             <DialogDescription>
@@ -592,8 +592,9 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label>Valor do Serviço (R$)</Label>
+              <Label className="text-base">Valor do Serviço (R$)</Label>
               <Input 
+                className="h-11 text-base"
                 placeholder="0,00"
                 value={indicationData.serviceValue}
                 onChange={(e) => setIndicationData(prev => ({ ...prev, serviceValue: e.target.value }))}
@@ -601,7 +602,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Tipo de Indicação</Label>
+              <Label className="text-base">Tipo de Indicação</Label>
               <Select 
                 value={indicationData.type} 
                 onValueChange={(v) => setIndicationData(prev => ({ ...prev, type: v, userId: '', partnerId: '' }))}
@@ -619,7 +620,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
 
             {indicationData.type === 'user' && (
               <div className="space-y-2">
-                <Label>Usuário</Label>
+                <Label className="text-base">Usuário</Label>
                 <Select 
                   value={indicationData.userId} 
                   onValueChange={(v) => setIndicationData(prev => ({ ...prev, userId: v }))}
@@ -638,7 +639,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
 
             {indicationData.type === 'partner' && (
               <div className="space-y-2">
-                <Label>Parceiro</Label>
+                <Label className="text-base">Parceiro</Label>
                 <Select 
                   value={indicationData.partnerId} 
                   onValueChange={(v) => setIndicationData(prev => ({ ...prev, partnerId: v }))}

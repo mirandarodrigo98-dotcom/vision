@@ -129,43 +129,43 @@ export function PartnersDialog() {
           Parceiros
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[1000px] w-[1000px] max-h-[85vh] overflow-y-auto px-6 py-6">
         <DialogHeader>
           <DialogTitle>Cadastro de Parceiros (Indicação IR)</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Form */}
           <div className="md:col-span-1 border-r pr-4">
             <h3 className="font-semibold mb-4">{editingId ? 'Editar Parceiro' : 'Novo Parceiro'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>Nome *</Label>
-                <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} disabled={loading} />
+                <Label className="text-base">Nome *</Label>
+                <Input className="h-11 text-base" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} disabled={loading} />
               </div>
               <div className="space-y-2">
-                <Label>Percentual de Premiação (%) *</Label>
-                <Input type="number" step="0.01" value={formData.commission_percent} onChange={e => setFormData({...formData, commission_percent: e.target.value})} disabled={loading} />
+                <Label className="text-base">Percentual de Premiação (%) *</Label>
+                <Input className="h-11 text-base" type="number" step="0.01" value={formData.commission_percent} onChange={e => setFormData({...formData, commission_percent: e.target.value})} disabled={loading} />
               </div>
               <div className="space-y-2">
-                <Label>E-mail (Opcional)</Label>
-                <Input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} disabled={loading} />
+                <Label className="text-base">E-mail (Opcional)</Label>
+                <Input className="h-11 text-base" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} disabled={loading} />
               </div>
               <div className="space-y-2">
-                <Label>Telefone (Opcional)</Label>
-                <Input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} disabled={loading} />
+                <Label className="text-base">Telefone (Opcional)</Label>
+                <Input className="h-11 text-base" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} disabled={loading} />
               </div>
               <div className="space-y-2">
-                <Label>Dados para Pagamento (Opcional)</Label>
-                <Input value={formData.payment_data} onChange={e => setFormData({...formData, payment_data: e.target.value})} disabled={loading} placeholder="Ex: Chave PIX, Conta Bancária" />
+                <Label className="text-base">Dados para Pagamento (Opcional)</Label>
+                <Input className="h-11 text-base" value={formData.payment_data} onChange={e => setFormData({...formData, payment_data: e.target.value})} disabled={loading} placeholder="Ex: Chave PIX, Conta Bancária" />
               </div>
               
               <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button type="submit" disabled={loading} className="w-full h-11 text-base">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Atualizar' : 'Adicionar')}
                 </Button>
                 {editingId && (
-                  <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={loading} className="h-11 text-base">
                     Cancelar
                   </Button>
                 )}
@@ -176,35 +176,35 @@ export function PartnersDialog() {
           {/* List */}
           <div className="md:col-span-2">
             <h3 className="font-semibold mb-4">Parceiros Cadastrados</h3>
-            <div className="border rounded-md">
+            <div className="border rounded-md overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Comissão (%)</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="text-base">Nome</TableHead>
+                    <TableHead className="text-base">Comissão (%)</TableHead>
+                    <TableHead className="text-base">Contato</TableHead>
+                    <TableHead className="text-right text-base">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {partners.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">Nenhum parceiro cadastrado.</TableCell>
+                      <TableCell colSpan={4} className="text-center py-4 text-muted-foreground text-base">Nenhum parceiro cadastrado.</TableCell>
                     </TableRow>
                   ) : (
                     partners.map(p => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.name}</TableCell>
-                        <TableCell>{p.commission_percent}%</TableCell>
-                        <TableCell className="text-xs">
+                        <TableCell className="font-medium text-base">{p.name}</TableCell>
+                        <TableCell className="text-base">{p.commission_percent}%</TableCell>
+                        <TableCell className="text-sm sm:text-base">
                           {p.email && <div>{p.email}</div>}
                           {p.phone && <div>{p.phone}</div>}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-9 w-9">
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(p.id)}>
+                          <Button variant="ghost" size="icon" className="text-red-500 h-9 w-9" onClick={() => handleDelete(p.id)}>
                             <Trash className="w-4 h-4" />
                           </Button>
                         </TableCell>
