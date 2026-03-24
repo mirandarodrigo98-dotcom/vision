@@ -129,7 +129,7 @@ export function PartnersDialog() {
           Parceiros
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[1000px] w-[1000px] max-h-[85vh] overflow-y-auto px-6 py-6">
+      <DialogContent className="max-w-[1200px] w-[1200px] max-h-[85vh] overflow-y-auto px-8 py-8">
         <DialogHeader>
           <DialogTitle>Cadastro de Parceiros (Indicação IR)</DialogTitle>
         </DialogHeader>

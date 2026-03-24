@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { AVAILABLE_PERMISSIONS } from '@/lib/permissions-constants';
 import { updateDepartmentPermissions, Department } from '@/app/actions/departments';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import * as Accordion from '@radix-ui/react-accordion';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface PermissionsFormProps {
@@ -69,54 +70,50 @@ export function PermissionsForm({
     };
 
     const renderPermissionsGrid = () => (
-        <div className="grid gap-8 mt-6">
+        <Accordion.Root type="multiple" className="grid gap-4 mt-6">
             {modules.map(moduleName => {
                 const modulePermissions = AVAILABLE_PERMISSIONS.filter(p => p.module === moduleName);
                 const categories = Array.from(new Set(modulePermissions.map(p => p.category)));
-                
                 return (
-                    <div key={moduleName} className="space-y-4">
-                        <div className="flex items-center gap-2 pb-2 border-b border-border">
-                            <h3 className="text-xl font-bold text-foreground">{moduleName}</h3>
-                        </div>
-                        
-                        <div className="grid gap-6">
-                            {categories.map(category => (
-                                <Card key={category} className="shadow-sm">
-                                    <CardHeader className="pb-3 bg-muted/30">
-                                        <CardTitle className="text-base font-semibold">{category}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-4">
-                                        {modulePermissions.filter(p => p.category === category).map(permission => (
-                                            <div key={permission.code} className="flex items-center space-x-3 p-2 rounded-lg border hover:bg-accent/50 transition-colors">
-                                                <Switch 
-                                                    id={`${selectedDepartmentId}-${permission.code}`} 
-                                                    checked={departmentPermissions.includes(permission.code)}
-                                                    onCheckedChange={(checked) => handlePermissionChange(permission.code, checked)}
-                                                />
-                                                <div className="flex-1">
+                    <Accordion.Item key={moduleName} value={moduleName} className="border rounded-lg">
+                        <Accordion.Header>
+                            <Accordion.Trigger className="w-full text-left px-4 py-3 font-semibold hover:bg-muted/50">
+                                {moduleName}
+                            </Accordion.Trigger>
+                        </Accordion.Header>
+                        <Accordion.Content className="px-4 pb-4">
+                            <div className="grid gap-4">
+                                {categories.map(category => (
+                                    <Card key={category} className="shadow-sm">
+                                        <CardHeader className="pb-3 bg-muted/30">
+                                            <CardTitle className="text-sm font-semibold">{category}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-3">
+                                            {modulePermissions.filter(p => p.category === category).map(permission => (
+                                                <div key={permission.code} className="flex items-center space-x-3 p-2 rounded-lg border hover:bg-accent/50 transition-colors">
+                                                    <Switch 
+                                                        id={`${selectedDepartmentId}-${permission.code}`} 
+                                                        checked={departmentPermissions.includes(permission.code)}
+                                                        onCheckedChange={(checked) => handlePermissionChange(permission.code, checked)}
+                                                        className="scale-75"
+                                                    />
                                                     <Label 
                                                         htmlFor={`${selectedDepartmentId}-${permission.code}`}
-                                                        className="text-sm font-medium cursor-pointer block"
+                                                        className="text-xs sm:text-sm font-medium cursor-pointer"
                                                     >
                                                         {permission.label}
                                                     </Label>
-                                                    {permission.description && (
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            {permission.description}
-                                                        </p>
-                                                    )}
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        </Accordion.Content>
+                    </Accordion.Item>
                 );
             })}
-        </div>
+        </Accordion.Root>
     );
 
     if (!departments || departments.length === 0) {

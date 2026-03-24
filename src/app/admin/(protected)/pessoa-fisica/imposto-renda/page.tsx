@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getIRDeclarations, getIRStats } from '@/app/actions/imposto-renda';
+import { getIRDeclarations, getIRStats, getIRReceiptStats } from '@/app/actions/imposto-renda';
 import { IRDashboard } from '@/components/imposto-renda/ir-dashboard';
 import { IRGrid } from '@/components/imposto-renda/ir-grid';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic';
 export default async function ImpostoRendaPage() {
   const declarations = await getIRDeclarations();
   const stats = await getIRStats();
+  const receiptsStats = await getIRReceiptStats();
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -33,7 +34,7 @@ export default async function ImpostoRendaPage() {
       </div>
 
       <div className="space-y-4">
-        <IRDashboard stats={stats} />
+        <IRDashboard stats={stats} receiptsStats={receiptsStats} />
         <IRGrid declarations={declarations} />
       </div>
     </div>

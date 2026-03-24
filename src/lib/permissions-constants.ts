@@ -113,4 +113,13 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     // --- Configurações ---
     { code: 'settings.view', label: 'Acessar Configurações', category: 'Configurações', module: 'Configurações' },
     { code: 'settings.edit', label: 'Editar Configurações', category: 'Configurações', module: 'Configurações' },
+
+    // --- Módulo Imposto de Renda ---
+    { code: 'ir.view', label: 'Acessar Módulo IR', category: 'Imposto de Renda', module: 'Módulo IR' },
+    { code: 'ir.create', label: 'Criar Declaração', category: 'Imposto de Renda', module: 'Módulo IR' },
+    { code: 'ir.details.view', label: 'Ver Detalhes da Declaração', category: 'Imposto de Renda', module: 'Módulo IR' },
+    { code: 'ir.status.update', label: 'Alterar Status da Declaração', category: 'Imposto de Renda', module: 'Módulo IR' },
+    { code: 'ir.indication.edit', label: 'Editar Indicação/Valor de Serviço', category: 'Imposto de Renda', module: 'Módulo IR' },
+    { code: 'ir.receipt.register', label: 'Registrar Recebimento', category: 'Imposto de Renda', module: 'Módulo IR' },
+    { code: 'ir.partners.manage', label: 'Gerenciar Parceiros (Indicação)', category: 'Imposto de Renda', module: 'Módulo IR' },
 ];

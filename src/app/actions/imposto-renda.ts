@@ -72,6 +72,16 @@ export async function getIRStats() {
   }));
 }
 
+export async function getIRReceiptStats() {
+  const declarations = await getIRDeclarations();
+  const received = declarations.filter(d => d.is_received).length;
+  const notReceived = declarations.length - received;
+  return [
+    { name: 'Recebidas', value: received },
+    { name: 'Não Recebidas', value: notReceived }
+  ];
+}
+
 export async function createIRDeclaration(data: {
   name: string;
   year: string;

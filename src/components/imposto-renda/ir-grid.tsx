@@ -28,7 +28,7 @@ export function IRGrid({ declarations }: IRGridProps) {
 
   const renderTable = (decls: IRDeclaration[]) => (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left">
+      <table className="w-full text-sm text-center">
         <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
           <tr>
             <th className="px-4 py-3">Nome</th>
@@ -38,7 +38,7 @@ export function IRGrid({ declarations }: IRGridProps) {
             <th className="px-4 py-3">Exercício</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3">Recebido</th>
-            <th className="px-4 py-3 text-right">Ações</th>
+            <th className="px-4 py-3">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -68,7 +68,7 @@ export function IRGrid({ declarations }: IRGridProps) {
                     <Badge variant="outline" className="text-red-600 border-red-600">Não</Badge>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3">
                   <Link href={`/admin/pessoa-fisica/imposto-renda/${decl.id}`}>
                     <Button variant="ghost" size="icon" title="Detalhes">
                       <EyeIcon className="h-4 w-4" />

@@ -63,6 +63,7 @@ export function IRForm() {
         year: formData.get('year') as string,
         phone: formData.get('phone') as string,
         email: formData.get('email') as string,
+        cpf: formData.get('cpf') as string,
         type,
         company_id: type === 'Sócio' ? companyId : undefined,
         send_whatsapp: sendWhatsapp,
@@ -121,6 +122,11 @@ export function IRForm() {
           <div className="space-y-2">
             <Label htmlFor="name">Nome do Contribuinte</Label>
             <Input id="name" name="name" required placeholder="Ex: João da Silva" />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="cpf">CPF</Label>
+            <Input id="cpf" name="cpf" required placeholder="000.000.000-00" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
