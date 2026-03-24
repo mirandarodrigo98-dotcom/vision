@@ -1,7 +1,8 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, RadialBarChart, RadialBar } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const COLORS: Record<string, string> = {
   'Não Iniciado': '#94a3b8',
@@ -22,92 +23,93 @@ interface IRDashboardProps {
 export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Status das Declarações</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="h-[320px]">
-        {total === 0 ? (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            Nenhuma declaração encontrada
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={stats}
-                cx="50%"
-                cy="50%"
-                innerRadius={0}
-                outerRadius={110}
-                paddingAngle={5}
-                dataKey="value"
-                label={({ cx, cy, midAngle, innerRadius, outerRadius, value, index }) => {
-                  const RADIAN = Math.PI / 180;
-                  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                  const percent = ((value / total) * 100).toFixed(0);
+  const receivedTotal = receiptsStats?.reduce((sum, item) => sum + item.value, 0) || 0;
+  const radialData = receiptsStats?.map(r => ({ name: r.name, value: Math.round(((r.value || 0) / (receivedTotal || 1)) * 100) })) || [];
 
-                  return (
-                    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize="12">
-                      {`${percent}%`}
-                    </text>
-                  );
-                }}
-              >
-                {stats.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#ccc'} />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value: number, name: string) => [`${value}`, name]}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
-              />
-              <Legend verticalAlign="bottom" height={36} />
-            </PieChart>
-          </ResponsiveContainer>
-        )}
-        </div>
-        
-        {receiptsStats && receiptsStats.length > 0 && (
-          <div className="h-[280px]">
-            <Card className="w-full">
-              <CardHeader className="pb-2">
-                <CardTitle>Recebidas vs Não Recebidas</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={receiptsStats}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={0}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      dataKey="value"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {receiptsStats.map((entry, index) => (
-                        <Cell key={`rc-${index}`} fill={entry.name === 'Recebidas' ? '#10b981' : '#ef4444'} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [`${value}`, name]}
-                      contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Status das Declarações</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[360px] relative">
+          {total === 0 ? (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              Nenhuma declaração encontrada
+            </div>
+          ) : (
+            <div className="h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={120}
+                    paddingAngle={4}
+                    dataKey="value"
+                    labelLine={false}
+                    cornerRadius={8}
+                  >
+                    {stats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#64748b'} stroke="#ffffff" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [`${value}`, name]}
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold">{total}</span>
+                  <span className="text-xs text-muted-foreground">Declarações</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Recebidas vs Não Recebidas</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[360px]">
+          {(receiptsStats && receiptsStats.length > 0) ? (
+            <div className="h-full flex items-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart innerRadius="40%" outerRadius="100%" data={radialData}>
+                  <RadialBar minAngle={15} background clockWise dataKey="value" cornerRadius={12} />
+                  <Legend
+                    iconSize={10}
+                    layout="vertical"
+                    verticalAlign="middle"
+                    wrapperStyle={{ right: 0 }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [`${value}%`, name]}
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                  />
+                </RadialBarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              Sem dados de recebimento
+            </div>
+          )}
+          {receiptsStats && (
+            <div className="mt-3 flex gap-2">
+              <Badge variant="outline" className="border-emerald-600 text-emerald-700">Recebidas: {receiptsStats.find(r => r.name === 'Recebidas')?.value || 0}</Badge>
+              <Badge variant="outline" className="border-red-600 text-red-700">Não Recebidas: {receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0}</Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
