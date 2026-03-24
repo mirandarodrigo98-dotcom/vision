@@ -5,14 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 const COLORS: Record<string, string> = {
-  'Não Iniciado': '#94a3b8',
-  'Em andamento': '#3b82f6',
-  'Pendente': '#eab308',
-  'Em Validação': '#8b5cf6',
-  'Cancelado': '#ef4444',
-  'Transmitido': '#22c55e',
-  'Processado': '#10b981',
-  'Malha Fina': '#f97316'
+  'Não Iniciado': '#64748b',
+  'Iniciado': '#1e3a8a',
+  'Pendente': '#dc2626',
+  'Validada': '#eab308',
+  'Transmitida': '#f97316',
+  'Processada': '#16a34a',
+  'Malha Fina': '#db2777',
+  'Retificadora': '#7e22ce',
+  'Reaberta': '#60a5fa',
+  'Cancelada': '#0f172a'
 };
 
 interface IRDashboardProps {
@@ -88,12 +90,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart innerRadius="30%" outerRadius="100%" data={radialData}>
                   <RadialBar minAngle={15} dataKey="value" cornerRadius={12} />
-                  <Legend
-                    iconSize={10}
-                    layout="vertical"
-                    verticalAlign="middle"
-                    wrapperStyle={{ right: 0 }}
-                  />
+                  {/* Legend removida conforme orientação */}
                   <Tooltip 
                     formatter={(value: number, name: string) => [`${value}%`, name]}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
