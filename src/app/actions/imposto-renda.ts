@@ -91,9 +91,23 @@ export async function cleanupIRTestEntries() {
 export async function updateIRCpf(id: string, cpf: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
-  await db.prepare(`
-    UPDATE ir_declarations SET cpf = $1, updated_at = NOW() WHERE id = $2
-  `).run(cpf, id);
+  const decl = await getIRDeclarationById(id);
+  const oldCpf = decl?.cpf || null;
+  await db.transaction(async () => {
+    await db.prepare(`
+      UPDATE ir_declarations SET cpf = $1, updated_at = NOW() WHERE id = $2
+    `).run(cpf, id);
+    const mask = (v: string | null) => {
+      if (!v) return 'Não informado';
+      const d = v.replace(/\D/g, '');
+      if (d.length !== 11) return v;
+      return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    };
+    await db.prepare(`
+      INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+      VALUES ($1, $2, 'field_change', $3)
+    `).run(id, session.user_id, `CPF alterado de ${mask(oldCpf)} para ${mask(cpf)}`);
+  })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
@@ -188,12 +202,25 @@ export async function getIRDeclarationById(id: string): Promise<IRDeclaration | 
 export async function updateIRIndication(id: string, data: { indicated_by_user_id?: string | null, indicated_by_partner_id?: string | null, service_value?: number | null }) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
-
-  await db.prepare(`
-    UPDATE ir_declarations 
-    SET indicated_by_user_id = $1, indicated_by_partner_id = $2, service_value = $3, updated_at = NOW() 
-    WHERE id = $4
-  `).run(data.indicated_by_user_id || null, data.indicated_by_partner_id || null, data.service_value || null, id);
+  const prev = await getIRDeclarationById(id);
+  await db.transaction(async () => {
+    await db.prepare(`
+      UPDATE ir_declarations 
+      SET indicated_by_user_id = $1, indicated_by_partner_id = $2, service_value = $3, updated_at = NOW() 
+      WHERE id = $4
+    `).run(data.indicated_by_user_id || null, data.indicated_by_partner_id || null, data.service_value || null, id);
+    const fmtMoney = (n?: number | null) => {
+      if (n === null || n === undefined) return '—';
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+    };
+    const prevType = prev?.indicated_by_user_id ? 'Usuário Interno' : (prev?.indicated_by_partner_id ? 'Parceiro Externo' : 'Nenhuma');
+    const newType = data.indicated_by_user_id ? 'Usuário Interno' : (data.indicated_by_partner_id ? 'Parceiro Externo' : 'Nenhuma');
+    const content = `Indicação atualizada: Tipo ${prevType} → ${newType}; Valor ${fmtMoney(prev?.service_value)} → ${fmtMoney(data.service_value ?? null)}`;
+    await db.prepare(`
+      INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+      VALUES ($1, $2, 'field_change', $3)
+    `).run(id, session.user_id, content);
+  })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
@@ -202,9 +229,17 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
 export async function updateIRPriority(id: string, priority: 'Baixa' | 'Média' | 'Alta' | 'Crítica') {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
-  await db.prepare(`
-    UPDATE ir_declarations SET priority = $1, updated_at = NOW() WHERE id = $2
-  `).run(priority, id);
+  const decl = await getIRDeclarationById(id);
+  const oldPriority = decl?.priority || null;
+  await db.transaction(async () => {
+    await db.prepare(`
+      UPDATE ir_declarations SET priority = $1, updated_at = NOW() WHERE id = $2
+    `).run(priority, id);
+    await db.prepare(`
+      INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+      VALUES ($1, $2, 'priority_change', $3)
+    `).run(id, session.user_id, `Prioridade alterada de ${oldPriority ?? '—'} para ${priority}`);
+  })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
