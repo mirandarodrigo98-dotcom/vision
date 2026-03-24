@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserCircleIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, CheckCircleIcon, BanknotesIcon, PaperClipIcon, CurrencyDollarIcon, UserGroupIcon } from '@heroicons/react/24/outline';
-import { ChevronLeftIcon } from 'lucide-react';
+import { ChevronLeftIcon, PlayCircle, Clock, CheckCircle, Send, CheckCircle2, AlertTriangle, FileEdit, RotateCcw, Ban } from 'lucide-react';
 import Link from 'next/link';
 import { IRChat } from './ir-chat';
 
@@ -190,16 +190,16 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
   // Status buttons visibility logic
   const getAllActions = () => {
     const status = declaration.status;
-    const actions: { label: string, target: IRStatus, justify: boolean, color: string, disabled: boolean }[] = [
-      { label: 'Iniciar', target: 'Iniciado', justify: false, color: 'bg-blue-900', disabled: true },
-      { label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600', disabled: true },
-      { label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500', disabled: true },
-      { label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500', disabled: true },
-      { label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600', disabled: true },
-      { label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600', disabled: true },
-      { label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600', disabled: true },
-      { label: 'Reabrir', target: 'Reaberta', justify: false, color: 'bg-blue-400', disabled: true },
-      { label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900', disabled: true },
+    const actions: { label: string, target: IRStatus, justify: boolean, icon: any, disabled: boolean }[] = [
+      { label: 'Iniciar', target: 'Iniciado', justify: false, icon: PlayCircle, disabled: true },
+      { label: 'Pendente', target: 'Pendente', justify: true, icon: Clock, disabled: true },
+      { label: 'Validada', target: 'Validada', justify: false, icon: CheckCircle, disabled: true },
+      { label: 'Transmitida', target: 'Transmitida', justify: false, icon: Send, disabled: true },
+      { label: 'Processada', target: 'Processada', justify: false, icon: CheckCircle2, disabled: true },
+      { label: 'Malha Fina', target: 'Malha Fina', justify: false, icon: AlertTriangle, disabled: true },
+      { label: 'Retificadora', target: 'Retificadora', justify: false, icon: FileEdit, disabled: true },
+      { label: 'Reabrir', target: 'Reaberta', justify: false, icon: RotateCcw, disabled: true },
+      { label: 'Cancelar', target: 'Cancelada', justify: true, icon: Ban, disabled: true },
     ];
 
     if (status === 'Não Iniciado') {
@@ -396,25 +396,32 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
               <CardTitle className="text-lg">Controle de Status</CardTitle>
               <CardDescription>Ações disponíveis para o fluxo</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {getAllActions().map((action, idx) => (
-                <Button 
-                  key={idx} 
-                  onClick={() => handleStatusChange(action.target, action.justify)} 
-                  disabled={loading || action.disabled} 
-                  className={`w-full justify-start border shadow-sm transition-all ${action.color} text-white ${
-                    action.disabled 
-                      ? 'opacity-40 cursor-not-allowed saturate-50' 
-                      : 'hover:brightness-110 hover:shadow-md'
-                  }`}
-                  variant="default"
-                >
-                  {action.label}
-                </Button>
-              ))}
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2">
+                {getAllActions().map((action, idx) => {
+                  const Icon = action.icon;
+                  return (
+                    <Button 
+                      key={idx} 
+                      onClick={() => handleStatusChange(action.target, action.justify)} 
+                      disabled={loading || action.disabled} 
+                      className={`flex items-center justify-center gap-1.5 h-10 px-2 transition-all ${
+                        action.disabled 
+                          ? 'opacity-50 cursor-not-allowed' 
+                          : 'hover:bg-muted'
+                      }`}
+                      variant="outline"
+                      title={action.label}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="text-xs truncate">{action.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
 
               {!declaration.is_received && (
-                <div className="pt-4 mt-2 border-t">
+                <div className="pt-4 mt-4 border-t">
                   <Button onClick={() => setReceiptDialog(true)} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
                     <BanknotesIcon className="h-5 w-5 mr-2" /> Registrar Recebimento
                   </Button>
