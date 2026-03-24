@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, updateIRCpf } from '@/app/actions/imposto-renda';
 import { getTeamUsers } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -64,6 +64,8 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     serviceValue: declaration.service_value ? declaration.service_value.toString() : ''
   });
   const [priority, setPriority] = useState<'Baixa' | 'Média' | 'Alta' | 'Crítica'>(declaration.priority || 'Média');
+  const [cpfDialog, setCpfDialog] = useState(false);
+  const [cpfInput, setCpfInput] = useState<string>(declaration.cpf || '');
 
   useEffect(() => {
     const loadData = async () => {
@@ -108,6 +110,34 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
       toast.success('Prioridade atualizada');
     } catch {
       toast.error('Erro ao atualizar prioridade');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleUpdateCpf = async () => {
+    const v = cpfInput.replace(/\D/g, '');
+    if (v.length !== 11 || /^(\d)\1{10}$/.test(v)) {
+      toast.error('CPF inválido');
+      return;
+    }
+    const calc = (base: number) => {
+      let sum = 0;
+      for (let i = 0; i < base; i++) sum += parseInt(v[i]) * (base + 1 - i);
+      const r = (sum * 10) % 11;
+      return r === 10 ? 0 : r;
+    };
+    if (calc(9) !== parseInt(v[9]) || calc(10) !== parseInt(v[10])) {
+      toast.error('CPF inválido');
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateIRCpf(declaration.id, cpfInput);
+      toast.success('CPF atualizado');
+      setCpfDialog(false);
+    } catch {
+      toast.error('Erro ao atualizar CPF');
     } finally {
       setLoading(false);
     }
@@ -321,6 +351,16 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
               <div className="flex items-start gap-3">
                 <PhoneIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <p className="text-sm">{declaration.phone || 'Não informado'}</p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <UserCircleIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex items-center gap-2">
+                  <p className="text-sm">CPF: {declaration.cpf || 'Não informado'}</p>
+                  <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setCpfDialog(true)}>
+                    Editar
+                  </Button>
+                </div>
               </div>
 
               <div className="flex items-start gap-3">
@@ -690,6 +730,40 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
             </Button>
             <Button onClick={handleUpdateIndication} disabled={loading || (indicationData.type === 'user' && !indicationData.userId) || (indicationData.type === 'partner' && !indicationData.partnerId)}>
               Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={cpfDialog} onOpenChange={setCpfDialog}>
+        <DialogContent className="sm:max-w-[420px] w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Editar CPF</DialogTitle>
+            <DialogDescription>
+              Atualize o CPF do contribuinte.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="cpf_edit">CPF</Label>
+            <Input 
+              id="cpf_edit" 
+              value={cpfInput}
+              onChange={(e) => {
+                const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+                let m = d;
+                if (d.length > 9) m = d.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+                else if (d.length > 6) m = d.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
+                else if (d.length > 3) m = d.replace(/^(\d{3})(\d{0,3}).*/, '$1.$2');
+                setCpfInput(m);
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCpfDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateCpf} disabled={loading}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>

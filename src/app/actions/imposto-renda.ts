@@ -82,6 +82,16 @@ export async function getIRReceiptStats() {
   ];
 }
 
+export async function updateIRCpf(id: string, cpf: string) {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+  await db.prepare(`
+    UPDATE ir_declarations SET cpf = $1, updated_at = NOW() WHERE id = $2
+  `).run(cpf, id);
+  revalidatePath('/admin/pessoa-fisica/imposto-renda');
+  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+}
+
 export async function createIRDeclaration(data: {
   name: string;
   year: string;

@@ -654,3 +654,102 @@ Date:   Sun Mar 22 17:35:07 2026 -0300
  TAB ...................................... Complete filename & cycle.
  SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
  ctrl-L ................................... Complete filename, list all.
+warning: in the working copy of 'src/components/imposto-renda/ir-details.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/components/imposto-renda/ir-details.tsx b/src/components/imposto-renda/ir-details.tsx[m
+[1mindex c9e6aca..e3978cd 100644[m
+[1m--- a/src/components/imposto-renda/ir-details.tsx[m
+[1m+++ b/src/components/imposto-renda/ir-details.tsx[m
+[36m@@ -188,37 +188,47 @@[m [mexport function IRDetails({ declaration, interactions }: IRDetailsProps) {[m
+   };[m
+ [m
+   // Status buttons visibility logic[m
+[31m-  const getAvailableActions = () => {[m
+[32m+[m[32m  const getAllActions = () => {[m
+     const status = declaration.status;[m
+[31m-    const actions: { label: string, target: IRStatus, justify: boolean, color: string }[] = [];[m
+[32m+[m[32m    const actions: { label: string, target: IRStatus, justify: boolean, color: string, disabled: boolean }[] = [[m
+[32m+[m[32m      { label: 'Iniciar', target: 'Iniciado', justify: false, color: 'bg-blue-900', disabled: true },[m
+[32m+[m[32m      { label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600', disabled: true },[m
+[32m+[m[32m      { label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500', disabled: true },[m
+[32m+[m[32m      { label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500', disabled: true },[m
+[32m+[m[32m      { label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600', disabled: true },[m
+[32m+[m[32m      { label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600', disabled: true },[m
+[32m+[m[32m      { label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600', disabled: true },[m
+[32m+[m[32m      { label: 'Reabrir', target: 'Reaberta', justify: false, color: 'bg-blue-400', disabled: true },[m
+[32m+[m[32m      { label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900', disabled: true },[m
+[32m+[m[32m    ];[m
+ [m
+     if (status === 'Não Iniciado') {[m
+[31m-      actions.push({ label: 'Iniciar', target: 'Iniciado', justify: false, color: 'bg-blue-900' });[m
+[31m-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });[m
+[31m-    } else if (status === 'Iniciado' || status === 'Reaberta') { // Reaberta functions like Iniciado based on logic flow[m
+[31m-      actions.push({ label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500' });[m
+[31m-      actions.push({ label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600' });[m
+[31m-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Iniciar')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Cancelar')!.disabled = false;[m
+[32m+[m[32m    } else if (status === 'Iniciado' || status === 'Reaberta') {[m
+[32m+[m[32m      actions.find(a => a.label === 'Validada')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Pendente')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Cancelar')!.disabled = false;[m
+     } else if (status === 'Pendente') {[m
+[31m-      actions.push({ label: 'Validada', target: 'Validada', justify: false, color: 'bg-yellow-500' });[m
+[31m-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Validada')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Cancelar')!.disabled = false;[m
+     } else if (status === 'Validada') {[m
+[31m-      actions.push({ label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500' });[m
+[31m-      actions.push({ label: 'Pendente', target: 'Pendente', justify: true, color: 'bg-red-600' });[m
+[31m-      actions.push({ label: 'Cancelar', target: 'Cancelada', justify: true, color: 'bg-slate-900' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Transmitida')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Pendente')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Cancelar')!.disabled = false;[m
+     } else if (status === 'Transmitida') {[m
+[31m-      actions.push({ label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600' });[m
+[31m-      actions.push({ label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600' });[m
+[31m-      actions.push({ label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Processada')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Malha Fina')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Retificadora')!.disabled = false;[m
+     } else if (status === 'Processada' || status === 'Malha Fina') {[m
+[31m-      actions.push({ label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Retificadora')!.disabled = false;[m
+     } else if (status === 'Retificadora') {[m
+[31m-      actions.push({ label: 'Transmitida', target: 'Transmitida', justify: false, color: 'bg-orange-500' });[m
+[31m-      actions.push({ label: 'Processada', target: 'Processada', justify: false, color: 'bg-green-600' });[m
+[31m-      actions.push({ label: 'Malha Fina', target: 'Malha Fina', justify: false, color: 'bg-pink-600' });[m
+[31m-      actions.push({ label: 'Retificadora', target: 'Retificadora', justify: false, color: 'bg-purple-600' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Transmitida')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Processada')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Malha Fina')!.disabled = false;[m
+[32m+[m[32m      actions.find(a => a.label === 'Retificadora')!.disabled = false;[m
+     } else if (status === 'Cancelada') {[m
+[31m-      actions.push({ label: 'Reabrir', target: 'Reaberta', justify: false, color: 'bg-blue-400' });[m
+[32m+[m[32m      actions.find(a => a.label === 'Reabrir')!.disabled = false;[m
+     }[m
+ [m
+     return actions;[m
+[36m@@ -387,15 +397,19 @@[m [mexport function IRDetails({ declaration, interactions }: IRDetailsProps) {[m
+               <CardDescription>Ações disponíveis para o fluxo</CardDescription>[m
+             </CardHeader>[m
+             <CardContent className="flex flex-col gap-2">[m
+[31m-              {getAvailableActions().map((action, idx) => ([m
+[32m+[m[32m              {getAllActions().map((action, idx) => ([m
+                 <Button [m
+                   key={idx} [m
+                   onClick={() => handleStatusChange(action.target, action.justify)} [m
+[31m-                  disabled={loading} [m
+[31m-                  className="w-full justify-start hover:bg-muted bg-transparent text-foreground border shadow-sm" [m
+[32m+[m[32m                  disabled={loading || action.disabled}[m[41m [m
+[32m+[m[32m                  className={`w-full justify-start border shadow-sm transition-all ${[m
+[32m+[m[32m                    action.disabled[m[41m [m
+[32m+[m[32m                      ? 'opacity-50 cursor-not-allowed bg-muted/50 text-muted-foreground'[m[41m [m
+[32m+[m[32m                      : 'hover:bg-muted bg-transparent text-foreground'[m
+[32m+[m[32m                  }`}[m
+                   variant="outline"[m
+                 >[m
+[31m-                  <span className={`w-3 h-3 rounded-full ${action.color} mr-2 shadow-sm`}></span> [m
+[32m+[m[32m                  <span className={`w-3 h-3 rounded-full ${action.color} mr-2 shadow-sm ${action.disabled ? 'opacity-50' : ''}`}></span>[m[41m [m
+                   {action.label}[m
+                 </Button>[m
+               ))}[m

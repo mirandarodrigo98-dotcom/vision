@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState } from 'react';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
@@ -25,6 +27,7 @@ interface IRGridProps {
 
 export function IRGrid({ declarations }: IRGridProps) {
   const years = Array.from(new Set(declarations.map(d => d.year))).sort((a, b) => b - a);
+  const [priorityFilter, setPriorityFilter] = useState<'Todas' | 'Baixa' | 'Média' | 'Alta' | 'Crítica'>('Todas');
 
   const renderTable = (decls: IRDeclaration[]) => (
     <div className="overflow-x-auto">
@@ -87,6 +90,21 @@ export function IRGrid({ declarations }: IRGridProps) {
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>Declarações</CardTitle>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">Filtrar por prioridade</span>
+          <Select value={priorityFilter} onValueChange={(v: any) => setPriorityFilter(v)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas">Todas</SelectItem>
+              <SelectItem value="Baixa">Baixa</SelectItem>
+              <SelectItem value="Média">Média</SelectItem>
+              <SelectItem value="Alta">Alta</SelectItem>
+              <SelectItem value="Crítica">Crítica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         {declarations.length === 0 ? (
@@ -102,7 +120,11 @@ export function IRGrid({ declarations }: IRGridProps) {
             </TabsList>
             {years.map(year => (
               <TabsContent key={year} value={year.toString()}>
-                {renderTable(declarations.filter(d => d.year === year))}
+                {renderTable(
+                  declarations
+                    .filter(d => d.year === year)
+                    .filter(d => priorityFilter === 'Todas' ? true : (d.priority || 'Média') === priorityFilter)
+                )}
               </TabsContent>
             ))}
           </Tabs>

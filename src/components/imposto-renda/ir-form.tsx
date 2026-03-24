@@ -31,6 +31,7 @@ export function IRForm() {
   const [indicatedByUserId, setIndicatedByUserId] = useState<string>('');
   const [indicatedByPartnerId, setIndicatedByPartnerId] = useState<string>('');
   const [serviceValue, setServiceValue] = useState<string>('');
+  const [cpf, setCpf] = useState<string>('');
   
   const [users, setUsers] = useState<{id: string, name: string}[]>([]);
   const [partners, setPartners] = useState<{id: string, name: string}[]>([]);
@@ -58,6 +59,24 @@ export function IRForm() {
     const formData = new FormData(e.currentTarget);
     
     try {
+      const onlyDigits = (s: string) => s.replace(/\D/g, '');
+      const isValidCpf = (s: string) => {
+        const d = onlyDigits(s);
+        if (d.length !== 11) return false;
+        if (/^(\d)\1{10}$/.test(d)) return false;
+        const calc = (base: number) => {
+          let sum = 0;
+          for (let i = 0; i < base; i++) sum += parseInt(d[i]) * (base + 1 - i);
+          const r = (sum * 10) % 11;
+          return r === 10 ? 0 : r;
+        };
+        return calc(9) === parseInt(d[9]) && calc(10) === parseInt(d[10]);
+      };
+      if (!isValidCpf(formData.get('cpf') as string)) {
+        toast.error('CPF inválido.');
+        setLoading(false);
+        return;
+      }
       const data = {
         name: formData.get('name') as string,
         year: formData.get('year') as string,
@@ -126,7 +145,21 @@ export function IRForm() {
           
           <div className="space-y-2">
             <Label htmlFor="cpf">CPF</Label>
-            <Input id="cpf" name="cpf" required placeholder="000.000.000-00" />
+            <Input 
+              id="cpf" 
+              name="cpf" 
+              required 
+              placeholder="000.000.000-00" 
+              value={cpf}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 11);
+                let m = v;
+                if (v.length > 9) m = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+                else if (v.length > 6) m = v.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
+                else if (v.length > 3) m = v.replace(/^(\d{3})(\d{0,3}).*/, '$1.$2');
+                setCpf(m);
+              }}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
