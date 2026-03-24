@@ -24,7 +24,11 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
   const receivedTotal = receiptsStats?.reduce((sum, item) => sum + item.value, 0) || 0;
-  const radialData = receiptsStats?.map(r => ({ name: r.name, value: Math.round(((r.value || 0) / (receivedTotal || 1)) * 100) })) || [];
+  const radialData = receiptsStats?.map(r => ({
+    name: r.name,
+    value: Math.round(((r.value || 0) / (receivedTotal || 1)) * 100),
+    fill: r.name === 'Recebidas' ? '#10b981' : '#ef4444'
+  })) || [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -82,8 +86,8 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
           {(receiptsStats && receiptsStats.length > 0) ? (
             <div className="h-full flex items-center">
               <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart innerRadius="40%" outerRadius="100%" data={radialData}>
-                  <RadialBar minAngle={15} background clockWise dataKey="value" cornerRadius={12} />
+                <RadialBarChart innerRadius="30%" outerRadius="100%" data={radialData}>
+                  <RadialBar minAngle={15} dataKey="value" cornerRadius={12} />
                   <Legend
                     iconSize={10}
                     layout="vertical"
@@ -103,7 +107,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
             </div>
           )}
           {receiptsStats && (
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex gap-2 justify-center">
               <Badge variant="outline" className="border-emerald-600 text-emerald-700">Recebidas: {receiptsStats.find(r => r.name === 'Recebidas')?.value || 0}</Badge>
               <Badge variant="outline" className="border-red-600 text-red-700">Não Recebidas: {receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0}</Badge>
             </div>
