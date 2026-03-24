@@ -31,6 +31,7 @@ export function IRForm() {
   const [indicatedByUserId, setIndicatedByUserId] = useState<string>('');
   const [indicatedByPartnerId, setIndicatedByPartnerId] = useState<string>('');
   const [serviceValue, setServiceValue] = useState<string>('');
+  const [priority, setPriority] = useState<'Baixa' | 'Média' | 'Alta' | 'Crítica'>('Média');
   const [cpf, setCpf] = useState<string>('');
   
   const [users, setUsers] = useState<{id: string, name: string}[]>([]);
@@ -77,6 +78,13 @@ export function IRForm() {
         setLoading(false);
         return;
       }
+      const parseMoney = (s?: string) => {
+        if (!s) return undefined;
+        const v = s.replace(/\./g, '').replace(',', '.');
+        const n = parseFloat(v);
+        if (isNaN(n)) return undefined;
+        return n;
+      };
       const data = {
         name: formData.get('name') as string,
         year: formData.get('year') as string,
@@ -89,7 +97,8 @@ export function IRForm() {
         send_email: sendEmail,
         indicated_by_user_id: indicationType === 'user' ? indicatedByUserId : undefined,
         indicated_by_partner_id: indicationType === 'partner' ? indicatedByPartnerId : undefined,
-        service_value: serviceValue ? parseFloat(serviceValue.replace(',', '.')) : undefined
+        service_value: parseMoney(serviceValue),
+        priority
       };
 
       if (type === 'Sócio' && !companyId) {
@@ -304,16 +313,41 @@ export function IRForm() {
               <Label htmlFor="service_value">Valor do Serviço (R$)</Label>
               <Input 
                 id="service_value" 
-                type="number" 
-                step="0.01" 
-                min="0"
-                placeholder="Ex: 150.00" 
+                type="text"
+                inputMode="numeric"
+                placeholder="0,00" 
                 value={serviceValue}
-                onChange={e => setServiceValue(e.target.value)}
+                onChange={e => {
+                  const raw = e.target.value;
+                  const digits = raw.replace(/\D/g, '');
+                  if (!digits) {
+                    setServiceValue('');
+                    return;
+                  }
+                  const int = digits.slice(0, Math.max(0, digits.length - 2));
+                  const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
+                  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                  setServiceValue(`${intFmt || '0'},${dec}`);
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Usado para cálculo da premiação caso haja indicação.
               </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Label>Prioridade</Label>
+              <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Baixa">Baixa</SelectItem>
+                  <SelectItem value="Média">Média</SelectItem>
+                  <SelectItem value="Alta">Alta</SelectItem>
+                  <SelectItem value="Crítica">Crítica</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
