@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, generateIRReceiptPDF, updateIRContributor } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF } from '@/app/actions/imposto-renda';
 import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { getCompaniesForSelect } from '@/app/actions/companies';
+import { jsPDF } from 'jspdf';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -143,7 +144,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
       await updateIRIndication(declaration.id, {
         indicated_by_user_id: indicationData.type === 'user' ? indicationData.userId : null,
         indicated_by_partner_id: indicationData.type === 'partner' ? indicationData.partnerId : null,
-        service_value: indicationData.serviceValue ? parseFloat(indicationData.serviceValue.replace(',', '.')) : null
+        service_value: indicationData.serviceValue ? parseFloat(indicationData.serviceValue.replace(/\./g, '').replace(',', '.')) : null
       });
       toast.success('Indicação e Valores atualizados');
       setIndicationDialog(false);
@@ -191,7 +192,11 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
 
     setLoading(true);
     try {
-      await updateIRContributor(declaration.id, contributorData);
+      const payload = {
+        ...contributorData,
+        company_id: contributorData.company_id === 'none' || contributorData.type !== 'Sócio' ? null : contributorData.company_id
+      };
+      await updateIRContributor(declaration.id, payload);
       toast.success('Dados do contribuinte atualizados');
       setContributorDialog(false);
     } catch {
@@ -825,7 +830,64 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                 }
                 setLoading(true);
                 try {
-                  const res = await generateIRReceiptPDF(declaration.id, receiptCompany as any);
+                  const company = await getCompanyForReceipt(receiptCompany);
+                  if (!company) throw new Error('Empresa não encontrada');
+                  
+                  const doc = new jsPDF();
+                  const fmtMoney = (n?: number | null) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n ?? 0);
+                  const fmtCpf = (s?: string) => {
+                    if (!s) return '';
+                    const d = String(s).replace(/\D/g, '');
+                    if (d.length !== 11) return s;
+                    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                  };
+                  const fmtDate = (s: string) => {
+                    try {
+                      const datePart = s.split('T')[0];
+                      const d = new Date(`${datePart}T12:00:00Z`);
+                      const day = d.getUTCDate().toString().padStart(2, '0');
+                      const month = (d.getUTCMonth()+1).toString().padStart(2, '0');
+                      const year = d.getUTCFullYear();
+                      return `${day}/${month}/${year}`;
+                    } catch { return s; }
+                  };
+                  
+                  const addressParts = [
+                    company.address_type, company.address_street, company.address_number, company.address_complement
+                  ].filter(Boolean).join(' ');
+                  const cityLine = [company.address_neighborhood, company.municipio, company.uf, company.address_zip_code].filter(Boolean).join(' - ');
+                  
+                  doc.setFontSize(16);
+                  doc.text(company.razao_social || company.nome || receiptCompany, 105, 20, { align: 'center' });
+                  doc.setFontSize(12);
+                  doc.text(`CNPJ: ${company.cnpj || ''}`, 105, 28, { align: 'center' });
+                  doc.text(addressParts, 105, 36, { align: 'center' });
+                  if (cityLine) doc.text(cityLine, 105, 44, { align: 'center' });
+                  doc.line(20, 50, 190, 50);
+                  doc.setFontSize(14);
+                  doc.text('RECIBO DE PAGAMENTO', 105, 62, { align: 'center' });
+                  doc.setFontSize(12);
+                  
+                  const lines = [
+                    `Recebemos de: ${declaration.name} (CPF ${fmtCpf(declaration.cpf || '')})`,
+                    `Referente à: Serviços de Declaração de Imposto de Renda - Exercício ${declaration.year}`,
+                    `Forma de Pagamento: ${declaration.receipt_method || ''} | Conta: ${declaration.receipt_account || ''}`,
+                    `Data do Recebimento: ${fmtDate(declaration.receipt_date || '')}`,
+                    `Valor: ${fmtMoney(declaration.service_value)}`
+                  ];
+                  let y = 78;
+                  for (const ln of lines) {
+                    doc.text(ln, 20, y);
+                    y += 8;
+                  }
+                  doc.line(20, y + 6, 190, y + 6);
+                  doc.text('Assinatura:', 20, y + 18);
+                  doc.line(45, y + 18, 120, y + 18);
+                  
+                  const base64Pdf = doc.output('datauristring');
+                  const fileName = `recibo_${declaration.year}.pdf`;
+                  
+                  const res = await saveIRReceiptPDF(declaration.id, base64Pdf, receiptCompany, fileName);
                   if (res?.url) {
                     window.open(res.url, '_blank');
                   }
@@ -859,9 +921,22 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
               <Label className="text-base">Valor do Serviço (R$)</Label>
               <Input 
                 className="h-11 text-base"
+                type="text"
+                inputMode="numeric"
                 placeholder="0,00"
                 value={indicationData.serviceValue}
-                onChange={(e) => setIndicationData(prev => ({ ...prev, serviceValue: e.target.value }))}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const digits = raw.replace(/\D/g, '');
+                  if (!digits) {
+                    setIndicationData(prev => ({ ...prev, serviceValue: '' }));
+                    return;
+                  }
+                  const int = digits.slice(0, Math.max(0, digits.length - 2));
+                  const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
+                  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                  setIndicationData(prev => ({ ...prev, serviceValue: `${intFmt || '0'},${dec}` }));
+                }}
               />
             </div>
 
@@ -986,9 +1061,8 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Avulso">Avulso</SelectItem>
+                  <SelectItem value="Particular">Particular</SelectItem>
                   <SelectItem value="Sócio">Sócio</SelectItem>
-                  <SelectItem value="Diretoria">Diretoria</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1059,17 +1133,21 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
               <div className="space-y-2">
                 <Label>Valor Total (R$)</Label>
                 <Input
+                  type="text"
+                  inputMode="numeric"
                   placeholder="0,00"
                   value={processadaData.outcome_value}
                   onChange={(e) => {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value) {
-                      value = (parseInt(value) / 100).toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      });
+                    const raw = e.target.value;
+                    const digits = raw.replace(/\D/g, '');
+                    if (!digits) {
+                      setProcessadaData({ ...processadaData, outcome_value: '' });
+                      return;
                     }
-                    setProcessadaData({ ...processadaData, outcome_value: value });
+                    const int = digits.slice(0, Math.max(0, digits.length - 2));
+                    const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
+                    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    setProcessadaData({ ...processadaData, outcome_value: `${intFmt || '0'},${dec}` });
                   }}
                 />
               </div>

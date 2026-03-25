@@ -5,7 +5,6 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { v4 as uuidv4 } from 'uuid';
-import jsPDF from 'jspdf';
 
 export type IRStatus = 'Não Iniciado' | 'Iniciado' | 'Pendente' | 'Validada' | 'Transmitida' | 'Processada' | 'Malha Fina' | 'Retificadora' | 'Reaberta' | 'Cancelada';
 
@@ -495,14 +494,10 @@ export async function deleteIRReceipt(id: string) {
   return { success: true };
 }
 
-export async function generateIRReceiptPDF(id: string, companyName: 'NZD CONTABILIDADE' | 'NZD CONSULTORIA') {
+export async function getCompanyForReceipt(companyName: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
-  const decl = await getIRDeclarationById(id);
-  if (!decl) throw new Error('Declaration not found');
-  if (!decl.is_received || !decl.receipt_date) {
-    throw new Error('Declaração não consta como recebida');
-  }
+  
   const company = await db.prepare(`
     SELECT id, razao_social, nome, cnpj, telefone, email_contato, 
            address_type, address_street, address_number, address_complement, 
@@ -510,74 +505,40 @@ export async function generateIRReceiptPDF(id: string, companyName: 'NZD CONTABI
     FROM client_companies
     WHERE UPPER(razao_social) = UPPER($1) OR UPPER(nome) = UPPER($1)
     LIMIT 1
-  `).get(companyName) as any;
-  if (!company) throw new Error('Empresa não encontrada para emissão do recibo');
-  const doc = new jsPDF();
-  const fmtMoney = (n?: number | null) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n ?? 0);
-  const fmtCpf = (s?: string) => {
-    if (!s) return '';
-    const d = String(s).replace(/\D/g, '');
-    if (d.length !== 11) return s;
-    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  };
-  const fmtDate = (s: string) => {
-    try {
-      const datePart = s.split('T')[0];
-      const d = new Date(`${datePart}T12:00:00Z`);
-      const day = d.getUTCDate().toString().padStart(2, '0');
-      const month = (d.getUTCMonth()+1).toString().padStart(2, '0');
-      const year = d.getUTCFullYear();
-      return `${day}/${month}/${year}`;
-    } catch { return s; }
-  };
-  const addressParts = [
-    company.address_type, company.address_street, company.address_number, company.address_complement
-  ].filter(Boolean).join(' ');
-  const cityLine = [company.address_neighborhood, company.municipio, company.uf, company.address_zip_code].filter(Boolean).join(' - ');
-  doc.setFontSize(16);
-  doc.text(company.razao_social || company.nome || companyName, 105, 20, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text(`CNPJ: ${company.cnpj || ''}`, 105, 28, { align: 'center' });
-  doc.text(addressParts, 105, 36, { align: 'center' });
-  if (cityLine) doc.text(cityLine, 105, 44, { align: 'center' });
-  doc.line(20, 50, 190, 50);
-  doc.setFontSize(14);
-  doc.text('RECIBO DE PAGAMENTO', 105, 62, { align: 'center' });
-  doc.setFontSize(12);
-  const lines = [
-    `Recebemos de: ${decl.name} (CPF ${fmtCpf(decl.cpf)})`,
-    `Referente à: Serviços de Declaração de Imposto de Renda - Exercício ${decl.year}`,
-    `Forma de Pagamento: ${decl.receipt_method || ''} | Conta: ${decl.receipt_account || ''}`,
-    `Data do Recebimento: ${fmtDate(decl.receipt_date)}`,
-    `Valor: ${fmtMoney(decl.service_value)}`
-  ];
-  let y = 78;
-  for (const ln of lines) {
-    doc.text(ln, 20, y);
-    y += 8;
-  }
-  doc.line(20, y + 6, 190, y + 6);
-  doc.text('Assinatura:', 20, y + 18);
-  doc.line(45, y + 18, 120, y + 18);
-  const arrayBuffer = doc.output('arraybuffer');
-  const buffer = Buffer.from(arrayBuffer);
-  const fileName = `ir_receipts_pdf/${id}/${uuidv4()}.pdf`;
-  const upload = await uploadToR2(buffer, fileName, 'application/pdf');
+  `).get(companyName);
+  
+  return company;
+}
+
+export async function saveIRReceiptPDF(id: string, base64Pdf: string, companyName: string, fileName: string) {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+  
+  // base64Pdf usually comes as 'data:application/pdf;base64,JVBERi...' or just the base64 string
+  const base64Data = base64Pdf.includes('base64,') ? base64Pdf.split('base64,')[1] : base64Pdf;
+  const buffer = Buffer.from(base64Data, 'base64');
+  
+  const path = `ir_receipts_pdf/${id}/${uuidv4()}.pdf`;
+  const upload = await uploadToR2(buffer, path, 'application/pdf');
+  
   let publicUrl = upload?.fileKey || '';
   if (publicUrl && !publicUrl.startsWith('http')) {
     publicUrl = process.env.R2_PUBLIC_DOMAIN ? `${process.env.R2_PUBLIC_DOMAIN}/${publicUrl}` : (await getR2DownloadLink(publicUrl));
   }
+  
   await db.transaction(async () => {
     const interactionId = uuidv4();
     await db.prepare(`
       INSERT INTO ir_interactions (id, declaration_id, user_id, type, content)
       VALUES ($1, $2, $3, 'document', $4)
     `).run(interactionId, id, session.user_id, `Recibo gerado (${companyName})`);
+    
     await db.prepare(`
       INSERT INTO ir_attachments (interaction_id, original_name, size_bytes, url)
       VALUES ($1, $2, $3, $4)
-    `).run(interactionId, `recibo_${decl.year}.pdf`, buffer.length, upload?.fileKey || publicUrl);
+    `).run(interactionId, fileName, buffer.length, upload?.fileKey || publicUrl);
   })();
+  
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
   return { success: true, url: publicUrl };
 }
