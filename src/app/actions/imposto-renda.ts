@@ -161,7 +161,12 @@ export async function createIRDeclaration(data: {
     data.service_value || null,
     data.cpf || null,
     data.priority || 'Média'
-  );
+  ) as { id: string };
+
+  await db.prepare(`
+    INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+    VALUES ($1, $2, 'creation', 'Declaração Criada')
+  `).run(result.id, session.user_id);
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   return result;

@@ -19,6 +19,8 @@ interface Interaction {
   created_at: string;
   user_name: string;
   user_avatar: string;
+  old_status?: string;
+  new_status?: string;
   attachments?: {
     id: string;
     original_name: string;
@@ -27,11 +29,32 @@ interface Interaction {
   }[];
 }
 
-function formatInteractionContent(content: string) {
-  let formatted = content;
-  // Here we can do any status translation if needed, but the status names are already in PT-BR.
-  // We can just return the formatted text or add any other translation logic.
-  return formatted;
+function formatInteractionContent(interaction: Interaction) {
+  if (interaction.type === 'status_change') {
+    let actionStr = `Status alterado para ${interaction.new_status}`;
+    if (interaction.new_status === 'Iniciado') actionStr = `Declaração Iniciada`;
+    if (interaction.new_status === 'Validada') actionStr = `Declaração Validada`;
+    if (interaction.new_status === 'Transmitida') actionStr = `Declaração Transmitida`;
+    if (interaction.new_status === 'Processada') actionStr = `Declaração Processada`;
+    if (interaction.new_status === 'Pendente') actionStr = `Alterado para Pendente`;
+    if (interaction.new_status === 'Malha Fina') actionStr = `Caiu na Malha Fina`;
+    if (interaction.new_status === 'Retificadora') actionStr = `Alterado para Retificadora`;
+    if (interaction.new_status === 'Reaberta') actionStr = `Declaração Reaberta`;
+    if (interaction.new_status === 'Cancelada') actionStr = `Declaração Cancelada`;
+    
+    return (
+      <span>
+        <strong>{actionStr}</strong>
+        {interaction.content ? ` (Motivo: ${interaction.content})` : ''}
+      </span>
+    );
+  }
+  
+  if (interaction.type === 'creation') {
+    return <strong>Declaração Iniciada</strong>;
+  }
+  
+  return <strong>{interaction.content}</strong>;
 }
 
 interface IRChatProps {
@@ -102,8 +125,8 @@ export function IRChat({ declarationId, interactions, currentUserEmail, status }
       <ScrollArea className="flex-1 p-4 w-full">
         <div className="space-y-4 w-full max-w-full">
           {interactions.map((interaction) => (
-            <div key={interaction.id} className={`flex gap-3 w-full max-w-full ${interaction.type === 'status_change' ? 'justify-center' : ''}`}>
-              {interaction.type === 'comment' || interaction.type === 'creation' ? (
+            <div key={interaction.id} className={`flex gap-3 w-full max-w-full ${interaction.type === 'status_change' || interaction.type === 'field_change' || interaction.type === 'creation' ? 'justify-center' : ''}`}>
+              {interaction.type === 'comment' ? (
                 <>
                   <Avatar className="h-8 w-8 mt-1 shrink-0">
                     <AvatarImage src={interaction.user_avatar} />
@@ -141,7 +164,7 @@ export function IRChat({ declarationId, interactions, currentUserEmail, status }
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full text-center break-words max-w-full whitespace-pre-wrap">
-                  {formatInteractionContent(interaction.content)} - {format(new Date(interaction.created_at), "dd/MM HH:mm", { locale: ptBR })} por {interaction.user_name}
+                  {formatInteractionContent(interaction)} - {format(new Date(interaction.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })} por {interaction.user_name}
                 </div>
               )}
             </div>
