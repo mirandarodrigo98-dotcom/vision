@@ -28,6 +28,22 @@ export type TeamUser = {
   ir_commission_percent?: number;
 };
 
+export async function getActiveUsersForSelect() {
+  const session = await getSession();
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+
+  const users = await db.prepare(`
+    SELECT id, name
+    FROM users
+    WHERE role IN ('admin', 'operator') AND is_active = 1 AND deleted_at IS NULL
+    ORDER BY name ASC
+  `).all() as { id: string, name: string }[];
+
+  return users;
+}
+
 export async function getTeamUsers() {
   const session = await getSession();
   if (!session || session.role !== 'admin') {

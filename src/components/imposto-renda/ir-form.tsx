@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { getTeamUsers } from '@/app/actions/team';
+import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 
 // Usar o seletor de empresa existente nos tickets
@@ -41,10 +41,10 @@ export function IRForm() {
     const loadData = async () => {
       try {
         const [usersData, partnersData] = await Promise.all([
-          getTeamUsers(),
+          getActiveUsersForSelect(),
           getIRPartners()
         ]);
-        setUsers(usersData.filter(u => u.is_active));
+        setUsers(usersData);
         setPartners(partnersData);
       } catch (e) {
         console.error("Failed to load indication options", e);

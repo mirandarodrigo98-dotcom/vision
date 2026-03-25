@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, updateIRCpf, deleteIRReceipt, generateIRReceiptPDF } from '@/app/actions/imposto-renda';
-import { getTeamUsers } from '@/app/actions/team';
+import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -88,10 +88,10 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     const loadData = async () => {
       try {
         const [usersData, partnersData] = await Promise.all([
-          getTeamUsers(),
+          getActiveUsersForSelect(),
           getIRPartners()
         ]);
-        setUsers(usersData.filter(u => u.is_active));
+        setUsers(usersData);
         setPartners(partnersData);
       } catch (e) {
         console.error("Failed to load indication options", e);
