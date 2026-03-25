@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, updateIRCpf, deleteIRReceipt, generateIRReceiptPDF } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, generateIRReceiptPDF, updateIRContributor } from '@/app/actions/imposto-renda';
 import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
+import { getCompaniesForSelect } from '@/app/actions/companies';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ interface IRDetailsProps {
 }
 
 export function IRDetails({ declaration, interactions }: IRDetailsProps) {
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [justificationDialog, setJustificationDialog] = useState<{isOpen: boolean, targetStatus: IRStatus | null}>({ isOpen: false, targetStatus: null });
   const [justification, setJustification] = useState('');
@@ -66,8 +67,27 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     serviceValue: declaration.service_value ? declaration.service_value.toString() : ''
   });
   const [priority, setPriority] = useState<'Baixa' | 'Média' | 'Alta' | 'Crítica'>(declaration.priority || 'Média');
-  const [cpfDialog, setCpfDialog] = useState(false);
-  const [cpfInput, setCpfInput] = useState<string>(declaration.cpf || '');
+
+  const [contributorDialog, setContributorDialog] = useState(false);
+  const [contributorData, setContributorData] = useState({
+    name: declaration.name || '',
+    cpf: declaration.cpf || '',
+    phone: declaration.phone || '',
+    email: declaration.email || '',
+    type: declaration.type || '',
+    company_id: declaration.company_id || ''
+  });
+  const [companies, setCompanies] = useState<{id: string, razao_social: string}[]>([]);
+
+  const [processadaDialog, setProcessadaDialog] = useState(false);
+  const [processadaData, setProcessadaData] = useState({
+    outcome_type: '' as 'restituicao' | 'imposto' | '',
+    outcome_value: '',
+    payment_method: '' as 'a_vista' | 'parcelado' | '',
+    installments_count: '',
+    installment_value: ''
+  });
+
   const formatCpf = (s?: string) => {
     if (!s) return 'Não informado';
     const d = s.replace(/\D/g, '');
@@ -77,7 +97,8 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
   const formatDateSafe = (s?: string) => {
     if (!s) return '';
     try {
-      const d = new Date(`${s}T12:00:00Z`);
+      const datePart = s.split('T')[0];
+      const d = new Date(`${datePart}T12:00:00Z`);
       return format(d, 'dd/MM/yyyy');
     } catch {
       return s;
@@ -101,6 +122,20 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
       loadData();
     }
   }, [indicationDialog]);
+
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const comps = await getCompaniesForSelect();
+        setCompanies(comps);
+      } catch (e) {
+        console.error("Failed to load companies", e);
+      }
+    };
+    if (contributorDialog && companies.length === 0) {
+      loadCompanies();
+    }
+  }, [contributorDialog]);
 
   const handleUpdateIndication = async () => {
     setLoading(true);
@@ -132,8 +167,13 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     }
   };
   
-  const handleUpdateCpf = async () => {
-    const v = cpfInput.replace(/\D/g, '');
+  const handleUpdateContributor = async () => {
+    if (!contributorData.name || !contributorData.cpf || !contributorData.type) {
+      toast.error('Nome, CPF e Tipo são obrigatórios');
+      return;
+    }
+
+    const v = contributorData.cpf.replace(/\D/g, '');
     if (v.length !== 11 || /^(\d)\1{10}$/.test(v)) {
       toast.error('CPF inválido');
       return;
@@ -148,13 +188,14 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
       toast.error('CPF inválido');
       return;
     }
+
     setLoading(true);
     try {
-      await updateIRCpf(declaration.id, cpfInput);
-      toast.success('CPF atualizado');
-      setCpfDialog(false);
+      await updateIRContributor(declaration.id, contributorData);
+      toast.success('Dados do contribuinte atualizados');
+      setContributorDialog(false);
     } catch {
-      toast.error('Erro ao atualizar CPF');
+      toast.error('Erro ao atualizar dados');
     } finally {
       setLoading(false);
     }
@@ -177,6 +218,11 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
   const handleStatusChange = async (newStatus: IRStatus, requireJustification: boolean = false) => {
     if (requireJustification) {
       setJustificationDialog({ isOpen: true, targetStatus: newStatus });
+      return;
+    }
+    
+    if (newStatus === 'Processada') {
+      setProcessadaDialog(true);
       return;
     }
 
@@ -203,6 +249,62 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
       toast.success(`Status alterado para ${justificationDialog.targetStatus}`);
       setJustificationDialog({ isOpen: false, targetStatus: null });
       setJustification('');
+    } catch (error) {
+      toast.error('Erro ao alterar status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitProcessada = async () => {
+    if (!processadaData.outcome_type) {
+      toast.error('Informe se houve restituição ou imposto a pagar');
+      return;
+    }
+    
+    if (!processadaData.outcome_value) {
+      toast.error('O valor é obrigatório');
+      return;
+    }
+    
+    const outcomeValueNum = parseFloat(processadaData.outcome_value.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(outcomeValueNum) || outcomeValueNum <= 0) {
+      toast.error('Valor inválido');
+      return;
+    }
+
+    if (processadaData.outcome_type === 'imposto') {
+      if (!processadaData.payment_method) {
+        toast.error('Informe se foi à vista ou parcelado');
+        return;
+      }
+      
+      if (processadaData.payment_method === 'parcelado' && (!processadaData.installments_count || parseInt(processadaData.installments_count) <= 0)) {
+        toast.error('Informe uma quantidade válida de parcelas');
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      const dataToSave = {
+        outcome_type: processadaData.outcome_type,
+        outcome_value: outcomeValueNum,
+        payment_method: processadaData.outcome_type === 'imposto' ? processadaData.payment_method : null,
+        installments_count: (processadaData.outcome_type === 'imposto' && processadaData.payment_method === 'parcelado') ? parseInt(processadaData.installments_count) : null,
+        installment_value: (processadaData.outcome_type === 'imposto' && processadaData.payment_method === 'parcelado') ? outcomeValueNum / parseInt(processadaData.installments_count) : null
+      };
+
+      await updateIRStatus(declaration.id, 'Processada', undefined, dataToSave);
+      toast.success('Status alterado para Processada com sucesso');
+      setProcessadaDialog(false);
+      setProcessadaData({
+        outcome_type: '',
+        outcome_value: '',
+        payment_method: '',
+        installments_count: '',
+        installment_value: ''
+      });
     } catch (error) {
       toast.error('Erro ao alterar status');
     } finally {
@@ -343,8 +445,11 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
         {/* Coluna Esquerda - Dados e Ações */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Dados do Contribuinte</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setContributorDialog(true)} disabled={loading} className="h-8 w-8">
+                <FileEdit className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
@@ -373,11 +478,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
               <div className="flex items-start gap-3">
                 <UserCircleIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex items-center gap-2">
-                  <p className="text-sm">CPF: {declaration.cpf || 'Não informado'}</p>
                   <p className="text-sm">CPF: {formatCpf(declaration.cpf)}</p>
-                  <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setCpfDialog(true)}>
-                    Editar
-                  </Button>
                 </div>
               </div>
 
@@ -830,35 +931,203 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={cpfDialog} onOpenChange={setCpfDialog}>
-        <DialogContent className="sm:max-w-[420px] w-[420px]">
+      <Dialog open={contributorDialog} onOpenChange={setContributorDialog}>
+        <DialogContent className="sm:max-w-[420px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar CPF</DialogTitle>
+            <DialogTitle>Editar Contribuinte</DialogTitle>
             <DialogDescription>
-              Atualize o CPF do contribuinte.
+              Atualize os dados do contribuinte.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
-            <Label htmlFor="cpf_edit">CPF</Label>
-            <Input 
-              id="cpf_edit" 
-              value={cpfInput}
-              onChange={(e) => {
-                const d = e.target.value.replace(/\D/g, '').slice(0, 11);
-                let m = d;
-                if (d.length > 9) m = d.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
-                else if (d.length > 6) m = d.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
-                else if (d.length > 3) m = d.replace(/^(\d{3})(\d{0,3}).*/, '$1.$2');
-                setCpfInput(m);
-              }}
-            />
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome Completo</Label>
+              <Input 
+                value={contributorData.name}
+                onChange={(e) => setContributorData({ ...contributorData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>CPF</Label>
+              <Input 
+                value={contributorData.cpf}
+                onChange={(e) => {
+                  const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  let m = d;
+                  if (d.length > 9) m = d.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+                  else if (d.length > 6) m = d.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
+                  else if (d.length > 3) m = d.replace(/^(\d{3})(\d{0,3}).*/, '$1.$2');
+                  setContributorData({ ...contributorData, cpf: m });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone (WhatsApp)</Label>
+              <Input 
+                value={contributorData.phone}
+                onChange={(e) => setContributorData({ ...contributorData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input 
+                type="email"
+                value={contributorData.email}
+                onChange={(e) => setContributorData({ ...contributorData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Cliente</Label>
+              <Select 
+                value={contributorData.type} 
+                onValueChange={(v) => setContributorData({ ...contributorData, type: v, company_id: v !== 'Sócio' ? '' : contributorData.company_id })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Avulso">Avulso</SelectItem>
+                  <SelectItem value="Sócio">Sócio</SelectItem>
+                  <SelectItem value="Diretoria">Diretoria</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {contributorData.type === 'Sócio' && (
+              <div className="space-y-2">
+                <Label>Empresa (Opcional)</Label>
+                <Select 
+                  value={contributorData.company_id} 
+                  onValueChange={(v) => setContributorData({ ...contributorData, company_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {companies.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.razao_social}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCpfDialog(false)}>
+            <Button variant="outline" onClick={() => setContributorDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleUpdateCpf} disabled={loading}>
+            <Button onClick={handleUpdateContributor} disabled={loading}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Processada */}
+      <Dialog open={processadaDialog} onOpenChange={setProcessadaDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Status para Processada</DialogTitle>
+            <DialogDescription>
+              Informe os dados do resultado da declaração.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Resultado da Declaração</Label>
+              <Select
+                value={processadaData.outcome_type}
+                onValueChange={(value: 'restituicao' | 'imposto') => setProcessadaData({
+                  ...processadaData,
+                  outcome_type: value,
+                  payment_method: '',
+                  installments_count: '',
+                  installment_value: ''
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o resultado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="restituicao">Restituição</SelectItem>
+                  <SelectItem value="imposto">Imposto a Pagar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {processadaData.outcome_type && (
+              <div className="space-y-2">
+                <Label>Valor Total (R$)</Label>
+                <Input
+                  placeholder="0,00"
+                  value={processadaData.outcome_value}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value) {
+                      value = (parseInt(value) / 100).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      });
+                    }
+                    setProcessadaData({ ...processadaData, outcome_value: value });
+                  }}
+                />
+              </div>
+            )}
+
+            {processadaData.outcome_type === 'imposto' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Forma de Pagamento</Label>
+                  <Select
+                    value={processadaData.payment_method}
+                    onValueChange={(value: 'a_vista' | 'parcelado') => setProcessadaData({
+                      ...processadaData,
+                      payment_method: value,
+                      installments_count: '',
+                      installment_value: ''
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a forma de pagamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="a_vista">À Vista</SelectItem>
+                      <SelectItem value="parcelado">Parcelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {processadaData.payment_method === 'parcelado' && (
+                  <div className="space-y-2">
+                    <Label>Quantidade de Parcelas</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="8"
+                      placeholder="Ex: 8"
+                      value={processadaData.installments_count}
+                      onChange={(e) => {
+                        const count = e.target.value;
+                        setProcessadaData({ ...processadaData, installments_count: count });
+                      }}
+                    />
+                    {processadaData.outcome_value && processadaData.installments_count && parseInt(processadaData.installments_count) > 0 && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Valor da Parcela: R$ {(parseFloat(processadaData.outcome_value.replace(/\./g, '').replace(',', '.')) / parseInt(processadaData.installments_count)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProcessadaDialog(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button onClick={submitProcessada} disabled={loading}>
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>

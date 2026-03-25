@@ -96,26 +96,33 @@ export async function cleanupIRTestEntries() {
   } catch {}
 }
 
-export async function updateIRCpf(id: string, cpf: string) {
+export async function updateIRContributor(
+  id: string, 
+  data: { 
+    name: string; 
+    cpf: string;
+    phone: string; 
+    email: string; 
+    type: string; 
+    company_id?: string | null 
+  }
+) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
-  const decl = await getIRDeclarationById(id);
-  const oldCpf = decl?.cpf || null;
+
   await db.transaction(async () => {
     await db.prepare(`
-      UPDATE ir_declarations SET cpf = $1, updated_at = NOW() WHERE id = $2
-    `).run(cpf, id);
-    const mask = (v: string | null) => {
-      if (!v) return 'Não informado';
-      const d = v.replace(/\D/g, '');
-      if (d.length !== 11) return v;
-      return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    };
+      UPDATE ir_declarations 
+      SET name = $1, cpf = $2, phone = $3, email = $4, type = $5, company_id = $6, updated_at = NOW()
+      WHERE id = $7
+    `).run(data.name, data.cpf, data.phone, data.email, data.type, data.company_id || null, id);
+
     await db.prepare(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
-      VALUES ($1, $2, 'field_change', $3)
-    `).run(id, session.user_id, `CPF alterado de ${mask(oldCpf)} para ${mask(cpf)}`);
+      VALUES ($1, $2, 'comment', $3)
+    `).run(id, session.user_id, 'Dados do contribuinte atualizados');
   })();
+
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
@@ -257,7 +264,7 @@ export async function updateIRPriority(id: string, priority: 'Baixa' | 'Média' 
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
 }
 
-export async function updateIRStatus(id: string, newStatus: IRStatus, justification?: string) {
+export async function updateIRStatus(id: string, newStatus: IRStatus, justification?: string, processadaData?: any) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
 
@@ -267,7 +274,29 @@ export async function updateIRStatus(id: string, newStatus: IRStatus, justificat
   const oldStatus = decl.status;
 
   await db.transaction(async () => {
-    await db.prepare('UPDATE ir_declarations SET status = $1, updated_at = NOW() WHERE id = $2').run(newStatus, id);
+    if (newStatus === 'Processada' && processadaData) {
+      await db.prepare(`
+        UPDATE ir_declarations 
+        SET status = $1, 
+            updated_at = NOW(),
+            outcome_type = $2,
+            outcome_value = $3,
+            payment_method = $4,
+            installments_count = $5,
+            installment_value = $6
+        WHERE id = $7
+      `).run(
+        newStatus, 
+        processadaData.outcome_type, 
+        processadaData.outcome_value, 
+        processadaData.payment_method || null, 
+        processadaData.installments_count || null, 
+        processadaData.installment_value || null, 
+        id
+      );
+    } else {
+      await db.prepare('UPDATE ir_declarations SET status = $1, updated_at = NOW() WHERE id = $2').run(newStatus, id);
+    }
 
     await db.prepare(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content, old_status, new_status)
@@ -493,7 +522,8 @@ export async function generateIRReceiptPDF(id: string, companyName: 'NZD CONTABI
   };
   const fmtDate = (s: string) => {
     try {
-      const d = new Date(`${s}T12:00:00Z`);
+      const datePart = s.split('T')[0];
+      const d = new Date(`${datePart}T12:00:00Z`);
       const day = d.getUTCDate().toString().padStart(2, '0');
       const month = (d.getUTCMonth()+1).toString().padStart(2, '0');
       const year = d.getUTCFullYear();
