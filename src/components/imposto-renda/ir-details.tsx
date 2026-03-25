@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, updateIRCpf } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, updateIRCpf, deleteIRReceipt, generateIRReceiptPDF } from '@/app/actions/imposto-renda';
 import { getTeamUsers } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -45,6 +45,8 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
   const [justification, setJustification] = useState('');
 
   const [receiptDialog, setReceiptDialog] = useState(false);
+  const [receiptToolsDialog, setReceiptToolsDialog] = useState(false);
+  const [receiptCompany, setReceiptCompany] = useState<'NZD CONTABILIDADE' | 'NZD CONSULTORIA' | ''>('');
   const [receiptData, setReceiptData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     method: '',
@@ -478,6 +480,30 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                     </a>
                   </div>
                 )}
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="destructive" 
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        await deleteIRReceipt(declaration.id);
+                        toast.success('Recebimento excluído');
+                      } catch {
+                        toast.error('Erro ao excluir recebimento');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  >
+                    Excluir Recebimento
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setReceiptToolsDialog(true)}
+                  >
+                    Gerar Recibo
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -660,6 +686,59 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
             </Button>
             <Button onClick={handleReceive} disabled={loading || !receiptData.method || !receiptData.account || !receiptData.date}>
               Confirmar Recebimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Recibo */}
+      <Dialog open={receiptToolsDialog} onOpenChange={setReceiptToolsDialog}>
+        <DialogContent className="sm:max-w-[520px] w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Gerar Recibo</DialogTitle>
+            <DialogDescription>
+              Escolha a empresa emissora para gerar o PDF do recibo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>Empresa emissora</Label>
+            <Select value={receiptCompany} onValueChange={(v: any) => setReceiptCompany(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NZD CONTABILIDADE">NZD CONTABILIDADE</SelectItem>
+                <SelectItem value="NZD CONSULTORIA">NZD CONSULTORIA</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiptToolsDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!receiptCompany) {
+                  toast.error('Selecione a empresa emissora');
+                  return;
+                }
+                setLoading(true);
+                try {
+                  const res = await generateIRReceiptPDF(declaration.id, receiptCompany as any);
+                  if (res?.url) {
+                    window.open(res.url, '_blank');
+                  }
+                  toast.success('Recibo gerado');
+                  setReceiptToolsDialog(false);
+                } catch (e: any) {
+                  toast.error(e?.message || 'Erro ao gerar recibo');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading || !receiptCompany}
+            >
+              Gerar PDF
             </Button>
           </DialogFooter>
         </DialogContent>

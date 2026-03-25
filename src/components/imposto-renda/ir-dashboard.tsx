@@ -19,22 +19,24 @@ const COLORS: Record<string, string> = {
 
 interface IRDashboardProps {
   stats: { name: string; value: number }[];
-  receiptsStats?: { name: string; value: number }[];
+  receiptsStats?: { name: string; value: number; moneyValue?: number }[];
 }
 
 export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
   const donutReceipts = receiptsStats || [];
+  const receiptsTotal = donutReceipts.reduce((sum, item) => sum + item.value, 0);
 
   const RADIAN = Math.PI / 180;
   const renderPercentLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    if (percent < 0.05) return null;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="#fff" fontSize={12} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-        {`${Math.round(percent * 100)}%`}
+      <text x={x} y={y} fill="#fff" fontSize={14} fontWeight="bold" textAnchor="middle" dominantBaseline="central">
+        {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
@@ -73,7 +75,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: number, name: string) => [`${value} (${Math.round(((value as number) / (total || 1)) * 100)}%)`, name]}
+                    formatter={(value: number, name: string) => [`${value} decl. (${Math.round(((value as number) / (total || 1)) * 100)}%)`, name]}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
                   />
                   <Legend verticalAlign="bottom" height={36} />
@@ -110,13 +112,18 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                     labelLine={false}
                     isAnimationActive
                     animationDuration={600}
+                    label={renderPercentLabel}
                   >
                     {donutReceipts.map((entry, index) => (
                       <Cell key={`rc-${index}`} fill={entry.name === 'Recebidas' ? '#10b981' : '#ef4444'} stroke="#ffffff" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: number, name: string) => [`${value}`, name]}
+                    formatter={(value: number, name: string, props: any) => {
+                      const money = props.payload.moneyValue;
+                      const formattedMoney = money ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(money) : 'R$ 0,00';
+                      return [`${value} decl. (${Math.round(((value as number) / (receiptsTotal || 1)) * 100)}%) - ${formattedMoney}`, name];
+                    }}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
                   />
                 </PieChart>
