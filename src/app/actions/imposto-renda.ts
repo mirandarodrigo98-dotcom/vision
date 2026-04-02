@@ -89,10 +89,43 @@ export async function getIRReceiptStats() {
   ];
 }
 
-export async function cleanupIRTestEntries() {
+export async function deleteIRDeclaration(id: string) {
   try {
-    await db.prepare(`DELETE FROM ir_declarations WHERE lower(name) = 'test'`).run();
-  } catch {}
+    const session = await getSession();
+    if (!session || session.role !== 'admin') {
+      throw new Error('Apenas administradores podem excluir declarações');
+    }
+
+    await db.transaction(async () => {
+      // Deletar anexos de interações desta declaração
+      await db.prepare(`
+        DELETE FROM ir_attachments 
+        WHERE interaction_id IN (
+          SELECT id FROM ir_interactions WHERE declaration_id = $1
+        )
+      `).run(id);
+
+      // Tentar deletar de outras tabelas relacionadas, se existirem
+      try {
+        await db.prepare('DELETE FROM ir_receipts WHERE declaration_id = $1').run(id);
+      } catch(e) { /* ignore if table doesn't exist */ }
+
+      // Deletar interações
+      await db.prepare('DELETE FROM ir_interactions WHERE declaration_id = $1').run(id);
+
+      // Finalmente, deletar a declaração
+      await db.prepare('DELETE FROM ir_declarations WHERE id = $1').run(id);
+    })();
+    
+    // NOTA: A revalidação pode falhar se a página atual (/.../[id]) não existir mais
+    // Então revalidamos apenas a lista principal aqui
+    revalidatePath('/admin/pessoa-fisica/imposto-renda');
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting IR declaration:', error);
+    throw new Error('Erro ao excluir declaração: ' + error.message);
+  }
 }
 
 export async function updateIRContributor(
@@ -106,24 +139,30 @@ export async function updateIRContributor(
     company_id?: string | null 
   }
 ) {
-  const session = await getSession();
-  if (!session) throw new Error('Unauthorized');
+  try {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
 
-  await db.transaction(async () => {
-    await db.prepare(`
-      UPDATE ir_declarations 
-      SET name = $1, cpf = $2, phone = $3, email = $4, type = $5, company_id = $6, updated_at = NOW()
-      WHERE id = $7
-    `).run(data.name, data.cpf, data.phone, data.email, data.type, data.company_id || null, id);
+    await db.transaction(async () => {
+      await db.prepare(`
+        UPDATE ir_declarations 
+        SET name = $1, cpf = $2, phone = $3, email = $4, type = $5, company_id = $6, updated_at = NOW()
+        WHERE id = $7
+      `).run(data.name, data.cpf, data.phone || null, data.email || null, data.type, data.company_id || null, id);
 
-    await db.prepare(`
-      INSERT INTO ir_interactions (declaration_id, user_id, type, content)
-      VALUES ($1, $2, 'comment', $3)
-    `).run(id, session.user_id, 'Dados do contribuinte atualizados');
-  })();
+      await db.prepare(`
+        INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+        VALUES ($1, $2, 'comment', $3)
+      `).run(id, session.user_id, 'Dados do contribuinte atualizados');
+    })();
 
-  revalidatePath('/admin/pessoa-fisica/imposto-renda');
-  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+    revalidatePath('/admin/pessoa-fisica/imposto-renda');
+    revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating IR contributor:', error);
+    throw new Error('Erro ao atualizar contribuinte: ' + error.message);
+  }
 }
 
 export async function createIRDeclaration(data: {
@@ -237,7 +276,7 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
     const content = `Indicação atualizada: Tipo ${prevType} → ${newType}; Valor ${fmtMoney(prev?.service_value)} → ${fmtMoney(data.service_value ?? null)}`;
     await db.prepare(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
-      VALUES ($1, $2, 'field_change', $3)
+      VALUES ($1, $2, 'comment', $3)
     `).run(id, session.user_id, content);
   })();
 
@@ -375,8 +414,13 @@ export async function getIRInteractions(id: string) {
   
   // Transform attachments to include download links
   const formattedRows = await Promise.all(rows.map(async (row: any) => {
-    if (row.attachments && Array.isArray(row.attachments)) {
-      row.attachments = await Promise.all(row.attachments.map(async (att: any) => {
+    let attachments = row.attachments;
+    if (typeof attachments === 'string') {
+      try { attachments = JSON.parse(attachments); } catch(e) { attachments = []; }
+    }
+    
+    if (attachments && Array.isArray(attachments)) {
+      attachments = await Promise.all(attachments.map(async (att: any) => {
         let downloadLink = att.url;
         try {
           if (att.url && !att.url.startsWith('http')) {
@@ -391,8 +435,10 @@ export async function getIRInteractions(id: string) {
         }
         return { ...att, url: downloadLink };
       }));
+    } else {
+      attachments = [];
     }
-    return row;
+    return { ...row, attachments };
   }));
 
   return JSON.parse(JSON.stringify(formattedRows));
@@ -503,11 +549,11 @@ export async function getCompanyForReceipt(companyName: string) {
            address_type, address_street, address_number, address_complement, 
            address_neighborhood, address_zip_code, municipio, uf
     FROM client_companies
-    WHERE UPPER(razao_social) = UPPER($1) OR UPPER(nome) = UPPER($1)
+    WHERE UPPER(razao_social) LIKE UPPER($1) || '%' OR UPPER(nome) LIKE UPPER($1) || '%'
     LIMIT 1
   `).get(companyName);
   
-  return company;
+  return company ? JSON.parse(JSON.stringify(company)) : null;
 }
 
 export async function saveIRReceiptPDF(id: string, base64Pdf: string, companyName: string, fileName: string) {
@@ -519,11 +565,21 @@ export async function saveIRReceiptPDF(id: string, base64Pdf: string, companyNam
   const buffer = Buffer.from(base64Data, 'base64');
   
   const path = `ir_receipts_pdf/${id}/${uuidv4()}.pdf`;
-  const upload = await uploadToR2(buffer, path, 'application/pdf');
+  let upload = null;
+  try {
+    upload = await uploadToR2(buffer, path, 'application/pdf');
+  } catch (error) {
+    console.error('Failed to upload receipt to R2:', error);
+  }
   
   let publicUrl = upload?.fileKey || '';
   if (publicUrl && !publicUrl.startsWith('http')) {
-    publicUrl = process.env.R2_PUBLIC_DOMAIN ? `${process.env.R2_PUBLIC_DOMAIN}/${publicUrl}` : (await getR2DownloadLink(publicUrl));
+    try {
+      publicUrl = process.env.R2_PUBLIC_DOMAIN ? `${process.env.R2_PUBLIC_DOMAIN}/${publicUrl}` : (await getR2DownloadLink(publicUrl));
+    } catch (error) {
+      console.error('Failed to get R2 download link:', error);
+      publicUrl = '';
+    }
   }
   
   await db.transaction(async () => {

@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
+import { ReleaseNotesDialog } from '@/components/release-notes-dialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,7 @@ export default async function AdminLayout({
   return (
     <AdminDashboard user={session} permissions={permissions}>
       {children}
+      <ReleaseNotesDialog />
     </AdminDashboard>
   );
 }

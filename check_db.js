@@ -1,23 +1,25 @@
-const { Pool } = require('pg');
-const pool = new Pool({
-  connectionString: 'postgresql://neondb_owner:npg_y0K8hjWquDZc@ep-bold-truth-acq69xdo-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'
-});
-async function check() {
-    const query = 'CF';
-    const params = [`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`];
-    const sql = `
-      SELECT id, razao_social, nome, cnpj, code 
-      FROM client_companies 
-      WHERE is_active = 1 
-      AND (razao_social ILIKE $1 OR nome ILIKE $2 OR cnpj LIKE $3 OR code LIKE $4)
-    `;
-    const res = await pool.query(sql, params);
-    console.log("CF search results:");
-    console.log(res.rows);
-    
-    // Check what if we don't have is_active = 1? Wait, postgresql is_active is integer or boolean?
-    // is_active in client_companies is integer.
-    
-    await pool.end();
+const { Client } = require('pg');
+const fs = require('fs');
+
+const env = fs.readFileSync('.env', 'utf8');
+const dbUrlMatch = env.match(/DATABASE_URL="?([^"\n]+)"?/);
+if (!dbUrlMatch) {
+  console.log("No DATABASE_URL found");
+  process.exit(1);
 }
-check();
+
+const client = new Client({ connectionString: dbUrlMatch[1] });
+client.connect().then(() => {
+  return client.query("SELECT column_name, column_default FROM information_schema.columns WHERE table_name = 'ir_attachments'");
+}).then(res => {
+  console.log("ir_attachments:");
+  console.table(res.rows);
+  return client.query("SELECT column_name, column_default FROM information_schema.columns WHERE table_name = 'ir_declarations' AND column_name = 'type'");
+}).then(res => {
+  console.log("ir_declarations type:");
+  console.table(res.rows);
+  return client.query("SELECT check_clause FROM information_schema.check_constraints cc JOIN information_schema.table_constraints tc ON cc.constraint_name = tc.constraint_name WHERE tc.table_name = 'ir_declarations';");
+}).then(res => {
+  console.log("ir_declarations constraints:");
+  console.table(res.rows);
+}).catch(console.error).finally(() => client.end());

@@ -107,7 +107,8 @@ class PostgresAdapter implements DBClient {
       },
       
       run: async (...params: any[]) => {
-        const client = await pool.connect();
+        const txClient = txContext.getStore();
+        const client = txClient || await pool.connect();
         try {
           // Replace ? with $1, $2, etc.
           let paramIndex = 1;
@@ -116,12 +117,13 @@ class PostgresAdapter implements DBClient {
           const result = await client.query(finalSql, params);
           return { changes: result.rowCount || 0, lastInsertRowid: null }; // PG doesn't return lastID easily without RETURNING
         } finally {
-          client.release();
+          if (!txClient) client.release();
         }
       },
 
       get: async <T = any>(...params: any[]) => {
-        const client = await pool.connect();
+        const txClient = txContext.getStore();
+        const client = txClient || await pool.connect();
         try {
           let paramIndex = 1;
           const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
@@ -138,12 +140,13 @@ class PostgresAdapter implements DBClient {
           
           return row as T;
         } finally {
-          client.release();
+          if (!txClient) client.release();
         }
       },
 
       all: async <T = any>(...params: any[]) => {
-        const client = await pool.connect();
+        const txClient = txContext.getStore();
+        const client = txClient || await pool.connect();
         try {
           let paramIndex = 1;
           const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
@@ -159,7 +162,7 @@ class PostgresAdapter implements DBClient {
           
           return result.rows as T[];
         } finally {
-          client.release();
+          if (!txClient) client.release();
         }
       }
     };
@@ -169,7 +172,24 @@ class PostgresAdapter implements DBClient {
 
   transaction<T extends (...args: any[]) => any>(fn: T) {
     return async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-      return await fn(...args);
+      const client = await this.pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Execute the callback within the async local storage context
+        // so that all queries inside it use this same client connection
+        const result = await txContext.run(client, async () => {
+           return await fn(...args);
+        });
+        
+        await client.query('COMMIT');
+        return result;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     };
   }
 

@@ -54,7 +54,19 @@ function formatInteractionContent(interaction: Interaction) {
     return <strong>Declaração Iniciada</strong>;
   }
   
-  return <strong>{interaction.content}</strong>;
+  if (interaction.type === 'document') {
+    return <span><strong>Documento Adicionado:</strong> {interaction.content}</span>;
+  }
+  
+  if (interaction.type === 'priority_change') {
+    return <span><strong>Prioridade Alterada:</strong> {interaction.content}</span>;
+  }
+  
+  if (interaction.type === 'field_change') {
+    return <span><strong>Campo Alterado:</strong> {interaction.content}</span>;
+  }
+
+  return <span>{interaction.content || 'Interação'}</span>;
 }
 
 interface IRChatProps {

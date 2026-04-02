@@ -324,8 +324,22 @@ export function IRForm() {
                     setServiceValue('');
                     return;
                   }
-                  const int = digits.slice(0, Math.max(0, digits.length - 2));
-                  const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
+                  
+                  // Parse para número para remover zeros à esquerda indesejados
+                  const numericValue = parseInt(digits, 10);
+                  if (isNaN(numericValue)) {
+                    setServiceValue('');
+                    return;
+                  }
+                  
+                  // Transforma de volta para string sem zeros à esquerda
+                  const cleanDigits = numericValue.toString();
+                  
+                  // Se tiver menos de 3 dígitos, precisa preencher com zeros para os centavos
+                  const paddedDigits = cleanDigits.padStart(3, '0');
+                  
+                  const int = paddedDigits.slice(0, paddedDigits.length - 2);
+                  const dec = paddedDigits.slice(paddedDigits.length - 2);
                   const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                   setServiceValue(`${intFmt || '0'},${dec}`);
                 }}

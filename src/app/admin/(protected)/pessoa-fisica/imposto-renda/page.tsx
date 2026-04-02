@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getIRDeclarations, getIRStats, getIRReceiptStats, cleanupIRTestEntries } from '@/app/actions/imposto-renda';
+import { getIRDeclarations, getIRStats, getIRReceiptStats } from '@/app/actions/imposto-renda';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { redirect } from 'next/navigation';
 import { IRDashboard } from '@/components/imposto-renda/ir-dashboard';
@@ -20,7 +20,7 @@ export default async function ImpostoRendaPage() {
   if (!permissions.includes('ir.view')) {
     redirect('/admin');
   }
-  await cleanupIRTestEntries();
+  
   const declarations = await getIRDeclarations();
   const stats = await getIRStats();
   const receiptsStats = await getIRReceiptStats();

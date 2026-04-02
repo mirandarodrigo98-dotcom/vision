@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { ReleaseNotesDialog } from '@/components/release-notes-dialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,7 @@ export default async function ClientLayout({
           </div>
         </main>
       </div>
+      <ReleaseNotesDialog />
     </div>
   );
 }

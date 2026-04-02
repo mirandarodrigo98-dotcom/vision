@@ -5,7 +5,6 @@ import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatu
 import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { getCompaniesForSelect } from '@/app/actions/companies';
-import { jsPDF } from 'jspdf';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,9 +17,11 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserCircleIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, CheckCircleIcon, BanknotesIcon, PaperClipIcon, CurrencyDollarIcon, UserGroupIcon } from '@heroicons/react/24/outline';
-import { ChevronLeftIcon, PlayCircle, Clock, CheckCircle, Send, CheckCircle2, AlertTriangle, FileEdit, RotateCcw, Ban } from 'lucide-react';
+import { ChevronLeftIcon, PlayCircle, Clock, CheckCircle, Send, CheckCircle2, AlertTriangle, FileEdit, RotateCcw, Ban, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { IRChat } from './ir-chat';
+import { deleteIRDeclaration } from '@/app/actions/imposto-renda';
+import { useRouter } from 'next/navigation';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
@@ -38,9 +39,11 @@ const STATUS_COLORS: Record<string, string> = {
 interface IRDetailsProps {
   declaration: IRDeclaration;
   interactions: any[];
+  isAdmin?: boolean;
 }
 
-export function IRDetails({ declaration, interactions }: IRDetailsProps) {
+export function IRDetails({ declaration, interactions, isAdmin }: IRDetailsProps) {
+  const router = useRouter();
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [justificationDialog, setJustificationDialog] = useState<{isOpen: boolean, targetStatus: IRStatus | null}>({ isOpen: false, targetStatus: null });
@@ -65,7 +68,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     type: declaration.indicated_by_user_id ? 'user' : (declaration.indicated_by_partner_id ? 'partner' : 'none'),
     userId: declaration.indicated_by_user_id || '',
     partnerId: declaration.indicated_by_partner_id || '',
-    serviceValue: declaration.service_value ? declaration.service_value.toString() : ''
+    serviceValue: declaration.service_value ? declaration.service_value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
   });
   const [priority, setPriority] = useState<'Baixa' | 'Média' | 'Alta' | 'Crítica'>(declaration.priority || 'Média');
 
@@ -88,6 +91,21 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     installments_count: '',
     installment_value: ''
   });
+
+  const parseMoney = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (!numbers) return 0;
+    return parseInt(numbers, 10) / 100;
+  };
+
+  const formatMoney = (value: number) => {
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handleServiceValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseMoney(e.target.value);
+    setIndicationData(prev => ({ ...prev, serviceValue: formatMoney(val) }));
+  };
 
   const formatCpf = (s?: string) => {
     if (!s) return 'Não informado';
@@ -194,7 +212,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
     try {
       const payload = {
         ...contributorData,
-        company_id: contributorData.company_id === 'none' || contributorData.type !== 'Sócio' ? null : contributorData.company_id
+        company_id: (!contributorData.company_id || contributorData.company_id === 'none' || contributorData.type !== 'Sócio') ? null : contributorData.company_id
       };
       await updateIRContributor(declaration.id, payload);
       toast.success('Dados do contribuinte atualizados');
@@ -417,6 +435,25 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Button variant="destructive" size="sm" className="gap-2" onClick={async () => {
+              if (confirm('Tem certeza que deseja excluir esta declaração? Esta ação não pode ser desfeita.')) {
+                try {
+                  setLoading(true);
+                  await deleteIRDeclaration(declaration.id);
+                  toast.success('Declaração excluída com sucesso');
+                  window.location.href = '/admin/pessoa-fisica/imposto-renda';
+                } catch (e: any) {
+                  toast.error(e?.message || 'Erro ao excluir declaração');
+                } finally {
+                  setLoading(false);
+                }
+              }
+            }} disabled={loading}>
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Excluir</span>
+            </Button>
+          )}
           <Badge className={`text-sm px-3 py-1 ${STATUS_COLORS[declaration.status] || 'bg-gray-500'} hover:${STATUS_COLORS[declaration.status]} text-white`}>
             {declaration.status}
           </Badge>
@@ -833,6 +870,7 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
                   const company = await getCompanyForReceipt(receiptCompany);
                   if (!company) throw new Error('Empresa não encontrada');
                   
+                  const { default: jsPDF } = await import('jspdf');
                   const doc = new jsPDF();
                   const fmtMoney = (n?: number | null) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n ?? 0);
                   const fmtCpf = (s?: string) => {
@@ -920,24 +958,24 @@ export function IRDetails({ declaration, interactions }: IRDetailsProps) {
             <div className="space-y-2">
               <Label className="text-base">Valor do Serviço (R$)</Label>
               <Input 
-                className="h-11 text-base"
-                type="text"
-                inputMode="numeric"
-                placeholder="0,00"
-                value={indicationData.serviceValue}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  const digits = raw.replace(/\D/g, '');
-                  if (!digits) {
-                    setIndicationData(prev => ({ ...prev, serviceValue: '' }));
-                    return;
-                  }
-                  const int = digits.slice(0, Math.max(0, digits.length - 2));
-                  const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
-                  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                  setIndicationData(prev => ({ ...prev, serviceValue: `${intFmt || '0'},${dec}` }));
-                }}
-              />
+                  className="h-11 text-base"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  value={indicationData.serviceValue}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const digits = raw.replace(/\D/g, '');
+                    if (!digits) {
+                      setIndicationData(prev => ({ ...prev, serviceValue: '' }));
+                      return;
+                    }
+                    const int = digits.slice(0, Math.max(0, digits.length - 2));
+                    const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
+                    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    setIndicationData(prev => ({ ...prev, serviceValue: `${intFmt || '0'},${dec}` }));
+                  }}
+                />
             </div>
 
             <div className="space-y-2">

@@ -526,10 +526,10 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
 
     if (processedData.length > 0) {
         // Use a transaction to batch insert/update
-        const insertMany = db.transaction((data: SimplesNacionalBillingData[]) => {
+        const insertMany = db.transaction(async (data: SimplesNacionalBillingData[]) => {
             for (const item of data) {
                 const id = crypto.randomUUID();
-                db.prepare(`
+                await db.prepare(`
                   INSERT INTO simples_nacional_billing (
                     id, company_id, competence, rpa_competence, rpa_cash, rpa_accumulated, rbt12, rba, rbaa, payroll_12_months, recebimento, aliquota_efetiva, updated_at
                   ) VALUES (
@@ -563,7 +563,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             }
         });
         
-        insertMany(processedData);
+        await insertMany(processedData);
     }
     
     return { success: true, count: processedData.length };

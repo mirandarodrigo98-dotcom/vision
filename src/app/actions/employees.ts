@@ -431,17 +431,17 @@ export async function deleteEmployeesBatch(ids: string[]) {
 
     const deleteStmt = db.prepare('DELETE FROM employees WHERE id = ?');
 
-    const transaction = db.transaction((employeeIds: string[]) => {
+    const transaction = db.transaction(async (employeeIds: string[]) => {
       for (const id of employeeIds) {
-        const hasMovements = checkEmployee.get(id, id, id, id) as any;
+        const hasMovements = await checkEmployee.get(id, id, id, id) as any;
         if (hasMovements) {
           throw new Error(`Funcionário com ID ${id} possui movimentações.`);
         }
-        deleteStmt.run(id);
+        await deleteStmt.run(id);
       }
     });
 
-    transaction(ids);
+    await transaction(ids);
     revalidatePath('/admin/employees');
     return { success: true, message: `${ids.length} funcionários excluídos com sucesso.` };
   } catch (error: any) {
@@ -472,22 +472,22 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
         let importedCount = 0;
         let ignoredCount = 0;
 
-        const transaction = db.transaction((emps: any[]) => {
+        const transaction = db.transaction(async (emps: any[]) => {
             for (const emp of emps) {
-                const existing = checkStmt.get(companyId, emp.cpf) as any;
+                const existing = await checkStmt.get(companyId, emp.cpf) as any;
                 if (existing) {
                     ignoredCount++;
                     continue;
                 }
                 
-                insertStmt.run(
+                await insertStmt.run(
                     uuidv4(),
                     companyId,
                     emp.code,
                     emp.name,
                     emp.admission_date,
                     emp.birth_date,
-                    emp.gender,
+                    emp.sex || emp.gender,
                     emp.pis,
                     emp.cpf,
                     emp.esocial_registration
@@ -496,7 +496,7 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
             }
         });
 
-        transaction(employees);
+        await transaction(employees);
         revalidatePath('/admin/employees');
         return { 
             success: true, 

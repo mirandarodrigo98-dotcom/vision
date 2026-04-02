@@ -1049,12 +1049,14 @@ export async function getTickets(filters?: {
       r.name as requester_name, r.email as requester_email,
       rd.name as requester_department_name,
       a.name as assignee_name,
-      ad.name as assignee_department_name
+      ad.name as assignee_department_name,
+      COALESCE(NULLIF(c.nome, ''), c.razao_social) as company_name
     FROM tickets t
     JOIN users r ON t.requester_id = r.id
     LEFT JOIN departments rd ON r.department_id = rd.id
     LEFT JOIN users a ON t.assignee_id = a.id
     LEFT JOIN departments ad ON a.department_id = ad.id
+    LEFT JOIN client_companies c ON t.company_id = c.id
     WHERE 1=1
   `;
   const params: any[] = [];
@@ -1249,7 +1251,7 @@ export async function getTicketById(id: string) {
       SELECT t.*, 
         r.name as requester_name, r.email as requester_email, r.avatar_path as requester_avatar,
         a.name as assignee_name, a.avatar_path as assignee_avatar,
-        c.nome as company_name
+        COALESCE(NULLIF(c.nome, ''), c.razao_social) as company_name
       FROM tickets t
       JOIN users r ON t.requester_id = r.id
       LEFT JOIN users a ON t.assignee_id = a.id
