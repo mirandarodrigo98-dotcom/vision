@@ -8,8 +8,8 @@ const envVars = fs.readFileSync('.env', 'utf-8').split('\n').reduce((acc, line) 
 const pool = new Pool({ connectionString: envVars.DATABASE_URL.replace('?sslmode=require', ''), ssl: { rejectUnauthorized: false } });
 
 async function test() {
-  const res = await pool.query('SELECT name, cpf, company_id FROM employees LIMIT 10');
-  console.log(res.rows);
+  const res = await pool.query('SELECT * FROM employees LIMIT 1');
+  console.log(res.rows[0]);
   pool.end();
 }
 test();
