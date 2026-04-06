@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.8',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Novo Módulo de Contas a Receber! Integração via API com Omie ERP. Consulta com filtro por período de emissão e tabela analítica de liquidação/inadimplência (substitui integração direta Itaú).' }
+    ]
+  },
+  {
     version: '1.3.7',
     date: '2026-04-06',
     notes: [

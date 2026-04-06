@@ -25,7 +25,7 @@ export default async function FinanceiroPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
         <p className="text-muted-foreground mt-2">
-          Gestão financeira do escritório e integração com bancos.
+          Gestão financeira do escritório e integração com ERP.
         </p>
       </div>
 
@@ -34,10 +34,10 @@ export default async function FinanceiroPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CurrencyDollarIcon className="h-5 w-5" />
-              Cobrança (Itaú API)
+              Contas a Receber (Omie)
             </CardTitle>
             <CardDescription>
-              Consulte e acompanhe boletos recebidos, inadimplência e integrações.
+              Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos via Omie.
             </CardDescription>
           </CardHeader>
           <CardContent>
