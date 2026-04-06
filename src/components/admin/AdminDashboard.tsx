@@ -23,7 +23,8 @@ import {
   CalculatorIcon,
   TicketIcon,
   CommandLineIcon,
-  UserIcon
+  UserIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
@@ -84,6 +85,13 @@ const navigation: NavigationItem[] = [
     children: [
       { name: 'Faturamento', href: '/admin/contabilidade/faturamento', permission: 'contabilidade.faturamento.view' },
       { name: 'Faturamento SN', href: '/admin/contabilidade/faturamento-sn', permission: 'contabilidade.faturamento.view' },
+    ]
+  },
+  {
+    name: 'Financeiro',
+    icon: CurrencyDollarIcon,
+    children: [
+      { name: 'Cobrança', href: '/admin/financeiro/cobranca', permission: 'financeiro.cobranca.view' },
     ]
   },
   { name: 'Pessoa Física', href: '/admin/pessoa-fisica', icon: UserIcon },
