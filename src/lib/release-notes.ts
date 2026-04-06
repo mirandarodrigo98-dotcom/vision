@@ -11,6 +11,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.6',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Imposto de Renda', description: 'Correção da barra de rolagem horizontal nos comentários do Imposto de Renda. Agora o texto longo quebra automaticamente.' },
+      { module: 'Imposto de Renda', description: 'Registro de histórico automático (exclusão, edição, recebimentos, alteração de status) agora reflete corretamente dentro da timeline do chat.' },
+      { module: 'Financeiro', description: 'Nova área de Cobrança Financeira adicionada à barra lateral (Menu).' },
+      { module: 'Navegação', description: 'Menu lateral reformulado: Pessoal, Cadastro e Contabilidade agora se comportam como o menu Fiscal (abertura em árvore).' }
+    ]
+  },
+  {
     version: '1.3.5',
     date: '2026-04-06',
     notes: [

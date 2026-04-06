@@ -43,7 +43,7 @@ function formatInteractionContent(interaction: Interaction) {
     if (interaction.new_status === 'Cancelada') actionStr = `Declaração Cancelada`;
     
     return (
-      <span>
+      <span className="break-words whitespace-pre-wrap block">
         <strong>{actionStr}</strong>
         {interaction.content ? ` (Motivo: ${interaction.content})` : ''}
       </span>
@@ -51,22 +51,22 @@ function formatInteractionContent(interaction: Interaction) {
   }
   
   if (interaction.type === 'creation') {
-    return <strong>Declaração Iniciada</strong>;
+    return <strong className="break-words whitespace-pre-wrap block">Declaração Iniciada</strong>;
   }
   
   if (interaction.type === 'document') {
-    return <span><strong>Documento Adicionado:</strong> {interaction.content}</span>;
+    return <span className="break-words whitespace-pre-wrap block"><strong>Documento Adicionado:</strong> {interaction.content}</span>;
   }
   
   if (interaction.type === 'priority_change') {
-    return <span><strong>Prioridade Alterada:</strong> {interaction.content}</span>;
+    return <span className="break-words whitespace-pre-wrap block"><strong>Prioridade Alterada:</strong> {interaction.content}</span>;
   }
   
   if (interaction.type === 'field_change') {
-    return <span><strong>Campo Alterado:</strong> {interaction.content}</span>;
+    return <span className="break-words whitespace-pre-wrap block"><strong>Campo Alterado:</strong> {interaction.content}</span>;
   }
 
-  return <span>{interaction.content || 'Interação'}</span>;
+  return <span className="break-words whitespace-pre-wrap block">{interaction.content || 'Interação'}</span>;
 }
 
 interface IRChatProps {
@@ -152,7 +152,7 @@ export function IRChat({ declarationId, interactions, currentUserEmail, status }
                       </span>
                     </div>
                     <div 
-                      className="bg-muted p-3 rounded-lg text-sm w-full max-w-full break-words whitespace-pre-wrap overflow-hidden [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md"
+                      className="bg-muted p-3 rounded-lg text-sm w-full max-w-full break-words whitespace-pre-wrap overflow-hidden [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md [&>div]:break-words [&>div]:whitespace-pre-wrap [&>span]:break-words [&>span]:whitespace-pre-wrap"
                       dangerouslySetInnerHTML={{ __html: interaction.content }} 
                     />
                     
@@ -175,8 +175,11 @@ export function IRChat({ declarationId, interactions, currentUserEmail, status }
                   </div>
                 </>
               ) : (
-                <div className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full text-center break-words max-w-full whitespace-pre-wrap">
-                  {formatInteractionContent(interaction)} - {format(new Date(interaction.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })} por {interaction.user_name}
+                <div className="text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-lg text-center break-words max-w-full whitespace-pre-wrap w-full">
+                  {formatInteractionContent(interaction)}
+                  <div className="text-[10px] mt-1 opacity-70">
+                    {format(new Date(interaction.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })} por {interaction.user_name}
+                  </div>
                 </div>
               )}
             </div>
