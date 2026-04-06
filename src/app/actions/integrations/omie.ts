@@ -1,15 +1,18 @@
 'use server';
 
 import axios from 'axios';
+import { getOmieConfig } from './omie-config';
 
 // Retorna as contas a receber do Omie
 export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string) {
-  const appKey = process.env.OMIE_APP_KEY;
-  const appSecret = process.env.OMIE_APP_SECRET;
+  const config = await getOmieConfig();
 
-  if (!appKey || !appSecret) {
-    throw new Error('Credenciais da API Omie (OMIE_APP_KEY e OMIE_APP_SECRET) não configuradas no ambiente.');
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) {
+    throw new Error('Credenciais da API Omie não configuradas ou inativas. Acesse Integrações > Omie para configurar.');
   }
+
+  const appKey = config.app_key;
+  const appSecret = config.app_secret;
 
   try {
     const payload = {

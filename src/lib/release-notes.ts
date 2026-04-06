@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.9',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Integrações', description: 'Novo menu de configuração Omie! Agora é possível inserir as chaves da API diretamente pela interface do sistema sem depender de suporte técnico.' },
+      { module: 'Financeiro', description: 'O painel de Cobrança do Omie agora utiliza as chaves cadastradas em tempo real pelo administrador no menu Integrações.' }
+    ]
+  },
+  {
     version: '1.3.8',
     date: '2026-04-06',
     notes: [

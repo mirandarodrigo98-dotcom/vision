@@ -85,6 +85,18 @@ export default async function IntegrationsPage() {
             </Link>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+             <CardTitle>ERP e Financeiro</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Link href="/admin/integrations/omie" className="w-full">
+                <Button className="w-full">
+                    OMIE ERP
+                </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
