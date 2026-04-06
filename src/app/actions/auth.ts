@@ -7,10 +7,32 @@ import { checkUserAccess } from '@/app/actions/schedules';
 import { logAudit } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import rateLimit from '@/lib/rate-limit';
+
+const loginLimiter = rateLimit({
+  interval: 60000, // 1 minuto
+  uniqueTokenPerInterval: 500,
+});
+
+async function checkRateLimit(email: string) {
+  try {
+    const headersList = await headers();
+    const ip = headersList.get('x-forwarded-for') || '127.0.0.1';
+    // Usando IP + Email para rate limit mais assertivo (5 tentativas por IP/Email por minuto)
+    await loginLimiter.check(5, `${ip}-${email}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function checkUserType(rawEmail: string) {
+  if (!(await checkRateLimit(rawEmail))) {
+    throw new Error('Muitas tentativas. Tente novamente em 1 minuto.');
+  }
+
   try {
     const email = rawEmail.toLowerCase().trim();
     
@@ -41,6 +63,10 @@ export async function checkUserType(rawEmail: string) {
 }
 
 export async function requestOtp(rawEmail: string) {
+  if (!(await checkRateLimit(rawEmail))) {
+    return { error: 'Muitas tentativas. Tente novamente em 1 minuto.' };
+  }
+
   const email = rawEmail.toLowerCase().trim();
   // 1. Verificar permissão (Admin Whitelist OU Usuário Existente com role admin/operator)
   const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = 1').get(email);
@@ -107,6 +133,10 @@ export async function requestOtp(rawEmail: string) {
 }
 
 export async function verifyOtp(rawEmail: string, token: string) {
+  if (!(await checkRateLimit(rawEmail))) {
+    return { error: 'Muitas tentativas. Tente novamente em 1 minuto.' };
+  }
+
   const email = rawEmail.toLowerCase().trim();
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -184,6 +214,10 @@ export async function verifyOtp(rawEmail: string, token: string) {
 }
 
 export async function loginClient(email: string, password: string) {
+  if (!(await checkRateLimit(email))) {
+    return { error: 'Muitas tentativas. Tente novamente em 1 minuto.' };
+  }
+
   // Allow any user with a password to login here (Admin, Operator, Client)
   const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
 
