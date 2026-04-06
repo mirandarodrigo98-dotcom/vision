@@ -86,6 +86,9 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'contabilidade.view', label: 'Acessar Contabilidade', category: 'Contabilidade', module: 'Módulo Fiscal' },
     { code: 'contabilidade.faturamento.view', label: 'Faturamento Contábil', category: 'Contabilidade', module: 'Módulo Fiscal' },
 
+    // --- Módulo Financeiro ---
+    { code: 'financeiro.cobranca.view', label: 'Acessar Cobrança', category: 'Financeiro', module: 'Módulo Financeiro' },
+
     // --- Módulo Integrações ---
     { code: 'integrations.view', label: 'Acessar Integrações', category: 'Integrações', module: 'Módulo Integrações' },
     { code: 'integrations.enuves', label: 'Acessar Enuves', category: 'Integrações', module: 'Módulo Integrações' },

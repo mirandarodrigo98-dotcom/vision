@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.7',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Navegação', description: 'Remoção de menus expansivos da barra lateral a pedido. Agora Cadastro, Pessoal, Contabilidade, Financeiro e Integrações abrem em painéis próprios com botões (estilo Fiscal).' },
+      { module: 'Financeiro', description: 'Correção de visibilidade: Módulo Financeiro agora aparece corretamente para usuários administradores com permissão.' }
+    ]
+  },
+  {
     version: '1.3.6',
     date: '2026-04-06',
     notes: [

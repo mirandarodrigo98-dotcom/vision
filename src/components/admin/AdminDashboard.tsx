@@ -53,63 +53,18 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon, permission: 'dashboard.view' },
   { name: 'Chamados', href: '/admin/tickets', icon: TicketIcon },
-  {
-    name: 'Cadastro',
-    icon: BuildingOfficeIcon,
-    children: [
-      { name: 'Empresas', href: '/admin/clients', permission: 'clients.view' },
-      { name: 'Sócios', href: '/admin/socios', permission: 'socios.view' },
-      { name: 'Contadores', href: '/admin/accountants', permission: 'team.view' },
-      { name: 'Departamentos', href: '/admin/registrations/departments', permission: 'departments.view' },
-      { name: 'Usuário do Cliente', href: '/admin/client-users', permission: 'client_users.view' },
-      { name: 'Usuários do Escritório', href: '/admin/team', permission: 'team.view' },
-    ]
-  },
+  { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permission: 'clients.view' },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
-  {
-    name: 'Pessoal',
-    icon: UserGroupIcon,
-    children: [
-      { name: 'Funcionários', href: '/admin/employees', permission: 'employees.view' },
-      { name: 'Admissões', href: '/admin/admissions', permission: 'admissions.view' },
-      { name: 'Demissões', href: '/admin/dismissals', permission: 'dismissals.view' },
-      { name: 'Férias', href: '/admin/vacations', permission: 'vacations.view' },
-      { name: 'Transferências', href: '/admin/transfers', permission: 'transfers.view' },
-      { name: 'Afastamentos', href: '/admin/leaves', permission: 'leaves.view' },
-    ]
-  },
+  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permission: 'employees.view' },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
-  {
-    name: 'Contabilidade',
-    icon: CalculatorIcon,
-    children: [
-      { name: 'Faturamento', href: '/admin/contabilidade/faturamento', permission: 'contabilidade.faturamento.view' },
-      { name: 'Faturamento SN', href: '/admin/contabilidade/faturamento-sn', permission: 'contabilidade.faturamento.view' },
-    ]
-  },
-  {
-    name: 'Financeiro',
-    icon: CurrencyDollarIcon,
-    children: [
-      { name: 'Cobrança', href: '/admin/financeiro/cobranca', permission: 'financeiro.cobranca.view' },
-    ]
-  },
+  { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permission: 'contabilidade.faturamento.view' },
+  { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permission: 'financeiro.cobranca.view' },
   { name: 'Pessoa Física', href: '/admin/pessoa-fisica', icon: UserIcon },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon, permission: 'audit_logs.view' },
   { name: 'Logs do Sistema', href: '/admin/system-logs', icon: CommandLineIcon, permission: 'system_logs.view' },
   { name: 'Configurações', href: '/admin/settings', icon: Cog6ToothIcon, permission: 'settings.view' },
-  {
-    name: 'Integrações',
-    icon: PuzzlePieceIcon,
-    permission: 'integrations.view',
-    children: [
-      { name: 'Geral', href: '/admin/integrations/questor', permission: 'integrations.questor' },
-      { name: 'Enuves', href: '/admin/integrations/enuves', permission: 'integrations.enuves' },
-      { name: 'Eklesia', href: '/admin/integrations/eklesia', permission: 'integrations.eklesia' },
-      { name: 'Digisac', href: '/admin/integrations/digisac', permission: 'integrations.digisac' },
-    ]
-  },
+  { name: 'Integrações', href: '/admin/integrations', icon: PuzzlePieceIcon, permission: 'integrations.view' },
 ]
 
 const userNavigation = [
