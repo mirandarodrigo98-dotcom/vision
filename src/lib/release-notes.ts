@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.10',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção do erro na tela de Cobrança. Melhorado o tratamento de respostas da API Omie quando nenhum boleto é encontrado para o período.' }
+    ]
+  },
+  {
     version: '1.3.9',
     date: '2026-04-06',
     notes: [

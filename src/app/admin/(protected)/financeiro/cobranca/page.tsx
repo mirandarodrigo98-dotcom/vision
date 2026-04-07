@@ -36,9 +36,15 @@ export default function CobrancaPage() {
       const formattedDe = `${deParts[2]}/${deParts[1]}/${deParts[0]}`;
       const formattedAte = `${ateParts[2]}/${ateParts[1]}/${ateParts[0]}`;
 
-      const dados = await listarContasReceber(formattedDe, formattedAte);
-      setContas(dados);
-      toast.success(`${dados.length} registros encontrados.`);
+      const response = await listarContasReceber(formattedDe, formattedAte);
+      
+      if (response.error) {
+        toast.error(response.error);
+        return;
+      }
+
+      setContas(response.data || []);
+      toast.success(`${(response.data || []).length} registros encontrados.`);
     } catch (error: any) {
       toast.error(error.message || 'Erro ao buscar dados no Omie.');
     } finally {

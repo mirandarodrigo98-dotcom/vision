@@ -8,7 +8,7 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
   const config = await getOmieConfig();
 
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
-    throw new Error('Credenciais da API Omie não configuradas ou inativas. Acesse Integrações > Omie para configurar.');
+    return { error: 'Credenciais da API Omie não configuradas ou inativas. Acesse Integrações > Omie para configurar.' };
   }
 
   const appKey = config.app_key;
@@ -36,9 +36,15 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       }
     });
 
-    return response.data.conta_receber_cadastro || [];
+    return { data: response.data.conta_receber_cadastro || [] };
   } catch (error: any) {
-    console.error('Erro na integração Omie:', error.response?.data || error.message);
-    throw new Error('Falha ao buscar as contas a receber no Omie. Verifique o período e as credenciais.');
+    const errorMsg = error.response?.data?.faultstring || error.message;
+    console.error('Erro na integração Omie:', errorMsg);
+    
+    if (errorMsg && errorMsg.toLowerCase().includes('nenhum registro encontrado')) {
+      return { data: [] };
+    }
+    
+    return { error: 'Falha ao buscar as contas a receber no Omie. Verifique o período e as credenciais.' };
   }
 }
