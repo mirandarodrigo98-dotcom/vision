@@ -24,8 +24,9 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
           pagina: 1,
           registros_por_pagina: 500, // Ajuste caso o volume de dados seja maior
           apenas_importado_api: "N",
-          filtrar_por_data_emissao_de: dataEmissaoDe, // Formato DD/MM/YYYY
-          filtrar_por_data_emissao_ate: dataEmissaoAte
+          filtrar_por_data_de: dataEmissaoDe,
+          filtrar_por_data_ate: dataEmissaoAte,
+          filtrar_apenas_inclusao: "S"
         }
       ]
     };

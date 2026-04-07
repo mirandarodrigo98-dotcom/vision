@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.11',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção de mapeamento no payload de consulta do Omie: os filtros de data agora funcionam corretamente utilizando o padrão [filtrar_por_data_de] exigido pela API.' }
+    ]
+  },
+  {
     version: '1.3.10',
     date: '2026-04-06',
     notes: [
