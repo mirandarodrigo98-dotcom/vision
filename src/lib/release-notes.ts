@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.15',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção crítica: A tabela (AG Grid) estava renderizando em branco após atualização do sistema. Inserido o registro obrigatório de módulos da versão mais recente da biblioteca.' }
+    ]
+  },
+  {
     version: '1.3.14',
     date: '2026-04-06',
     notes: [

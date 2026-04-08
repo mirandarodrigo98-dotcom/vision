@@ -10,8 +10,12 @@ import { listarContasReceber } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 
 import { AgGridReact } from 'ag-grid-react';
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+// Registra todos os recursos gratuitos do AG Grid (necessário na v35+)
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 export default function CobrancaPage() {
   const [dataDe, setDataDe] = useState('');
