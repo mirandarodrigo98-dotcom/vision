@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CurrencyDollarIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { listarContasReceber } from '@/app/actions/integrations/omie';
+import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { listarContasReceber, obterBoletoOmie } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 
 import { AgGridReact } from 'ag-grid-react';
@@ -22,12 +22,23 @@ export default function CobrancaPage() {
   const [dataAte, setDataAte] = useState('');
   const [loading, setLoading] = useState(false);
   const [contas, setContas] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
   };
 
   const columnDefs = useMemo(() => [
+    {
+      headerCheckboxSelection: true,
+      checkboxSelection: true,
+      width: 50,
+      pinned: 'left',
+      suppressMenu: true,
+      suppressMovable: true,
+      sortable: false,
+      filter: false
+    },
     {
       field: 'status_titulo',
       headerName: 'Situação',
@@ -108,6 +119,7 @@ export default function CobrancaPage() {
     { field: 'nome_categoria', headerName: 'Categoria', width: 180, filter: true },
     { field: 'nome_conta_corrente', headerName: 'Conta Corrente', width: 180, filter: true },
     { field: 'numero_boleto', headerName: 'Nº Boleto', width: 130, filter: true },
+    { field: 'codigo_barras', headerName: 'Código de Barras', width: 200, filter: true },
     { field: 'tipo_documento', headerName: 'Tipo Doc.', width: 120, filter: true }
   ], []);
 
@@ -115,6 +127,42 @@ export default function CobrancaPage() {
     sortable: true,
     resizable: true,
   }), []);
+
+  const onSelectionChanged = (params: any) => {
+    setSelectedRows(params.api.getSelectedRows());
+  };
+
+  const handleVisualizarBoleto = async () => {
+    if (selectedRows.length === 0) return;
+    
+    const conta = selectedRows[0];
+    
+    if (!conta.boleto || conta.boleto.cGerado !== 'S') {
+      toast.error('Este título não possui um boleto gerado no Omie.');
+      return;
+    }
+
+    try {
+      toast.info('Buscando boleto...');
+      if (conta.cLinkBoleto) {
+        window.open(conta.cLinkBoleto, '_blank');
+      } else {
+        const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
+        if (response.error) {
+          toast.error(response.error);
+          return;
+        }
+        
+        if (response.data && response.data.cLinkBoleto) {
+          window.open(response.data.cLinkBoleto, '_blank');
+        } else {
+          toast.warning('O PDF do boleto não está disponível na API no momento. Código de Barras: ' + (conta.codigo_barras || 'Não disponível'));
+        }
+      }
+    } catch (error) {
+      toast.error('Erro ao visualizar boleto.');
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,9 +246,20 @@ export default function CobrancaPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Resultados</CardTitle>
-          <CardDescription>Lista de contas a receber do período selecionado.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Resultados</CardTitle>
+            <CardDescription>Lista de contas a receber do período selecionado.</CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            disabled={selectedRows.length === 0} 
+            onClick={handleVisualizarBoleto}
+            className="flex items-center gap-2"
+          >
+            <DocumentArrowDownIcon className="h-4 w-4" />
+            Visualizar Boleto
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="ag-theme-alpine w-full h-[500px]">
@@ -210,6 +269,7 @@ export default function CobrancaPage() {
               defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="multiple"
+              onSelectionChanged={onSelectionChanged}
               overlayNoRowsTemplate={
                 loading ? 'Buscando registros...' : 'Nenhum registro encontrado. Realize uma busca.'
               }

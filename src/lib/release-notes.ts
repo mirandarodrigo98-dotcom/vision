@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.17',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Inserido a nova coluna "Código de Barras" na listagem de Contas a Receber.' },
+      { module: 'Financeiro', description: 'Correção na exibição do Número do Boleto (ajuste de hierarquia na resposta do Omie).' },
+      { module: 'Financeiro', description: 'Adicionada caixa de seleção em cada linha e botão "Visualizar Boleto" para download/impressão direta do PDF via integração nativa Omie.' }
+    ]
+  },
+  {
     version: '1.3.16',
     date: '2026-04-06',
     notes: [

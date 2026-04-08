@@ -123,7 +123,8 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
         nome_cliente: clientesMap.get(c.codigo_cliente_fornecedor) || 'N/A',
         nome_categoria: categoriasMap.get(catCode) || catCode || '-',
         nome_conta_corrente: contasCorrentesMap.get(c.id_conta_corrente) || c.id_conta_corrente || '-',
-        numero_boleto: c.numero_boleto || c.boleto?.cNumBoleto || '-',
+        numero_boleto: c.boleto?.cNumBoleto || c.numero_boleto || '-',
+        codigo_barras: c.codigo_barras_ficha_compensacao || '-',
         tipo_documento: c.tipo_documento || c.codigo_tipo_documento || '-',
         valor_pago_calculado: valorPago,
         data_pagamento_calculada: dataPagamento
@@ -140,5 +141,35 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
     }
     
     return { error: 'Falha ao buscar as contas a receber no Omie. Verifique o período e as credenciais.' };
+  }
+}
+
+export async function obterBoletoOmie(codigoLancamento: number) {
+  const config = await getOmieConfig();
+
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) {
+    return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
+  }
+
+  try {
+    const payload = {
+      call: "GerarBoleto",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [
+        {
+          nCodTitulo: codigoLancamento
+        }
+      ]
+    };
+
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceberboleto/', payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Erro na integração Omie ao obter boleto:', error.response?.data || error.message);
+    return { error: 'Falha ao obter o link do boleto no Omie.' };
   }
 }

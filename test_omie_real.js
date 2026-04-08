@@ -19,19 +19,16 @@ async function test() {
 
   try {
     const payload = {
-      call: "ListarMovimentos",
+      call: "GerarBoleto",
       app_key: config.app_key,
       app_secret: config.app_secret,
       param: [
         {
-          nPagina: 1,
-          nRegPorPagina: 50,
-          dDataInicial: "01/03/2026",
-          dDataFinal: "31/03/2026"
+          nCodTitulo: 7150658233
         }
       ]
     };
-    const response = await axios.post('https://app.omie.com.br/api/v1/financas/mf/', payload, {
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/pesquisartitulos/', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
     console.log(response.data);
