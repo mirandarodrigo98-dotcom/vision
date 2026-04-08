@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.19',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção crítica: Boletos e códigos de barras que não estavam aparecendo agora são listados corretamente. O Omie oculta os códigos de barras quando o filtro de "Apenas Inclusão" está ativo; o sistema agora força o retorno de todos os dados do boleto.' },
+      { module: 'Financeiro', description: 'Visualizar Boleto: Botão "Baixar" foi renomeado de volta para "Visualizar Boleto" e exibe a quantidade selecionada. Quando vários boletos são selecionados, o sistema agora empacota todos em um único arquivo ZIP para download automático.' },
+      { module: 'Financeiro', description: 'Design: As linhas selecionadas na tabela agora são destacadas em um tom laranja claro.' }
+    ]
+  },
+  {
     version: '1.3.18',
     date: '2026-04-06',
     notes: [

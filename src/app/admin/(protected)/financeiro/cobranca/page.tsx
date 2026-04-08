@@ -15,6 +15,8 @@ import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AG_GRID_LOCALE_PT_BR } from '@/lib/ag-grid-locale-pt-br';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 // Registra todos os recursos gratuitos do AG Grid (necessário na v35+)
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -142,7 +144,7 @@ export default function CobrancaPage() {
     { field: 'nome_categoria', headerName: 'Categoria', width: 180, filter: true },
     { field: 'nome_conta_corrente', headerName: 'Conta Corrente', width: 180, filter: true },
     { field: 'numero_boleto', headerName: 'Nº Boleto', width: 130, filter: true },
-    { field: 'codigo_barras', headerName: 'Código de Barras', width: 200, filter: true },
+    { field: 'codigo_barras', headerName: 'Código de Barras', width: 250, filter: true },
     { field: 'tipo_documento', headerName: 'Tipo Doc.', width: 120, filter: true }
   ], []);
 
@@ -153,6 +155,14 @@ export default function CobrancaPage() {
     filter: true,
     headerComponent: CustomHeader,
   }), []);
+
+  const getRowClass = (params: any) => {
+    // Sombreado leve laranja se a linha estiver selecionada
+    if (params.node.isSelected()) {
+      return 'bg-orange-50';
+    }
+    return '';
+  };
 
   const onGridReady = (params: any) => {
     setGridApi(params.api);
@@ -187,40 +197,85 @@ export default function CobrancaPage() {
     let successCount = 0;
     let failCount = 0;
 
-    for (const conta of selectedRows) {
+    if (selectedRows.length === 1) {
+      // Abre direto na aba
+      const conta = selectedRows[0];
       if (!conta.boleto || conta.boleto.cGerado !== 'S') {
-        failCount++;
-        continue;
+        toast.error('Este título não possui um boleto gerado no Omie.');
+        return;
       }
-
       try {
-        if (conta.cLinkBoleto) {
-          window.open(conta.cLinkBoleto, '_blank');
-          successCount++;
-        } else {
+        let pdfUrl = conta.cLinkBoleto;
+        if (!pdfUrl) {
           const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
           if (response.error) {
-            failCount++;
+            toast.error(response.error);
+            return;
           } else if (response.data && response.data.cLinkBoleto) {
-            window.open(response.data.cLinkBoleto, '_blank');
-            successCount++;
+            pdfUrl = response.data.cLinkBoleto;
+          } else {
+            toast.warning('O PDF do boleto não está disponível. Código de Barras: ' + (conta.codigo_barras || 'Não disponível'));
+            return;
+          }
+        }
+        
+        // Abre na nova aba
+        window.open(pdfUrl, '_blank');
+      } catch (error) {
+        toast.error('Erro ao visualizar boleto.');
+      }
+    } else {
+      // Baixar vários em ZIP
+      const zip = new JSZip();
+      const folder = zip.folder('Boletos');
+
+      for (const conta of selectedRows) {
+        if (!conta.boleto || conta.boleto.cGerado !== 'S') {
+          failCount++;
+          continue;
+        }
+
+        try {
+          let pdfUrl = conta.cLinkBoleto;
+          
+          if (!pdfUrl) {
+            const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
+            if (!response.error && response.data && response.data.cLinkBoleto) {
+              pdfUrl = response.data.cLinkBoleto;
+            }
+          }
+
+          if (pdfUrl) {
+            // Em vez de baixar como Blob via fetch no client (o que pode dar erro de CORS),
+            // tentamos baixar e inserir no zip. Se falhar, armazenaremos os links em um TXT.
+            try {
+              const pdfBlob = await fetch(pdfUrl).then(res => res.blob());
+              const fileName = `Boleto_${conta.nome_cliente.replace(/[^a-z0-9]/gi, '_')}_${conta.numero_boleto}.pdf`;
+              folder?.file(fileName, pdfBlob);
+              successCount++;
+            } catch (corsError) {
+              // Se der CORS, criamos um arquivo de texto com o link do boleto
+              const fileName = `Boleto_${conta.nome_cliente.replace(/[^a-z0-9]/gi, '_')}_${conta.numero_boleto}.txt`;
+              const textContent = `Link para acessar o boleto:\n${pdfUrl}`;
+              folder?.file(fileName, textContent);
+              successCount++;
+            }
           } else {
             failCount++;
           }
+        } catch (error) {
+          failCount++;
         }
-      } catch (error) {
-        failCount++;
       }
 
-      // Pequeno delay para evitar bloqueio de popup pelo navegador ao abrir várias abas
-      await new Promise(r => setTimeout(r, 300));
-    }
-
-    if (successCount > 0) {
-      toast.success(`${successCount} boleto(s) aberto(s) com sucesso.`);
-    }
-    if (failCount > 0) {
-      toast.warning(`${failCount} título(s) não possuem boleto gerado ou falharam.`);
+      if (successCount > 0) {
+        const content = await zip.generateAsync({ type: 'blob' });
+        saveAs(content, 'Boletos.zip');
+        toast.success(`${successCount} boleto(s) compactado(s) com sucesso.`);
+      }
+      if (failCount > 0) {
+        toast.warning(`${failCount} título(s) não possuem boleto gerado ou falharam no download.`);
+      }
     }
   };
 
@@ -336,7 +391,7 @@ export default function CobrancaPage() {
               className="flex items-center gap-2"
             >
               <DocumentArrowDownIcon className="h-4 w-4" />
-              Baixar {selectedRows.length > 0 ? `(${selectedRows.length})` : ''}
+              Visualizar Boleto {selectedRows.length > 0 ? `(${selectedRows.length})` : ''}
             </Button>
           </div>
         </CardHeader>
@@ -348,6 +403,7 @@ export default function CobrancaPage() {
               defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="multiple"
+              getRowClass={getRowClass}
               onGridReady={onGridReady}
               onDisplayedColumnsChanged={onDisplayedColumnsChanged}
               onSelectionChanged={onSelectionChanged}

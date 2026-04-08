@@ -28,7 +28,8 @@ async function test() {
           registros_por_pagina: 100,
           apenas_importado_api: "N",
           filtrar_por_data_de: "01/03/2026",
-          filtrar_por_data_ate: "31/03/2026"
+          filtrar_por_data_ate: "31/03/2026",
+          filtrar_apenas_inclusao: "N"
         }
       ]
     };
@@ -36,12 +37,15 @@ async function test() {
       headers: { 'Content-Type': 'application/json' }
     });
     const contas = response.data.conta_receber_cadastro || [];
-    console.log(contas.map(c => ({
-      numero_documento: c.numero_documento,
-      cNumBoleto: c.boleto?.cNumBoleto,
-      cNumBancario: c.boleto?.cNumBancario,
-      codigo_tipo_documento: c.codigo_tipo_documento
-    })).slice(0, 10));
+    const withBarcode = contas.filter(c => c.boleto && c.boleto.cGerado === 'S');
+    console.log("Com boleto:", withBarcode.length);
+    if(withBarcode.length > 0) {
+      console.log(JSON.stringify(withBarcode.slice(0, 2).map(c => ({
+        num_doc: c.numero_documento,
+        boleto: c.boleto,
+        barras: c.codigo_barras_ficha_compensacao
+      })), null, 2));
+    }
   } catch (error) {
     console.log(error.response?.data || error.message);
   }
