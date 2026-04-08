@@ -19,19 +19,29 @@ async function test() {
 
   try {
     const payload = {
-      call: "GerarBoleto",
+      call: "ListarContasReceber",
       app_key: config.app_key,
       app_secret: config.app_secret,
       param: [
         {
-          nCodTitulo: 7150658233
+          pagina: 1,
+          registros_por_pagina: 100,
+          apenas_importado_api: "N",
+          filtrar_por_data_de: "01/03/2026",
+          filtrar_por_data_ate: "31/03/2026"
         }
       ]
     };
-    const response = await axios.post('https://app.omie.com.br/api/v1/financas/pesquisartitulos/', payload, {
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
-    console.log(response.data);
+    const contas = response.data.conta_receber_cadastro || [];
+    console.log(contas.map(c => ({
+      numero_documento: c.numero_documento,
+      cNumBoleto: c.boleto?.cNumBoleto,
+      cNumBancario: c.boleto?.cNumBancario,
+      codigo_tipo_documento: c.codigo_tipo_documento
+    })).slice(0, 10));
   } catch (error) {
     console.log(error.response?.data || error.message);
   }

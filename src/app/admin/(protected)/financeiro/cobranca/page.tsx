@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { listarContasReceber, obterBoletoOmie } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 
@@ -13,9 +14,29 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { AG_GRID_LOCALE_PT_BR } from '@/lib/ag-grid-locale-pt-br';
 
 // Registra todos os recursos gratuitos do AG Grid (necessário na v35+)
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const CustomHeader = (props: any) => {
+  const onHideClick = () => {
+    props.api.setColumnsVisible([props.column.getColId()], false);
+  };
+
+  return (
+    <div className="flex items-center justify-between w-full group">
+      <span className="font-semibold text-xs text-muted-foreground uppercase">{props.displayName}</span>
+      <button 
+        onClick={onHideClick}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+        title="Ocultar coluna"
+      >
+        <ChevronDoubleLeftIcon className="h-3 w-3" />
+      </button>
+    </div>
+  );
+};
 
 export default function CobrancaPage() {
   const [dataDe, setDataDe] = useState('');
@@ -23,6 +44,8 @@ export default function CobrancaPage() {
   const [loading, setLoading] = useState(false);
   const [contas, setContas] = useState<any[]>([]);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [gridApi, setGridApi] = useState<any>(null);
+  const [hiddenColumns, setHiddenColumns] = useState<{ id: string, name: string }[]>([]);
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
@@ -126,7 +149,31 @@ export default function CobrancaPage() {
   const defaultColDef = useMemo(() => ({
     sortable: true,
     resizable: true,
+    floatingFilter: true,
+    filter: true,
+    headerComponent: CustomHeader,
   }), []);
+
+  const onGridReady = (params: any) => {
+    setGridApi(params.api);
+  };
+
+  const onDisplayedColumnsChanged = (params: any) => {
+    const allCols = params.api.getColumns();
+    if (allCols) {
+      const hidden = allCols.filter((col: any) => !col.isVisible() && col.getColDef().headerName).map((col: any) => ({
+        id: col.getColId(),
+        name: col.getColDef().headerName
+      }));
+      setHiddenColumns(hidden);
+    }
+  };
+
+  const unhideColumn = (colId: string) => {
+    if (gridApi) {
+      gridApi.setColumnsVisible([colId], true);
+    }
+  };
 
   const onSelectionChanged = (params: any) => {
     setSelectedRows(params.api.getSelectedRows());
@@ -135,32 +182,45 @@ export default function CobrancaPage() {
   const handleVisualizarBoleto = async () => {
     if (selectedRows.length === 0) return;
     
-    const conta = selectedRows[0];
+    toast.info(`Processando ${selectedRows.length} boleto(s)... Isso pode demorar alguns segundos.`);
     
-    if (!conta.boleto || conta.boleto.cGerado !== 'S') {
-      toast.error('Este título não possui um boleto gerado no Omie.');
-      return;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const conta of selectedRows) {
+      if (!conta.boleto || conta.boleto.cGerado !== 'S') {
+        failCount++;
+        continue;
+      }
+
+      try {
+        if (conta.cLinkBoleto) {
+          window.open(conta.cLinkBoleto, '_blank');
+          successCount++;
+        } else {
+          const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
+          if (response.error) {
+            failCount++;
+          } else if (response.data && response.data.cLinkBoleto) {
+            window.open(response.data.cLinkBoleto, '_blank');
+            successCount++;
+          } else {
+            failCount++;
+          }
+        }
+      } catch (error) {
+        failCount++;
+      }
+
+      // Pequeno delay para evitar bloqueio de popup pelo navegador ao abrir várias abas
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    try {
-      toast.info('Buscando boleto...');
-      if (conta.cLinkBoleto) {
-        window.open(conta.cLinkBoleto, '_blank');
-      } else {
-        const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
-        if (response.error) {
-          toast.error(response.error);
-          return;
-        }
-        
-        if (response.data && response.data.cLinkBoleto) {
-          window.open(response.data.cLinkBoleto, '_blank');
-        } else {
-          toast.warning('O PDF do boleto não está disponível na API no momento. Código de Barras: ' + (conta.codigo_barras || 'Não disponível'));
-        }
-      }
-    } catch (error) {
-      toast.error('Erro ao visualizar boleto.');
+    if (successCount > 0) {
+      toast.success(`${successCount} boleto(s) aberto(s) com sucesso.`);
+    }
+    if (failCount > 0) {
+      toast.warning(`${failCount} título(s) não possuem boleto gerado ou falharam.`);
     }
   };
 
@@ -251,15 +311,34 @@ export default function CobrancaPage() {
             <CardTitle>Resultados</CardTitle>
             <CardDescription>Lista de contas a receber do período selecionado.</CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            disabled={selectedRows.length === 0} 
-            onClick={handleVisualizarBoleto}
-            className="flex items-center gap-2"
-          >
-            <DocumentArrowDownIcon className="h-4 w-4" />
-            Visualizar Boleto
-          </Button>
+          <div className="flex items-center gap-2">
+            {hiddenColumns.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <EyeIcon className="h-4 w-4" />
+                    Mostrar Colunas ({hiddenColumns.length})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {hiddenColumns.map(col => (
+                    <DropdownMenuItem key={col.id} onClick={() => unhideColumn(col.id)}>
+                      {col.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button 
+              variant="outline" 
+              disabled={selectedRows.length === 0} 
+              onClick={handleVisualizarBoleto}
+              className="flex items-center gap-2"
+            >
+              <DocumentArrowDownIcon className="h-4 w-4" />
+              Baixar {selectedRows.length > 0 ? `(${selectedRows.length})` : ''}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="ag-theme-alpine w-full h-[500px]">
@@ -269,7 +348,10 @@ export default function CobrancaPage() {
               defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="multiple"
+              onGridReady={onGridReady}
+              onDisplayedColumnsChanged={onDisplayedColumnsChanged}
               onSelectionChanged={onSelectionChanged}
+              localeText={AG_GRID_LOCALE_PT_BR}
               overlayNoRowsTemplate={
                 loading ? 'Buscando registros...' : 'Nenhum registro encontrado. Realize uma busca.'
               }

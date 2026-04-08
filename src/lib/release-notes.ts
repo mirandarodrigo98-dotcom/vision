@@ -11,6 +11,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.18',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Download em Lote: Agora é possível selecionar múltiplos boletos através dos checkboxes e baixar/abrir todos de uma vez.' },
+      { module: 'Financeiro', description: 'Filtro Flutuante (Floating Filter): Adicionado o funil de filtro nativo abaixo dos cabeçalhos das colunas.' },
+      { module: 'Financeiro', description: 'Tradução pt-BR: Todos os menus de filtro da tabela agora estão em português do Brasil.' },
+      { module: 'Financeiro', description: 'Ocultar Colunas: Adicionado o ícone "<<" nos cabeçalhos das colunas para escondê-las. Para reexibir, utilize o botão "Mostrar Colunas" que aparecerá no topo da tabela.' },
+      { module: 'Financeiro', description: 'Ajuste de mapeamento: O Número do Boleto agora considera prioridade máxima à numeração estendida ("cNumBancario") e o Tipo de Documento exibe seu nome por extenso (Boleto, Recibo, Dinheiro, etc).' }
+    ]
+  },
+  {
     version: '1.3.17',
     date: '2026-04-06',
     notes: [
