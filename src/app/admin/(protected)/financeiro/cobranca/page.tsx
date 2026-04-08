@@ -61,6 +61,73 @@ const CustomHeader = (props: any) => {
   );
 };
 
+const CustomFloatingFilter = (props: any) => {
+  const [currentValue, setCurrentValue] = useState('');
+  const [operator, setOperator] = useState('contains');
+
+  useEffect(() => {
+    if (!props.model) {
+      setCurrentValue('');
+    } else {
+      setCurrentValue(props.model.filter?.toString() || '');
+      setOperator(props.model.type || 'contains');
+    }
+  }, [props.model]);
+
+  const updateModel = (op: string, val: string) => {
+    if (val === '') {
+      props.onModelChange(null);
+    } else {
+      const isNumber = props.column.getColDef().filter === 'agNumberColumnFilter';
+      props.onModelChange({
+        filterType: isNumber ? 'number' : 'text',
+        type: op,
+        filter: isNumber ? Number(val) : val
+      });
+    }
+  };
+
+  const onInputChanged = (e: any) => {
+    const val = e.target.value;
+    setCurrentValue(val);
+    updateModel(operator, val);
+  };
+
+  const onOperatorChanged = (op: string) => {
+    setOperator(op);
+    updateModel(op, currentValue);
+  };
+
+  return (
+    <div className="flex items-center w-full h-8 border border-input rounded-md bg-background px-2 mt-1 focus-within:ring-1 focus-within:ring-ring">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="text-muted-foreground hover:text-primary mr-2 outline-none flex items-center justify-center">
+            <MagnifyingGlassIcon className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48 z-[9999]">
+          <DropdownMenuItem onClick={() => onOperatorChanged('contains')} className={operator === 'contains' ? 'bg-accent' : ''}>Contém</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onOperatorChanged('notContains')} className={operator === 'notContains' ? 'bg-accent' : ''}>Não contém</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onOperatorChanged('equals')} className={operator === 'equals' ? 'bg-accent' : ''}>Igual a</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onOperatorChanged('notEqual')} className={operator === 'notEqual' ? 'bg-accent' : ''}>Diferente de</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onOperatorChanged('startsWith')} className={operator === 'startsWith' ? 'bg-accent' : ''}>Começa com</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onOperatorChanged('endsWith')} className={operator === 'endsWith' ? 'bg-accent' : ''}>Termina com</DropdownMenuItem>
+          <div className="h-px bg-border my-1"></div>
+          <DropdownMenuItem onClick={() => { setCurrentValue(''); props.onModelChange(null); }}>Limpar filtro</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <input 
+        type="text" 
+        value={currentValue} 
+        onChange={onInputChanged} 
+        className="flex-1 outline-none border-none text-sm bg-transparent w-full placeholder:text-muted-foreground"
+        placeholder="Filtrar..."
+      />
+    </div>
+  );
+};
+
 export default function CobrancaPage() {
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
@@ -174,6 +241,8 @@ export default function CobrancaPage() {
     sortable: true,
     resizable: true,
     floatingFilter: true,
+    suppressHeaderMenuButton: true,
+    floatingFilterComponent: CustomFloatingFilter,
     headerComponent: CustomHeader,
   }), []);
 
@@ -259,15 +328,22 @@ export default function CobrancaPage() {
           }
 
           if (pdfUrl) {
-            // Em vez de baixar como Blob via fetch no client (o que pode dar erro de CORS),
-            // tentamos baixar e inserir no zip. Se falhar, armazenaremos os links em um TXT.
             try {
-              const pdfBlob = await fetch(pdfUrl).then(res => res.blob());
+              const pdfData = await downloadBoletoPdfServer(pdfUrl);
+              if (pdfData.error || !pdfData.base64) throw new Error(pdfData.error || 'Base64 vazio');
+              
+              const byteCharacters = atob(pdfData.base64);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+              
               const fileName = `Boleto_${conta.nome_cliente.replace(/[^a-z0-9]/gi, '_')}_${conta.numero_boleto}.pdf`;
               folder?.file(fileName, pdfBlob);
               successCount++;
-            } catch (corsError) {
-              // Se der CORS, criamos um arquivo de texto com o link do boleto
+            } catch (error) {
               const fileName = `Boleto_${conta.nome_cliente.replace(/[^a-z0-9]/gi, '_')}_${conta.numero_boleto}.txt`;
               const textContent = `Link para acessar o boleto:\n${pdfUrl}`;
               folder?.file(fileName, textContent);

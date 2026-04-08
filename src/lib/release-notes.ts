@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.21',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Reconstrução total do componente de Filtro Flutuante: Substituído o design nativo complexo por um filtro simples, onde o ícone de funil na esquerda abre o menu de opções ("Começa com", "Contém", etc) e a digitação ocorre livremente à direita, inspirando-se na usabilidade DevExtreme.' },
+      { module: 'Financeiro', description: 'Correção crítica no Download em Lote (ZIP): A função backend de bypass de CORS não havia sido acionada corretamente no loop da interface, o que forçava a geração de TXTs. Agora, arquivos .pdf reais são entregues dentro do arquivo compactado.' }
+    ]
+  },
+  {
     version: '1.3.20',
     date: '2026-04-06',
     notes: [
