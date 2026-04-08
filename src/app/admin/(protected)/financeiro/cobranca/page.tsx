@@ -341,11 +341,19 @@ export default function CobrancaPage() {
               const byteArray = new Uint8Array(byteNumbers);
               const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
               
-              const fileName = `Boleto_${conta.nome_cliente.replace(/[^a-z0-9]/gi, '_')}_${conta.numero_boleto}.pdf`;
+              const safeNome = (conta.nome_cliente || '').replace(/[^a-z0-9]/gi, '_');
+              const safeCnpj = (conta.cnpj_cliente || '').replace(/[^a-z0-9]/gi, '');
+              const safeNossoNum = (conta.numero_boleto || '').replace(/[^a-z0-9]/gi, '_');
+              const fileName = `${safeNome}_${safeCnpj}_${safeNossoNum}`.replace(/_+/g, '_').replace(/^_|_$/g, '') + '.pdf';
+              
               folder?.file(fileName, pdfBlob);
               successCount++;
             } catch (error) {
-              const fileName = `Boleto_${conta.nome_cliente.replace(/[^a-z0-9]/gi, '_')}_${conta.numero_boleto}.txt`;
+              const safeNome = (conta.nome_cliente || '').replace(/[^a-z0-9]/gi, '_');
+              const safeCnpj = (conta.cnpj_cliente || '').replace(/[^a-z0-9]/gi, '');
+              const safeNossoNum = (conta.numero_boleto || '').replace(/[^a-z0-9]/gi, '_');
+              const fileName = `${safeNome}_${safeCnpj}_${safeNossoNum}`.replace(/_+/g, '_').replace(/^_|_$/g, '') + '.txt';
+              
               const textContent = `Link para acessar o boleto:\n${pdfUrl}`;
               folder?.file(fileName, textContent);
               successCount++;

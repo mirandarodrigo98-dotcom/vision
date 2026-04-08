@@ -42,7 +42,8 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
     const clientesIds = [...new Set(contas.map((c: any) => c.codigo_cliente_fornecedor).filter(Boolean))];
     
     // 2. Buscar Clientes (em lotes de 50)
-    const clientesMap = new Map();
+    const clientesMap = new Map<number, string>();
+    const cnpjMap = new Map<number, string>();
     const lotesClientes = [];
     for (let i = 0; i < clientesIds.length; i += 50) {
       lotesClientes.push(clientesIds.slice(i, i + 50));
@@ -65,9 +66,11 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
         const clientesList = resCli.data.clientes_cadastro || [];
         clientesList.forEach((cli: any) => {
           clientesMap.set(cli.codigo_cliente_omie, cli.razao_social || cli.nome_fantasia);
+          cnpjMap.set(cli.codigo_cliente_omie, cli.cnpj_cpf || '');
         });
-      } catch (err) {
-        console.error("Erro ao buscar lote de clientes", err);
+      } catch (err: any) {
+        console.error("Erro ao buscar lote de clientes", err.response?.data || err.message);
+        throw err;
       }
     }));
 
@@ -135,6 +138,7 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       return {
         ...c,
         nome_cliente: clientesMap.get(c.codigo_cliente_fornecedor) || 'N/A',
+        cnpj_cliente: cnpjMap.get(c.codigo_cliente_fornecedor) || '',
         nome_categoria: categoriasMap.get(catCode) || catCode || '-',
         nome_conta_corrente: contasCorrentesMap.get(c.id_conta_corrente) || c.id_conta_corrente || '-',
         numero_boleto: c.boleto?.cNumBancario || c.boleto?.cNumBoleto || c.numero_documento || '-',

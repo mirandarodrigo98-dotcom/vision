@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.23',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Nomenclatura do arquivo PDF no ZIP: Boletos baixados em lote agora são nomeados dinamicamente com "Razão Social _ CNPJ _ Nosso Número" para facilitar a identificação local.' }
+    ]
+  },
+  {
     version: '1.3.22',
     date: '2026-04-06',
     notes: [

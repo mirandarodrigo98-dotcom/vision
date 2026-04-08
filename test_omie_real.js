@@ -25,7 +25,7 @@ async function test() {
       param: [
         {
           pagina: 1,
-          registros_por_pagina: 100,
+          registros_por_pagina: 5,
           apenas_importado_api: "N",
           filtrar_por_data_de: "01/03/2026",
           filtrar_por_data_ate: "31/03/2026",
@@ -37,15 +37,8 @@ async function test() {
       headers: { 'Content-Type': 'application/json' }
     });
     const contas = response.data.conta_receber_cadastro || [];
-    const withBarcode = contas.filter(c => c.boleto && c.boleto.cGerado === 'S');
-    console.log("Com boleto:", withBarcode.length);
-    if(withBarcode.length > 0) {
-      console.log(JSON.stringify(withBarcode.slice(0, 2).map(c => ({
-        num_doc: c.numero_documento,
-        boleto: c.boleto,
-        barras: c.codigo_barras_ficha_compensacao
-      })), null, 2));
-    }
+    console.log(Object.keys(contas[0]));
+    console.log("cnpj", contas[0].cnpj_cpf, contas[0].cpf_cnpj);
   } catch (error) {
     console.log(error.response?.data || error.message);
   }
