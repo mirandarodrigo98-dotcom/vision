@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.16',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Revisão profunda no mapeamento de dados do Omie: Razão Social, Contas Correntes e Categorias agora exibem descrições e não IDs.' },
+      { module: 'Financeiro', description: 'Correção de valores recebidos: Contas recebidas/liquidadas agora refletem corretamente os valores, datas de pagamento, descontos e multas na tabela.' },
+      { module: 'Financeiro', description: 'Formatação de moeda atualizada (sem o prefixo R$) para facilitar leitura no grid avançado.' }
+    ]
+  },
+  {
     version: '1.3.15',
     date: '2026-04-06',
     notes: [

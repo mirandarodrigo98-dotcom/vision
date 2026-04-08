@@ -51,11 +51,11 @@ export default function CobrancaPage() {
     { field: 'data_emissao', headerName: 'Data Emissão', width: 140, filter: true },
     { field: 'data_vencimento', headerName: 'Vencimento', width: 140, filter: true },
     { 
-      field: 'data_pagamento', 
+      field: 'data_pagamento_calculada', 
       headerName: 'Último Receb.', 
       width: 140, 
       filter: true,
-      valueGetter: (p: any) => p.data.data_pagamento || p.data.data_baixa || p.data.resumo?.data_pagamento || '-'
+      valueGetter: (p: any) => p.data.data_pagamento_calculada || '-'
     },
     { 
       field: 'valor_documento', 
@@ -66,11 +66,11 @@ export default function CobrancaPage() {
       cellClass: 'text-right'
     },
     { 
-      field: 'valor_pago', 
+      field: 'valor_pago_calculado', 
       headerName: 'Recebido', 
       width: 130, 
       filter: 'agNumberColumnFilter',
-      valueGetter: (p: any) => p.data.valor_pago || p.data.valor_baixa || p.data.resumo?.valor_pago || 0,
+      valueGetter: (p: any) => p.data.valor_pago_calculado || 0,
       valueFormatter: (p: any) => formatNumber(p.value),
       cellClass: 'text-right text-green-600 font-medium'
     },
@@ -81,7 +81,7 @@ export default function CobrancaPage() {
       filter: 'agNumberColumnFilter',
       valueGetter: (p: any) => {
         const doc = p.data.valor_documento || 0;
-        const pago = p.data.valor_pago || p.data.valor_baixa || p.data.resumo?.valor_pago || 0;
+        const pago = p.data.valor_pago_calculado || 0;
         return doc - pago;
       },
       valueFormatter: (p: any) => formatNumber(p.value),

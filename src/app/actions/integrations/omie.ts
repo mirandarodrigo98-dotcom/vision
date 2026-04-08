@@ -98,19 +98,37 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       };
       const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
       const ccList = resCc.data.ListarContasCorrentes || resCc.data.conta_corrente_cadastro || resCc.data.ListarContasCorrentesResponse || [];
-      ccList.forEach((cc: any) => contasCorrentesMap.set(cc.nIdCC, cc.descricao || cc.cDescricao));
+      ccList.forEach((cc: any) => contasCorrentesMap.set(cc.nIdCC || cc.nCodCC, cc.descricao || cc.cDescricao));
     } catch (err) {
       console.error("Erro ao buscar contas correntes", err);
     }
 
     // 5. Enriquecer os dados
-    const enrichedData = contas.map((c: any) => ({
-      ...c,
-      nome_cliente: clientesMap.get(c.codigo_cliente_fornecedor) || 'N/A',
-      nome_categoria: categoriasMap.get(c.codigo_categoria) || c.codigo_categoria,
-      nome_conta_corrente: contasCorrentesMap.get(c.id_conta_corrente) || c.id_conta_corrente,
-      numero_boleto: c.numero_boleto || c.boleto?.cNumBoleto || '-'
-    }));
+    const enrichedData = contas.map((c: any) => {
+      // O codigo da categoria pode vir na raiz ou dentro do array categorias
+      const catCode = c.codigo_categoria || (c.categorias && c.categorias.length > 0 ? c.categorias[0].codigo_categoria : null);
+      
+      // O valor pago pode não vir explicitamente se não usarmos o exibir_resumo (que falha em algumas contas)
+      // Vamos inferir que se está recebido, o valor pago é o valor do documento
+      let valorPago = 0;
+      let dataPagamento = null;
+      
+      if (c.status_titulo === 'RECEBIDO' || c.status_titulo === 'LIQUIDADO') {
+        valorPago = c.valor_pago || c.valor_baixa || c.resumo?.valor_pago || c.valor_documento || 0;
+        dataPagamento = c.data_pagamento || c.data_baixa || c.resumo?.data_pagamento || c.info?.dAlt || c.info?.dInc || null;
+      }
+
+      return {
+        ...c,
+        nome_cliente: clientesMap.get(c.codigo_cliente_fornecedor) || 'N/A',
+        nome_categoria: categoriasMap.get(catCode) || catCode || '-',
+        nome_conta_corrente: contasCorrentesMap.get(c.id_conta_corrente) || c.id_conta_corrente || '-',
+        numero_boleto: c.numero_boleto || c.boleto?.cNumBoleto || '-',
+        tipo_documento: c.tipo_documento || c.codigo_tipo_documento || '-',
+        valor_pago_calculado: valorPago,
+        data_pagamento_calculada: dataPagamento
+      };
+    });
 
     return { data: enrichedData };
   } catch (error: any) {
