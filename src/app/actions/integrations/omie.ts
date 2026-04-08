@@ -1,7 +1,9 @@
 'use server';
 
 import axios from 'axios';
+import db from '@/lib/db';
 import { getOmieConfig } from './omie-config';
+import { sendDigisacMessage } from '@/app/actions/integrations/digisac';
 
 // Retorna as contas a receber do Omie
 export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string) {
@@ -275,5 +277,67 @@ export async function consultarContaReceberOmie(codigoLancamento: number) {
   } catch (error: any) {
     console.error('Erro ao consultar conta:', error.response?.data || error.message);
     return { error: error.response?.data?.faultstring || 'Falha ao consultar os detalhes da conta.' };
+  }
+}
+
+export async function enviarBoletoDigisacOmie(conta: any) {
+  try {
+    const cnpjRaw = conta.cnpj_cliente || '';
+    const cleanCnpj = cnpjRaw.replace(/[^0-9]/g, '');
+
+    if (!cleanCnpj) {
+      return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
+    }
+
+    // 1. Encontrar o cliente localmente
+    const company = await db.prepare('SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, ".", ""), "/", ""), "-", "") = ?').get(cleanCnpj) as any;
+
+    if (!company) {
+      return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
+    }
+
+    // 2. Encontrar o contato Financeiro
+    const phone = await db.prepare(`
+      SELECT p.number, p.name
+      FROM company_phones p
+      JOIN contact_categories c ON p.category_id = c.id
+      WHERE p.company_id = ? AND c.name ILIKE '%Financeiro%'
+    `).get(company.id) as any;
+
+    if (!phone || !phone.number) {
+      return { error: `Nenhum telefone com a categoria "Financeiro" cadastrado para a empresa ${company.razao_social}.` };
+    }
+
+    // 3. Pegar URL do PDF do Boleto
+    let pdfUrl = conta.cLinkBoleto;
+    if (!pdfUrl) {
+      const resBoleto = await obterBoletoOmie(conta.codigo_lancamento_omie);
+      if (resBoleto.error || !resBoleto.data?.cLinkBoleto) {
+        return { error: 'Não foi possível obter o PDF do boleto no Omie.' };
+      }
+      pdfUrl = resBoleto.data.cLinkBoleto;
+    }
+
+    // 4. Montar a mensagem
+    const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
+    const vencimento = conta.data_vencimento || '';
+
+    const messageBody = `_Essa é uma mensagem automática_\n\nPrezado(a) *${phone.name}*.\nVocê está recebendo o boleto de Honorários Contábeis da empresa *${company.razao_social}* *${cnpjRaw}* no valor de *${valor}* com vencimento em *${vencimento}*.\nQualquer dúvida estamos à disposição através da Central de Atendimento (24) 3026-5648.\n\nDepartamento Financeiro`;
+
+    // 5. Enviar via Digisac
+    const result = await sendDigisacMessage({
+      number: phone.number,
+      body: messageBody,
+      fileUrl: pdfUrl
+    });
+
+    if (!result.success) {
+      return { error: result.error || 'Erro ao enviar via Digisac.' };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Erro ao enviar boleto via Digisac:', error);
+    return { error: 'Falha interna ao tentar enviar o boleto.' };
   }
 }

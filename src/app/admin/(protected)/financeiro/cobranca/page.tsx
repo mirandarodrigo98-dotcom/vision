@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon, FunnelIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon, FunnelIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie } from '@/app/actions/integrations/omie';
+import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 
 import { AgGridReact } from 'ag-grid-react';
@@ -156,6 +156,8 @@ export default function CobrancaPage() {
   const [isDetalharOpen, setIsDetalharOpen] = useState(false);
   const [detalheConta, setDetalheConta] = useState<any>(null);
   const [isCarregandoDetalhes, setIsCarregandoDetalhes] = useState(false);
+
+  const [isSendingDigisac, setIsSendingDigisac] = useState(false);
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
@@ -396,6 +398,27 @@ export default function CobrancaPage() {
     }
   };
 
+  const handleEnviarDigisac = async () => {
+    if (selectedRows.length !== 1) return;
+    const conta = selectedRows[0];
+    
+    setIsSendingDigisac(true);
+    toast.info('Buscando informações e enviando via Digisac...');
+    
+    try {
+      const res = await enviarBoletoDigisacOmie(conta);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success('Boleto enviado com sucesso via Digisac!');
+      }
+    } catch (error) {
+      toast.error('Erro ao processar envio do boleto.');
+    } finally {
+      setIsSendingDigisac(false);
+    }
+  };
+
   const handleVisualizarBoleto = async () => {
     if (selectedRows.length === 0) return;
     
@@ -630,6 +653,14 @@ export default function CobrancaPage() {
             >
               <CheckCircleIcon className="h-4 w-4" />
               Receber
+            </Button>
+            <Button 
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={selectedRows.length !== 1 || isSendingDigisac} 
+              onClick={handleEnviarDigisac}
+            >
+              <PaperAirplaneIcon className="h-4 w-4" />
+              {isSendingDigisac ? 'Enviando...' : 'Boleto via Digisac'}
             </Button>
             <Button 
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"

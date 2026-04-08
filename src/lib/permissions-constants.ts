@@ -88,6 +88,10 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
 
     // --- Módulo Financeiro ---
     { code: 'financeiro.cobranca.view', label: 'Acessar Cobrança', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.detalhar', label: 'Detalhar Título', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.receber', label: 'Registrar Recebimento', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.boleto', label: 'Visualizar Boleto', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.digisac', label: 'Enviar Boleto via Digisac', category: 'Financeiro', module: 'Módulo Financeiro' },
 
     // --- Módulo Integrações ---
     { code: 'integrations.view', label: 'Acessar Integrações', category: 'Integrações', module: 'Módulo Integrações' },

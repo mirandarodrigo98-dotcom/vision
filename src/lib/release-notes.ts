@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.26',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Criação do botão "Boleto via Digisac": Permite disparar automaticamente o PDF do boleto com uma mensagem padronizada de cobrança via WhatsApp (Digisac). O sistema localiza o cliente da linha através do CNPJ, varre os contatos daquela empresa e envia para o número associado à categoria "Financeiro".' },
+      { module: 'Permissões', description: 'Inclusão do Módulo Financeiro: Agora é possível controlar quais usuários podem "Acessar Cobrança", "Detalhar Título", "Registrar Recebimento", "Visualizar Boleto" e "Enviar Boleto via Digisac" através das telas de Permissões.' }
+    ]
+  },
+  {
     version: '1.3.25',
     date: '2026-04-06',
     notes: [
