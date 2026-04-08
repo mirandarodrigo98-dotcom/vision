@@ -161,7 +161,7 @@ export default function CobrancaPage() {
                         <TableCell className="text-right text-red-500">{formatCurrency(c.valor_juros)}</TableCell>
                         <TableCell className="max-w-[120px] truncate" title={c.codigo_categoria}>{c.codigo_categoria}</TableCell>
                         <TableCell>{c.id_conta_corrente || c.codigo_conta_corrente || '-'}</TableCell>
-                        <TableCell>{c.numero_boleto || c.boleto || '-'}</TableCell>
+                        <TableCell>{c.numero_boleto || c.boleto?.cNumBoleto || '-'}</TableCell>
                         <TableCell>{c.tipo_documento || '-'}</TableCell>
                       </TableRow>
                     );

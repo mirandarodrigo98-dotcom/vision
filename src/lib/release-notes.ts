@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.12',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção de erro de renderização do grid de Contas a Receber (React error #31). A coluna de número do boleto agora é formatada corretamente.' }
+    ]
+  },
+  {
     version: '1.3.11',
     date: '2026-04-06',
     notes: [
