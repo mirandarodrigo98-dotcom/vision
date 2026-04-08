@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.24',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Botões da Barra Superior Padronizados para Laranja: Todos os botões da listagem ("Detalhar", "Receber" e "Visualizar Boleto") agora seguem a cor laranja primária do sistema para facilitar a localização pelo usuário.' },
+      { module: 'Financeiro', description: 'Novo Botão "Receber": Permite registrar a baixa financeira de um único título selecionado. Abre um pop-up em espelho ao Omie, pré-preenchendo a Data, Valor, Conta Corrente (apenas ativas) e inserindo uma Observação padrão de auditoria (Recebimento realizado por ...). Só é habilitado caso o título tenha saldo a receber.' },
+      { module: 'Financeiro', description: 'Novo Botão "Detalhar": Permite abrir uma tela de inspeção com os detalhes da conta e listar todos os recebimentos vinculados. Possui os recursos "Registrar Recebimento" (desabilitado se já quitado) e "Cancelar Recebimento" para fazer o estorno no Omie.' }
+    ]
+  },
+  {
     version: '1.3.23',
     date: '2026-04-06',
     notes: [

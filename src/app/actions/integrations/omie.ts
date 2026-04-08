@@ -101,7 +101,11 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       };
       const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
       const ccList = resCc.data.ListarContasCorrentes || resCc.data.conta_corrente_cadastro || resCc.data.ListarContasCorrentesResponse || [];
-      ccList.forEach((cc: any) => contasCorrentesMap.set(cc.nIdCC || cc.nCodCC, cc.descricao || cc.cDescricao));
+      ccList.forEach((cc: any) => {
+        // Ignorar contas inativas (se houver campo de inativo)
+        if (cc.inativo === "S" || cc.cStatus === "I") return;
+        contasCorrentesMap.set(cc.nIdCC || cc.nCodCC, cc.descricao || cc.cDescricao);
+      });
     } catch (err) {
       console.error("Erro ao buscar contas correntes", err);
     }
@@ -149,7 +153,10 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       };
     });
 
-    return { data: enrichedData };
+    return { 
+      data: enrichedData,
+      contasCorrentes: Array.from(contasCorrentesMap.entries()).map(([id, nome]) => ({ id, nome }))
+    };
   } catch (error: any) {
     const errorMsg = error.response?.data?.faultstring || error.message;
     console.error('Erro na integração Omie:', errorMsg);
@@ -202,5 +209,71 @@ export async function downloadBoletoPdfServer(url: string) {
   } catch (error: any) {
     console.error('Erro ao baixar PDF do boleto:', error);
     return { error: 'Falha ao baixar o PDF do boleto.' };
+  }
+}
+
+export async function lancarRecebimentoOmie(payloadData: any) {
+  const config = await getOmieConfig();
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) {
+    return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
+  }
+  try {
+    const payload = {
+      call: "LancarRecebimento",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [payloadData]
+    };
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Erro ao lançar recebimento:', error.response?.data || error.message);
+    return { error: error.response?.data?.faultstring || 'Falha ao registrar o recebimento.' };
+  }
+}
+
+export async function cancelarRecebimentoOmie(codigoBaixa: number) {
+  const config = await getOmieConfig();
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) {
+    return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
+  }
+  try {
+    const payload = {
+      call: "CancelarRecebimento",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [{ codigo_baixa: codigoBaixa }]
+    };
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Erro ao cancelar recebimento:', error.response?.data || error.message);
+    return { error: error.response?.data?.faultstring || 'Falha ao cancelar o recebimento.' };
+  }
+}
+
+export async function consultarContaReceberOmie(codigoLancamento: number) {
+  const config = await getOmieConfig();
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) {
+    return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
+  }
+  try {
+    const payload = {
+      call: "ConsultarContaReceber",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [{ codigo_lancamento_omie: codigoLancamento }]
+    };
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Erro ao consultar conta:', error.response?.data || error.message);
+    return { error: error.response?.data?.faultstring || 'Falha ao consultar os detalhes da conta.' };
   }
 }

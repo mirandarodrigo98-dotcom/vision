@@ -18,27 +18,27 @@ async function test() {
   if(!config) return console.log("No config");
 
   try {
-    const payload = {
+    const payloadList = {
       call: "ListarContasReceber",
       app_key: config.app_key,
       app_secret: config.app_secret,
-      param: [
-        {
-          pagina: 1,
-          registros_por_pagina: 5,
-          apenas_importado_api: "N",
-          filtrar_por_data_de: "01/03/2026",
-          filtrar_por_data_ate: "31/03/2026",
-          filtrar_apenas_inclusao: "N"
-        }
-      ]
+      param: [{
+        pagina: 1, registros_por_pagina: 100, apenas_importado_api: "N",
+        filtrar_por_data_de: "01/03/2026", filtrar_por_data_ate: "31/03/2026", filtrar_apenas_inclusao: "N"
+      }]
     };
-    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const contas = response.data.conta_receber_cadastro || [];
-    console.log(Object.keys(contas[0]));
-    console.log("cnpj", contas[0].cnpj_cpf, contas[0].cpf_cnpj);
+    const resList = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadList);
+    const rec = resList.data.conta_receber_cadastro.find(c => c.status_titulo === 'RECEBIDO');
+    if (!rec) return console.log("No received title found");
+    
+    const payload = {
+      call: "ListarRecebimentos",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [{ codigo_lancamento_omie: rec.codigo_lancamento_omie, nCodTitulo: rec.codigo_lancamento_omie }]
+    };
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
+    console.log(JSON.stringify(response.data, null, 2));
   } catch (error) {
     console.log(error.response?.data || error.message);
   }
