@@ -127,7 +127,9 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
         'TRA': 'Transferência',
         'DIN': 'Dinheiro',
         'CRT': 'Cartão',
-        'PIX': 'Pix'
+        'PIX': 'Pix',
+        'Boleto': 'Boleto',
+        'Recibo': 'Recibo'
       };
 
       return {
@@ -135,8 +137,8 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
         nome_cliente: clientesMap.get(c.codigo_cliente_fornecedor) || 'N/A',
         nome_categoria: categoriasMap.get(catCode) || catCode || '-',
         nome_conta_corrente: contasCorrentesMap.get(c.id_conta_corrente) || c.id_conta_corrente || '-',
-        numero_boleto: c.boleto?.cNumBoleto || c.boleto?.cNumBancario || '',
-        codigo_barras: c.codigo_barras_ficha_compensacao || '',
+        numero_boleto: c.boleto?.cNumBancario || c.boleto?.cNumBoleto || c.numero_documento || '-',
+        codigo_barras: c.codigo_barras_ficha_compensacao || c.boleto?.cCodigoBarras || '-',
         tipo_documento: TIPO_DOC_MAP[c.codigo_tipo_documento] || c.codigo_tipo_documento || c.tipo_documento || '-',
         valor_pago_calculado: valorPago,
         data_pagamento_calculada: dataPagamento
@@ -183,5 +185,18 @@ export async function obterBoletoOmie(codigoLancamento: number) {
   } catch (error: any) {
     console.error('Erro na integração Omie ao obter boleto:', error.response?.data || error.message);
     return { error: 'Falha ao obter o link do boleto no Omie.' };
+  }
+}
+
+export async function downloadBoletoPdfServer(url: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Falha ao acessar o link do boleto');
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    return { base64 };
+  } catch (error: any) {
+    console.error('Erro ao baixar PDF do boleto:', error);
+    return { error: 'Falha ao baixar o PDF do boleto.' };
   }
 }

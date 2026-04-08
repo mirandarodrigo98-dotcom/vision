@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { listarContasReceber, obterBoletoOmie } from '@/app/actions/integrations/omie';
+import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 
 import { AgGridReact } from 'ag-grid-react';
@@ -22,20 +22,41 @@ import { saveAs } from 'file-saver';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const CustomHeader = (props: any) => {
-  const onHideClick = () => {
+  const [sort, setSort] = useState<string | undefined>();
+
+  const onSortRequested = (event: any) => {
+    props.progressSort(event.shiftKey);
+  };
+
+  const onHideClick = (e: any) => {
+    e.stopPropagation();
     props.api.setColumnsVisible([props.column.getColId()], false);
   };
 
+  useEffect(() => {
+    const listener = () => {
+      if (props.column.isSortAscending()) setSort('asc');
+      else if (props.column.isSortDescending()) setSort('desc');
+      else setSort(undefined);
+    };
+    props.column.addEventListener('sortChanged', listener);
+    return () => props.column.removeEventListener('sortChanged', listener);
+  }, [props.column]);
+
   return (
-    <div className="flex items-center justify-between w-full group">
-      <span className="font-semibold text-xs text-muted-foreground uppercase">{props.displayName}</span>
-      <button 
+    <div className="flex items-center justify-between w-full h-full group">
+      <div className="flex items-center cursor-pointer flex-1 overflow-hidden" onClick={onSortRequested}>
+        <span className="truncate font-semibold text-xs text-muted-foreground uppercase">{props.displayName}</span>
+        {sort === 'asc' && <span className="ml-1 text-xs">▲</span>}
+        {sort === 'desc' && <span className="ml-1 text-xs">▼</span>}
+      </div>
+      <div 
+        className="cursor-pointer px-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-opacity" 
         onClick={onHideClick}
-        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
         title="Ocultar coluna"
       >
-        <ChevronDoubleLeftIcon className="h-3 w-3" />
-      </button>
+        &laquo;
+      </div>
     </div>
   );
 };
@@ -62,13 +83,14 @@ export default function CobrancaPage() {
       suppressMenu: true,
       suppressMovable: true,
       sortable: false,
-      filter: false
+      filter: false,
+      headerComponent: undefined
     },
     {
       field: 'status_titulo',
       headerName: 'Situação',
       width: 130,
-      filter: true,
+      filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => {
         const status = params.value || 'PENDENTE';
         let badgeClass = 'bg-yellow-100 text-yellow-800';
@@ -83,14 +105,14 @@ export default function CobrancaPage() {
         );
       }
     },
-    { field: 'nome_cliente', headerName: 'Cliente (Razão Social)', flex: 1, filter: true, minWidth: 200 },
-    { field: 'data_emissao', headerName: 'Data Emissão', width: 140, filter: true },
-    { field: 'data_vencimento', headerName: 'Vencimento', width: 140, filter: true },
+    { field: 'nome_cliente', headerName: 'Cliente (Razão Social)', flex: 1, filter: 'agTextColumnFilter', minWidth: 200 },
+    { field: 'data_emissao', headerName: 'Data Emissão', width: 140, filter: 'agTextColumnFilter' },
+    { field: 'data_vencimento', headerName: 'Vencimento', width: 140, filter: 'agTextColumnFilter' },
     { 
       field: 'data_pagamento_calculada', 
       headerName: 'Último Receb.', 
       width: 140, 
-      filter: true,
+      filter: 'agTextColumnFilter',
       valueGetter: (p: any) => p.data.data_pagamento_calculada || '-'
     },
     { 
@@ -141,28 +163,19 @@ export default function CobrancaPage() {
       valueFormatter: (p: any) => formatNumber(p.value),
       cellClass: 'text-right text-red-500'
     },
-    { field: 'nome_categoria', headerName: 'Categoria', width: 180, filter: true },
-    { field: 'nome_conta_corrente', headerName: 'Conta Corrente', width: 180, filter: true },
-    { field: 'numero_boleto', headerName: 'Nº Boleto', width: 130, filter: true },
-    { field: 'codigo_barras', headerName: 'Código de Barras', width: 250, filter: true },
-    { field: 'tipo_documento', headerName: 'Tipo Doc.', width: 120, filter: true }
+    { field: 'nome_categoria', headerName: 'Categoria', width: 180, filter: 'agTextColumnFilter' },
+    { field: 'nome_conta_corrente', headerName: 'Conta Corrente', width: 180, filter: 'agTextColumnFilter' },
+    { field: 'numero_boleto', headerName: 'Nº Boleto', width: 130, filter: 'agTextColumnFilter' },
+    { field: 'codigo_barras', headerName: 'Código de Barras', width: 250, filter: 'agTextColumnFilter' },
+    { field: 'tipo_documento', headerName: 'Tipo Doc.', width: 120, filter: 'agTextColumnFilter' }
   ], []);
 
   const defaultColDef = useMemo(() => ({
     sortable: true,
     resizable: true,
     floatingFilter: true,
-    filter: true,
     headerComponent: CustomHeader,
   }), []);
-
-  const getRowClass = (params: any) => {
-    // Sombreado leve laranja se a linha estiver selecionada
-    if (params.node.isSelected()) {
-      return 'bg-orange-50';
-    }
-    return '';
-  };
 
   const onGridReady = (params: any) => {
     setGridApi(params.api);
@@ -311,6 +324,11 @@ export default function CobrancaPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <style>{`
+        .ag-theme-alpine .ag-row-selected {
+          background-color: #ffedd5 !important;
+        }
+      `}</style>
       <div className="flex items-center gap-3">
         <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
           <CurrencyDollarIcon className="h-6 w-6" />
@@ -403,7 +421,6 @@ export default function CobrancaPage() {
               defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="multiple"
-              getRowClass={getRowClass}
               onGridReady={onGridReady}
               onDisplayedColumnsChanged={onDisplayedColumnsChanged}
               onSelectionChanged={onSelectionChanged}

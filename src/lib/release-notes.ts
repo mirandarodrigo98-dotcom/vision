@@ -11,6 +11,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.20',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção do ZIP de Download: Boletos baixados em lote agora retornam corretamente os arquivos .pdf. Uma rota Server-Side foi implementada para quebrar a limitação de CORS do Omie.' },
+      { module: 'Financeiro', description: 'Design do Filtro Flutuante: Restaurada a aparência nativa do filtro com inputs diretamente na coluna e funil à esquerda, consertando o componente anterior que quebrava o estilo do AG Grid.' },
+      { module: 'Financeiro', description: 'Sombreado das Linhas: Agora, quando as linhas são marcadas, recebem destaque em laranja claro para melhor acessibilidade.' },
+      { module: 'Financeiro', description: 'Aprimoramento do Número de Boleto e Código de Barras: Se essas informações não vierem na listagem padrão, o sistema tentará inferi-las e o botão "Visualizar Boleto" executará uma busca profunda individual (ObterBoleto).' }
+    ]
+  },
+  {
     version: '1.3.19',
     date: '2026-04-06',
     notes: [
