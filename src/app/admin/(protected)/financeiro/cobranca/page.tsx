@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CurrencyDollarIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { listarContasReceber } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 export default function CobrancaPage() {
   const [dataDe, setDataDe] = useState('');
@@ -17,9 +19,98 @@ export default function CobrancaPage() {
   const [loading, setLoading] = useState(false);
   const [contas, setContas] = useState<any[]>([]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+  const formatNumber = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
   };
+
+  const columnDefs = useMemo(() => [
+    {
+      field: 'status_titulo',
+      headerName: 'Situação',
+      width: 130,
+      filter: true,
+      cellRenderer: (params: any) => {
+        const status = params.value || 'PENDENTE';
+        let badgeClass = 'bg-yellow-100 text-yellow-800';
+        if (status === 'RECEBIDO' || status === 'LIQUIDADO') badgeClass = 'bg-green-100 text-green-800';
+        if (status === 'ATRASADO') badgeClass = 'bg-red-100 text-red-800';
+        if (status === 'CANCELADO') badgeClass = 'bg-gray-100 text-gray-800';
+        
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${badgeClass}`}>
+            {status}
+          </span>
+        );
+      }
+    },
+    { field: 'nome_cliente', headerName: 'Cliente (Razão Social)', flex: 1, filter: true, minWidth: 200 },
+    { field: 'data_emissao', headerName: 'Data Emissão', width: 140, filter: true },
+    { field: 'data_vencimento', headerName: 'Vencimento', width: 140, filter: true },
+    { 
+      field: 'data_pagamento', 
+      headerName: 'Último Receb.', 
+      width: 140, 
+      filter: true,
+      valueGetter: (p: any) => p.data.data_pagamento || p.data.data_baixa || p.data.resumo?.data_pagamento || '-'
+    },
+    { 
+      field: 'valor_documento', 
+      headerName: 'Valor Conta', 
+      width: 130, 
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (p: any) => formatNumber(p.value),
+      cellClass: 'text-right'
+    },
+    { 
+      field: 'valor_pago', 
+      headerName: 'Recebido', 
+      width: 130, 
+      filter: 'agNumberColumnFilter',
+      valueGetter: (p: any) => p.data.valor_pago || p.data.valor_baixa || p.data.resumo?.valor_pago || 0,
+      valueFormatter: (p: any) => formatNumber(p.value),
+      cellClass: 'text-right text-green-600 font-medium'
+    },
+    { 
+      field: 'saldo_a_receber', 
+      headerName: 'A Receber', 
+      width: 130, 
+      filter: 'agNumberColumnFilter',
+      valueGetter: (p: any) => {
+        const doc = p.data.valor_documento || 0;
+        const pago = p.data.valor_pago || p.data.valor_baixa || p.data.resumo?.valor_pago || 0;
+        return doc - pago;
+      },
+      valueFormatter: (p: any) => formatNumber(p.value),
+      cellClass: 'text-right text-orange-600 font-medium'
+    },
+    { 
+      field: 'valor_desconto', 
+      headerName: 'Desconto', 
+      width: 120, 
+      filter: 'agNumberColumnFilter',
+      valueGetter: (p: any) => p.data.valor_desconto || p.data.resumo?.desconto || 0,
+      valueFormatter: (p: any) => formatNumber(p.value),
+      cellClass: 'text-right text-red-500'
+    },
+    { 
+      field: 'valor_juros', 
+      headerName: 'Juros', 
+      width: 120, 
+      filter: 'agNumberColumnFilter',
+      valueGetter: (p: any) => p.data.valor_juros || p.data.resumo?.juros || 0,
+      valueFormatter: (p: any) => formatNumber(p.value),
+      cellClass: 'text-right text-red-500'
+    },
+    { field: 'nome_categoria', headerName: 'Categoria', width: 180, filter: true },
+    { field: 'nome_conta_corrente', headerName: 'Conta Corrente', width: 180, filter: true },
+    { field: 'numero_boleto', headerName: 'Nº Boleto', width: 130, filter: true },
+    { field: 'tipo_documento', headerName: 'Tipo Doc.', width: 120, filter: true }
+  ], []);
+
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    resizable: true,
+  }), []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +121,6 @@ export default function CobrancaPage() {
 
     setLoading(true);
     try {
-      // O input date nativo retorna YYYY-MM-DD. O Omie exige DD/MM/YYYY.
       const deParts = dataDe.split('-');
       const ateParts = dataAte.split('-');
       const formattedDe = `${deParts[2]}/${deParts[1]}/${deParts[0]}`;
@@ -109,67 +199,18 @@ export default function CobrancaPage() {
           <CardDescription>Lista de contas a receber do período selecionado.</CardDescription>
         </CardHeader>
         <CardContent>
-          {contas.length === 0 && !loading ? (
-            <div className="text-center p-8 text-muted-foreground border rounded-lg bg-secondary/20">
-              Nenhum registro encontrado. Realize uma busca.
-            </div>
-          ) : (
-            <ScrollArea className="h-[500px] w-full border rounded-md">
-              <Table>
-                <TableHeader className="bg-muted sticky top-0 z-10">
-                  <TableRow>
-                    <TableHead>Situação</TableHead>
-                    <TableHead>Cliente (Razão Social)</TableHead>
-                    <TableHead>Data Emissão</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Último Receb.</TableHead>
-                    <TableHead className="text-right">Valor Conta</TableHead>
-                    <TableHead className="text-right">Recebido</TableHead>
-                    <TableHead className="text-right">A Receber</TableHead>
-                    <TableHead className="text-right">Desconto</TableHead>
-                    <TableHead className="text-right">Juros</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Conta Corrente</TableHead>
-                    <TableHead>Nº Boleto</TableHead>
-                    <TableHead>Tipo Doc.</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {contas.map((c, index) => {
-                    const saldoAReceber = (c.valor_documento || 0) - (c.valor_pago || c.valor_baixa || 0);
-                    return (
-                      <TableRow key={c.codigo_lancamento_omie || index}>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            c.status_titulo === 'RECEBIDO' ? 'bg-green-100 text-green-700' :
-                            c.status_titulo === 'ATRASADO' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {c.status_titulo || 'PENDENTE'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-medium max-w-[200px] truncate" title={c.nome_cliente || c.razao_social_cliente || 'N/A'}>
-                          {c.nome_cliente || c.razao_social_cliente || 'N/A'}
-                        </TableCell>
-                        <TableCell>{c.data_emissao}</TableCell>
-                        <TableCell>{c.data_vencimento}</TableCell>
-                        <TableCell>{c.data_pagamento || c.data_baixa || '-'}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(c.valor_documento)}</TableCell>
-                        <TableCell className="text-right text-green-600">{formatCurrency(c.valor_pago || c.valor_baixa)}</TableCell>
-                        <TableCell className="text-right text-orange-600">{formatCurrency(saldoAReceber)}</TableCell>
-                        <TableCell className="text-right text-red-500">{formatCurrency(c.valor_desconto)}</TableCell>
-                        <TableCell className="text-right text-red-500">{formatCurrency(c.valor_juros)}</TableCell>
-                        <TableCell className="max-w-[120px] truncate" title={c.codigo_categoria}>{c.codigo_categoria}</TableCell>
-                        <TableCell>{c.id_conta_corrente || c.codigo_conta_corrente || '-'}</TableCell>
-                        <TableCell>{c.numero_boleto || c.boleto?.cNumBoleto || '-'}</TableCell>
-                        <TableCell>{c.tipo_documento || '-'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          )}
+          <div className="ag-theme-alpine w-full h-[500px]">
+            <AgGridReact
+              rowData={contas}
+              columnDefs={columnDefs as any}
+              defaultColDef={defaultColDef}
+              animateRows={true}
+              rowSelection="multiple"
+              overlayNoRowsTemplate={
+                loading ? 'Buscando registros...' : 'Nenhum registro encontrado. Realize uma busca.'
+              }
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

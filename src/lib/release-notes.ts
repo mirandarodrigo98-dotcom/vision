@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.13',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Otimização completa do grid de Contas a Receber (Omie): Implementado o AG Grid para ordenação, filtros robustos, redimensionamento de colunas e ocultação.' },
+      { module: 'Financeiro', description: 'Correção de mapeamentos: A Razão Social, Categoria e Nome do Banco agora são exibidos corretamente via cruzamento de dados com APIs auxiliares do Omie.' },
+      { module: 'Financeiro', description: 'Formatação de valores aprimorada e cálculo correto para data do último pagamento, juros, descontos, valor recebido e a receber.' }
+    ]
+  },
+  {
     version: '1.3.12',
     date: '2026-04-06',
     notes: [

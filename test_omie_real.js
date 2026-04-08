@@ -17,25 +17,29 @@ async function test() {
   
   if(!config) return console.log("No config");
 
-  const payload = {
-    call: "ListarContasReceber",
+  const payloadCat = {
+    call: "ListarCategorias",
     app_key: config.app_key,
     app_secret: config.app_secret,
-    param: [
-      {
-        pagina: 1,
-        registros_por_pagina: 50,
-        apenas_importado_api: "N",
-        filtrar_por_data_de: "01/03/2026",
-        filtrar_por_data_ate: "31/03/2026",
-        filtrar_apenas_inclusao: "S"
-      }
-    ]
+    param: [{ pagina: 1, registros_por_pagina: 500 }]
+  };
+
+  const payloadCc = {
+    call: "ListarContasCorrentes",
+    app_key: config.app_key,
+    app_secret: config.app_secret,
+    param: [{ pagina: 1, registros_por_pagina: 500, apenas_importado_api: "N" }]
   };
 
   try {
-    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
-    console.log("Success", response.data.conta_receber_cadastro?.length);
+    const resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
+    console.log("Categorias:", resCat.data.categoria_cadastro?.length);
+    if(resCat.data.categoria_cadastro?.length > 0) console.log(resCat.data.categoria_cadastro[0].codigo, resCat.data.categoria_cadastro[0].descricao);
+
+    const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
+    const cc = resCc.data.conta_corrente_cadastro || resCc.data.ListarContasCorrentes || resCc.data.ListarContasCorrentesResponse;
+    console.log("Contas Correntes:", cc?.length);
+    if(cc?.length > 0) console.log(cc[0]);
   } catch (error) {
     console.log("Error status:", error.response?.status);
     console.log("Error data:", error.response?.data);
