@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.22',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Remoção do botão de filtro nativo do AG Grid ("linha esquisita"): O componente customizado estava dividindo espaço com o botão padrão, criando uma quebra visual de layout. O botão nativo foi desativado via "suppressFloatingFilterButton".' },
+      { module: 'Financeiro', description: 'Estilização perfeita do Filtro Flutuante (DevExtreme UI): O input de texto agora tem bordas sutis e o ícone de funil foi embutido à esquerda na mesma linha, proporcionando a experiência limpa e direta solicitada.' }
+    ]
+  },
+  {
     version: '1.3.21',
     date: '2026-04-06',
     notes: [

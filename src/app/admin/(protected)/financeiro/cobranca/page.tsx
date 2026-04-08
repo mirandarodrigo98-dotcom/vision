@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
@@ -44,7 +44,7 @@ const CustomHeader = (props: any) => {
   }, [props.column]);
 
   return (
-    <div className="flex items-center justify-between w-full h-full group">
+    <div className="flex items-center justify-between w-full group">
       <div className="flex items-center cursor-pointer flex-1 overflow-hidden" onClick={onSortRequested}>
         <span className="truncate font-semibold text-xs text-muted-foreground uppercase">{props.displayName}</span>
         {sort === 'asc' && <span className="ml-1 text-xs">▲</span>}
@@ -99,14 +99,14 @@ const CustomFloatingFilter = (props: any) => {
   };
 
   return (
-    <div className="flex items-center w-full h-8 border border-input rounded-md bg-background px-2 mt-1 focus-within:ring-1 focus-within:ring-ring">
+    <div className="flex items-center w-full h-full gap-1 pt-1">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="text-muted-foreground hover:text-primary mr-2 outline-none flex items-center justify-center">
-            <MagnifyingGlassIcon className="h-4 w-4" />
+          <button className="text-muted-foreground hover:text-primary outline-none flex items-center justify-center p-1 cursor-pointer">
+            <FunnelIcon className="h-4 w-4" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48 z-[9999]">
+        <DropdownMenuContent align="start" className="w-40 z-[9999]">
           <DropdownMenuItem onClick={() => onOperatorChanged('contains')} className={operator === 'contains' ? 'bg-accent' : ''}>Contém</DropdownMenuItem>
           <DropdownMenuItem onClick={() => onOperatorChanged('notContains')} className={operator === 'notContains' ? 'bg-accent' : ''}>Não contém</DropdownMenuItem>
           <DropdownMenuItem onClick={() => onOperatorChanged('equals')} className={operator === 'equals' ? 'bg-accent' : ''}>Igual a</DropdownMenuItem>
@@ -121,7 +121,7 @@ const CustomFloatingFilter = (props: any) => {
         type="text" 
         value={currentValue} 
         onChange={onInputChanged} 
-        className="flex-1 outline-none border-none text-sm bg-transparent w-full placeholder:text-muted-foreground"
+        className="flex-1 outline-none border border-input rounded-sm px-2 h-7 text-sm min-w-0 focus:border-primary placeholder:text-muted-foreground"
         placeholder="Filtrar..."
       />
     </div>
@@ -147,7 +147,7 @@ export default function CobrancaPage() {
       checkboxSelection: true,
       width: 50,
       pinned: 'left',
-      suppressMenu: true,
+      suppressHeaderMenuButton: true,
       suppressMovable: true,
       sortable: false,
       filter: false,
@@ -242,6 +242,7 @@ export default function CobrancaPage() {
     resizable: true,
     floatingFilter: true,
     suppressHeaderMenuButton: true,
+    suppressFloatingFilterButton: true,
     floatingFilterComponent: CustomFloatingFilter,
     headerComponent: CustomHeader,
   }), []);
