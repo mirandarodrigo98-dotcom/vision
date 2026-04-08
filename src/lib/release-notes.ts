@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.14',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Removida flag "exibir_resumo" do payload Omie. A API considerava a tag inválida, impedindo a busca de registros.' }
+    ]
+  },
+  {
     version: '1.3.13',
     date: '2026-04-06',
     notes: [

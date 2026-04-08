@@ -1,18 +1,26 @@
-'use server';
+const axios = require('axios');
+const { Pool } = require('pg');
+const fs = require('fs');
 
-import axios from 'axios';
-import { getOmieConfig } from './omie-config';
+const envVars = fs.readFileSync('.env', 'utf-8').split('\n').reduce((acc, line) => {
+  const eqIdx = line.indexOf('=');
+  if (eqIdx > 0) acc[line.substring(0, eqIdx).trim()] = line.substring(eqIdx + 1).trim().replace(/^"|"$/g, '');
+  return acc;
+}, {});
 
-// Retorna as contas a receber do Omie
-export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string) {
-  const config = await getOmieConfig();
+const pool = new Pool({ connectionString: envVars.DATABASE_URL.replace('?sslmode=require', ''), ssl: { rejectUnauthorized: false } });
 
-  if (!config || !config.is_active || !config.app_key || !config.app_secret) {
-    return { error: 'Credenciais da API Omie não configuradas ou inativas. Acesse Integrações > Omie para configurar.' };
-  }
+async function test() {
+  const res = await pool.query('SELECT * FROM omie_config');
+  const config = res.rows[0];
+  pool.end();
+  
+  if(!config) return console.log("No config");
 
   const appKey = config.app_key;
   const appSecret = config.app_secret;
+  const dataEmissaoDe = "01/03/2026";
+  const dataEmissaoAte = "31/03/2026";
 
   try {
     const payload = {
@@ -36,10 +44,12 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
     });
 
     const contas = response.data.conta_receber_cadastro || [];
+    console.log("Contas:", contas.length);
     if (contas.length === 0) return { data: [] };
 
     // 1. Extrair IDs únicos
-    const clientesIds = [...new Set(contas.map((c: any) => c.codigo_cliente_fornecedor).filter(Boolean))];
+    const clientesIds = [...new Set(contas.map((c) => c.codigo_cliente_fornecedor).filter(Boolean))];
+    console.log("Clientes:", clientesIds.length);
     
     // 2. Buscar Clientes (em lotes de 50)
     const clientesMap = new Map();
@@ -63,11 +73,12 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
         };
         const resCli = await axios.post('https://app.omie.com.br/api/v1/geral/clientes/', payloadCli);
         const clientesList = resCli.data.clientes_cadastro || [];
-        clientesList.forEach((cli: any) => {
+        clientesList.forEach((cli) => {
           clientesMap.set(cli.codigo_cliente_omie, cli.razao_social || cli.nome_fantasia);
         });
       } catch (err) {
-        console.error("Erro ao buscar lote de clientes", err);
+        console.error("Erro ao buscar lote de clientes", err.response?.data || err.message);
+        throw err;
       }
     }));
 
@@ -82,9 +93,10 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       };
       const resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
       const catList = resCat.data.categoria_cadastro || [];
-      catList.forEach((cat: any) => categoriasMap.set(cat.codigo, cat.descricao));
+      catList.forEach((cat) => categoriasMap.set(cat.codigo, cat.descricao));
     } catch (err) {
-      console.error("Erro ao buscar categorias", err);
+      console.error("Erro ao buscar categorias", err.response?.data || err.message);
+      throw err;
     }
 
     // 4. Buscar Contas Correntes
@@ -98,29 +110,16 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       };
       const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
       const ccList = resCc.data.ListarContasCorrentes || resCc.data.conta_corrente_cadastro || resCc.data.ListarContasCorrentesResponse || [];
-      ccList.forEach((cc: any) => contasCorrentesMap.set(cc.nIdCC, cc.descricao || cc.cDescricao));
+      ccList.forEach((cc) => contasCorrentesMap.set(cc.nIdCC, cc.descricao || cc.cDescricao));
     } catch (err) {
-      console.error("Erro ao buscar contas correntes", err);
+      console.error("Erro ao buscar contas correntes", err.response?.data || err.message);
+      throw err;
     }
 
-    // 5. Enriquecer os dados
-    const enrichedData = contas.map((c: any) => ({
-      ...c,
-      nome_cliente: clientesMap.get(c.codigo_cliente_fornecedor) || 'N/A',
-      nome_categoria: categoriasMap.get(c.codigo_categoria) || c.codigo_categoria,
-      nome_conta_corrente: contasCorrentesMap.get(c.id_conta_corrente) || c.id_conta_corrente,
-      numero_boleto: c.numero_boleto || c.boleto?.cNumBoleto || '-'
-    }));
-
-    return { data: enrichedData };
-  } catch (error: any) {
+    console.log("Success");
+  } catch (error) {
     const errorMsg = error.response?.data?.faultstring || error.message;
-    console.error('Erro na integração Omie:', errorMsg);
-    
-    if (errorMsg && errorMsg.toLowerCase().includes('nenhum registro encontrado')) {
-      return { data: [] };
-    }
-    
-    return { error: 'Falha ao buscar as contas a receber no Omie. Verifique o período e as credenciais.' };
+    console.error('Erro na integração Omie (OUTER):', errorMsg);
   }
 }
+test();
