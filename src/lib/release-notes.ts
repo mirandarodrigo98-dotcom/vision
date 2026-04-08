@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.25',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Empresas', description: 'Correção de erro "Download is not defined" que impedia a edição de empresas. O ícone de importação do Questor não estava sendo referenciado corretamente no componente visual.' }
+    ]
+  },
+  {
     version: '1.3.24',
     date: '2026-04-06',
     notes: [

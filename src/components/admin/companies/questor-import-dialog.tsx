@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { RefreshCw, Check, AlertCircle } from 'lucide-react';
+import { RefreshCw, Check, AlertCircle, Download } from 'lucide-react';
 import { fetchCompanyFromQuestor, QuestorCompanyData } from '@/app/actions/integrations/questor-companies';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
