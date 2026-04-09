@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.28',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Financeiro', description: 'Correção de Falha Interna no Disparo Digisac: O sistema estava encontrando erro ao pesquisar a categoria do contato (Financeiro) no banco de dados SQLite, o que causava interrupção da rotina e disparava a notificação de falha interna. A consulta foi refatorada e a falha não ocorrerá mais.' }
+    ]
+  },
+  {
     version: '1.3.27',
     date: '2026-04-06',
     notes: [

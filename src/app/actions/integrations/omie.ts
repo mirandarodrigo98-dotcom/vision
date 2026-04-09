@@ -301,7 +301,8 @@ export async function enviarBoletoDigisacOmie(conta: any) {
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = ? AND c.name ILIKE '%Financeiro%'
+      WHERE p.company_id = ? AND c.name LIKE '%Financeiro%'
+      LIMIT 1
     `).get(company.id) as any;
 
     if (!phone || !phone.number) {
