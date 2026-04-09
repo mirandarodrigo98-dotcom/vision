@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getIRDeclarationById, getIRInteractions } from '@/app/actions/imposto-renda';
+import { getIRDeclarationById, getIRInteractions, getIRFiles } from '@/app/actions/imposto-renda';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -25,10 +25,11 @@ export default async function DetalhesImpostoRendaPage({ params }: { params: Pro
   }
 
   const interactions = await getIRInteractions(id);
+  const files = await getIRFiles(id);
 
   return (
     <div className="flex-1 p-4 md:p-8 pt-6">
-      <IRDetails declaration={declaration} interactions={interactions} isAdmin={isAdmin} />
+      <IRDetails declaration={declaration} interactions={interactions} files={files} isAdmin={isAdmin} />
     </div>
   );
 }

@@ -11,7 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: '1.3.33',
+    version: '1.3.35',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Imposto de Renda', description: 'Novo fluxo de Transmissão de IRPF: Ao alterar o status para "Transmitida", o sistema solicita o anexo da declaração em PDF (com validação estrita do nome do arquivo contendo CPF e Ano). Também permite enviar o PDF anexado diretamente para o WhatsApp e E-mail do contribuinte usando o módulo Digisac, garantindo agilidade na comunicação.' }
+    ]
+  },
+  {
+    version: '1.3.34',
     date: '2026-04-09',
     notes: [
       { module: 'Financeiro', description: 'Correção Definitiva de Arquivo Corrompido no Digisac: O PDF do boleto que chegava ao cliente estava vindo corrompido porque a API do Digisac exigia secretamente a declaração explícita "data:application/pdf;base64," junto ao código do arquivo. Isso foi corrigido no payload de upload.' }

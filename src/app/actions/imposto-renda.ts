@@ -8,6 +8,17 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type IRStatus = 'Não Iniciado' | 'Iniciado' | 'Pendente' | 'Validada' | 'Transmitida' | 'Processada' | 'Malha Fina' | 'Retificadora' | 'Reaberta' | 'Cancelada';
 
+export interface IRFile {
+  id: string;
+  declaration_id: string;
+  file_name: string;
+  file_key: string;
+  file_url: string;
+  uploaded_by: string | null;
+  uploaded_by_name?: string;
+  created_at: string;
+}
+
 export interface IRDeclaration {
   id: string;
   name: string;
@@ -379,6 +390,179 @@ export async function addIRComment(id: string, formData: FormData) {
   })();
 
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+  return { success: true };
+}
+
+export async function getIRFiles(declarationId: string): Promise<IRFile[]> {
+  try {
+    const res = await db.prepare(`
+      SELECT f.*, u.name as uploaded_by_name
+      FROM ir_files f
+      LEFT JOIN users u ON f.uploaded_by = u.id
+      WHERE f.declaration_id = $1
+      ORDER BY f.created_at DESC
+    `).all(declarationId);
+    return res.rows as IRFile[];
+  } catch (error) {
+    console.error('Error fetching IR files:', error);
+    return [];
+  }
+}
+
+export async function deleteIRFile(fileId: string, declarationId: string) {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+  
+  await db.prepare(`DELETE FROM ir_files WHERE id = $1`).run(fileId);
+  
+  await db.prepare(`
+    INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+    VALUES ($1, $2, 'comment', 'Arquivo removido')
+  `).run(declarationId, session.user_id);
+  
+  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
+}
+
+export async function transmitIRDeclaration(
+  declarationId: string,
+  sendWhatsapp: boolean,
+  sendEmail: boolean,
+  formData: FormData
+) {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+
+  const declaration = await getIRDeclarationById(declarationId);
+  if (!declaration) throw new Error('Declaração não encontrada');
+
+  const files = formData.getAll('files') as File[];
+  const uploadedFiles: { fileName: string, fileUrl: string, base64: string, mimeType: string }[] = [];
+
+  const expectedCpf = (declaration.cpf || '').replace(/\D/g, '');
+  const expectedYear = declaration.year;
+
+  for (const file of files) {
+    const parts = file.name.split('-');
+    if (parts.length < 3) throw new Error(`Arquivo ${file.name} ignorado: formato de nome inválido.`);
+    if (parts[0].replace(/\D/g, '') !== expectedCpf) throw new Error(`Arquivo ${file.name} ignorado: CPF incompatível.`);
+    if (parts[1].toUpperCase() !== 'IRPF') throw new Error(`Arquivo ${file.name} ignorado: Não contém a sigla IRPF.`);
+    if (parts[2] !== expectedYear) throw new Error(`Arquivo ${file.name} ignorado: Exercício incompatível.`);
+  }
+
+  // Upload files to R2 and save in ir_files
+  await db.transaction(async () => {
+    for (const file of files) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const fileKey = `irpf/${declarationId}/${uuidv4()}-${file.name}`;
+      const uploadResult = await uploadToR2(buffer, fileKey, file.type);
+      
+      if (uploadResult) {
+        await db.prepare(`
+          INSERT INTO ir_files (declaration_id, file_name, file_key, file_url, uploaded_by)
+          VALUES ($1, $2, $3, $4, $5)
+        `).run(declarationId, file.name, uploadResult.fileKey, uploadResult.downloadLink, session.user_id);
+        
+        uploadedFiles.push({
+          fileName: file.name,
+          fileUrl: uploadResult.downloadLink,
+          base64: buffer.toString('base64'),
+          mimeType: file.type
+        });
+      }
+    }
+
+    // Change status
+    await db.prepare(`
+      UPDATE ir_declarations SET status = 'Transmitida', updated_at = NOW() WHERE id = $1
+    `).run(declarationId);
+
+    await db.prepare(`
+      INSERT INTO ir_interactions (declaration_id, user_id, type, content)
+      VALUES ($1, $2, 'status_change', 'Status alterado para Transmitida')
+    `).run(declarationId, session.user_id);
+  })();
+
+  // Send messages if requested
+  const contactName = declaration.name;
+  const year = declaration.year;
+  const textMessage = `Prezado *${contactName}*
+Estamos te enviando a sua declaração de Imposto de Renda Exercício *${year}* que foi transmitida com sucesso.
+A partir de agora passamos a monitorar o processamento junto à Receita Federal.
+Faremos contato caso seja necessário.
+Atenciosamente
+
+*NZD Contabilidade*
+Departamento Tributário`;
+
+  if (sendWhatsapp && declaration.phone) {
+    try {
+      const { getDigisacConfig, sendDigisacMessage } = await import('./integrations/digisac');
+      const config = await getDigisacConfig();
+
+      // For multiple files, we send the text first, then each file
+      // Wait, the digisac API allows one file per message.
+      if (uploadedFiles.length > 0) {
+        // First file goes with the text
+        const firstFile = uploadedFiles[0];
+        await sendDigisacMessage({
+          number: declaration.phone,
+          serviceId: config.connection_phone,
+          body: textMessage,
+          base64File: `data:${firstFile.mimeType};base64,${firstFile.base64}`,
+          fileName: firstFile.fileName
+        });
+
+        // Remaining files without text
+        for (let i = 1; i < uploadedFiles.length; i++) {
+          const file = uploadedFiles[i];
+          await sendDigisacMessage({
+            number: declaration.phone,
+            serviceId: config.connection_phone,
+            body: '',
+            base64File: `data:${file.mimeType};base64,${file.base64}`,
+            fileName: file.fileName
+          });
+        }
+      } else {
+        await sendDigisacMessage({
+          number: declaration.phone,
+          serviceId: config.connection_phone,
+          body: textMessage
+        });
+      }
+    } catch (e: any) {
+      console.error("Erro ao enviar WhatsApp:", e);
+      throw new Error(`Erro ao enviar WhatsApp: ${e.message}`);
+    }
+  }
+
+  if (sendEmail && declaration.email) {
+    try {
+      // Import email sender
+      const { sendMail } = await import('@/lib/mail');
+      const attachments = uploadedFiles.map(f => ({
+        filename: f.fileName,
+        content: Buffer.from(f.base64, 'base64'),
+        contentType: f.mimeType
+      }));
+      
+      const htmlMessage = textMessage.replace(/\n/g, '<br/>').replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+
+      await sendMail({
+        to: declaration.email,
+        subject: `Declaração de Imposto de Renda Transmitida - Exercício ${year}`,
+        text: textMessage,
+        html: htmlMessage,
+        attachments
+      });
+    } catch (e: any) {
+      console.error("Erro ao enviar Email:", e);
+      throw new Error(`Erro ao enviar Email: ${e.message}`);
+    }
+  }
+
+  revalidatePath('/admin/pessoa-fisica/imposto-renda');
+  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
   return { success: true };
 }
 

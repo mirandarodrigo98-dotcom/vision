@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF, IRFile, deleteIRFile } from '@/app/actions/imposto-renda';
 import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { getCompaniesForSelect } from '@/app/actions/companies';
@@ -17,11 +17,12 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserCircleIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, CheckCircleIcon, BanknotesIcon, PaperClipIcon, CurrencyDollarIcon, UserGroupIcon } from '@heroicons/react/24/outline';
-import { ChevronLeftIcon, PlayCircle, Clock, CheckCircle, Send, CheckCircle2, AlertTriangle, FileEdit, RotateCcw, Ban, Trash2 } from 'lucide-react';
+import { ChevronLeftIcon, PlayCircle, Clock, CheckCircle, Send, CheckCircle2, AlertTriangle, FileEdit, RotateCcw, Ban, Trash2, Download } from 'lucide-react';
 import Link from 'next/link';
 import { IRChat } from './ir-chat';
 import { deleteIRDeclaration } from '@/app/actions/imposto-renda';
 import { useRouter } from 'next/navigation';
+import { IRTransmitidaDialog } from './ir-transmitida-dialog';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
@@ -39,10 +40,11 @@ const STATUS_COLORS: Record<string, string> = {
 interface IRDetailsProps {
   declaration: IRDeclaration;
   interactions: any[];
+  files: IRFile[];
   isAdmin?: boolean;
 }
 
-export function IRDetails({ declaration, interactions, isAdmin }: IRDetailsProps) {
+export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetailsProps) {
   const router = useRouter();
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -84,6 +86,7 @@ export function IRDetails({ declaration, interactions, isAdmin }: IRDetailsProps
   const [companies, setCompanies] = useState<{id: string, razao_social: string}[]>([]);
 
   const [processadaDialog, setProcessadaDialog] = useState(false);
+  const [transmitidaDialog, setTransmitidaDialog] = useState(false);
   const [processadaData, setProcessadaData] = useState({
     outcome_type: '' as 'restituicao' | 'imposto' | '',
     outcome_value: '',
@@ -246,6 +249,11 @@ export function IRDetails({ declaration, interactions, isAdmin }: IRDetailsProps
     
     if (newStatus === 'Processada') {
       setProcessadaDialog(true);
+      return;
+    }
+
+    if (newStatus === 'Transmitida') {
+      setTransmitidaDialog(true);
       return;
     }
 
@@ -685,6 +693,73 @@ export function IRDetails({ declaration, interactions, isAdmin }: IRDetailsProps
                   <Button onClick={() => setReceiptDialog(true)} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
                     <BanknotesIcon className="h-5 w-5 mr-2" /> Registrar Recebimento
                   </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ARQUIVOS ANEXADOS CARD */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <PaperClipIcon className="h-5 w-5" />
+                Arquivos Anexados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {files.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4 italic">
+                  Nenhum arquivo anexado
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {files.map(f => (
+                    <div key={f.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                      <div className="overflow-hidden pr-2">
+                        <p className="text-sm font-medium truncate" title={f.file_name}>{f.file_name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {format(new Date(f.created_at), "dd/MM/yyyy HH:mm")} • {f.uploaded_by_name || 'Sistema'}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                            onClick={() => window.open(f.file_url, '_blank')}
+                            title="Baixar/Visualizar"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:bg-red-100 hover:text-red-700"
+                            onClick={async () => {
+                              if (confirm('Tem certeza que deseja remover este arquivo?')) {
+                                try {
+                                  setLoading(true);
+                                  await deleteIRFile(f.id, declaration.id);
+                                  toast.success('Arquivo removido com sucesso');
+                                } catch (e) {
+                                  toast.error('Erro ao remover arquivo');
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }}
+                            title="Remover"
+                            disabled={loading}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -1248,6 +1323,16 @@ export function IRDetails({ declaration, interactions, isAdmin }: IRDetailsProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <IRTransmitidaDialog
+        open={transmitidaDialog}
+        onOpenChange={setTransmitidaDialog}
+        declaration={declaration}
+        onSuccess={() => {
+          // You could re-fetch data or just let revalidatePath handle it via server actions
+          // The page will automatically refresh because of revalidatePath
+        }}
+      />
     </div>
   );
 }
