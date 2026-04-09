@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { IRDeclaration } from '@/app/actions/imposto-renda';
 import { transmitIRDeclaration } from '@/app/actions/imposto-renda';
 import { toast } from 'sonner';
@@ -22,6 +23,8 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
   const [sendWhatsapp, setSendWhatsapp] = useState(false);
   const [sendEmail, setSendEmail] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [restitutionValue, setRestitutionValue] = useState<string>('');
+  const [showRestitutionInput, setShowRestitutionInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasPhone = !!declaration.phone;
@@ -76,6 +79,10 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
         continue;
       }
 
+      if (file.name.toLowerCase().includes('imagem-recibo')) {
+        setShowRestitutionInput(true);
+      }
+
       validFiles.push(file);
     }
 
@@ -84,6 +91,11 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
   };
 
   const removeFile = (index: number) => {
+    const fileToRemove = files[index];
+    if (fileToRemove.name.toLowerCase().includes('imagem-recibo')) {
+      setShowRestitutionInput(false);
+      setRestitutionValue('');
+    }
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -99,7 +111,7 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
       const formData = new FormData();
       files.forEach(f => formData.append('files', f));
 
-      await transmitIRDeclaration(declaration.id, sendWhatsapp, sendEmail, formData);
+      await transmitIRDeclaration(declaration.id, sendWhatsapp, sendEmail, formData, restitutionValue);
       toast.success('Declaração transmitida com sucesso!');
       onSuccess();
       onOpenChange(false);
@@ -108,6 +120,8 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
       setFiles([]);
       setSendWhatsapp(false);
       setSendEmail(false);
+      setRestitutionValue('');
+      setShowRestitutionInput(false);
     } catch (e: any) {
       toast.error(e.message || 'Erro ao transmitir declaração');
     } finally {
@@ -202,6 +216,24 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
                     </Button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {showRestitutionInput && (
+              <div className="mt-4 p-3 border rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+                <Label className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">
+                  Valor da Restituição (Opcional)
+                </Label>
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 mb-2">
+                  Identificamos o arquivo de recibo. Informe o valor para incluir na mensagem.
+                </p>
+                <Input
+                  type="text"
+                  placeholder="Ex: 1.250,00"
+                  value={restitutionValue}
+                  onChange={(e) => setRestitutionValue(e.target.value)}
+                  disabled={loading}
+                />
               </div>
             )}
           </div>

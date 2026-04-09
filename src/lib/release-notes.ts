@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.37',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Imposto de Renda', description: 'Otimização da Transmissão de IRPF: Agora o modal de Transmissão permite inserir opcionalmente o valor de restituição (que só aparece se o usuário anexar um arquivo contendo a palavra "imagem-recibo" no nome). A mensagem oficial enviada para os contribuintes também foi polida para um tom mais profissional ("Mensagem automática"), exibindo condicionalmente o valor da restituição preenchido.' }
+    ]
+  },
+  {
     version: '1.3.36',
     date: '2026-04-09',
     notes: [

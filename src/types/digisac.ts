@@ -14,7 +14,7 @@ export const digisacMessageSchema = z.object({
   contactId: z.string().optional().describe('ID do contato no Digisac (preferencial)'),
   number: z.string().optional().describe('Número do telefone (se contactId não for fornecido)'),
   serviceId: z.string().optional().describe('ID do serviço/conexão (obrigatório se usar number)'),
-  body: z.string().min(1, 'Conteúdo da mensagem é obrigatório'),
+  body: z.string().nullable().optional().describe('Conteúdo da mensagem é obrigatório'),
   fileUrl: z.string().url().optional().describe('URL do arquivo para envio de mídia'),
   base64File: z.string().optional().describe('Arquivo em formato base64 (data:application/pdf;base64,...)'),
   fileName: z.string().optional().describe('Nome do arquivo original'),

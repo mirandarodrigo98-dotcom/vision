@@ -93,7 +93,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     type: (message.fileUrl || message.base64File) ? 'file' : 'chat', 
   };
   
-  if (message.body) {
+  if (message.body !== null && message.body !== undefined) {
     payload.text = message.body;
   } else if (payload.type === 'chat') {
     payload.text = '';

@@ -427,7 +427,8 @@ export async function transmitIRDeclaration(
   declarationId: string,
   sendWhatsapp: boolean,
   sendEmail: boolean,
-  formData: FormData
+  formData: FormData,
+  restitutionValue?: string
 ) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
@@ -485,14 +486,22 @@ export async function transmitIRDeclaration(
   // Send messages if requested
   const contactName = declaration.name;
   const year = declaration.year;
-  const textMessage = `Prezado *${contactName}*
-Estamos te enviando a sua declaração de Imposto de Renda Exercício *${year}* que foi transmitida com sucesso.
-A partir de agora passamos a monitorar o processamento junto à Receita Federal.
-Faremos contato caso seja necessário.
-Atenciosamente
+  
+  const textMessage = `_*Essa é uma mensagem automática. Não é necessário responder*_
 
+Olá *${contactName}*
+Estamos enviando a sua declaração de Imposto de Renda Exercício *${year}* que foi transmitida com sucesso.${
+    restitutionValue && restitutionValue.trim() !== '' 
+      ? `\nO valor da sua restituição foi de *R$ ${restitutionValue.trim()}*`
+      : ''
+  }
+A partir de agora passamos a monitorar o processamento junto à Receita Federal.
+Caso seja necessário faremos contato.
+Em caso de dúvidas entre em contato com a nossa Central de Atendimento através do número (24) 3026-5648 ou 3337-4865.
+
+Atenciosamente
 *NZD Contabilidade*
-Departamento Tributário`;
+_Departamento Tributário_`;
 
   if (sendWhatsapp && declaration.phone) {
     try {
@@ -518,7 +527,7 @@ Departamento Tributário`;
           await sendDigisacMessage({
             number: declaration.phone,
             serviceId: config.connection_phone,
-            body: '',
+            body: null,
             base64File: `data:${file.mimeType};base64,${file.base64}`,
             fileName: file.fileName
           });
