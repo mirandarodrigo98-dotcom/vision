@@ -402,7 +402,7 @@ export async function getIRFiles(declarationId: string): Promise<IRFile[]> {
       WHERE f.declaration_id = $1
       ORDER BY f.created_at DESC
     `).all(declarationId);
-    return res.rows as IRFile[];
+    return res as IRFile[];
   } catch (error) {
     console.error('Error fetching IR files:', error);
     return [];
