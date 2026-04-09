@@ -17,6 +17,7 @@ export const digisacMessageSchema = z.object({
   body: z.string().min(1, 'Conteúdo da mensagem é obrigatório'),
   fileUrl: z.string().url().optional().describe('URL do arquivo para envio de mídia'),
   base64File: z.string().optional().describe('Arquivo em formato base64 (data:application/pdf;base64,...)'),
+  fileName: z.string().optional().describe('Nome do arquivo original'),
   isWhisper: z.boolean().optional().default(false).describe('Se true, envia como nota interna (whisper)'),
   origin: z.string().optional().describe('Origem da mensagem (ex: bot)'),
   dontOpenTicket: z.boolean().optional().describe('Se true, não abre chamado'),

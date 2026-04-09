@@ -326,6 +326,20 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     }
     const base64File = `data:application/pdf;base64,${pdfData.base64}`;
 
+    let fileName = 'boleto.pdf';
+    try {
+      const urlObj = new URL(pdfUrl);
+      const pathParts = urlObj.pathname.split('/');
+      const extracted = pathParts[pathParts.length - 1];
+      if (extracted && extracted.endsWith('.pdf')) {
+        fileName = extracted;
+      } else {
+        fileName = `boleto_${conta.codigo_lancamento_omie}.pdf`;
+      }
+    } catch (e) {
+      fileName = `boleto_${conta.codigo_lancamento_omie}.pdf`;
+    }
+
     // 4. Montar a mensagem
     const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
     const vencimento = conta.data_vencimento || '';
@@ -342,7 +356,8 @@ export async function enviarBoletoDigisacOmie(conta: any) {
       number: phone.number,
       serviceId: configDigisac.connection_phone,
       body: messageBody,
-      base64File: base64File
+      base64File: base64File,
+      fileName: fileName
     });
 
     if (!result.success) {

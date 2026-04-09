@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.32',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Financeiro', description: 'Correção de Nomenclatura e Integridade de PDF no Digisac: O nome do arquivo enviado pelo WhatsApp agora respeita a nomenclatura original do Omie, em vez do genérico "boleto.pdf", e foram corrigidos os parâmetros de mimetype e extensão para garantir que o PDF possa ser aberto corretamente pelo destinatário.' }
+    ]
+  },
+  {
     version: '1.3.31',
     date: '2026-04-09',
     notes: [

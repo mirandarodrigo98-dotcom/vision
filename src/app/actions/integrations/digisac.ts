@@ -202,11 +202,14 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
             ? message.base64File.split('base64,')[1] 
             : message.base64File;
 
+        const nameToUse = message.fileName || "boleto.pdf";
+        const extension = nameToUse.split('.').pop() || "pdf";
+
         const uploadPayload = {
             base64: base64Data,
-            name: "boleto.pdf",
+            name: nameToUse,
             mimetype: "application/pdf",
-            extension: "pdf"
+            extension: extension
         };
 
         const uploadResponse = await fetch(`${config.base_url}/api/v1/files`, {
@@ -226,7 +229,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
             console.error('Erro no upload do arquivo para o Digisac:', await uploadResponse.text());
             // Fallback para tentar enviar como base64 direto caso o upload falhe (pouco provável)
             payload.base64 = base64Data;
-            payload.name = 'boleto.pdf'; 
+            payload.name = nameToUse; 
         }
     } catch (err) {
         console.error('Erro na requisição de upload do arquivo:', err);
