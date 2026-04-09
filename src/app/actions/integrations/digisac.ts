@@ -196,8 +196,41 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   }
 
   if (message.base64File) {
-    payload.file = message.base64File;
-    payload.base64 = true;
+    // 1. Fazer o upload do arquivo para o Digisac primeiro
+    try {
+        const base64Data = message.base64File.includes('base64,') 
+            ? message.base64File.split('base64,')[1] 
+            : message.base64File;
+
+        const uploadPayload = {
+            base64: base64Data,
+            name: "boleto.pdf",
+            mimetype: "application/pdf",
+            extension: "pdf"
+        };
+
+        const uploadResponse = await fetch(`${config.base_url}/api/v1/files`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${config.api_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(uploadPayload)
+        });
+
+        if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            payload.fileId = uploadData.id;
+            payload.type = 'file'; // Forçar tipo file
+        } else {
+            console.error('Erro no upload do arquivo para o Digisac:', await uploadResponse.text());
+            // Fallback para tentar enviar como base64 direto caso o upload falhe (pouco provável)
+            payload.base64 = base64Data;
+            payload.name = 'boleto.pdf'; 
+        }
+    } catch (err) {
+        console.error('Erro na requisição de upload do arquivo:', err);
+    }
   } else if (message.fileUrl) {
     payload.file = message.fileUrl;
   }
@@ -221,6 +254,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
 
+    console.log('Sending to Digisac payload:', JSON.stringify(payload).substring(0, 500));
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {

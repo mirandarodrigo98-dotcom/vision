@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.31',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Financeiro', description: 'Correção Crítica no Disparo Digisac: Ajuste na estrutura da integração com a API do WhatsApp. O sistema agora faz o upload antecipado do PDF do boleto para a nuvem do Digisac, obtém um ID válido, e envia na mesma mensagem junto ao texto, resolvendo o problema onde apenas o texto chegava ao destinatário.' }
+    ]
+  },
+  {
     version: '1.3.30',
     date: '2026-04-09',
     notes: [
