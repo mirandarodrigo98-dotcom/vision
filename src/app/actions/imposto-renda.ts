@@ -514,27 +514,30 @@ _Departamento Tributário_`;
         // Enviar os arquivos primeiro sem texto (para evitar erro 500 no digisac)
         for (let i = 0; i < uploadedFiles.length; i++) {
           const file = uploadedFiles[i];
-          await sendDigisacMessage({
+          const res = await sendDigisacMessage({
             number: declaration.phone,
             serviceId: config.connection_phone,
             body: null,
             base64File: `data:${file.mimeType};base64,${file.base64}`,
             fileName: file.fileName
           });
+          if (!res.success) throw new Error(res.error || 'Erro ao enviar arquivo via Digisac');
         }
         
         // Depois enviar o texto principal
-        await sendDigisacMessage({
+        const resText = await sendDigisacMessage({
           number: declaration.phone,
           serviceId: config.connection_phone,
           body: textMessage
         });
+        if (!resText.success) throw new Error(resText.error || 'Erro ao enviar mensagem de texto via Digisac');
       } else {
-        await sendDigisacMessage({
+        const resText = await sendDigisacMessage({
           number: declaration.phone,
           serviceId: config.connection_phone,
           body: textMessage
         });
+        if (!resText.success) throw new Error(resText.error || 'Erro ao enviar mensagem de texto via Digisac');
       }
     } catch (e: any) {
       console.error("Erro ao enviar WhatsApp:", e);
