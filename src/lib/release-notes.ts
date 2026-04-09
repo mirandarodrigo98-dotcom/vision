@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.27',
+    date: '2026-04-06',
+    notes: [
+      { module: 'Empresas', description: 'Otimização de Navegação e Layout na Edição de Empresa: O cabeçalho foi ajustado para manter a Razão Social da empresa sempre visível independente da aba navegada, um botão de "Voltar" foi adicionado ao topo e o botão "Cancelar" redundante da parte inferior foi removido.' },
+      { module: 'Empresas', description: 'Visibilidade da Importação do Questor SYN: O botão de importação agora é restrito estritamente ao modo de "Nova Empresa", sendo ocultado das telas de edição.' }
+    ]
+  },
+  {
     version: '1.3.26',
     date: '2026-04-06',
     notes: [

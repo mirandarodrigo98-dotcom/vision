@@ -1,4 +1,7 @@
 import db from '@/lib/db';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { CompanyForm } from '@/components/admin/companies/company-form';
 import { notFound, redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
@@ -63,7 +66,13 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center space-x-2">
-        <h1 className="text-3xl font-bold tracking-tight">Editar Empresa</h1>
+        <Link href="/admin/clients">
+          <Button variant="outline" size="sm" className="mr-2">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+        </Link>
+        <h1 className="text-3xl font-bold tracking-tight">Editar Empresa: {company.razao_social || company.nome}</h1>
       </div>
       <CompanyForm company={company} hasLinkedRecords={!!hasLinkedRecords} initialSocios={initialSocios} />
     </div>

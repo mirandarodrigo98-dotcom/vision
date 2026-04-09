@@ -356,10 +356,12 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
                 <TabsTrigger value="contatos">Contatos</TabsTrigger>
               </TabsList>
               
-              <QuestorImportDialog 
-                mode="company" 
-                onImport={onImport} 
-              />
+              {!company && (
+                <QuestorImportDialog 
+                  mode="company" 
+                  onImport={onImport} 
+                />
+              )}
             </div>
             
             <TabsContent value="dados" key={formKey}>
@@ -400,9 +402,6 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
             </TabsContent>
 
             <div className="flex justify-end gap-4 mt-6">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
-                    Cancelar
-                </Button>
                 <Button type="submit" disabled={loading}>
                     {loading && <span className="animate-spin mr-2">⏳</span>}
                     Salvar
