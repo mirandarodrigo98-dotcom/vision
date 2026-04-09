@@ -3,7 +3,7 @@
 import axios from 'axios';
 import db from '@/lib/db';
 import { getOmieConfig } from './omie-config';
-import { sendDigisacMessage } from '@/app/actions/integrations/digisac';
+import { sendDigisacMessage, getDigisacConfig } from '@/app/actions/integrations/digisac';
 
 // Retorna as contas a receber do Omie
 export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string) {
@@ -290,7 +290,7 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     }
 
     // 1. Encontrar o cliente localmente
-    const company = await db.prepare('SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, ".", ""), "/", ""), "-", "") = ?').get(cleanCnpj) as any;
+    const company = await db.prepare("SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = ?").get(cleanCnpj) as any;
 
     if (!company) {
       return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
@@ -301,7 +301,7 @@ export async function enviarBoletoDigisacOmie(conta: any) {
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = ? AND c.name LIKE '%Financeiro%'
+      WHERE p.company_id = ? AND c.name ILIKE '%Financeiro%'
       LIMIT 1
     `).get(company.id) as any;
 
@@ -325,9 +325,15 @@ export async function enviarBoletoDigisacOmie(conta: any) {
 
     const messageBody = `_Essa é uma mensagem automática_\n\nPrezado(a) *${phone.name}*.\nVocê está recebendo o boleto de Honorários Contábeis da empresa *${company.razao_social}* *${cnpjRaw}* no valor de *${valor}* com vencimento em *${vencimento}*.\nQualquer dúvida estamos à disposição através da Central de Atendimento (24) 3026-5648.\n\nDepartamento Financeiro`;
 
+    const configDigisac = await getDigisacConfig();
+    if (!configDigisac || !configDigisac.is_active || !configDigisac.connection_phone) {
+      return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
+    }
+
     // 5. Enviar via Digisac
     const result = await sendDigisacMessage({
       number: phone.number,
+      serviceId: configDigisac.connection_phone,
       body: messageBody,
       fileUrl: pdfUrl
     });
@@ -339,6 +345,6 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     return { success: true };
   } catch (error: any) {
     console.error('Erro ao enviar boleto via Digisac:', error);
-    return { error: 'Falha interna ao tentar enviar o boleto.' };
+    return { error: `Falha interna: ${error.message || String(error)}` };
   }
 }

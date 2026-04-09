@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.29',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Financeiro', description: 'Correção de Falha Interna no Disparo Digisac: Ajuste na sintaxe da consulta ao banco de dados (correção de aspas duplas para simples no comando REPLACE) e inclusão da importação correta das configurações do Digisac, garantindo que o boleto seja enviado com sucesso via WhatsApp.' }
+    ]
+  },
+  {
     version: '1.3.28',
     date: '2026-04-06',
     notes: [
