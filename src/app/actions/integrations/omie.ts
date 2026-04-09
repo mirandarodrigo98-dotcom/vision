@@ -398,6 +398,37 @@ export async function enviarCobrancaDigisacOmie(conta: any) {
       return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };
     }
 
+    // 3. Pegar URL do PDF do Boleto
+    let pdfUrl = conta.cLinkBoleto;
+    if (!pdfUrl) {
+      const resBoleto = await obterBoletoOmie(conta.codigo_lancamento_omie);
+      if (resBoleto.error || !resBoleto.data?.cLinkBoleto) {
+        return { error: 'Não foi possível obter o PDF do boleto no Omie.' };
+      }
+      pdfUrl = resBoleto.data.cLinkBoleto;
+    }
+
+    // Fazer o download do PDF em Base64 para garantir envio no Digisac
+    const pdfData = await downloadBoletoPdfServer(pdfUrl);
+    if (pdfData.error || !pdfData.base64) {
+      return { error: 'Não foi possível fazer o download do boleto para envio.' };
+    }
+    const base64File = `data:application/pdf;base64,${pdfData.base64}`;
+
+    let fileName = 'boleto.pdf';
+    try {
+      const urlObj = new URL(pdfUrl);
+      const pathParts = urlObj.pathname.split('/');
+      const extracted = pathParts[pathParts.length - 1];
+      if (extracted && extracted.endsWith('.pdf')) {
+        fileName = extracted;
+      } else {
+        fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+      }
+    } catch (e) {
+      fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+    }
+
     const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
     
     // Converter data de vencimento (geralmente YYYY-MM-DD ou DD/MM/YYYY) para DD/MM/YYYY
@@ -426,11 +457,13 @@ Departamento Financeiro`;
       return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
     }
 
-    // Enviar via Digisac (apenas texto)
+    // Enviar via Digisac
     const result = await sendDigisacMessage({
       number: phone.number,
       serviceId: configDigisac.connection_phone,
-      body: messageBody
+      body: messageBody,
+      base64File: base64File,
+      fileName: fileName
     });
 
     if (!result.success) {
