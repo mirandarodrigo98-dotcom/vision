@@ -91,13 +91,13 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   // Montar payload
   const payload: any = {
     text: message.body || '', // Garantir que não seja undefined
-    type: message.fileUrl ? 'image' : 'chat', 
+    type: (message.fileUrl || message.base64File) ? 'file' : 'chat', 
   };
 
   // Debug direto no console para verificação na Vercel
   console.log(' Preparing Digisac Payload:', { 
     bodyLength: message.body?.length, 
-    hasFile: !!message.fileUrl,
+    hasFile: !!message.fileUrl || !!message.base64File,
     number: message.number,
     serviceId: message.serviceId
   });
@@ -195,11 +195,11 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     payload.serviceId = finalServiceId;
   }
 
-  if (message.fileUrl) {
-    payload.url = message.fileUrl;
-    payload.caption = message.body; // Se tiver arquivo, o texto vira legenda
-    // Se for arquivo genérico, type pode ser 'document' ou 'file'
-    // Aqui assumindo imagem ou deixando a API inferir se não mandar type explícito
+  if (message.base64File) {
+    payload.file = message.base64File;
+    payload.base64 = true;
+  } else if (message.fileUrl) {
+    payload.file = message.fileUrl;
   }
 
   if (message.isWhisper) {

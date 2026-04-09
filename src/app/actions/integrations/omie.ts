@@ -319,6 +319,13 @@ export async function enviarBoletoDigisacOmie(conta: any) {
       pdfUrl = resBoleto.data.cLinkBoleto;
     }
 
+    // Fazer o download do PDF em Base64 para garantir envio no Digisac
+    const pdfData = await downloadBoletoPdfServer(pdfUrl);
+    if (pdfData.error || !pdfData.base64) {
+      return { error: 'Não foi possível fazer o download do boleto para envio.' };
+    }
+    const base64File = `data:application/pdf;base64,${pdfData.base64}`;
+
     // 4. Montar a mensagem
     const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
     const vencimento = conta.data_vencimento || '';
@@ -335,7 +342,7 @@ export async function enviarBoletoDigisacOmie(conta: any) {
       number: phone.number,
       serviceId: configDigisac.connection_phone,
       body: messageBody,
-      fileUrl: pdfUrl
+      base64File: base64File
     });
 
     if (!result.success) {

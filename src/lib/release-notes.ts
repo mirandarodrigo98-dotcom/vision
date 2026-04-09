@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.30',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Financeiro', description: 'Correção de Envio de Arquivo Digisac: O boleto não estava sendo anexado à mensagem no WhatsApp pois a API do Digisac esperava o arquivo em formato Base64 ou URL com metadados específicos. A rotina foi reescrita para realizar o download em memória do PDF no Omie, converter para Base64 e enviar embutido com a legenda, garantindo a entrega do documento físico.' }
+    ]
+  },
+  {
     version: '1.3.29',
     date: '2026-04-09',
     notes: [
