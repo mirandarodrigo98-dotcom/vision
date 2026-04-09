@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.33',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Financeiro', description: 'Correção Definitiva de Arquivo Corrompido no Digisac: O PDF do boleto que chegava ao cliente estava vindo corrompido porque a API do Digisac exigia secretamente a declaração explícita "data:application/pdf;base64," junto ao código do arquivo. Isso foi corrigido no payload de upload.' }
+    ]
+  },
+  {
     version: '1.3.32',
     date: '2026-04-09',
     notes: [

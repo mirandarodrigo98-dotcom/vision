@@ -206,11 +206,11 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
         const extension = nameToUse.split('.').pop() || "pdf";
 
         const uploadPayload = {
-            base64: base64Data,
-            name: nameToUse,
-            mimetype: "application/pdf",
-            extension: extension
-        };
+             base64: "data:application/pdf;base64," + base64Data,
+             name: nameToUse,
+             mimetype: "application/pdf",
+             extension: extension
+         };
 
         const uploadResponse = await fetch(`${config.base_url}/api/v1/files`, {
             method: 'POST',
