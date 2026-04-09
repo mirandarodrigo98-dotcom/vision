@@ -11,6 +11,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.38',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Imposto de Renda', description: 'Correção do Histórico: Resolvido o bug em que o status ficava como "null" no histórico da declaração quando alterado para Transmitida.' },
+      { module: 'Financeiro', description: 'Novidades em Cobrança: O envio do boleto via Digisac agora varre a categoria de contato "Todas" além da "Financeiro". Adicionado também o novo botão "Enviar Cobrança", exclusivo para títulos com status ATRASADO, enviando uma mensagem formal de alerta de débito via WhatsApp.' }
+    ]
+  },
+  {
     version: '1.3.37',
     date: '2026-04-09',
     notes: [

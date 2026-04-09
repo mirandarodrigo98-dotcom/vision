@@ -301,12 +301,12 @@ export async function enviarBoletoDigisacOmie(conta: any) {
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = ? AND c.name ILIKE '%Financeiro%'
+      WHERE p.company_id = ? AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
       LIMIT 1
     `).get(company.id) as any;
 
     if (!phone || !phone.number) {
-      return { error: `Nenhum telefone com a categoria "Financeiro" cadastrado para a empresa ${company.razao_social}.` };
+      return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };
     }
 
     // 3. Pegar URL do PDF do Boleto
@@ -367,6 +367,79 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     return { success: true };
   } catch (error: any) {
     console.error('Erro ao enviar boleto via Digisac:', error);
+    return { error: `Falha interna: ${error.message || String(error)}` };
+  }
+}
+
+export async function enviarCobrancaDigisacOmie(conta: any) {
+  try {
+    const cnpjRaw = conta.cnpj_cliente || '';
+    const cleanCnpj = cnpjRaw.replace(/[^0-9]/g, '');
+
+    if (!cleanCnpj) {
+      return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
+    }
+
+    const company = await db.prepare("SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = ?").get(cleanCnpj) as any;
+
+    if (!company) {
+      return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
+    }
+
+    const phone = await db.prepare(`
+      SELECT p.number, p.name
+      FROM company_phones p
+      JOIN contact_categories c ON p.category_id = c.id
+      WHERE p.company_id = ? AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
+      LIMIT 1
+    `).get(company.id) as any;
+
+    if (!phone || !phone.number) {
+      return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };
+    }
+
+    const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
+    
+    // Converter data de vencimento (geralmente YYYY-MM-DD ou DD/MM/YYYY) para DD/MM/YYYY
+    let vencimento = conta.data_vencimento || '';
+    if (vencimento.includes('-')) {
+      const parts = vencimento.split('-');
+      if (parts[0].length === 4) {
+        vencimento = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+
+    const messageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
+
+Olá *${phone.name}*.
+Como vai? Esperamos que esteja bem!
+Nosso sistema identificou que consta em aberto o boleto da empresa *${company.razao_social} - ${cnpjRaw}* no valor de *${valor}* vencido em *${vencimento}*.
+Sabemos que imprevistos acontecem mas se o valor já tiver sido pago desconsidere essa mensagem.
+Se precisar de nossa ajuda não hesite em nos contatar através da nossa Central de Atendimento (24) 3026-5648.
+
+Atenciosamente
+*NZD Contabilidade*
+Departamento Financeiro`;
+
+    const configDigisac = await getDigisacConfig();
+    if (!configDigisac || !configDigisac.is_active || !configDigisac.connection_phone) {
+      return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
+    }
+
+    // Enviar via Digisac (apenas texto)
+    const result = await sendDigisacMessage({
+      number: phone.number,
+      serviceId: configDigisac.connection_phone,
+      body: messageBody
+    });
+
+    if (!result.success) {
+      return { error: result.error || 'Erro ao enviar cobrança via Digisac.' };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Erro ao enviar cobrança via Digisac:', error);
     return { error: `Falha interna: ${error.message || String(error)}` };
   }
 }

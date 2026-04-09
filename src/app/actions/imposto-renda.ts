@@ -478,9 +478,9 @@ export async function transmitIRDeclaration(
     `).run(declarationId);
 
     await db.prepare(`
-      INSERT INTO ir_interactions (declaration_id, user_id, type, content)
-      VALUES ($1, $2, 'status_change', 'Status alterado para Transmitida')
-    `).run(declarationId, session.user_id);
+      INSERT INTO ir_interactions (declaration_id, user_id, type, old_status, new_status, content)
+      VALUES ($1, $2, 'status_change', $3, 'Transmitida', 'Motivo: Status alterado para Transmitida')
+    `).run(declarationId, session.user_id, declaration.status);
   })();
 
   // Send messages if requested

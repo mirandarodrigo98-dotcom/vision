@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie } from '@/app/actions/integrations/omie';
+import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 
 import { AgGridReact } from 'ag-grid-react';
@@ -158,6 +158,7 @@ export default function CobrancaPage() {
   const [isCarregandoDetalhes, setIsCarregandoDetalhes] = useState(false);
 
   const [isSendingDigisac, setIsSendingDigisac] = useState(false);
+  const [isSendingCobranca, setIsSendingCobranca] = useState(false);
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
@@ -403,7 +404,7 @@ export default function CobrancaPage() {
     const conta = selectedRows[0];
     
     setIsSendingDigisac(true);
-    toast.info('Buscando informações e enviando via Digisac...');
+    toast.info('Buscando informações e enviando boleto via Digisac...');
     
     try {
       const res = await enviarBoletoDigisacOmie(conta);
@@ -416,6 +417,32 @@ export default function CobrancaPage() {
       toast.error('Erro ao processar envio do boleto.');
     } finally {
       setIsSendingDigisac(false);
+    }
+  };
+
+  const handleEnviarCobranca = async () => {
+    if (selectedRows.length !== 1) return;
+    const conta = selectedRows[0];
+    
+    if (conta.status_titulo !== 'ATRASADO') {
+      toast.error('A cobrança só pode ser enviada para títulos com status ATRASADO.');
+      return;
+    }
+    
+    setIsSendingCobranca(true);
+    toast.info('Enviando mensagem de cobrança via Digisac...');
+    
+    try {
+      const res = await enviarCobrancaDigisacOmie(conta);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success('Mensagem de cobrança enviada com sucesso!');
+      }
+    } catch (error) {
+      toast.error('Erro ao enviar mensagem de cobrança.');
+    } finally {
+      setIsSendingCobranca(false);
     }
   };
 
@@ -661,6 +688,14 @@ export default function CobrancaPage() {
             >
               <PaperAirplaneIcon className="h-4 w-4" />
               {isSendingDigisac ? 'Enviando...' : 'Boleto via Digisac'}
+            </Button>
+            <Button 
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+              disabled={selectedRows.length !== 1 || isSendingCobranca || selectedRows[0]?.status_titulo !== 'ATRASADO'} 
+              onClick={handleEnviarCobranca}
+            >
+              <PaperAirplaneIcon className="h-4 w-4" />
+              {isSendingCobranca ? 'Enviando...' : 'Enviar Cobrança'}
             </Button>
             <Button 
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
