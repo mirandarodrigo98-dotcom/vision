@@ -719,6 +719,9 @@ export default function CobrancaPage() {
               onDisplayedColumnsChanged={onDisplayedColumnsChanged}
               onSelectionChanged={onSelectionChanged}
               localeText={AG_GRID_LOCALE_PT_BR}
+              rowClassRules={{
+                'bg-orange-100': (params) => params.node.isSelected()
+              }}
               overlayNoRowsTemplate={
                 loading ? 'Buscando registros...' : 'Nenhum registro encontrado. Realize uma busca.'
               }

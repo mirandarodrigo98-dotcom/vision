@@ -93,10 +93,12 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     type: (message.fileUrl || message.base64File) ? 'file' : 'chat', 
   };
   
-  if (message.body !== null && message.body !== undefined) {
+  if (message.body !== null && message.body !== undefined && message.body !== '') {
     payload.text = message.body;
   } else if (payload.type === 'chat') {
-    payload.text = '';
+    // Para tipo chat o texto é obrigatório, se não tem manda um espaço ou cancela.
+    // Mas para evitar erro 500 de validação, não podemos mandar type chat sem text válido.
+    payload.text = ' '; 
   }
 
   // Debug direto no console para verificação na Vercel
@@ -107,20 +109,20 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     serviceId: message.serviceId
   });
 
-  if (message.contactId) {
-    payload.contactId = message.contactId;
-  } else {
+  let finalServiceId = message.serviceId;
+  
+  if (!message.contactId) {
     if (!message.serviceId) {
         await logSystemError('Digisac API - Erro de Validação', { error: 'serviceId (connection_phone) é obrigatório', payload });
         return { success: false, error: 'Erro de configuração: connection_phone não definido.' };
     }
     
     // Tentar resolver serviceId se não for um UUID (assumindo que seja um número de telefone)
-    let finalServiceId = message.serviceId;
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     
     if (!UUID_REGEX.test(finalServiceId)) {
          try {
+             console.log(`Tentando resolver Service ID para o telefone: ${finalServiceId}`);
              console.log(`Tentando resolver Service ID para o telefone: ${finalServiceId}`);
              await logSystemError('Digisac API - Resolução de Service ID', { message: `Iniciando busca de ID para o telefone: ${finalServiceId}`, url: `${config.base_url}/api/v1/services` });
 
@@ -182,20 +184,25 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
                  return { success: false, error: `Falha ao validar conexão com Digisac (Status ${servicesResponse.status}).` };
              }
          } catch (e: any) {
-             console.error('Erro ao resolver service ID:', e);
-             await logSystemError('Digisac API - Erro na Resolução de ID', e);
-             return { success: false, error: `Erro ao tentar resolver o ID do serviço Digisac: ${e.message}` };
-         }
-     }
+               console.error('Erro ao resolver service ID:', e);
+               await logSystemError('Digisac API - Erro na Resolução de ID', e);
+               return { success: false, error: `Erro ao tentar resolver o ID do serviço Digisac: ${e.message}` };
+           }
+       }
+  }
 
-    // Garantir que number é string e remover não-números
-    let cleanNumber = String(message.number || '').replace(/\D/g, '');
-    
-    // Adicionar DDI do Brasil (55) se o número tiver 10 ou 11 dígitos
-    if (cleanNumber.length === 10 || cleanNumber.length === 11) {
-        cleanNumber = `55${cleanNumber}`;
-    }
+  // Garantir que number é string e remover não-números
+  let cleanNumber = String(message.number || '').replace(/\D/g, '');
+  
+  // Adicionar DDI do Brasil (55) se o número tiver 10 ou 11 dígitos
+  if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+      cleanNumber = `55${cleanNumber}`;
+  }
 
+  if (message.contactId) {
+    payload.contactId = message.contactId;
+    if (finalServiceId) payload.serviceId = finalServiceId;
+  } else {
     payload.number = cleanNumber;
     payload.serviceId = finalServiceId;
   }
