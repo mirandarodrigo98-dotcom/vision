@@ -111,8 +111,14 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
       const formData = new FormData();
       files.forEach(f => formData.append('files', f));
 
-      await transmitIRDeclaration(declaration.id, sendWhatsapp, sendEmail, formData, restitutionValue);
-      toast.success('Declaração transmitida com sucesso!');
+      const response = await transmitIRDeclaration(declaration.id, sendWhatsapp, sendEmail, formData, restitutionValue);
+      
+      if (response && response.warning) {
+        toast.warning(response.warning, { duration: 10000 });
+      } else {
+        toast.success('Declaração transmitida com sucesso!');
+      }
+      
       onSuccess();
       onOpenChange(false);
       

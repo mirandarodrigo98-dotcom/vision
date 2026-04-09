@@ -503,26 +503,16 @@ Atenciosamente
 *NZD Contabilidade*
 _Departamento Tributário_`;
 
+  let messagesErrors = [];
+
   if (sendWhatsapp && declaration.phone) {
     try {
       const { getDigisacConfig, sendDigisacMessage } = await import('./integrations/digisac');
       const config = await getDigisacConfig();
 
-      // For multiple files, we send the text first, then each file
-      // Wait, the digisac API allows one file per message.
       if (uploadedFiles.length > 0) {
-        // First file goes with the text
-        const firstFile = uploadedFiles[0];
-        await sendDigisacMessage({
-          number: declaration.phone,
-          serviceId: config.connection_phone,
-          body: textMessage,
-          base64File: `data:${firstFile.mimeType};base64,${firstFile.base64}`,
-          fileName: firstFile.fileName
-        });
-
-        // Remaining files without text
-        for (let i = 1; i < uploadedFiles.length; i++) {
+        // Enviar os arquivos primeiro sem texto (para evitar erro 500 no digisac)
+        for (let i = 0; i < uploadedFiles.length; i++) {
           const file = uploadedFiles[i];
           await sendDigisacMessage({
             number: declaration.phone,
@@ -532,6 +522,13 @@ _Departamento Tributário_`;
             fileName: file.fileName
           });
         }
+        
+        // Depois enviar o texto principal
+        await sendDigisacMessage({
+          number: declaration.phone,
+          serviceId: config.connection_phone,
+          body: textMessage
+        });
       } else {
         await sendDigisacMessage({
           number: declaration.phone,
@@ -541,7 +538,7 @@ _Departamento Tributário_`;
       }
     } catch (e: any) {
       console.error("Erro ao enviar WhatsApp:", e);
-      throw new Error(`Erro ao enviar WhatsApp: ${e.message}`);
+      messagesErrors.push(`WhatsApp: ${e.message}`);
     }
   }
 
@@ -566,12 +563,17 @@ _Departamento Tributário_`;
       });
     } catch (e: any) {
       console.error("Erro ao enviar Email:", e);
-      throw new Error(`Erro ao enviar Email: ${e.message}`);
+      messagesErrors.push(`E-mail: ${e.message}`);
     }
   }
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
+  
+  if (messagesErrors.length > 0) {
+      return { success: true, warning: `Declaração transmitida e salva, mas houve falha no envio: ${messagesErrors.join(', ')}` };
+  }
+  
   return { success: true };
 }
 
