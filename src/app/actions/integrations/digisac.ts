@@ -196,44 +196,24 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   }
 
   if (message.base64File) {
-    // 1. Fazer o upload do arquivo para o Digisac primeiro
-    try {
-        const base64Data = message.base64File.includes('base64,') 
-            ? message.base64File.split('base64,')[1] 
-            : message.base64File;
+    const base64Data = message.base64File.includes('base64,') 
+        ? message.base64File.split('base64,')[1] 
+        : message.base64File;
 
-        const nameToUse = message.fileName || "boleto.pdf";
-        const extension = nameToUse.split('.').pop() || "pdf";
+    const nameToUse = message.fileName || "boleto.pdf";
+    const extension = nameToUse.split('.').pop() || "pdf";
+    let mime = "application/pdf";
+    if (extension === "png") mime = "image/png";
+    else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
 
-        const uploadPayload = {
-             base64: "data:application/pdf;base64," + base64Data,
-             name: nameToUse,
-             mimetype: "application/pdf",
-             extension: extension
-         };
-
-        const uploadResponse = await fetch(`${config.base_url}/api/v1/files`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${config.api_token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(uploadPayload)
-        });
-
-        if (uploadResponse.ok) {
-            const uploadData = await uploadResponse.json();
-            payload.fileId = uploadData.id;
-            payload.type = 'file'; // Forçar tipo file
-        } else {
-            console.error('Erro no upload do arquivo para o Digisac:', await uploadResponse.text());
-            // Fallback para tentar enviar como base64 direto caso o upload falhe (pouco provável)
-            payload.base64 = base64Data;
-            payload.name = nameToUse; 
-        }
-    } catch (err) {
-        console.error('Erro na requisição de upload do arquivo:', err);
-    }
+    // A documentação oculta do Digisac exige que o arquivo seja passado como um objeto embutido 
+    // direto no payload da mensagem, ao invés de usar a rota /api/v1/files para base64.
+    payload.file = {
+        base64: base64Data,
+        mimetype: mime,
+        name: nameToUse
+    };
+    payload.type = 'file'; // O Digisac converte internamente para 'document'
   } else if (message.fileUrl) {
     payload.file = message.fileUrl;
   }
