@@ -305,15 +305,56 @@ export default function CobrancaPage() {
       return;
     }
     
-    setRecValor(saldo.toFixed(2));
     setRecDesconto('0.00');
     setRecJuros('0.00');
     setRecMulta('0.00');
+    setRecValor(saldo.toFixed(2));
     setRecContaCorrente(conta.id_conta_corrente?.toString() || '');
     setRecData(new Date().toISOString().split('T')[0]);
     setRecObs(`Recebimento realizado por Usuário em ${new Date().toLocaleString('pt-BR')} através da integração com o Vision ERP`);
     
     setIsReceberOpen(true);
+  };
+
+  const handleDescJurosMultaChange = (type: 'desconto' | 'juros' | 'multa', value: string) => {
+    if (selectedRows.length !== 1) return;
+    
+    const conta = selectedRows[0];
+    const saldo = (conta.valor_documento || 0) - (conta.valor_pago_calculado || 0);
+    
+    let desc = Number(type === 'desconto' ? value : recDesconto) || 0;
+    let jur = Number(type === 'juros' ? value : recJuros) || 0;
+    let mul = Number(type === 'multa' ? value : recMulta) || 0;
+    
+    const novoValor = saldo - desc + jur + mul;
+    
+    if (type === 'desconto') setRecDesconto(value);
+    if (type === 'juros') setRecJuros(value);
+    if (type === 'multa') setRecMulta(value);
+    
+    setRecValor(novoValor > 0 ? novoValor.toFixed(2) : '0.00');
+  };
+
+  const getStatusRecebimento = () => {
+    if (selectedRows.length !== 1) return null;
+    const conta = selectedRows[0];
+    const saldoOriginal = (conta.valor_documento || 0) - (conta.valor_pago_calculado || 0);
+    
+    const v = Number(recValor) || 0;
+    const d = Number(recDesconto) || 0;
+    const j = Number(recJuros) || 0;
+    const m = Number(recMulta) || 0;
+    
+    const valorEfetivoBaixa = v + d - j - m;
+    const restante = saldoOriginal - valorEfetivoBaixa;
+    
+    if (Math.abs(restante) < 0.01) {
+      return { quitada: true, text: 'Esta conta a receber será quitada' };
+    } else if (restante > 0) {
+      return { quitada: false, text: `Restará ${formatNumber(restante)} a receber da conta` };
+    } else {
+      return { quitada: true, text: `Esta conta a receber será quitada (Valor superior ao saldo)` };
+    }
   };
 
   const handleConfirmarRecebimento = async () => {
@@ -731,17 +772,17 @@ export default function CobrancaPage() {
       </Card>
 
       <Dialog open={isReceberOpen} onOpenChange={setIsReceberOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl text-green-700">Registrar Recebimento</DialogTitle>
+            <DialogTitle className="text-2xl text-[#53900f] font-semibold">Registrar Recebimento</DialogTitle>
           </DialogHeader>
           {selectedRows.length === 1 && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Conta Corrente</Label>
+            <div className="grid gap-4 py-2">
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-sm font-medium text-gray-700">Conta Corrente</Label>
                   <Select value={recContaCorrente} onValueChange={setRecContaCorrente}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue placeholder="Selecione a conta corrente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -751,59 +792,108 @@ export default function CobrancaPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Data do Recebimento</Label>
-                  <Input type="date" value={recData} onChange={e => setRecData(e.target.value)} />
+                <div className="w-48 space-y-1">
+                  <Label className="text-sm font-medium text-gray-700">Data do Recebimento</Label>
+                  <Input type="date" value={recData} onChange={e => setRecData(e.target.value)} className="h-9" />
                 </div>
               </div>
               
-              <div className="grid grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Valor do Recebimento</Label>
-                  <Input type="number" step="0.01" value={recValor} onChange={e => setRecValor(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Desconto</Label>
-                  <Input type="number" step="0.01" value={recDesconto} onChange={e => setRecDesconto(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Juros</Label>
-                  <Input type="number" step="0.01" value={recJuros} onChange={e => setRecJuros(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Multa</Label>
-                  <Input type="number" step="0.01" value={recMulta} onChange={e => setRecMulta(e.target.value)} />
+              <div className="space-y-1 mt-2">
+                <Label className="text-sm font-medium text-gray-700">Valor do Recebimento</Label>
+                <div className="flex items-center gap-3">
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={recValor} 
+                    onChange={e => setRecValor(e.target.value)} 
+                    className="w-40 text-right h-9" 
+                  />
+                  {getStatusRecebimento() && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="mr-1 text-[10px]">▶</span>
+                      {getStatusRecebimento()?.text}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-yellow-50 p-4 rounded-md flex justify-between text-sm mt-2 border border-yellow-100">
+              <div className="flex gap-4 mt-2">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-sm font-medium text-gray-700">Desconto</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={recDesconto} 
+                    onChange={e => handleDescJurosMultaChange('desconto', e.target.value)} 
+                    className="text-right h-9" 
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label className="text-sm font-medium text-gray-700">Juros</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={recJuros} 
+                    onChange={e => handleDescJurosMultaChange('juros', e.target.value)} 
+                    className="text-right h-9" 
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label className="text-sm font-medium text-gray-700">Multa</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={recMulta} 
+                    onChange={e => handleDescJurosMultaChange('multa', e.target.value)} 
+                    className="text-right h-9" 
+                  />
+                </div>
+              </div>
+
+              <div className="bg-[#fff9e6] p-4 rounded-md flex justify-between text-sm mt-4 border border-[#f3e5b3]">
                 <div className="text-center">
                   <p className="text-muted-foreground mb-1">Previsão de Recebimento</p>
-                  <p className="font-medium">{selectedRows[0].data_vencimento}</p>
+                  <p className="font-semibold text-gray-800">{selectedRows[0].data_vencimento}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-muted-foreground mb-1">Valor Original da Conta</p>
-                  <p className="font-medium">{formatNumber(selectedRows[0].valor_documento || 0)}</p>
+                  <p className="font-semibold text-gray-800">{formatNumber(selectedRows[0].valor_documento || 0)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-muted-foreground mb-1">Impostos Retidos</p>
-                  <p className="font-medium">0,00</p>
+                  <p className="font-semibold text-gray-800">0,00</p>
                 </div>
                 <div className="text-center">
                   <p className="text-muted-foreground mb-1">Total já Recebido da Conta</p>
-                  <p className="font-medium">{formatNumber(selectedRows[0].valor_pago_calculado || 0)}</p>
+                  <p className="font-semibold text-gray-800">{formatNumber(selectedRows[0].valor_pago_calculado || 0)}</p>
                 </div>
               </div>
 
-              <div className="space-y-2 mt-2">
-                <Label>Observação deste Recebimento</Label>
-                <Textarea rows={3} value={recObs} onChange={e => setRecObs(e.target.value)} />
+              <div className="mt-4">
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex space-x-8">
+                    <a className="border-[#8cc63f] text-gray-900 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium">
+                      Observação deste Recebimento
+                    </a>
+                    <a className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium cursor-not-allowed">
+                      Observação do Cliente
+                    </a>
+                    <a className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium cursor-not-allowed">
+                      Observação da Conta a Receber
+                    </a>
+                  </nav>
+                </div>
+                <div className="pt-4 space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Preencha aqui as observações deste recebimento</Label>
+                  <Textarea rows={3} value={recObs} onChange={e => setRecObs(e.target.value)} className="resize-none" />
+                </div>
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => setIsReceberOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#8cc63f] hover:bg-green-600 text-white" onClick={handleConfirmarRecebimento} disabled={isRecebendo}>
+            <Button className="bg-[#8cc63f] hover:bg-[#7ab033] text-white flex items-center gap-2" onClick={handleConfirmarRecebimento} disabled={isRecebendo}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               {isRecebendo ? 'Registrando...' : 'Confirmar Recebimento'}
             </Button>
           </DialogFooter>
