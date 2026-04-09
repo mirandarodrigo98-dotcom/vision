@@ -79,6 +79,43 @@ export async function saveDigisacConfig(data: DigisacConfig) {
 
 // --- Actions: API Methods ---
 
+export async function uploadFileDigisac(base64Data: string, name: string, mimetype: string, extension: string): Promise<{ success: boolean; id?: string; error?: string }> {
+  const config = await getDigisacConfig();
+  if (!config || !config.is_active || !config.api_token) {
+    return { success: false, error: 'Integração Digisac inativa ou configuração incompleta' };
+  }
+
+  const endpoint = `${config.base_url}/api/v1/files`;
+  
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        base64: base64Data,
+        mimetype,
+        name,
+        extension
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      await logSystemError('Digisac API Upload - Status Not OK', { status: response.status, responseText: errorText });
+      return { success: false, error: `Falha no upload do arquivo (${response.status}): ${errorText.slice(0, 100)}` };
+    }
+
+    const data = await response.json();
+    return { success: true, id: data.id };
+  } catch (error: any) {
+    await logSystemError('Digisac API Upload - Fetch Exception', error);
+    return { success: false, error: `Erro de conexão no upload: ${error.message}` };
+  }
+}
+
 export async function sendDigisacMessage(message: DigisacMessage): Promise<DigisacResponse> {
   const config = await getDigisacConfig();
   if (!config || !config.is_active || !config.api_token) {
@@ -218,13 +255,13 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     if (extension === "png") mime = "image/png";
     else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
 
-    // A documentação do Digisac exige que o arquivo seja passado como um objeto embutido 
-    // direto no payload da mensagem, ao invés de usar a rota /api/v1/files para base64.
-    payload.file = {
-        base64: base64Data,
-        mimetype: mime,
-        name: nameToUse
-    };
+    // Fazer upload do arquivo primeiro para evitar erro de limite de payload 500 no Digisac
+    const uploadRes = await uploadFileDigisac(base64Data, nameToUse, mime, extension);
+    if (!uploadRes.success || !uploadRes.id) {
+        return { success: false, error: uploadRes.error || 'Falha ao processar arquivo para envio' };
+    }
+
+    payload.fileId = uploadRes.id;
     payload.type = 'file'; 
     
     // Se o tipo é 'file', precisamos ter certeza que o campo 'text' existe como null se não houver texto
@@ -254,7 +291,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   }
 
   if (message.contactName) {
-      payload.name = message.contactName;
+      payload.contactName = message.contactName;
   }
 
   // LOG DE DEBUG ANTES DO ENVIO
