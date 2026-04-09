@@ -355,13 +355,24 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     const result = await sendDigisacMessage({
       number: phone.number,
       serviceId: configDigisac.connection_phone,
-      body: messageBody,
+      contactName: phone.name,
+      body: null, // Separar o corpo para não dar 500 no Digisac
       base64File: base64File,
       fileName: fileName
     });
 
     if (!result.success) {
-      return { error: result.error || 'Erro ao enviar via Digisac.' };
+      return { error: result.error || 'Erro ao enviar boleto (PDF) via Digisac.' };
+    }
+
+    const resultMsg = await sendDigisacMessage({
+      number: phone.number,
+      serviceId: configDigisac.connection_phone,
+      body: messageBody
+    });
+
+    if (!resultMsg.success) {
+      return { error: resultMsg.error || 'Erro ao enviar mensagem via Digisac.' };
     }
 
     return { success: true };
@@ -462,6 +473,7 @@ Departamento Financeiro`;
     const resultFile = await sendDigisacMessage({
       number: phone.number,
       serviceId: configDigisac.connection_phone,
+      contactName: phone.name,
       body: null, // Força a mensagem ser separada
       base64File: base64File,
       fileName: fileName

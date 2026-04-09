@@ -12,6 +12,7 @@ export const digisacConfigSchema = z.object({
 // Baseado na documentação de endpoints comuns da Digisac (ex: /api/v1/messages)
 export const digisacMessageSchema = z.object({
   contactId: z.string().optional().describe('ID do contato no Digisac (preferencial)'),
+  contactName: z.string().optional().describe('Nome do contato para criação caso não exista'),
   number: z.string().optional().describe('Número do telefone (se contactId não for fornecido)'),
   serviceId: z.string().optional().describe('ID do serviço/conexão (obrigatório se usar number)'),
   body: z.string().nullable().optional().describe('Conteúdo da mensagem é obrigatório'),

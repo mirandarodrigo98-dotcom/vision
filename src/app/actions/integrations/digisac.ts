@@ -218,33 +218,26 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     if (extension === "png") mime = "image/png";
     else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
 
-    // A documentação oculta do Digisac exige que o arquivo seja passado como um objeto embutido 
+    // A documentação do Digisac exige que o arquivo seja passado como um objeto embutido 
     // direto no payload da mensagem, ao invés de usar a rota /api/v1/files para base64.
-    // MAS IMPORTANTE: Na API v1 atualizada, se passarmos { base64, mimetype, name }, o Digisac
-    // exige que a chave não se chame "file", mas sim que o Base64 seja passado via 'base64'
-    // ou se usar 'file', que seja a URL. Se usarmos 'file' como objeto, pode dar validation error.
-    // Então vamos usar o padrão aceito 'base64' e 'name' na raiz.
-    
-    // Corrigindo o payload base64 conforme o formato aceito pela API v1 que vimos no log:
-    // "type": "file" ou "document", "base64": "...", "name": "..."
+    payload.file = {
+        base64: base64Data,
+        mimetype: mime,
+        name: nameToUse
+    };
     payload.type = 'file'; 
-    payload.base64 = base64Data;
-    payload.name = nameToUse;
-    // Removendo a prop 'file'
-    if (payload.file) delete payload.file;
-
-    // Se o tipo é 'file', precisamos ter certeza que o campo 'text' existe, mesmo que null/vazio 
-    // ou removê-lo se estiver usando a API v1 rigorosa
-    if (payload.text === ' ') {
-      // Se tivermos colocado ' ' pra burlar o chat vazio, agora podemos deletar
-      delete payload.text;
+    
+    // Se o tipo é 'file', precisamos ter certeza que o campo 'text' existe como null se não houver texto
+    // para evitar que o Digisac coloque texto "undefined" ou o nome da empresa
+    if (payload.text === ' ' || payload.text === undefined) {
+      payload.text = null;
     }
   } else if (message.fileUrl) {
     payload.file = message.fileUrl;
   }
 
   // Para arquivo e com texto (Cobrança com PDF)
-  if (payload.type === 'file' && payload.text && payload.text !== ' ') {
+  if (payload.type === 'file' && payload.text && payload.text !== ' ' && payload.text !== null) {
       payload.text = String(payload.text);
   }
 
@@ -258,6 +251,10 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
 
   if (message.dontOpenTicket) {
       payload.dontOpenTicket = true;
+  }
+
+  if (message.contactName) {
+      payload.name = message.contactName;
   }
 
   // LOG DE DEBUG ANTES DO ENVIO

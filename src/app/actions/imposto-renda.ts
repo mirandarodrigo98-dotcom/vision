@@ -517,6 +517,7 @@ _Departamento Tributário_`;
           const res = await sendDigisacMessage({
             number: declaration.phone,
             serviceId: config.connection_phone,
+            contactName: declaration.name,
             body: null,
             base64File: `data:${file.mimeType};base64,${file.base64}`,
             fileName: file.fileName
