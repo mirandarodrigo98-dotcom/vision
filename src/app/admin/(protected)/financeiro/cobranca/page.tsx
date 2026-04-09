@@ -772,9 +772,9 @@ export default function CobrancaPage() {
       </Card>
 
       <Dialog open={isReceberOpen} onOpenChange={setIsReceberOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl text-[#53900f] font-semibold">Registrar Recebimento</DialogTitle>
+            <DialogTitle className="text-2xl text-orange-600 font-semibold">Registrar Recebimento</DialogTitle>
           </DialogHeader>
           {selectedRows.length === 1 && (
             <div className="grid gap-4 py-2">
@@ -810,7 +810,7 @@ export default function CobrancaPage() {
                   />
                   {getStatusRecebimento() && (
                     <div className="flex items-center text-sm text-gray-600">
-                      <span className="mr-1 text-[10px]">▶</span>
+                      <span className="mr-1 text-[10px] text-orange-500">▶</span>
                       {getStatusRecebimento()?.text}
                     </div>
                   )}
@@ -872,7 +872,7 @@ export default function CobrancaPage() {
               <div className="mt-4">
                 <div className="border-b border-gray-200">
                   <nav className="-mb-px flex space-x-8">
-                    <a className="border-[#8cc63f] text-gray-900 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium">
+                    <a className="border-orange-500 text-gray-900 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium">
                       Observação deste Recebimento
                     </a>
                     <a className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium cursor-not-allowed">
@@ -892,7 +892,7 @@ export default function CobrancaPage() {
           )}
           <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => setIsReceberOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#8cc63f] hover:bg-[#7ab033] text-white flex items-center gap-2" onClick={handleConfirmarRecebimento} disabled={isRecebendo}>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2" onClick={handleConfirmarRecebimento} disabled={isRecebendo}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               {isRecebendo ? 'Registrando...' : 'Confirmar Recebimento'}
             </Button>
