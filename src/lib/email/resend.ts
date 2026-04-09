@@ -6,13 +6,15 @@ export async function sendEmail({
     subject,
     html,
     category,
-    metadata
+    metadata,
+    attachments
 }: {
     to: string | string[];
     subject: string;
     html: string;
     category: string;
     metadata?: any;
+    attachments?: Array<{ filename: string; content: Buffer | string; contentType?: string }>;
 }) {
     // If no API key, log and return mock success (for dev)
     if (!process.env.RESEND_API_KEY) {
@@ -37,6 +39,7 @@ export async function sendEmail({
             to,
             subject,
             html,
+            attachments
         });
 
         if (error) {

@@ -539,7 +539,7 @@ Departamento Tributário`;
   if (sendEmail && declaration.email) {
     try {
       // Import email sender
-      const { sendMail } = await import('@/lib/mail');
+      const { sendEmail: mailerSend } = await import('@/lib/email/resend');
       const attachments = uploadedFiles.map(f => ({
         filename: f.fileName,
         content: Buffer.from(f.base64, 'base64'),
@@ -548,11 +548,11 @@ Departamento Tributário`;
       
       const htmlMessage = textMessage.replace(/\n/g, '<br/>').replace(/\*(.*?)\*/g, '<strong>$1</strong>');
 
-      await sendMail({
+      await mailerSend({
         to: declaration.email,
         subject: `Declaração de Imposto de Renda Transmitida - Exercício ${year}`,
-        text: textMessage,
         html: htmlMessage,
+        category: 'irpf_transmissao',
         attachments
       });
     } catch (e: any) {

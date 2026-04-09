@@ -11,6 +11,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.3.36',
+    date: '2026-04-09',
+    notes: [
+      { module: 'Imposto de Renda', description: 'Correção no Envio de E-mails e WhatsApp da Transmissão: Foi corrigido um bug que impedia o disparo de e-mails com os anexos da declaração devido à falha de resolução do módulo de e-mail. No WhatsApp, corrigimos a injeção indevida da assinatura "NZD:" nos PDFs que eram enviados sem texto, além de esclarecer que o envio ocorre de forma sequencial (uma mensagem por PDF) devido às restrições nativas do próprio WhatsApp para o envio de mídias via API.' }
+    ]
+  },
+  {
     version: '1.3.35',
     date: '2026-04-09',
     notes: [

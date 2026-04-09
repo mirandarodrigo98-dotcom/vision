@@ -90,9 +90,14 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   
   // Montar payload
   const payload: any = {
-    text: message.body || '', // Garantir que não seja undefined
     type: (message.fileUrl || message.base64File) ? 'file' : 'chat', 
   };
+  
+  if (message.body) {
+    payload.text = message.body;
+  } else if (payload.type === 'chat') {
+    payload.text = '';
+  }
 
   // Debug direto no console para verificação na Vercel
   console.log(' Preparing Digisac Payload:', { 
