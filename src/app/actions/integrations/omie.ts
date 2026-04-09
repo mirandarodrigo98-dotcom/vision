@@ -457,17 +457,28 @@ Departamento Financeiro`;
       return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
     }
 
-    // Enviar via Digisac
-    const result = await sendDigisacMessage({
+    // Enviar via Digisac (Primeiro o arquivo sem texto, depois a mensagem - mais seguro)
+    // A API Digisac dá 500 às vezes quando junta "file" grande e "text" longo
+    const resultFile = await sendDigisacMessage({
       number: phone.number,
       serviceId: configDigisac.connection_phone,
-      body: messageBody,
+      body: null, // Força a mensagem ser separada
       base64File: base64File,
       fileName: fileName
     });
 
-    if (!result.success) {
-      return { error: result.error || 'Erro ao enviar cobrança via Digisac.' };
+    if (!resultFile.success) {
+      return { error: resultFile.error || 'Erro ao anexar o PDF da cobrança via Digisac.' };
+    }
+
+    const resultMsg = await sendDigisacMessage({
+      number: phone.number,
+      serviceId: configDigisac.connection_phone,
+      body: messageBody
+    });
+
+    if (!resultMsg.success) {
+      return { error: resultMsg.error || 'Erro ao enviar o texto da cobrança via Digisac.' };
     }
 
     return { success: true };
