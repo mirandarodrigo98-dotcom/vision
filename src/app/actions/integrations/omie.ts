@@ -229,6 +229,19 @@ export async function lancarRecebimentoOmie(payloadData: any) {
     const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
+    
+    // Armazenar localmente o codigo_baixa gerado pelo Vision para possibilitar o cancelamento futuro
+    if (response.data && response.data.codigo_baixa && payloadData.codigo_lancamento) {
+      try {
+        await db.prepare(`
+          INSERT INTO omie_recebimentos (codigo_lancamento, codigo_baixa, valor, data)
+          VALUES (?, ?, ?, NOW())
+        `).run(payloadData.codigo_lancamento, response.data.codigo_baixa, payloadData.valor);
+      } catch (err) {
+        console.error('Erro ao salvar codigo_baixa localmente:', err);
+      }
+    }
+    
     return { data: response.data };
   } catch (error: any) {
     console.error('Erro ao lançar recebimento:', error.response?.data || error.message);
@@ -251,6 +264,14 @@ export async function cancelarRecebimentoOmie(codigoBaixa: number) {
     const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
+    
+    // Limpar localmente o codigo_baixa após o cancelamento
+    try {
+      await db.prepare(`DELETE FROM omie_recebimentos WHERE codigo_baixa = ?`).run(codigoBaixa);
+    } catch (err) {
+      console.error('Erro ao remover codigo_baixa localmente:', err);
+    }
+    
     return { data: response.data };
   } catch (error: any) {
     console.error('Erro ao cancelar recebimento:', error.response?.data || error.message);
@@ -273,7 +294,20 @@ export async function consultarContaReceberOmie(codigoLancamento: number) {
     const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
       headers: { 'Content-Type': 'application/json' }
     });
-    return { data: response.data };
+    
+    const data = response.data;
+    
+    // Obter os recebimentos registrados localmente pelo Vision
+    try {
+      const localRecebimentos = await db.prepare(`SELECT codigo_baixa, valor, data FROM omie_recebimentos WHERE codigo_lancamento = ? ORDER BY data DESC`).all(codigoLancamento) as any[];
+      if (localRecebimentos.length > 0) {
+        data.local_recebimentos = localRecebimentos;
+      }
+    } catch (err) {
+      console.error('Erro ao buscar recebimentos locais:', err);
+    }
+    
+    return { data };
   } catch (error: any) {
     console.error('Erro ao consultar conta:', error.response?.data || error.message);
     return { error: error.response?.data?.faultstring || 'Falha ao consultar os detalhes da conta.' };

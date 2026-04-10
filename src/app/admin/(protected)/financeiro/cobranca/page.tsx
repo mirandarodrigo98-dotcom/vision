@@ -131,6 +131,8 @@ const CustomFloatingFilter = (props: any) => {
   );
 };
 
+import { getUserPermissions } from '@/app/actions/permissions';
+
 export default function CobrancaPage() {
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
@@ -159,6 +161,16 @@ export default function CobrancaPage() {
 
   const [isSendingDigisac, setIsSendingDigisac] = useState(false);
   const [isSendingCobranca, setIsSendingCobranca] = useState(false);
+
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    getUserPermissions().then(perms => {
+      setUserPermissions(perms);
+      setIsAdmin(perms.includes('all_permissions') || perms.length > 100); // Admin typically has all permissions
+    });
+  }, []);
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
@@ -319,6 +331,10 @@ export default function CobrancaPage() {
   };
 
   const handleReceberClick = () => {
+    if (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber')) {
+      toast.error('Você não tem permissão para registrar recebimentos.');
+      return;
+    }
     if (selectedRows.length !== 1) return;
     const conta = selectedRows[0];
     const saldo = (conta.valor_documento || 0) - (conta.valor_pago_calculado || 0);
@@ -441,6 +457,10 @@ export default function CobrancaPage() {
   };
 
   const handleCancelarRecebimento = async (codigoBaixa: number) => {
+    if (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber.cancelar')) {
+      toast.error('Você não tem permissão para cancelar recebimentos.');
+      return;
+    }
     if (!confirm('Deseja realmente cancelar este recebimento?')) return;
     
     try {
@@ -658,9 +678,9 @@ export default function CobrancaPage() {
     <div className="p-6 space-y-6">
       <style>{`
         .ag-theme-alpine {
-          --ag-selected-row-background-color: #ffedd5;
+          --ag-selected-row-background-color: #ffedd5 !important;
         }
-        .ag-theme-alpine .ag-row-selected {
+        .ag-theme-alpine .ag-row.ag-row-selected {
           background-color: #ffedd5 !important;
         }
       `}</style>
@@ -962,7 +982,7 @@ export default function CobrancaPage() {
 
               <div>
                 <h3 className="font-semibold text-lg mb-3">Recebimentos Realizados</h3>
-                {(detalheConta.recebimentos && detalheConta.recebimentos.length > 0) || detalheConta.recebimento || selectedRows[0]?.status_titulo === 'RECEBIDO' || selectedRows[0]?.status_titulo === 'LIQUIDADO' ? (
+                {((detalheConta.local_recebimentos && detalheConta.local_recebimentos.length > 0) || (detalheConta.recebimentos && detalheConta.recebimentos.length > 0) || detalheConta.recebimento || selectedRows[0]?.status_titulo === 'RECEBIDO' || selectedRows[0]?.status_titulo === 'LIQUIDADO') ? (
                   <div className="border rounded-md overflow-hidden">
                     <table className="w-full text-sm text-left">
                       <thead className="bg-muted">
@@ -972,11 +992,38 @@ export default function CobrancaPage() {
                           <th className="px-4 py-2 font-medium">Desconto</th>
                           <th className="px-4 py-2 font-medium">Juros</th>
                           <th className="px-4 py-2 font-medium">Multas</th>
+                          <th className="px-4 py-2 font-medium">Observação</th>
                           <th className="px-4 py-2 font-medium text-center">Ação</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {detalheConta.recebimentos && detalheConta.recebimentos.length > 0 ? (
+                        {detalheConta.local_recebimentos && detalheConta.local_recebimentos.length > 0 ? (
+                          detalheConta.local_recebimentos.map((rec: any, idx: number) => {
+                            const dataObj = new Date(rec.data);
+                            const dataFormatada = !isNaN(dataObj.getTime()) ? dataObj.toLocaleDateString('pt-BR') : rec.data;
+                            return (
+                              <tr key={`local-${idx}`} className="hover:bg-muted/50">
+                                <td className="px-4 py-2">{dataFormatada}</td>
+                                <td className="px-4 py-2 text-green-600">{formatNumber(rec.valor || 0)}</td>
+                                <td className="px-4 py-2">0,00</td>
+                                <td className="px-4 py-2">0,00</td>
+                                <td className="px-4 py-2">0,00</td>
+                                <td className="px-4 py-2 text-muted-foreground truncate max-w-[200px]" title="Recebido via Vision">Recebido via Vision</td>
+                                <td className="px-4 py-2 text-center">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+                                    onClick={() => handleCancelarRecebimento(rec.codigo_baixa)}
+                                    disabled={!isAdmin && !userPermissions.includes('financeiro.cobranca.receber.cancelar')}
+                                  >
+                                    Cancelar Recebimento
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : detalheConta.recebimentos && detalheConta.recebimentos.length > 0 ? (
                           detalheConta.recebimentos.map((rec: any, idx: number) => (
                             <tr key={idx} className="hover:bg-muted/50">
                               <td className="px-4 py-2">{rec.data || rec.dData}</td>
@@ -984,12 +1031,14 @@ export default function CobrancaPage() {
                               <td className="px-4 py-2">{formatNumber(rec.desconto || rec.nDesconto || 0)}</td>
                               <td className="px-4 py-2">{formatNumber(rec.juros || rec.nJuros || 0)}</td>
                               <td className="px-4 py-2">{formatNumber(rec.multa || rec.nMulta || 0)}</td>
+                              <td className="px-4 py-2 text-muted-foreground truncate max-w-[200px]">{detalheConta.observacao || '-'}</td>
                               <td className="px-4 py-2 text-center">
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
                                   className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
                                   onClick={() => handleCancelarRecebimento(rec.codigo_baixa || rec.nCodBaixa)}
+                                  disabled={(!isAdmin && !userPermissions.includes('financeiro.cobranca.receber.cancelar')) || detalheConta.observacao?.includes('importação do extrato')}
                                 >
                                   Cancelar Recebimento
                                 </Button>
@@ -1003,12 +1052,14 @@ export default function CobrancaPage() {
                             <td className="px-4 py-2">{formatNumber(detalheConta.recebimento.nDesconto || detalheConta.recebimento.desconto || 0)}</td>
                             <td className="px-4 py-2">{formatNumber(detalheConta.recebimento.nJuros || detalheConta.recebimento.juros || 0)}</td>
                             <td className="px-4 py-2">{formatNumber(detalheConta.recebimento.nMulta || detalheConta.recebimento.multa || 0)}</td>
+                            <td className="px-4 py-2 text-muted-foreground truncate max-w-[200px]">{detalheConta.observacao || '-'}</td>
                             <td className="px-4 py-2 text-center">
                               <Button 
                                 variant="outline" 
                                 size="sm" 
                                 className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
                                 onClick={() => handleCancelarRecebimento(detalheConta.recebimento.codigo_baixa || detalheConta.recebimento.nCodBaixa)}
+                                disabled={(!isAdmin && !userPermissions.includes('financeiro.cobranca.receber.cancelar')) || detalheConta.observacao?.includes('importação do extrato')}
                               >
                                 Cancelar Recebimento
                               </Button>
@@ -1021,8 +1072,11 @@ export default function CobrancaPage() {
                             <td className="px-4 py-2">0,00</td>
                             <td className="px-4 py-2">0,00</td>
                             <td className="px-4 py-2">0,00</td>
+                            <td className="px-4 py-2 text-muted-foreground truncate max-w-[200px]">{detalheConta.observacao || '-'}</td>
                             <td className="px-4 py-2 text-center">
-                              <span className="text-xs text-muted-foreground">Baixado via Banco/Boleto</span>
+                              <span className="text-xs text-muted-foreground">
+                                {detalheConta.observacao?.includes('importação do extrato') ? 'Importado via Extrato' : 'Baixado via Banco/Boleto'}
+                              </span>
                             </td>
                           </tr>
                         )}
@@ -1040,11 +1094,16 @@ export default function CobrancaPage() {
             <div className="py-12 text-center text-muted-foreground">Não foi possível carregar os detalhes.</div>
           )}
           
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 flex justify-between items-center">
             <Button variant="outline" onClick={() => setIsDetalharOpen(false)}>Fechar</Button>
             <Button 
-              className="bg-[#8cc63f] hover:bg-green-600 text-white" 
-              disabled={isCarregandoDetalhes || !detalheConta || (detalheConta.valor_documento || 0) - (detalheConta.resumo?.valor_pago || detalheConta.valor_pago || 0) <= 0}
+              className="bg-orange-500 hover:bg-orange-600 text-white" 
+              disabled={
+                (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber')) || 
+                isCarregandoDetalhes || 
+                !detalheConta || 
+                (detalheConta.valor_documento || 0) - (detalheConta.resumo?.valor_pago || detalheConta.valor_pago || 0) <= 0
+              }
               onClick={() => {
                 setIsDetalharOpen(false);
                 handleReceberClick();

@@ -81,3 +81,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom AG Grid Styles */
+.ag-theme-alpine {
+  --ag-selected-row-background-color: #ffedd5 !important;
+}
+.ag-theme-alpine .ag-row-selected {
+  background-color: #ffedd5 !important;
+}
