@@ -18,20 +18,11 @@ if (fs.existsSync(envPath)) {
 }
 
 async function testConsultarConta() {
-      const axios = (await import('axios')).default;
-      const conf = await (await import('../src/app/actions/integrations/omie-config')).getOmieConfig();
-      const payloadList = {
-         call: "CancelarRecebimento",
-         app_key: conf.app_key,
-         app_secret: conf.app_secret,
-         param: [{ codigo_lancamento: 7150658233 }]
-     };
-     try {
-         const axiosRes = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadList);
-         console.log(JSON.stringify(axiosRes.data, null, 2));
-     } catch (e: any) {
-         console.log("Error:", e.response?.data || e.message);
-     }
+      const { listarContasReceber } = await import('../src/app/actions/integrations/omie');
+      const res = await listarContasReceber('01/01/2026', '31/12/2026');
+      const conta = res.data.find((c: any) => c.status_titulo === 'RECEBIDO');
+      console.log("Conta:", conta?.codigo_lancamento_omie);
+      console.log("Recebimentos da conta RECEBIDO:", conta?.recebimentos || conta?.recebimento || conta?.resumo);
 }
 
 testConsultarConta();
