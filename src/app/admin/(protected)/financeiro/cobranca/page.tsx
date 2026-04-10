@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon, FunnelIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon, FunnelIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, XMarkIcon, PaperAirplaneIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -256,7 +256,30 @@ export default function CobrancaPage() {
     { field: 'nome_categoria', headerName: 'Categoria', width: 180, filter: 'agTextColumnFilter' },
     { field: 'nome_conta_corrente', headerName: 'Conta Corrente', width: 180, filter: 'agTextColumnFilter' },
     { field: 'numero_boleto', headerName: 'Nº Boleto', width: 130, filter: 'agTextColumnFilter' },
-    { field: 'codigo_barras', headerName: 'Código de Barras', width: 250, filter: 'agTextColumnFilter' },
+    { 
+      field: 'codigo_barras', 
+      headerName: 'Código de Barras', 
+      width: 280, 
+      filter: 'agTextColumnFilter',
+      cellRenderer: (p: any) => {
+        if (!p.value || p.value === '-') return '-';
+        return (
+          <div className="flex items-center justify-between w-full">
+            <span className="truncate mr-2" title={p.value}>{p.value}</span>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(p.value);
+                toast.success('Código de barras copiado!');
+              }}
+              className="text-gray-400 hover:text-orange-500 flex-shrink-0"
+              title="Copiar código de barras"
+            >
+              <DocumentDuplicateIcon className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      }
+    },
     { field: 'tipo_documento', headerName: 'Tipo Doc.', width: 120, filter: 'agTextColumnFilter' }
   ], []);
 
@@ -600,6 +623,11 @@ export default function CobrancaPage() {
     }
 
     setLoading(true);
+    setContas([]);
+    setSelectedRows([]);
+    if (gridApi) {
+      gridApi.deselectAll();
+    }
     try {
       const deParts = dataDe.split('-');
       const ateParts = dataAte.split('-');
@@ -629,6 +657,9 @@ export default function CobrancaPage() {
   return (
     <div className="p-6 space-y-6">
       <style>{`
+        .ag-theme-alpine {
+          --ag-selected-row-background-color: #ffedd5;
+        }
         .ag-theme-alpine .ag-row-selected {
           background-color: #ffedd5 !important;
         }
@@ -724,7 +755,7 @@ export default function CobrancaPage() {
             </Button>
             <Button 
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={selectedRows.length !== 1 || isSendingDigisac} 
+              disabled={selectedRows.length !== 1 || isSendingDigisac || selectedRows[0]?.status_titulo === 'RECEBIDO' || selectedRows[0]?.status_titulo === 'LIQUIDADO'} 
               onClick={handleEnviarDigisac}
             >
               <PaperAirplaneIcon className="h-4 w-4" />
@@ -772,7 +803,7 @@ export default function CobrancaPage() {
       </Card>
 
       <Dialog open={isReceberOpen} onOpenChange={setIsReceberOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl w-[95vw] max-w-full">
           <DialogHeader>
             <DialogTitle className="text-2xl text-orange-600 font-semibold">Registrar Recebimento</DialogTitle>
           </DialogHeader>
@@ -901,7 +932,7 @@ export default function CobrancaPage() {
       </Dialog>
 
       <Dialog open={isDetalharOpen} onOpenChange={setIsDetalharOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl w-[95vw] max-w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">Detalhes da Conta</DialogTitle>
           </DialogHeader>
@@ -931,7 +962,7 @@ export default function CobrancaPage() {
 
               <div>
                 <h3 className="font-semibold text-lg mb-3">Recebimentos Realizados</h3>
-                {detalheConta.recebimentos && detalheConta.recebimentos.length > 0 ? (
+                {(detalheConta.recebimentos && detalheConta.recebimentos.length > 0) || detalheConta.recebimento || selectedRows[0]?.status_titulo === 'RECEBIDO' || selectedRows[0]?.status_titulo === 'LIQUIDADO' ? (
                   <div className="border rounded-md overflow-hidden">
                     <table className="w-full text-sm text-left">
                       <thead className="bg-muted">
@@ -941,29 +972,60 @@ export default function CobrancaPage() {
                           <th className="px-4 py-2 font-medium">Desconto</th>
                           <th className="px-4 py-2 font-medium">Juros</th>
                           <th className="px-4 py-2 font-medium">Multas</th>
-                          <th className="px-4 py-2 font-medium">Ação</th>
+                          <th className="px-4 py-2 font-medium text-center">Ação</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {detalheConta.recebimentos.map((rec: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-muted/50">
-                            <td className="px-4 py-2">{rec.data || rec.dData}</td>
-                            <td className="px-4 py-2 text-green-600">{formatNumber(rec.valor || rec.nValor || 0)}</td>
-                            <td className="px-4 py-2">{formatNumber(rec.desconto || rec.nDesconto || 0)}</td>
-                            <td className="px-4 py-2">{formatNumber(rec.juros || rec.nJuros || 0)}</td>
-                            <td className="px-4 py-2">{formatNumber(rec.multa || rec.nMulta || 0)}</td>
-                            <td className="px-4 py-2">
+                        {detalheConta.recebimentos && detalheConta.recebimentos.length > 0 ? (
+                          detalheConta.recebimentos.map((rec: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-muted/50">
+                              <td className="px-4 py-2">{rec.data || rec.dData}</td>
+                              <td className="px-4 py-2 text-green-600">{formatNumber(rec.valor || rec.nValor || 0)}</td>
+                              <td className="px-4 py-2">{formatNumber(rec.desconto || rec.nDesconto || 0)}</td>
+                              <td className="px-4 py-2">{formatNumber(rec.juros || rec.nJuros || 0)}</td>
+                              <td className="px-4 py-2">{formatNumber(rec.multa || rec.nMulta || 0)}</td>
+                              <td className="px-4 py-2 text-center">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+                                  onClick={() => handleCancelarRecebimento(rec.codigo_baixa || rec.nCodBaixa)}
+                                >
+                                  Cancelar Recebimento
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : detalheConta.recebimento ? (
+                          <tr className="hover:bg-muted/50">
+                            <td className="px-4 py-2">{detalheConta.recebimento.dData || detalheConta.recebimento.data || '-'}</td>
+                            <td className="px-4 py-2 text-green-600">{formatNumber(detalheConta.recebimento.nValor || detalheConta.recebimento.valor || 0)}</td>
+                            <td className="px-4 py-2">{formatNumber(detalheConta.recebimento.nDesconto || detalheConta.recebimento.desconto || 0)}</td>
+                            <td className="px-4 py-2">{formatNumber(detalheConta.recebimento.nJuros || detalheConta.recebimento.juros || 0)}</td>
+                            <td className="px-4 py-2">{formatNumber(detalheConta.recebimento.nMulta || detalheConta.recebimento.multa || 0)}</td>
+                            <td className="px-4 py-2 text-center">
                               <Button 
                                 variant="outline" 
                                 size="sm" 
                                 className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
-                                onClick={() => handleCancelarRecebimento(rec.codigo_baixa || rec.nCodBaixa)}
+                                onClick={() => handleCancelarRecebimento(detalheConta.recebimento.codigo_baixa || detalheConta.recebimento.nCodBaixa)}
                               >
                                 Cancelar Recebimento
                               </Button>
                             </td>
                           </tr>
-                        ))}
+                        ) : (
+                          <tr className="hover:bg-muted/50">
+                            <td className="px-4 py-2">{selectedRows[0]?.data_pagamento_calculada || selectedRows[0]?.data_vencimento || '-'}</td>
+                            <td className="px-4 py-2 text-green-600">{formatNumber(selectedRows[0]?.valor_pago_calculado || selectedRows[0]?.valor_documento || 0)}</td>
+                            <td className="px-4 py-2">0,00</td>
+                            <td className="px-4 py-2">0,00</td>
+                            <td className="px-4 py-2">0,00</td>
+                            <td className="px-4 py-2 text-center">
+                              <span className="text-xs text-muted-foreground">Baixado via Banco/Boleto</span>
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>

@@ -48,16 +48,17 @@ interface NavigationItem {
   current?: boolean
   children?: NavigationItem[]
   permission?: string
+  permissions?: string[]
 }
 
 const navigation: NavigationItem[] = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon, permission: 'dashboard.view' },
   { name: 'Chamados', href: '/admin/tickets', icon: TicketIcon },
-  { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permission: 'clients.view' },
+  { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permissions: ['clients.view', 'companies.view', 'employees.view', 'socios.view', 'client_users.view', 'team.view', 'departments.view'] },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
-  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permission: 'employees.view' },
+  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view'] },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
-  { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permission: 'contabilidade.faturamento.view' },
+  { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permissions: ['contabilidade.view', 'contabilidade.faturamento.view'] },
   { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permission: 'financeiro.cobranca.view' },
   { name: 'Pessoa Física', href: '/admin/pessoa-fisica', icon: UserIcon },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
@@ -98,14 +99,21 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
 
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => navigation.map(item => {
+    const hasPerm = (perm?: string, perms?: string[]) => {
+      if (!perm && (!perms || perms.length === 0)) return true;
+      if (perm && permissions.includes(perm)) return true;
+      if (perms && perms.some(p => permissions.includes(p))) return true;
+      return false;
+    };
+
     if (item.children) {
       // Check parent permission first if exists
-      if (item.permission && !permissions.includes(item.permission)) {
+      if (!hasPerm(item.permission, item.permissions)) {
         return null;
       }
 
       const filteredChildren = item.children.filter(child => 
-        !child.permission || permissions.includes(child.permission)
+        hasPerm(child.permission, child.permissions)
       );
       
       if (filteredChildren.length > 0) {
@@ -114,7 +122,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
       return null;
     }
     
-    if (item.permission && !permissions.includes(item.permission)) {
+    if (!hasPerm(item.permission, item.permissions)) {
       return null;
     }
     
