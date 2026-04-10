@@ -947,7 +947,7 @@ export default function CobrancaPage() {
       </Dialog>
 
       <Dialog open={isDetalharOpen} onOpenChange={setIsDetalharOpen}>
-        <DialogContent className="sm:max-w-4xl w-[95vw] max-w-full max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-[95vw] max-w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">Detalhes da Conta</DialogTitle>
           </DialogHeader>
@@ -975,13 +975,13 @@ export default function CobrancaPage() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <div className="border border-gray-300 rounded bg-white overflow-hidden">
+              <div className="flex gap-4 flex-col lg:flex-row">
+                <div className="flex-1 overflow-hidden">
+                  <div className="border border-gray-300 rounded bg-white flex flex-col">
                     <div className="bg-gray-100 text-gray-500 text-xs text-center py-1.5 border-b border-gray-300">
                       Arraste uma ou mais colunas aqui para agrupar
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-w-full">
                       <table className="w-full text-xs text-left">
                         <thead className="bg-white text-gray-600 border-b border-gray-300">
                           <tr>
@@ -1007,7 +1007,7 @@ export default function CobrancaPage() {
                                   <td className="px-3 py-2 whitespace-nowrap">R$ 0,00</td>
                                   <td className="px-3 py-2 whitespace-nowrap">R$ 0,00</td>
                                  <td className="px-3 py-2 whitespace-nowrap">R$ 0,00</td>
-                                  <td className="px-3 py-2 whitespace-nowrap">-</td>
+                                  <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.nome_conta_corrente || '-'}</td>
                                   <td className="px-3 py-2 whitespace-nowrap">{dataFormatada}</td>
                                   <td className="px-3 py-2 truncate max-w-[200px]" title="Recebido via Vision">Recebido via Vision</td>
                                 </tr>
@@ -1021,7 +1021,7 @@ export default function CobrancaPage() {
                                 <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(rec.desconto || rec.nDesconto || 0)}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(rec.juros || rec.nJuros || 0)}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(rec.multa || rec.nMulta || 0)}</td>
-                                <td className="px-3 py-2 whitespace-nowrap">-</td>
+                                <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.nome_conta_corrente || '-'}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">{rec.data || rec.dData}</td>
                                 <td className="px-3 py-2 truncate max-w-[200px]" title={detalheConta.observacao || '-'}>{detalheConta.observacao || '-'}</td>
                               </tr>
@@ -1033,7 +1033,7 @@ export default function CobrancaPage() {
                               <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(detalheConta.recebimento.nDesconto || detalheConta.recebimento.desconto || 0)}</td>
                               <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(detalheConta.recebimento.nJuros || detalheConta.recebimento.juros || 0)}</td>
                               <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(detalheConta.recebimento.nMulta || detalheConta.recebimento.multa || 0)}</td>
-                              <td className="px-3 py-2 whitespace-nowrap">-</td>
+                              <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.nome_conta_corrente || '-'}</td>
                               <td className="px-3 py-2 whitespace-nowrap">{detalheConta.recebimento.dData || detalheConta.recebimento.data || '-'}</td>
                               <td className="px-3 py-2 truncate max-w-[200px]" title={detalheConta.observacao || '-'}>{detalheConta.observacao || '-'}</td>
                             </tr>
@@ -1044,7 +1044,7 @@ export default function CobrancaPage() {
                               <td className="px-3 py-2 whitespace-nowrap">R$ 0,00</td>
                               <td className="px-3 py-2 whitespace-nowrap">R$ 0,00</td>
                               <td className="px-3 py-2 whitespace-nowrap">R$ 0,00</td>
-                              <td className="px-3 py-2 whitespace-nowrap">-</td>
+                              <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.nome_conta_corrente || '-'}</td>
                               <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.data_pagamento_calculada || selectedRows[0]?.data_vencimento || '-'}</td>
                               <td className="px-3 py-2 truncate max-w-[200px]" title={detalheConta.observacao || '-'}>{detalheConta.observacao || '-'}</td>
                             </tr>
@@ -1065,7 +1065,7 @@ export default function CobrancaPage() {
                   </div>
                 </div>
 
-                <div className="w-56 space-y-3">
+                <div className="w-full lg:w-56 space-y-3">
                   <div>
                     <label className="text-xs text-gray-600 block mb-1">Total já Recebido da Conta</label>
                     <div className="bg-gray-100 border border-gray-300 rounded px-2 py-1.5 text-right text-sm">

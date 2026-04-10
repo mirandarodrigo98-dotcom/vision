@@ -22,7 +22,7 @@ async function testConsultarConta() {
       const res = await listarContasReceber('01/01/2026', '31/12/2026');
       const conta = res.data.find((c: any) => c.status_titulo === 'RECEBIDO');
       console.log("Conta:", conta?.codigo_lancamento_omie);
-      console.log("Recebimentos da conta RECEBIDO:", conta?.recebimentos || conta?.recebimento || conta?.resumo);
+      console.log("Conta completa:", JSON.stringify(conta, null, 2));
 }
 
 testConsultarConta();
