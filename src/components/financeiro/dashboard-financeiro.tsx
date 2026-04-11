@@ -52,11 +52,12 @@ export function DashboardFinanceiro() {
 
   const { blocoCaixa, blocoCompetencia, blocoHonorarios } = data;
 
-  const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-  const formatShortBRL = (val: number) => {
-    if (val >= 1000000) return `R$ ${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `R$ ${(val / 1000).toFixed(1)}k`;
-    return `R$ ${val.toFixed(0)}`;
+  const formatBRL = (val: any) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0);
+  const formatShortBRL = (val: any) => {
+    const num = Number(val) || 0;
+    if (num >= 1000000) return `R$ ${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `R$ ${(num / 1000).toFixed(1)}k`;
+    return `R$ ${num.toFixed(0)}`;
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -143,7 +144,7 @@ export function DashboardFinanceiro() {
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     <Cell fill="#94a3b8" />
                     <Cell fill="#10b981" />
-                    <LabelList dataKey="value" position={(dataMesAtual[0]?.value === 0 && dataMesAtual[1]?.value === 0) ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
+                    <LabelList dataKey="value" position="top" offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -165,7 +166,7 @@ export function DashboardFinanceiro() {
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     <Cell fill="#94a3b8" />
                     <Cell fill="#3b82f6" />
-                    <LabelList dataKey="value" position={(dataMesAnterior[0]?.value === 0 && dataMesAnterior[1]?.value === 0) ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
+                    <LabelList dataKey="value" position="top" offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
