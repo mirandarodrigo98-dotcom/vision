@@ -272,23 +272,23 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     // Processamento
     const processarMeses = (dados: any[], dataKey: string, valKey: string) => {
-      const map = new Map<string, number>();
+      const mapObj: Record<string, number> = {};
       dados.forEach(r => {
         const d = r[dataKey];
         if (!d) return;
         const parts = String(d).split('/');
         if (parts.length === 3) {
           const key = `${parts[2]}-${parts[1]}`;
-          map.set(key, (map.get(key) || 0) + (Number(r[valKey]) || 0));
+          mapObj[key] = (mapObj[key] || 0) + (Number(r[valKey]) || 0);
         }
       });
-      return map;
+      return mapObj;
     };
 
     const receitasCaixaPorMes = processarMeses(todasReceitas, 'dDataLancamento', 'nValorDocumento');
     const faturamentoPorMes = processarMeses(todosFaturamentos, 'data', 'valor');
 
-    const buildCharts = (mapData: Map<string, number>) => {
+    const buildCharts = (mapData: Record<string, number>) => {
       const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
       const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
@@ -300,20 +300,20 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
-        ultimos12Meses.push({ month: key, label, value: mapData.get(key) || 0 });
+        ultimos12Meses.push({ month: key, label, value: mapData[key] || 0 });
       }
 
       return {
         ultimos12Meses,
         mesAtual: {
-          atual: mapData.get(currentMonthKey) || 0,
-          anoAnterior: mapData.get(currentMonthLastYearKey) || 0,
+          atual: mapData[currentMonthKey] || 0,
+          anoAnterior: mapData[currentMonthLastYearKey] || 0,
           labelAtual: today.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
           labelAnoAnterior: new Date(today.getFullYear() - 1, today.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${today.getFullYear() - 1}`
         },
         mesAnterior: {
-          atual: mapData.get(previousMonthKey) || 0,
-          anoAnterior: mapData.get(previousMonthLastYearKey) || 0,
+          atual: mapData[previousMonthKey] || 0,
+          anoAnterior: mapData[previousMonthLastYearKey] || 0,
           labelAtual: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
           labelAnoAnterior: new Date(previousMonthDate.getFullYear() - 1, previousMonthDate.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${previousMonthDate.getFullYear() - 1}`
         }
@@ -340,16 +340,16 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
     // Faturamento e ticket médio do mês anterior vs ano anterior
-    const faturamentoMesAnterior = faturamentoPorMes.get(previousMonthKey) || 0;
+    const faturamentoMesAnterior = faturamentoPorMes[previousMonthKey] || 0;
     const ticketMedioMesAnterior = faturamentoMesAnterior / numClientesAtivos;
-    const faturamentoMesAnteriorAnoAnterior = faturamentoPorMes.get(previousMonthLastYearKey) || 0;
+    const faturamentoMesAnteriorAnoAnterior = faturamentoPorMes[previousMonthLastYearKey] || 0;
     const ticketMedioMesAnteriorAnoAnterior = faturamentoMesAnteriorAnoAnterior / numClientesAtivos;
 
     // Acumulados do ano corrente
     let faturamentoAcumuladoAnoCorrente = 0;
     for (let m = 1; m <= today.getMonth() + 1; m++) {
       const k = `${today.getFullYear()}-${String(m).padStart(2, '0')}`;
-      faturamentoAcumuladoAnoCorrente += (faturamentoPorMes.get(k) || 0);
+      faturamentoAcumuladoAnoCorrente += (faturamentoPorMes[k] || 0);
     }
     const ticketMedioAcumuladoAnoCorrente = faturamentoAcumuladoAnoCorrente / numClientesAtivos / (today.getMonth() + 1);
 
@@ -357,7 +357,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     let faturamentoAcumuladoAnoAnterior = 0;
     for (let m = 1; m <= 12; m++) {
       const k = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
-      faturamentoAcumuladoAnoAnterior += (faturamentoPorMes.get(k) || 0);
+      faturamentoAcumuladoAnoAnterior += (faturamentoPorMes[k] || 0);
     }
     const ticketMedioAcumuladoAnoAnterior = faturamentoAcumuladoAnoAnterior / numClientesAtivos / 12;
 
