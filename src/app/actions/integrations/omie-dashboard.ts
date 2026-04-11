@@ -123,6 +123,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
             
             const receitas = extrato.filter((item: any) => {
               if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+              if (item.cNatureza && item.cNatureza !== 'R') return false; // GARANTIR QUE É RECEITA
               const valor = item.nValorDocumento || 0;
               if (valor <= 0) return false; 
               
@@ -148,6 +149,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
               const extrato2 = resExtrato2.data.listaMovimentos || resExtrato2.data.listaExtrato || resExtrato2.data.extrato || [];
               const receitas2 = extrato2.filter((item: any) => {
                 if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+                if (item.cNatureza && item.cNatureza !== 'R') return false; // GARANTIR QUE É RECEITA
                 const valor = item.nValorDocumento || 0;
                 if (valor <= 0) return false;
                 const categoria = item.cDesCategoria || '';

@@ -84,37 +84,39 @@ export function DashboardFinanceiro() {
     return (
       <div className="space-y-4 pt-4 border-t border-slate-200">
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">{title}</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          
-          {/* Total 12 Meses */}
-          <Card className="col-span-1 flex flex-col shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Últimos 12 Meses</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} interval={0} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    <LabelList 
-                      dataKey="value" 
-                      position="insideTop" 
-                      offset={10} 
-                      formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} 
-                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#ffffff' }} 
-                    />
-                    {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#cbd5e1'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        
+        {/* Total 12 Meses (Linha Inteira) */}
+        <Card className="w-full flex flex-col shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Últimos 12 Meses</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} interval={0} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80}>
+                  <LabelList 
+                    dataKey="value" 
+                    position="insideBottom" 
+                    angle={-90}
+                    offset={20} 
+                    formatter={(val: number) => val > 0 ? formatShortBRL(val).replace('R$ ', '') : ''} 
+                    style={{ fontSize: '12px', fontWeight: '900', fill: '#ffffff', textAnchor: 'middle' }} 
+                  />
+                  {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#94a3b8'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
+        {/* Comparativos (Linha de Baixo) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Mês Atual vs Ano Anterior */}
           <Card className="col-span-1 flex flex-col shadow-sm">
             <CardHeader className="pb-2">
