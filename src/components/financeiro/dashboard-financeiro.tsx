@@ -4,24 +4,33 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { getDashboardFinanceiroData } from '@/app/actions/integrations/omie-dashboard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function DashboardFinanceiro() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    async function fetchData() {
-      const res = await getDashboardFinanceiroData();
-      if (res.error) {
-        setError(res.error);
-      } else {
-        setData(res.data);
-      }
-      setLoading(false);
+  const fetchData = async (forceRefresh = false) => {
+    if (forceRefresh) setRefreshing(true);
+    else setLoading(true);
+    
+    setError('');
+    const res = await getDashboardFinanceiroData(forceRefresh);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setData(res.data);
     }
-    fetchData();
+    
+    setLoading(false);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchData(false);
   }, []);
 
   if (loading) {
@@ -34,13 +43,14 @@ export function DashboardFinanceiro() {
 
   if (error || !data) {
     return (
-      <div className="flex h-[400px] w-full items-center justify-center text-red-500 font-medium">
-        {error || 'Erro ao carregar dados do dashboard.'}
+      <div className="flex flex-col h-[400px] w-full items-center justify-center gap-4">
+        <span className="text-red-500 font-medium">{error || 'Erro ao carregar dados do dashboard.'}</span>
+        <Button onClick={() => fetchData(true)} variant="outline">Tentar Novamente</Button>
       </div>
     );
   }
 
-  const { bloco1, bloco2 } = data;
+  const { blocoCaixa, blocoCompetencia, blocoHonorarios } = data;
 
   const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   const formatShortBRL = (val: number) => {
@@ -60,38 +70,37 @@ export function DashboardFinanceiro() {
     return null;
   };
 
-  const dataMesAtual = [
-    { name: bloco1.mesAtual.labelAnoAnterior, value: bloco1.mesAtual.anoAnterior },
-    { name: bloco1.mesAtual.labelAtual, value: bloco1.mesAtual.atual }
-  ];
+  const ChartRow = ({ title, dataBloco }: { title: string, dataBloco: any }) => {
+    const dataMesAtual = [
+      { name: dataBloco.mesAtual.labelAnoAnterior, value: dataBloco.mesAtual.anoAnterior },
+      { name: dataBloco.mesAtual.labelAtual, value: dataBloco.mesAtual.atual }
+    ];
 
-  const dataMesAnterior = [
-    { name: bloco1.mesAnterior.labelAnoAnterior, value: bloco1.mesAnterior.anoAnterior },
-    { name: bloco1.mesAnterior.labelAtual, value: bloco1.mesAnterior.atual }
-  ];
+    const dataMesAnterior = [
+      { name: dataBloco.mesAnterior.labelAnoAnterior, value: dataBloco.mesAnterior.anoAnterior },
+      { name: dataBloco.mesAnterior.labelAtual, value: dataBloco.mesAnterior.atual }
+    ];
 
-  return (
-    <div className="space-y-8">
-      {/* BLOCO 1 - RECEITAS TOTAIS */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 tracking-tight">RECEITAS TOTAIS</h2>
+    return (
+      <div className="space-y-4 pt-4 border-t border-slate-200">
+        <h2 className="text-xl font-bold text-slate-800 tracking-tight">{title}</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           
-          {/* 1.1: Total 12 Meses */}
-          <Card className="col-span-1 lg:col-span-1 flex flex-col shadow-sm">
+          {/* Total 12 Meses */}
+          <Card className="col-span-1 flex flex-col shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Últimos 12 Meses</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 min-h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bloco1.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {bloco1.ultimos12Meses.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={index === bloco1.ultimos12Meses.length - 1 ? '#f97316' : '#cbd5e1'} />
+                    {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#cbd5e1'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -99,8 +108,8 @@ export function DashboardFinanceiro() {
             </CardContent>
           </Card>
 
-          {/* 1.2: Mês Atual vs Ano Anterior */}
-          <Card className="col-span-1 lg:col-span-1 flex flex-col shadow-sm">
+          {/* Mês Atual vs Ano Anterior */}
+          <Card className="col-span-1 flex flex-col shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Mês Atual vs Ano Anterior</CardTitle>
             </CardHeader>
@@ -121,8 +130,8 @@ export function DashboardFinanceiro() {
             </CardContent>
           </Card>
 
-          {/* 1.3: Mês Anterior vs Ano Anterior */}
-          <Card className="col-span-1 lg:col-span-1 flex flex-col shadow-sm">
+          {/* Mês Anterior vs Ano Anterior */}
+          <Card className="col-span-1 flex flex-col shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Mês Anterior vs Ano Anterior</CardTitle>
             </CardHeader>
@@ -145,24 +154,44 @@ export function DashboardFinanceiro() {
 
         </div>
       </div>
+    );
+  };
 
-      {/* BLOCO 2 - HONORÁRIOS CONTÁBEIS */}
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard Financeiro</h1>
+        <Button 
+          onClick={() => fetchData(true)} 
+          disabled={refreshing}
+          variant="outline"
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Atualizando...' : 'Atualizar Dados'}
+        </Button>
+      </div>
+
+      <ChartRow title="RECEITAS TOTAIS RECEBIDAS (Regime de Caixa)" dataBloco={blocoCaixa} />
+      <ChartRow title="FATURAMENTO TOTAL (Regime de Competência)" dataBloco={blocoCompetencia} />
+
+      {/* BLOCO 3 - HONORÁRIOS CONTÁBEIS */}
       <div className="space-y-4 pt-4 border-t border-slate-200">
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">HONORÁRIOS CONTÁBEIS</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           <Card className="shadow-sm border-l-4 border-l-blue-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio (Mês Atual)</span>
-              <span className="text-3xl font-black text-slate-800">{formatBRL(bloco2.ticketMedio)}</span>
-              <span className="text-xs text-slate-400 mt-2 font-medium">Receita Recorrente / {bloco2.numClientesAtivos} clientes ativos</span>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio (Mês Anterior)</span>
+              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioMesAnterior || 0)}</span>
+              <span className="text-xs text-slate-400 mt-2 font-medium">Faturamento M.A. / {blocoHonorarios.numClientesAtivos} clientes ativos</span>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border-l-4 border-l-emerald-500">
             <CardContent className="p-6 flex flex-col gap-1">
               <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Receita Recorrente Mensal</span>
-              <span className="text-3xl font-black text-slate-800">{formatBRL(bloco2.receitaRecorrente)}</span>
+              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.receitaRecorrente || 0)}</span>
               <span className="text-xs text-slate-400 mt-2 font-medium">Soma de contratos fixos ativos</span>
             </CardContent>
           </Card>
@@ -171,11 +200,11 @@ export function DashboardFinanceiro() {
             <CardContent className="p-6 flex flex-col gap-1">
               <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio Acumulado</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-800">{formatBRL(bloco2.ticketMedioAcumuladoAnoCorrente)}</span>
+                <span className="text-2xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioAcumuladoAnoCorrente || 0)}</span>
                 <span className="text-xs text-slate-500 font-medium">Ano Atual</span>
               </div>
               <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
-                <span className="text-lg font-bold text-slate-600">{formatBRL(bloco2.ticketMedioAcumuladoAnoAnterior)}</span>
+                <span className="text-lg font-bold text-slate-600">{formatBRL(blocoHonorarios.ticketMedioAcumuladoAnoAnterior || 0)}</span>
                 <span className="text-xs text-slate-400 font-medium">Ano Anterior</span>
               </div>
             </CardContent>
@@ -183,13 +212,13 @@ export function DashboardFinanceiro() {
 
           <Card className="shadow-sm border-l-4 border-l-purple-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket / Faturam. (Mês Ant. vs Ano Ant.)</span>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket / Faturam. (M.A. Ano Ant.)</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black text-slate-800">{formatBRL(bloco2.ticketMedioMesAnteriorAnoAnterior)}</span>
+                <span className="text-xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioMesAnteriorAnoAnterior || 0)}</span>
                 <span className="text-xs text-slate-500 font-medium">Ticket M.A. (Ano Ant.)</span>
               </div>
               <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
-                <span className="text-lg font-bold text-slate-600">{formatBRL(bloco2.faturamentoMesAnteriorAnoAnterior)}</span>
+                <span className="text-lg font-bold text-slate-600">{formatBRL(blocoHonorarios.faturamentoMesAnteriorAnoAnterior || 0)}</span>
                 <span className="text-xs text-slate-400 font-medium">Faturam. M.A. (Ano Ant.)</span>
               </div>
             </CardContent>

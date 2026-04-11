@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { getOmieConfig } from './omie-config';
+import { db } from '@/lib/db';
 
 const CATEGORIAS_RECEITAS_TOTAIS = [
   'Honorários Contábeis', 'Honorários Contábeis Anual', 'Sistemas', 
@@ -16,7 +17,24 @@ const CATEGORIAS_HONORARIOS = [
 
 const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha'];
 
-export async function getDashboardFinanceiroData() {
+export async function getDashboardFinanceiroData(forceRefresh = false) {
+  if (!forceRefresh) {
+    try {
+      const cached = await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1');
+      if (cached.rows.length > 0) {
+        const lastUpdate = new Date(cached.rows[0].updated_at);
+        const now = new Date();
+        const diffHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+        // Usa o cache se for menor que 12 horas, a não ser que o usuário force
+        if (diffHours < 12 && cached.rows[0].data) {
+          return { success: true, data: cached.rows[0].data, cached: true, updated_at: lastUpdate };
+        }
+      }
+    } catch (e) {
+      console.warn("Aviso: tabela de cache não encontrada ou erro de leitura.");
+    }
+  }
+
   const config = await getOmieConfig();
 
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
@@ -27,7 +45,18 @@ export async function getDashboardFinanceiroData() {
   const appSecret = config.app_secret;
 
   try {
-    // 1. Buscar Contas Correntes
+    // 1. Categorias e Contas Correntes
+    const payloadCat = {
+      call: "ListarCategorias",
+      app_key: appKey,
+      app_secret: appSecret,
+      param: [{ pagina: 1, registros_por_pagina: 500 }]
+    };
+    const resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
+    const catList = resCat.data.categoria_cadastro || [];
+    const categoriasMap = new Map();
+    catList.forEach((cat: any) => categoriasMap.set(cat.codigo, cat.descricao));
+
     const payloadCc = {
       call: "ListarContasCorrentes",
       app_key: appKey,
@@ -37,7 +66,6 @@ export async function getDashboardFinanceiroData() {
     const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
     const ccList = resCc.data.ListarContasCorrentes || [];
     
-    // Filtrar contas ativas pelos nomes
     const contasAtivasIds: number[] = [];
     ccList.forEach((cc: any) => {
       const nome = cc.descricao || cc.cDescricao || '';
@@ -46,66 +74,86 @@ export async function getDashboardFinanceiroData() {
       }
     });
 
-    // Filtros de Data
     const formatOmieDate = (date: Date) => `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-
     const today = new Date();
-    // Para pegar também o ano anterior (janeiro do ano passado) para poder fazer os acumulados e comparações
-    const dataDe = `01/01/${today.getFullYear() - 1}`;
+    // 12 meses para trás a partir do início do mês atual (ex: se estamos em Abr 26, pega desde Mai 25)
+    // Para ter o ano anterior completo para comparação (ex: Abr 25), precisamos voltar 24 meses!
+    const twentyFourMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 23, 1);
+    const dataDe = formatOmieDate(twentyFourMonthsAgo);
     const dataAte = new Date(today.getFullYear(), today.getMonth() + 1, 0); // fim do mês atual
     const dataAteStr = formatOmieDate(dataAte);
 
-    // 2. Buscar Contas a Receber (Receitas) para cada conta ativa
-    // Usaremos ListarContasReceber que é mais estável para longos períodos que o ListarExtrato
+    // 2. RECEITAS TOTAIS RECEBIDAS (REGIME DE CAIXA) -> via ListarExtrato
     let todasReceitas: any[] = [];
-    let pagina = 1;
-    let totalPaginas = 1;
+    for (const nCodCC of contasAtivasIds) {
+      const payloadExtrato = {
+        call: "ListarExtrato",
+        app_key: appKey,
+        app_secret: appSecret,
+        param: [{
+          nCodCC,
+          dPeriodoInicial: dataDe,
+          dPeriodoFinal: dataAteStr
+        }]
+      };
+      try {
+        const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
+        const extrato = resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
+        
+        const receitas = extrato.filter((item: any) => {
+          if (item.cNatureza !== 'R') return false;
+          if (item.nValorDocumento <= 0) return false;
+          const categoria = item.cDesCategoria || '';
+          return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
+        });
+        
+        todasReceitas = [...todasReceitas, ...receitas];
+      } catch (err: any) {
+        console.warn(`Erro CC ${nCodCC}:`, err.response?.data?.faultstring || err.message);
+      }
+    }
+
+    // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
+    let todosFaturamentos: any[] = [];
+    let paginaFaturamento = 1;
+    let totalPaginasFaturamento = 1;
     do {
       const payloadContas = {
         call: "ListarContasReceber",
         app_key: appKey,
         app_secret: appSecret,
         param: [{
-          pagina,
+          pagina: paginaFaturamento,
           registros_por_pagina: 500,
-          filtrar_por_data_pagamento_de: dataDe,
-          filtrar_por_data_pagamento_ate: dataAteStr,
+          filtrar_por_data_de: dataDe,
+          filtrar_por_data_ate: dataAteStr
         }]
       };
-      
       try {
         const resContas = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadContas);
         const contas = resContas.data.conta_receber_cadastro || [];
-        totalPaginas = resContas.data.total_de_paginas || 1;
+        totalPaginasFaturamento = resContas.data.total_de_paginas || 1;
         
-        // Filtrar apenas contas liquidadas/recebidas que pertencem às contas ativas e categorias válidas
-        const contasFiltradas = contas.filter((item: any) => {
-          if (item.status_titulo !== 'RECEBIDO' && item.status_titulo !== 'LIQUIDADO') return false;
+        const fatFiltrados = contas.filter((item: any) => {
           if (item.valor_documento <= 0) return false;
-          
-          if (!contasAtivasIds.includes(item.id_conta_corrente)) return false;
-
-          // precisamos converter codigo_categoria para nome da categoria
           const nomeCategoria = categoriasMap.get(item.codigo_categoria) || '';
           return CATEGORIAS_RECEITAS_TOTAIS.some(c => nomeCategoria.toLowerCase().includes(c.toLowerCase()));
         });
         
-        // Mapear para o formato esperado pelo restante do código
-        const receitasMapeadas = contasFiltradas.map((c: any) => ({
-          dDataLancamento: c.data_pagamento || c.data_previsao,
-          nValorDocumento: c.valor_documento,
-          cDesCategoria: categoriasMap.get(c.codigo_categoria) || ''
+        const faturamentosMapeados = fatFiltrados.map((c: any) => ({
+          data: c.data_emissao || c.data_previsao,
+          valor: c.valor_documento
         }));
 
-        todasReceitas = [...todasReceitas, ...receitasMapeadas];
+        todosFaturamentos = [...todosFaturamentos, ...faturamentosMapeados];
       } catch (err: any) {
-        console.warn(`Erro ao buscar Contas a Receber (pág ${pagina}):`, err.response?.data?.faultstring || err.message);
-        break; // abortar loop em caso de erro grave
+        console.warn(`Erro Faturamento pág ${paginaFaturamento}:`, err.response?.data?.faultstring || err.message);
+        break;
       }
-      pagina++;
-    } while (pagina <= totalPaginas);
+      paginaFaturamento++;
+    } while (paginaFaturamento <= totalPaginasFaturamento);
 
-    // 3. Buscar Contratos (para Receita Recorrente e Clientes Ativos)
+    // 4. CONTRATOS E TICKET MÉDIO (HONORÁRIOS CONTÁBEIS)
     let todosContratos: any[] = [];
     let paginaContratos = 1;
     let totalPaginasContratos = 1;
@@ -116,123 +164,136 @@ export async function getDashboardFinanceiroData() {
         app_secret: appSecret,
         param: [{ pagina: paginaContratos, registros_por_pagina: 100 }]
       };
-      const resContratos = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratos);
-      const contratos = resContratos.data.contratoCadastro || [];
-      todosContratos = [...todosContratos, ...contratos];
-      totalPaginasContratos = resContratos.data.total_de_paginas || 1;
+      try {
+        const resContratos = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratos);
+        const contratos = resContratos.data.contratoCadastro || [];
+        todosContratos = [...todosContratos, ...contratos];
+        totalPaginasContratos = resContratos.data.total_de_paginas || 1;
+      } catch (err: any) {
+        console.warn(`Erro Contratos pág ${paginaContratos}:`, err.response?.data?.faultstring || err.message);
+        break;
+      }
       paginaContratos++;
     } while (paginaContratos <= totalPaginasContratos);
 
-    // Processamento dos Dados
-    
-    // BLOCO 1 - Receitas Totais
-    const receitasPorMes = new Map<string, number>();
-    const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    const currentMonthLastYearKey = `${today.getFullYear() - 1}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
-
-    // Preparar chaves dos últimos 12 meses
-    const ultimos12Meses: { month: string; label: string; value: number }[] = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '').toUpperCase();
-      ultimos12Meses.push({ month: key, label, value: 0 });
-      receitasPorMes.set(key, 0);
-    }
-
-    // Somar receitas por mês
-    todasReceitas.forEach(r => {
-      const parts = (r.dDataLancamento || r.dDataConciliacao).split('/'); // dd/mm/yyyy
-      if (parts.length === 3) {
-        const key = `${parts[2]}-${parts[1]}`;
-        if (receitasPorMes.has(key)) {
-          receitasPorMes.set(key, (receitasPorMes.get(key) || 0) + r.nValorDocumento);
-        } else {
-          receitasPorMes.set(key, r.nValorDocumento); // para guardar meses anteriores (ano anterior) se houver
+    // Processamento
+    const processarMeses = (dados: any[], dataKey: string, valKey: string) => {
+      const map = new Map<string, number>();
+      dados.forEach(r => {
+        const d = r[dataKey];
+        if (!d) return;
+        const parts = d.split('/');
+        if (parts.length === 3) {
+          const key = `${parts[2]}-${parts[1]}`;
+          map.set(key, (map.get(key) || 0) + r[valKey]);
         }
+      });
+      return map;
+    };
+
+    const receitasCaixaPorMes = processarMeses(todasReceitas, 'dDataLancamento', 'nValorDocumento');
+    const faturamentoPorMes = processarMeses(todosFaturamentos, 'data', 'valor');
+
+    const buildCharts = (mapData: Map<string, number>) => {
+      const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
+      const currentMonthLastYearKey = `${today.getFullYear() - 1}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+      const ultimos12Meses = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '').toUpperCase();
+        ultimos12Meses.push({ month: key, label, value: mapData.get(key) || 0 });
       }
-    });
 
-    // Atualizar array dos últimos 12 meses
-    ultimos12Meses.forEach(m => {
-      m.value = receitasPorMes.get(m.month) || 0;
-    });
+      return {
+        ultimos12Meses,
+        mesAtual: {
+          atual: mapData.get(currentMonthKey) || 0,
+          anoAnterior: mapData.get(currentMonthLastYearKey) || 0,
+          labelAtual: today.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
+          labelAnoAnterior: new Date(today.getFullYear() - 1, today.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${today.getFullYear() - 1}`
+        },
+        mesAnterior: {
+          atual: mapData.get(previousMonthKey) || 0,
+          anoAnterior: mapData.get(previousMonthLastYearKey) || 0,
+          labelAtual: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
+          labelAnoAnterior: new Date(previousMonthDate.getFullYear() - 1, previousMonthDate.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${previousMonthDate.getFullYear() - 1}`
+        }
+      };
+    };
 
-    // BLOCO 2 - Honorários Contábeis
-    // Filtrar apenas contratos ativos
+    const blocoCaixa = buildCharts(receitasCaixaPorMes);
+    const blocoCompetencia = buildCharts(faturamentoPorMes);
+
+    // Ticket Médio
     const contratosAtivos = todosContratos.filter(c => c.cabecalho?.cCodSit === '10' || c.cabecalho?.cCodSit === '20');
-    
     let receitaRecorrente = 0;
     const clientesAtivosSet = new Set<number>();
-
     contratosAtivos.forEach(c => {
       clientesAtivosSet.add(c.cabecalho.nCodCli);
       receitaRecorrente += (c.cabecalho.nValTotMes || 0);
     });
-
     const numClientesAtivos = clientesAtivosSet.size || 1;
 
-    // Calcular Ticket Médio baseado na Receita Recorrente atual
-    const ticketMedio = receitaRecorrente / numClientesAtivos;
+    // Faturamento Honorários do mês anterior (baseado em contratos ativos? ou faturamento filtrado?)
+    // Vamos usar o faturamento total do mês anterior e dividir pelo número de clientes.
+    const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
-    // Faturamento Recorrente do Mês Anterior (referente ao ano anterior)
-    // Se hoje é ABRIL 2026 -> Mês Anterior é MARÇO 2026. O mesmo mês do ano anterior seria MARÇO 2025.
-    const faturamentoMesAnteriorAnoAnterior = receitasPorMes.get(previousMonthLastYearKey) || 0;
-    // O Ticket médio desse mês anterior do ano passado = Faturamento / (vamos assumir o mesmo numero de clientes, pois Omie n traz histórico de base facilmente)
-    // Para simplificar, Ticket Médio do mesmo período = Faturamento / Clientes
+    // Faturamento e ticket médio do mês anterior vs ano anterior
+    const faturamentoMesAnterior = faturamentoPorMes.get(previousMonthKey) || 0;
+    const ticketMedioMesAnterior = faturamentoMesAnterior / numClientesAtivos;
+    const faturamentoMesAnteriorAnoAnterior = faturamentoPorMes.get(previousMonthLastYearKey) || 0;
     const ticketMedioMesAnteriorAnoAnterior = faturamentoMesAnteriorAnoAnterior / numClientesAtivos;
 
-    // Ticket Médio Acumulado do Ano Corrente
+    // Acumulados do ano corrente
     let faturamentoAcumuladoAnoCorrente = 0;
     for (let m = 1; m <= today.getMonth() + 1; m++) {
       const k = `${today.getFullYear()}-${String(m).padStart(2, '0')}`;
-      faturamentoAcumuladoAnoCorrente += (receitasPorMes.get(k) || 0);
+      faturamentoAcumuladoAnoCorrente += (faturamentoPorMes.get(k) || 0);
     }
-    // Meses passados até agora
-    const mesesPassados = today.getMonth() + 1;
-    const ticketMedioAcumuladoAnoCorrente = faturamentoAcumuladoAnoCorrente / numClientesAtivos / mesesPassados;
+    const ticketMedioAcumuladoAnoCorrente = faturamentoAcumuladoAnoCorrente / numClientesAtivos / (today.getMonth() + 1);
 
-    // Ticket Médio Acumulado do Ano Anterior
+    // Acumulados do ano anterior
     let faturamentoAcumuladoAnoAnterior = 0;
     for (let m = 1; m <= 12; m++) {
       const k = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
-      faturamentoAcumuladoAnoAnterior += (receitasPorMes.get(k) || 0);
+      faturamentoAcumuladoAnoAnterior += (faturamentoPorMes.get(k) || 0);
     }
     const ticketMedioAcumuladoAnoAnterior = faturamentoAcumuladoAnoAnterior / numClientesAtivos / 12;
 
-    return {
-      success: true,
-      data: {
-        bloco1: {
-          ultimos12Meses: ultimos12Meses.reverse(), // Ordenar cronologicamente do mais antigo pro mais novo
-          mesAtual: {
-            atual: receitasPorMes.get(currentMonthKey) || 0,
-            anoAnterior: receitasPorMes.get(currentMonthLastYearKey) || 0,
-            labelAtual: today.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
-            labelAnoAnterior: new Date(today.getFullYear() - 1, today.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${today.getFullYear() - 1}`
-          },
-          mesAnterior: {
-            atual: receitasPorMes.get(previousMonthKey) || 0,
-            anoAnterior: receitasPorMes.get(previousMonthLastYearKey) || 0,
-            labelAtual: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
-            labelAnoAnterior: new Date(previousMonthDate.getFullYear() - 1, previousMonthDate.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${previousMonthDate.getFullYear() - 1}`
-          }
-        },
-        bloco2: {
-          ticketMedio,
-          receitaRecorrente,
-          numClientesAtivos,
-          faturamentoMesAnteriorAnoAnterior,
-          ticketMedioMesAnteriorAnoAnterior,
-          ticketMedioAcumuladoAnoCorrente,
-          ticketMedioAcumuladoAnoAnterior
-        }
+    const finalData = {
+      blocoCaixa,
+      blocoCompetencia,
+      blocoHonorarios: {
+        ticketMedioMesAnterior,
+        faturamentoMesAnterior,
+        receitaRecorrente,
+        numClientesAtivos,
+        faturamentoMesAnteriorAnoAnterior,
+        ticketMedioMesAnteriorAnoAnterior,
+        ticketMedioAcumuladoAnoCorrente,
+        ticketMedioAcumuladoAnoAnterior
       }
     };
+
+    // Salvar no Cache
+    try {
+      await db.query(`
+        INSERT INTO omie_dashboard_cache (id, data, updated_at) 
+        VALUES (1, $1, NOW()) 
+        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+      `, [JSON.stringify(finalData)]);
+    } catch (e) {
+      console.warn("Erro ao salvar cache", e);
+    }
+
+    return { success: true, data: finalData, cached: false, updated_at: new Date() };
   } catch (error: any) {
     console.error('Erro ao buscar dados do Dashboard Financeiro:', error.response?.data || error.message);
     return { error: 'Falha ao buscar dados do Dashboard Financeiro.' };

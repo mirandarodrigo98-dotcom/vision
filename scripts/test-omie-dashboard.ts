@@ -37,20 +37,19 @@ async function run() {
   });
 
     const payload = {
-      call: "ListarContasReceber",
+      call: "ListarContratos",
       app_key: config.app_key,
       app_secret: config.app_secret,
       param: [{
         pagina: 1,
-        registros_por_pagina: 500,
-        filtrar_por_data_pagamento_de: "01/01/2026",
-        filtrar_por_data_pagamento_ate: "31/12/2026",
+        registros_por_pagina: 10
       }]
     };
     try {
-      const res = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
-      console.log(res.data.conta_receber_cadastro.length);
-    } catch (e: any) {
+      const response = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payload);
+    const cabecalho = response.data.contratoCadastro[3].cabecalho;
+    console.log(cabecalho);
+  } catch (err: any) {
       console.log(e.response?.data);
     }
 }
