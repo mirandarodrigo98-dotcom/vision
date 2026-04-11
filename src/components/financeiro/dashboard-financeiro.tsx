@@ -155,7 +155,7 @@ export function DashboardFinanceiro() {
             <CardContent className="p-6 flex flex-col gap-1">
               <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio (Mês Atual)</span>
               <span className="text-3xl font-black text-slate-800">{formatBRL(bloco2.ticketMedio)}</span>
-              <span className="text-xs text-slate-400 mt-2 font-medium">Receita bruta honorários / {bloco2.numClientesAtivos} clientes ativos</span>
+              <span className="text-xs text-slate-400 mt-2 font-medium">Receita Recorrente / {bloco2.numClientesAtivos} clientes ativos</span>
             </CardContent>
           </Card>
 
@@ -167,17 +167,31 @@ export function DashboardFinanceiro() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-l-4 border-l-orange-500 opacity-60">
-            <CardContent className="p-6 flex flex-col gap-1 items-center justify-center text-center h-full">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Métrica 3 (Em breve)</span>
-              <span className="text-xs text-slate-400 mt-1">Espaço reservado para novo KPI</span>
+          <Card className="shadow-sm border-l-4 border-l-orange-500">
+            <CardContent className="p-6 flex flex-col gap-1">
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio Acumulado</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-800">{formatBRL(bloco2.ticketMedioAcumuladoAnoCorrente)}</span>
+                <span className="text-xs text-slate-500 font-medium">Ano Atual</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
+                <span className="text-lg font-bold text-slate-600">{formatBRL(bloco2.ticketMedioAcumuladoAnoAnterior)}</span>
+                <span className="text-xs text-slate-400 font-medium">Ano Anterior</span>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-l-4 border-l-purple-500 opacity-60">
-            <CardContent className="p-6 flex flex-col gap-1 items-center justify-center text-center h-full">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Métrica 4 (Em breve)</span>
-              <span className="text-xs text-slate-400 mt-1">Espaço reservado para novo KPI</span>
+          <Card className="shadow-sm border-l-4 border-l-purple-500">
+            <CardContent className="p-6 flex flex-col gap-1">
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket / Faturam. (Mês Ant. vs Ano Ant.)</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-black text-slate-800">{formatBRL(bloco2.ticketMedioMesAnteriorAnoAnterior)}</span>
+                <span className="text-xs text-slate-500 font-medium">Ticket M.A. (Ano Ant.)</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
+                <span className="text-lg font-bold text-slate-600">{formatBRL(bloco2.faturamentoMesAnteriorAnoAnterior)}</span>
+                <span className="text-xs text-slate-400 font-medium">Faturam. M.A. (Ano Ant.)</span>
+              </div>
             </CardContent>
           </Card>
 

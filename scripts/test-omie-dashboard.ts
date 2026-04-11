@@ -19,22 +19,39 @@ async function run() {
 
   if (!config) return console.log('No config');
 
-  const payload = {
-    call: "ListarContratos",
+  const payloadCc = {
+    call: "ListarContasCorrentes",
     app_key: config.app_key,
     app_secret: config.app_secret,
-    param: [{
-      pagina: 1,
-      registros_por_pagina: 10
-    }]
+    param: [{ pagina: 1, registros_por_pagina: 500 }]
   };
+  const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
+  const ccList = resCc.data.ListarContasCorrentes || [];
+  const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha'];
+  const contasAtivasIds: number[] = [];
+  ccList.forEach((cc: any) => {
+    const nome = cc.descricao || cc.cDescricao || '';
+    if (CONTAS_ATIVAS.some(c => nome.toLowerCase().includes(c.toLowerCase()))) {
+      contasAtivasIds.push(cc.nIdCC || cc.nCodCC);
+    }
+  });
 
-  try {
-    const response = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payload);
-    console.log(response.data.contratoCadastro[0].cabecalho);
-    console.log(response.data.contratoCadastro[0].itensContrato);
-  } catch (err: any) {
-    console.error(err.response?.data || err.message);
-  }
+    const payload = {
+      call: "ListarContasReceber",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [{
+        pagina: 1,
+        registros_por_pagina: 500,
+        filtrar_por_data_pagamento_de: "01/01/2026",
+        filtrar_por_data_pagamento_ate: "31/12/2026",
+      }]
+    };
+    try {
+      const res = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
+      console.log(res.data.conta_receber_cadastro.length);
+    } catch (e: any) {
+      console.log(e.response?.data);
+    }
 }
 run();
