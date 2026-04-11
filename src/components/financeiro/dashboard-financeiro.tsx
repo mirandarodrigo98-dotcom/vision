@@ -95,10 +95,17 @@ export function DashboardFinanceiro() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} interval={0} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <LabelList 
+                      dataKey="value" 
+                      position="insideTop" 
+                      offset={10} 
+                      formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} 
+                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#ffffff' }} 
+                    />
                     {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#cbd5e1'} />
                     ))}
@@ -123,7 +130,7 @@ export function DashboardFinanceiro() {
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     <Cell fill="#94a3b8" />
                     <Cell fill="#10b981" />
-                    <LabelList dataKey="value" position="insideTop" offset={10} formatter={(val: number) => formatShortBRL(val)} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
+                    <LabelList dataKey="value" position={dataMesAtual[0].value === 0 && dataMesAtual[1].value === 0 ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -145,7 +152,7 @@ export function DashboardFinanceiro() {
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     <Cell fill="#94a3b8" />
                     <Cell fill="#3b82f6" />
-                    <LabelList dataKey="value" position="insideTop" offset={10} formatter={(val: number) => formatShortBRL(val)} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
+                    <LabelList dataKey="value" position={dataMesAnterior[0].value === 0 && dataMesAnterior[1].value === 0 ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
