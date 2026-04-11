@@ -71,6 +71,18 @@ export function DashboardFinanceiro() {
   };
 
   const ChartRow = ({ title, dataBloco }: { title: string, dataBloco: any }) => {
+    if (!dataBloco || !dataBloco.mesAtual || !dataBloco.mesAnterior || !dataBloco.ultimos12Meses) {
+      return (
+        <div className="space-y-4 pt-4 border-t border-slate-200">
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">{title}</h2>
+          <Card className="w-full flex flex-col shadow-sm">
+            <CardContent className="flex-1 min-h-[350px] flex items-center justify-center text-muted-foreground">
+              Sem dados disponíveis no momento.
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     const dataMesAtual = [
       { name: dataBloco.mesAtual.labelAnoAnterior, value: dataBloco.mesAtual.anoAnterior },
       { name: dataBloco.mesAtual.labelAtual, value: dataBloco.mesAtual.atual }
@@ -131,7 +143,7 @@ export function DashboardFinanceiro() {
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     <Cell fill="#94a3b8" />
                     <Cell fill="#10b981" />
-                    <LabelList dataKey="value" position={dataMesAtual[0].value === 0 && dataMesAtual[1].value === 0 ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
+                    <LabelList dataKey="value" position={(dataMesAtual[0]?.value === 0 && dataMesAtual[1]?.value === 0) ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -153,7 +165,7 @@ export function DashboardFinanceiro() {
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                     <Cell fill="#94a3b8" />
                     <Cell fill="#3b82f6" />
-                    <LabelList dataKey="value" position={dataMesAnterior[0].value === 0 && dataMesAnterior[1].value === 0 ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
+                    <LabelList dataKey="value" position={(dataMesAnterior[0]?.value === 0 && dataMesAnterior[1]?.value === 0) ? "top" : "insideTop"} offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#ffffff' }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
