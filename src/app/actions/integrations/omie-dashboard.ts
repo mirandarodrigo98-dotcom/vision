@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import { getOmieConfig } from './omie-config';
-import { db } from '@/lib/db';
+import db from '@/lib/db';
 
 const CATEGORIAS_RECEITAS_TOTAIS = [
   'Honorários Contábeis', 'Honorários Contábeis Anual', 'Sistemas', 
@@ -20,14 +20,14 @@ const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha']
 export async function getDashboardFinanceiroData(forceRefresh = false) {
   if (!forceRefresh) {
     try {
-      const cached = await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1');
-      if (cached.rows.length > 0) {
-        const lastUpdate = new Date(cached.rows[0].updated_at);
+      const cached = await db.prepare('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1').get();
+      if (cached) {
+        const lastUpdate = new Date(cached.updated_at);
         const now = new Date();
         const diffHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
         // Usa o cache se for menor que 12 horas, a não ser que o usuário force
-        if (diffHours < 12 && cached.rows[0].data) {
-          return { success: true, data: cached.rows[0].data, cached: true, updated_at: lastUpdate };
+        if (diffHours < 12 && cached.data) {
+          return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
         }
       }
     } catch (e) {
@@ -284,11 +284,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     // Salvar no Cache
     try {
-      await db.query(`
+      await db.prepare(`
         INSERT INTO omie_dashboard_cache (id, data, updated_at) 
-        VALUES (1, $1, NOW()) 
+        VALUES (1, ?, NOW()) 
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-      `, [JSON.stringify(finalData)]);
+      `).run(JSON.stringify(finalData));
     } catch (e) {
       console.warn("Erro ao salvar cache", e);
     }
