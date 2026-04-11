@@ -93,14 +93,14 @@ export async function getIRReceiptStats() {
   const notReceivedCount = notReceivedDecls.length;
   
   // Received value uses the actual receipt value (or fallback to service value if missing)
-  const receivedValue = receivedDecls.reduce((sum, d) => sum + (d.receipt_value || d.service_value || 0), 0);
+  const receivedValue = receivedDecls.reduce((sum, d) => sum + (Number(d.receipt_value) || Number(d.service_value) || 0), 0);
   
   // Not received value uses the service value
-  const notReceivedValue = notReceivedDecls.reduce((sum, d) => sum + (d.service_value || 0), 0);
+  const notReceivedValue = notReceivedDecls.reduce((sum, d) => sum + (Number(d.service_value) || 0), 0);
 
   return [
-    { name: 'Recebidas', value: receivedCount, moneyValue: receivedValue },
-    { name: 'Não Recebidas', value: notReceivedCount, moneyValue: notReceivedValue }
+    { name: 'Recebidas', value: receivedCount, moneyValue: Number(receivedValue) },
+    { name: 'Não Recebidas', value: notReceivedCount, moneyValue: Number(notReceivedValue) }
   ];
 }
 
