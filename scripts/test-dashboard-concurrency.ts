@@ -9,6 +9,8 @@ async function test() {
             console.error("Erro:", res.error);
         } else {
             console.log("Sucesso! Data:");
+            console.log("Extrato Ultimos 12 Meses:", res.data?.blocoCaixa?.ultimos12Meses);
+            console.log("Faturamento Ultimos 12 Meses:", res.data?.blocoCompetencia?.ultimos12Meses);
             console.log("Extrato Total:", res.data?.blocoCaixa?.ultimos12Meses?.reduce((a: any, b: any) => a + b.value, 0));
             console.log("Contratos Ativos:", res.data?.blocoHonorarios?.numClientesAtivos);
         }

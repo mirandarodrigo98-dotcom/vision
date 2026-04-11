@@ -276,10 +276,10 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       dados.forEach(r => {
         const d = r[dataKey];
         if (!d) return;
-        const parts = d.split('/');
+        const parts = String(d).split('/');
         if (parts.length === 3) {
           const key = `${parts[2]}-${parts[1]}`;
-          map.set(key, (map.get(key) || 0) + r[valKey]);
+          map.set(key, (map.get(key) || 0) + (Number(r[valKey]) || 0));
         }
       });
       return map;
