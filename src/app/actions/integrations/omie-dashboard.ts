@@ -83,11 +83,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     const dataAte = new Date(today.getFullYear(), today.getMonth() + 1, 0); // fim do mês atual
     const dataAteStr = formatOmieDate(dataAte);
 
-    // Como o Omie não aceita períodos muito longos no extrato (ex: > 1 ano retorna vazio), vamos quebrar em semestres ou anos
+    // Como o Omie tem limite de 300 registros no extrato, vamos quebrar por MÊS para não truncar os dados
     const periodosExtrato: { de: string, ate: string }[] = [];
     let curDate = new Date(thirteenMonthsAgo.getTime());
     while (curDate <= dataAte) {
-      const nextDate = new Date(curDate.getFullYear(), curDate.getMonth() + 6, 0); // avança 6 meses (fim do mês)
+      const nextDate = new Date(curDate.getFullYear(), curDate.getMonth() + 1, 0); // avança 1 mês (fim do mês)
       const actualNext = nextDate > dataAte ? dataAte : nextDate;
       periodosExtrato.push({
         de: formatOmieDate(curDate),
@@ -104,25 +104,22 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       for (const periodo of periodosExtrato) {
         extratoPromises.push(async () => {
           const localReceitas: any[] = [];
-          let nPaginaExtrato = 1;
-          let totalPaginasExtrato = 1;
-          do {
-            const payloadExtrato = {
-              call: "ListarExtrato",
-              app_key: appKey,
-              app_secret: appSecret,
-              param: [{
-                nCodCC,
-                dPeriodoInicial: periodo.de,
-                dPeriodoFinal: periodo.ate,
-                nPagina: nPaginaExtrato,
-                nRegPorPagina: 500
-              }]
-            };
+          const payloadExtrato = {
+            call: "ListarExtrato",
+            app_key: appKey,
+            app_secret: appSecret,
+            param: [{
+              nCodCC,
+              dPeriodoInicial: periodo.de,
+              dPeriodoFinal: periodo.ate
+            }]
+          };
+          let retryCount = 0;
+          let success = false;
+          while (retryCount < 3 && !success) {
             try {
               const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
               const extrato = resExtrato.data.listaMovimentos || resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
-              totalPaginasExtrato = resExtrato.data.nTotPaginas || 1;
               
               const receitas = extrato.filter((item: any) => {
                 if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
@@ -133,41 +130,30 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
                 return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
               });
               localReceitas.push(...receitas);
+              success = true;
             } catch (err: any) {
-              try {
-                const payloadExtratoSemPagina = {
-                  call: "ListarExtrato",
-                  app_key: appKey,
-                  app_secret: appSecret,
-                  param: [{ nCodCC, dPeriodoInicial: periodo.de, dPeriodoFinal: periodo.ate }]
-                };
-                const resExtrato2 = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtratoSemPagina);
-                const extrato2 = resExtrato2.data.listaMovimentos || resExtrato2.data.listaExtrato || resExtrato2.data.extrato || [];
-                const receitas2 = extrato2.filter((item: any) => {
-                  if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
-                  if (item.cNatureza && item.cNatureza !== 'R') return false; 
-                  const valor = item.nValorDocumento || 0;
-                  if (valor <= 0) return false;
-                  const categoria = item.cDesCategoria || '';
-                  return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
-                });
-                localReceitas.push(...receitas2);
-              } catch (e2) {}
-              break;
+              retryCount++;
+              if (retryCount >= 3) break;
+              // Wait 2 seconds before retrying to avoid REDUNDANT limit
+              await new Promise(r => setTimeout(r, 2000));
             }
-            nPaginaExtrato++;
-          } while (nPaginaExtrato <= totalPaginasExtrato);
+          }
           return localReceitas;
         });
       }
     }
     const extratoResults = [];
-    const batchSize = 3;
+    const batchSize = 2; // Reduce batch size to avoid Omie parallel limits
+    console.log(`Starting extrato requests... Total promises: ${extratoPromises.length}`);
     for (let i = 0; i < extratoPromises.length; i += batchSize) {
+      console.log(`Processing extrato batch ${i / batchSize + 1} of ${Math.ceil(extratoPromises.length / batchSize)}`);
       const batch = extratoPromises.slice(i, i + batchSize);
       const res = await Promise.all(batch.map(fn => fn()));
       extratoResults.push(...res);
+      // Small delay between batches to avoid rate limits
+      await new Promise(r => setTimeout(r, 200));
     }
+    console.log('Finished extrato requests');
     extratoResults.forEach(arr => todasReceitas.push(...arr));
 
     // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
@@ -227,6 +213,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
         const batch = contasPromises.slice(i, i + batchSize);
         const res = await Promise.all(batch.map(fn => fn()));
         faturamentoResults.push(...res);
+        await new Promise(r => setTimeout(r, 200));
       }
       faturamentoResults.forEach(arr => todosFaturamentos.push(...arr));
     } catch (e) {}
@@ -266,6 +253,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
         const batch = contratosPromises.slice(i, i + batchSize);
         const res = await Promise.all(batch.map(fn => fn()));
         contratosResults.push(...res);
+        await new Promise(r => setTimeout(r, 200));
       }
       contratosResults.forEach(arr => todosContratos.push(...arr));
     } catch (e) {}

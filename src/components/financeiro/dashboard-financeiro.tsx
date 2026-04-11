@@ -55,9 +55,7 @@ export function DashboardFinanceiro() {
   const formatBRL = (val: any) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0);
   const formatShortBRL = (val: any) => {
     const num = Number(val) || 0;
-    if (num >= 1000000) return `R$ ${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `R$ ${(num / 1000).toFixed(1)}k`;
-    return `R$ ${num.toFixed(0)}`;
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
