@@ -52,7 +52,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* 1. Status das Declarações */}
       <Card className="w-full flex flex-col">
         <CardHeader className="pb-2">
@@ -157,38 +157,72 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                   </div>
                 </div>
               </div>
-              {/* Custom Legend & Values replacing badges to ensure alignment and elegant BRL display */}
-              <div className="mt-4 flex flex-col gap-3 shrink-0 border-t pt-4">
-                <div className="flex justify-between items-center px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></div>
-                    <span className="text-sm font-medium text-slate-700">Recebidas</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-slate-700">
-                      {receiptsStats.find(r => r.name === 'Recebidas')?.value || 0} decl.
-                    </div>
-                    <div className="text-xs font-semibold text-emerald-600">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0)}
-                    </div>
-                  </div>
+              {/* Removido o Custom Legend com valores - Movido para o 3º Card */}
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              Sem dados de recebimento
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3. Detalhamento Financeiro (Valores Recebidos e Não Recebidos) */}
+      <Card className="w-full flex flex-col">
+        <CardHeader className="pb-2">
+          <CardTitle>Detalhamento Financeiro</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col h-[400px] justify-center">
+          {(receiptsStats && receiptsStats.length > 0) ? (
+            <div className="flex flex-col gap-6">
+              <div className="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-[#10b981]"></div>
+                  <span className="text-base font-semibold text-emerald-900">Recebidas</span>
                 </div>
-                <div className="flex justify-between items-center px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
-                    <span className="text-sm font-medium text-slate-700">Não Recebidas</span>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-emerald-800">
+                    {receiptsStats.find(r => r.name === 'Recebidas')?.value || 0} decl.
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-slate-700">
-                      {receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0} decl.
-                    </div>
-                    <div className="text-xs font-semibold text-red-600">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)}
-                    </div>
+                  <div className="text-lg font-bold text-emerald-600">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0)}
                   </div>
                 </div>
               </div>
-            </>
+
+              <div className="flex justify-between items-center p-4 bg-red-50 border border-red-100 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
+                  <span className="text-base font-semibold text-red-900">Não Recebidas</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-red-800">
+                    {receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0} decl.
+                  </div>
+                  <div className="text-lg font-bold text-red-600">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-lg mt-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-slate-800"></div>
+                  <span className="text-base font-bold text-slate-900">Total Esperado</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-700">
+                    {receiptsTotal} decl.
+                  </div>
+                  <div className="text-xl font-black text-slate-800">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      (Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0) + 
+                      (Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               Sem dados de recebimento
