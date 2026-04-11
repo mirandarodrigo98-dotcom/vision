@@ -53,7 +53,7 @@ export async function ensureMigrations() {
       // But better-sqlite3/pg might handle multiple. Let's try splitting to be safe.
       const statements = MIGRATION_025.split(';').map(s => s.trim()).filter(s => s.length > 0);
       for (const stmt of statements) {
-          await db.prepare(stmt).run();
+          await db.query(stmt, []);
       }
       console.log('Migration 025 applied.');
     } catch (e: any) {
@@ -64,7 +64,7 @@ export async function ensureMigrations() {
     try {
       console.log('Applying migration 026 (description TEXT)...');
       // Postgres: ALTER TABLE ... ALTER COLUMN ... TYPE ...
-      await db.prepare('ALTER TABLE eklesia_categories ALTER COLUMN description TYPE TEXT').run();
+      await db.query('ALTER TABLE eklesia_categories ALTER COLUMN description TYPE TEXT', []);
       console.log('Migration 026 applied.');
     } catch (e: any) {
       // Ignore if error is specific to "already TEXT" (Postgres usually doesn't complain if same type, but let's be safe)
@@ -74,14 +74,14 @@ export async function ensureMigrations() {
     // Migration 027: Add is_active
     try {
       console.log('Applying migration 027 (is_active)...');
-      await db.prepare('ALTER TABLE eklesia_categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE').run();
+      await db.query('ALTER TABLE eklesia_categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE', []);
       console.log('Migration 027 (categories) applied.');
     } catch (e: any) {
       console.log('Migration 027 (categories) result:', e.message);
     }
 
     try {
-        await db.prepare('ALTER TABLE eklesia_accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE').run();
+        await db.query('ALTER TABLE eklesia_accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE', []);
         console.log('Migration 027 (accounts) applied.');
     } catch (e: any) {
         console.log('Migration 027 (accounts) result:', e.message);
@@ -90,9 +90,9 @@ export async function ensureMigrations() {
     // Migration 028: Add questor sync columns to eklesia_transactions
     try {
       console.log('Applying migration 028 (questor sync columns)...');
-      await db.prepare('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_synced_at TIMESTAMP').run();
-      await db.prepare('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_sync_id TEXT').run();
-      await db.prepare('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_sync_error TEXT').run();
+      await db.query('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_synced_at TIMESTAMP', []);
+      await db.query('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_sync_id TEXT', []);
+      await db.query('ALTER TABLE eklesia_transactions ADD COLUMN IF NOT EXISTS questor_sync_error TEXT', []);
       console.log('Migration 028 applied.');
     } catch (e: any) {
       console.log('Migration 028 result:', e.message);
@@ -101,8 +101,8 @@ export async function ensureMigrations() {
     // Migration 029: Add recebimento and aliquota_efetiva to simples_nacional_billing
     try {
       console.log('Applying migration 029 (simples_nacional_billing columns)...');
-      await db.prepare('ALTER TABLE simples_nacional_billing ADD COLUMN IF NOT EXISTS recebimento DECIMAL(15,2) DEFAULT 0').run();
-      await db.prepare('ALTER TABLE simples_nacional_billing ADD COLUMN IF NOT EXISTS aliquota_efetiva DECIMAL(10,4) DEFAULT 0').run();
+      await db.query('ALTER TABLE simples_nacional_billing ADD COLUMN IF NOT EXISTS recebimento DECIMAL(15,2) DEFAULT 0', []);
+      await db.query('ALTER TABLE simples_nacional_billing ADD COLUMN IF NOT EXISTS aliquota_efetiva DECIMAL(10,4) DEFAULT 0', []);
       console.log('Migration 029 applied.');
     } catch (e: any) {
       console.log('Migration 029 result:', e.message);

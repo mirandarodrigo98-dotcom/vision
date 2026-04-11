@@ -44,10 +44,10 @@ export async function createProcess(formData: FormData) {
   // Permission check for company access
   if (company_id) {
     if (session.role === 'client_user') {
-      const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+      const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
       if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
     } else if (session.role === 'operator') {
-      const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+      const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
       if (restricted) return { error: 'Sem permissão para esta empresa.' };
     }
   }
@@ -56,21 +56,15 @@ export async function createProcess(formData: FormData) {
   const razao_social = type === 'CONSTITUICAO' ? (razao_social_input || null) : null;
 
   const id = randomUUID();
-  await db.prepare(`
+  await db.query(`
     INSERT INTO societario_processes (
       id, type, status, company_id, razao_social, nome_fantasia, capital_social_centavos,
       socio_administrador, objeto_social, telefone, email, observacao, natureza_juridica, porte, tributacao,
       inscricao_imobiliaria, compl_cep, compl_logradouro_tipo, compl_logradouro, compl_numero,
       compl_complemento, compl_bairro, compl_municipio, compl_uf,
       created_by_user_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id, type, status, company_id, razao_social, nome_fantasia, capital_social_centavos,
-    socio_administrador, objeto_social, telefone, email, observacao, natureza_juridica, porte, tributacao,
-    inscricao_imobiliaria, compl_cep, compl_logradouro_tipo, compl_logradouro, compl_numero,
-    compl_complemento, compl_bairro, compl_municipio, compl_uf,
-    session.user_id
-  );
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+  `, [id, type, status, company_id, razao_social, nome_fantasia, capital_social_centavos, socio_administrador, objeto_social, telefone, email, observacao, natureza_juridica, porte, tributacao, inscricao_imobiliaria, compl_cep, compl_logradouro_tipo, compl_logradouro, compl_numero, compl_complemento, compl_bairro, compl_municipio, compl_uf, session.user_id]);
 
   const sociosByIndex: Record<string, any> = {};
   const cnaesByIndex: Record<string, any> = {};
@@ -104,32 +98,13 @@ export async function createProcess(formData: FormData) {
       typeof socio.participacao_percent === 'string' && socio.participacao_percent
         ? Number(socio.participacao_percent)
         : null;
-    await db.prepare(`
+    await db.query(`
       INSERT INTO societario_process_socios (
         id, process_id, nome, cpf, rg, cnh, participacao_percent,
         cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf,
         natureza_evento, qualificacao, pais
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      socioId,
-      id,
-      socio.nome || null,
-      socio.cpf || null,
-      socio.rg || null,
-      socio.cnh || null,
-      participacaoPercent,
-      socio.cep || null,
-      socio.logradouro_tipo || null,
-      socio.logradouro || null,
-      socio.numero || null,
-      socio.complemento || null,
-      socio.bairro || null,
-      socio.municipio || null,
-      socio.uf || null,
-      (socio.natureza_evento as string) || null,
-      (socio.qualificacao as string) || null,
-      (socio.pais as string) || null,
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+    `, [socioId, id, socio.nome || null, socio.cpf || null, socio.rg || null, socio.cnh || null, participacaoPercent, socio.cep || null, socio.logradouro_tipo || null, socio.logradouro || null, socio.numero || null, socio.complemento || null, socio.bairro || null, socio.municipio || null, socio.uf || null, (socio.natureza_evento as string) || null, (socio.qualificacao as string) || null, (socio.pais as string) || null]);
   }
 
   const cnaeEntries = Object.values(cnaesByIndex);
@@ -140,16 +115,11 @@ export async function createProcess(formData: FormData) {
   for (const cnae of cnaeEntries) {
     if (!cnae.code && !cnae.descricao) continue;
     const cnaeId = randomUUID();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO societario_process_cnaes (
         id, process_id, cnae_code, cnae_desc
-      ) VALUES (?, ?, ?, ?)
-    `).run(
-      cnaeId,
-      id,
-      cnae.code || null,
-      cnae.descricao || null,
-    );
+      ) VALUES ($1, $2, $3, $4)
+    `, [cnaeId, id, cnae.code || null, cnae.descricao || null]);
   }
 
   revalidatePath('/admin/societario/processos');
@@ -170,13 +140,13 @@ export async function getProcesses() {
   const params: any[] = [];
 
   if (session.role === 'operator') {
-      query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
       params.push(session.user_id);
   }
 
   query += ` ORDER BY sp.created_at DESC`;
 
-  return await db.prepare(query).all(...params);
+  return (await db.query(query, [...params])).rows;
 }
 
 export async function getProcessesFiltered(filters?: { company?: string; cnpj?: string; type?: string; status?: string }) {
@@ -209,52 +179,52 @@ export async function getProcessesFiltered(filters?: { company?: string; cnpj?: 
   }
 
   if (session.role === 'operator') {
-    query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
   } else if (session.role === 'client_user') {
-    query += ` AND (sp.company_id IS NOT NULL AND sp.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?))`;
+    query += ` AND (sp.company_id IS NOT NULL AND sp.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1))`;
     params.push(session.user_id);
   }
 
   query += ` ORDER BY sp.created_at DESC`;
 
-  return await db.prepare(query).all(...params);
+  return (await db.query(query, [...params])).rows;
 }
 
 export async function getProcessById(id: string) {
   const session = await getSession();
   if (!session) return null;
-  const proc = await db.prepare(`
+  const proc = (await db.query(`
     SELECT sp.*, cc.razao_social as company_name, cc.cnpj as company_cnpj
     FROM societario_processes sp
     LEFT JOIN client_companies cc ON cc.id = sp.company_id
-    WHERE sp.id = ?
-  `).get(id) as any;
+    WHERE sp.id = $1
+  `, [id])).rows[0] as any;
   if (!proc) return null;
 
   if (proc.company_id) {
     if (session.role === 'client_user') {
-        const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, proc.company_id);
+        const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, proc.company_id])).rows[0];
         if (!hasAccess) return null;
     } else if (session.role === 'operator') {
-        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, proc.company_id);
+        const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, proc.company_id])).rows[0];
         if (restricted) return null;
     }
   }
 
-  const socios = await db.prepare(`
+  const socios = (await db.query(`
     SELECT id, nome, cpf, rg, cnh, participacao_percent, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf,
            natureza_evento, qualificacao, pais
     FROM societario_process_socios
-    WHERE process_id = ?
+    WHERE process_id = $1
     ORDER BY id
-  `).all(id);
-  const cnaes = await db.prepare(`
+  `, [id])).rows;
+  const cnaes = (await db.query(`
     SELECT cnae_code as id, cnae_desc as descricao
     FROM societario_process_cnaes
-    WHERE process_id = ?
+    WHERE process_id = $1
     ORDER BY id
-  `).all(id);
+  `, [id])).rows;
   return { process: proc, socios, cnaes };
 }
 
@@ -264,7 +234,7 @@ export async function updateProcess(formData: FormData) {
 
   let hasPermission = session.role === 'admin' || session.role === 'operator';
   if (!hasPermission) {
-    const perms = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
+    const perms = (await db.query(`SELECT permission FROM role_permissions WHERE role = $1`, [session.role])).rows as { permission: string }[];
     hasPermission = perms.some(p => p.permission === 'societario.edit');
   }
   if (!hasPermission) return { error: 'Sem permissão.' };
@@ -305,16 +275,16 @@ export async function updateProcess(formData: FormData) {
 
   const razao_social = type === 'CONSTITUICAO' ? (razao_social_input || null) : null;
 
-  const exists = await db.prepare(`SELECT id, company_id FROM societario_processes WHERE id = ?`).get(id) as any;
+  const exists = (await db.query(`SELECT id, company_id FROM societario_processes WHERE id = $1`, [id])).rows[0] as any;
   if (!exists) return { error: 'Processo não encontrado.' };
 
   // Check access to existing process company
   if (exists.company_id) {
       if (session.role === 'client_user') {
-          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, exists.company_id])).rows[0];
           if (!hasAccess) return { error: 'Sem permissão para alterar este processo.' };
       } else if (session.role === 'operator') {
-          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, exists.company_id])).rows[0];
           if (restricted) return { error: 'Sem permissão para alterar este processo.' };
       }
   }
@@ -322,33 +292,27 @@ export async function updateProcess(formData: FormData) {
   // Check access to new company_id if changing
   if (company_id && company_id !== exists.company_id) {
       if (session.role === 'client_user') {
-          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+          const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
           if (!hasAccess) return { error: 'Sem permissão para a nova empresa selecionada.' };
       } else if (session.role === 'operator') {
-          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+          const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
           if (restricted) return { error: 'Sem permissão para a nova empresa selecionada.' };
       }
   }
 
-  await db.prepare(`
+  await db.query(`
     UPDATE societario_processes SET
-      type = ?, status = CASE WHEN status = 'CONCLUIDO' THEN status ELSE 'EM_ANDAMENTO' END,
-      company_id = ?, razao_social = ?, nome_fantasia = ?, capital_social_centavos = ?,
-      socio_administrador = ?, objeto_social = ?, telefone = ?, email = ?, observacao = ?, natureza_juridica = ?, porte = ?, tributacao = ?,
-      inscricao_imobiliaria = ?, compl_cep = ?, compl_logradouro_tipo = ?, compl_logradouro = ?, compl_numero = ?,
-      compl_complemento = ?, compl_bairro = ?, compl_municipio = ?, compl_uf = ?,
-      updated_at = datetime('now')
-    WHERE id = ?
-  `).run(
-    type, company_id, razao_social, nome_fantasia, capital_social_centavos,
-    socio_administrador, objeto_social, telefone, email, observacao, natureza_juridica, porte, tributacao,
-    inscricao_imobiliaria, compl_cep, compl_logradouro_tipo, compl_logradouro, compl_numero,
-    compl_complemento, compl_bairro, compl_municipio, compl_uf,
-    id
-  );
+      type = $1, status = CASE WHEN status = 'CONCLUIDO' THEN status ELSE 'EM_ANDAMENTO' END,
+      company_id = $2, razao_social = $3, nome_fantasia = $4, capital_social_centavos = $5,
+      socio_administrador = $6, objeto_social = $7, telefone = $8, email = $9, observacao = $10, natureza_juridica = $11, porte = $12, tributacao = $13,
+      inscricao_imobiliaria = $14, compl_cep = $15, compl_logradouro_tipo = $16, compl_logradouro = $17, compl_numero = $18,
+      compl_complemento = $19, compl_bairro = $20, compl_municipio = $21, compl_uf = $22,
+      updated_at = NOW()
+    WHERE id = $23
+  `, [type, company_id, razao_social, nome_fantasia, capital_social_centavos, socio_administrador, objeto_social, telefone, email, observacao, natureza_juridica, porte, tributacao, inscricao_imobiliaria, compl_cep, compl_logradouro_tipo, compl_logradouro, compl_numero, compl_complemento, compl_bairro, compl_municipio, compl_uf, id]);
 
-  await db.prepare(`DELETE FROM societario_process_socios WHERE process_id = ?`).run(id);
-  await db.prepare(`DELETE FROM societario_process_cnaes WHERE process_id = ?`).run(id);
+  await db.query(`DELETE FROM societario_process_socios WHERE process_id = $1`, [id]);
+  await db.query(`DELETE FROM societario_process_cnaes WHERE process_id = $1`, [id]);
 
   const sociosByIndex: Record<string, any> = {};
   const cnaesByIndex: Record<string, any> = {};
@@ -381,32 +345,13 @@ export async function updateProcess(formData: FormData) {
       typeof socio.participacao_percent === 'string' && socio.participacao_percent
         ? Number(socio.participacao_percent)
         : null;
-    await db.prepare(`
+    await db.query(`
       INSERT INTO societario_process_socios (
         id, process_id, nome, cpf, rg, cnh, participacao_percent,
         cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf,
         natureza_evento, qualificacao, pais
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      socioId,
-      id,
-      socio.nome || null,
-      socio.cpf || null,
-      socio.rg || null,
-      socio.cnh || null,
-      participacaoPercent,
-      socio.cep || null,
-      socio.logradouro_tipo || null,
-      socio.logradouro || null,
-      socio.numero || null,
-      socio.complemento || null,
-      socio.bairro || null,
-      socio.municipio || null,
-      socio.uf || null,
-      (socio.natureza_evento as string) || null,
-      (socio.qualificacao as string) || null,
-      (socio.pais as string) || null,
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+    `, [socioId, id, socio.nome || null, socio.cpf || null, socio.rg || null, socio.cnh || null, participacaoPercent, socio.cep || null, socio.logradouro_tipo || null, socio.logradouro || null, socio.numero || null, socio.complemento || null, socio.bairro || null, socio.municipio || null, socio.uf || null, (socio.natureza_evento as string) || null, (socio.qualificacao as string) || null, (socio.pais as string) || null]);
   }
 
   const cnaeEntries = Object.values(cnaesByIndex);
@@ -417,16 +362,11 @@ export async function updateProcess(formData: FormData) {
   for (const cnae of cnaeEntries) {
     if (!cnae.code && !cnae.descricao) continue;
     const cnaeId = randomUUID();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO societario_process_cnaes (
         id, process_id, cnae_code, cnae_desc
-      ) VALUES (?, ?, ?, ?)
-    `).run(
-      cnaeId,
-      id,
-      cnae.code || null,
-      cnae.descricao || null,
-    );
+      ) VALUES ($1, $2, $3, $4)
+    `, [cnaeId, id, cnae.code || null, cnae.descricao || null]);
   }
 
   revalidatePath('/admin/societario/processos');
@@ -443,9 +383,7 @@ export async function concludeProcess(
 
   let hasPermission = session.role === 'admin' || session.role === 'operator';
   if (!hasPermission) {
-    const perms = await db
-      .prepare('SELECT permission FROM role_permissions WHERE role = ?')
-      .all(session.role) as { permission: string }[];
+    const perms = (await db.query(`SELECT permission FROM role_permissions WHERE role = $1`, [session.role])).rows as { permission: string }[];
     hasPermission = perms.some((p) => p.permission === 'societario.edit');
   }
   if (!hasPermission) return { error: 'Sem permissão.' };
@@ -454,18 +392,16 @@ export async function concludeProcess(
     return { error: 'Data de registro do contrato é obrigatória.' };
   }
 
-  const process = await db
-    .prepare('SELECT * FROM societario_processes WHERE id = ?')
-    .get(id) as any;
+  const process = (await db.query(`SELECT * FROM societario_processes WHERE id = $1`, [id])).rows[0] as any;
   if (!process) return { error: 'Processo não encontrado.' };
 
   // Permission check
   if (process.company_id) {
       if (session.role === 'client_user') {
-          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, process.company_id);
+          const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, process.company_id])).rows[0];
           if (!hasAccess) return { error: 'Sem permissão para concluir este processo.' };
       } else if (session.role === 'operator') {
-          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, process.company_id);
+          const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, process.company_id])).rows[0];
           if (restricted) return { error: 'Sem permissão para concluir este processo.' };
       }
   }
@@ -474,123 +410,58 @@ export async function concludeProcess(
     if (!params.companyCode) {
       return { error: 'Código da empresa é obrigatório para constituição.' };
     }
-    const existingCode = await db
-      .prepare('SELECT id FROM client_companies WHERE code = ?')
-      .get(params.companyCode);
+    const existingCode = (await db.query(`SELECT id FROM client_companies WHERE code = $1`, [params.companyCode])).rows[0];
     if (existingCode) {
       return { error: 'Código de empresa já existente. Escolha outro código.' };
     }
     if (!process.company_id) {
       const newCompanyId = randomUUID();
-      await db
-        .prepare(
-          `
+      await db.query(`
           INSERT INTO client_companies (
           id, code, razao_social, nome, telefone, email_contato, capital_social_centavos,
             municipio, uf, address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code,
             is_active, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
-        `
-        )
-        .run(
-          newCompanyId,
-          params.companyCode,
-          process.razao_social || null,
-          process.nome_fantasia || null,
-          process.telefone || null,
-          process.email || null,
-          process.capital_social_centavos ?? null,
-          process.compl_municipio || null,
-          process.compl_uf || null,
-          process.compl_logradouro_tipo || null,
-          process.compl_logradouro || null,
-          process.compl_numero || null,
-          process.compl_complemento || null,
-          process.compl_bairro || null,
-          process.compl_cep || null
-        );
-      await db.prepare(`
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 1, NOW(), NOW())
+        `, [newCompanyId, params.companyCode, process.razao_social || null, process.nome_fantasia || null, process.telefone || null, process.email || null, process.capital_social_centavos ?? null, process.compl_municipio || null, process.compl_uf || null, process.compl_logradouro_tipo || null, process.compl_logradouro || null, process.compl_numero || null, process.compl_complemento || null, process.compl_bairro || null, process.compl_cep || null]);
+      await db.query(`
         INSERT INTO societario_company_history (
           id, company_id, code, nome, razao_social, cnpj, telefone, email_contato, address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood, municipio, uf, data_abertura, status, capital_social_centavos, snapshot_at, source
-        ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'ATIVA', ?, datetime('now'), ?)
-      `).run(
-        randomUUID(),
-        newCompanyId,
-        params.companyCode,
-        process.nome_fantasia || null,
-        process.razao_social || null,
-        process.telefone || null,
-        process.email || null,
-        process.compl_logradouro_tipo || null,
-        process.compl_logradouro || null,
-        process.compl_numero || null,
-        process.compl_complemento || null,
-        process.compl_cep || null,
-        process.compl_bairro || null,
-        process.compl_municipio || null,
-        process.compl_uf || null,
-        process.capital_social_centavos ?? null,
-        'process_conclusion'
-      );
-      await db
-        .prepare('UPDATE societario_processes SET company_id = ? WHERE id = ?')
-        .run(newCompanyId, id);
+        ) VALUES ($1, $2, $3, $4, $5, NULL, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NULL, 'ATIVA', $16, NOW(), $17)
+      `, [randomUUID(), newCompanyId, params.companyCode, process.nome_fantasia || null, process.razao_social || null, process.telefone || null, process.email || null, process.compl_logradouro_tipo || null, process.compl_logradouro || null, process.compl_numero || null, process.compl_complemento || null, process.compl_cep || null, process.compl_bairro || null, process.compl_municipio || null, process.compl_uf || null, process.capital_social_centavos ?? null, 'process_conclusion']);
+      await db.query(`UPDATE societario_processes SET company_id = $1 WHERE id = $2`, [newCompanyId, id]);
       process.company_id = newCompanyId;
     }
   }
 
   if (process.type === 'ALTERACAO' && process.company_id) {
-    await db
-      .prepare(
-        `
+    await db.query(`
         UPDATE client_companies
         SET
-          razao_social = COALESCE(?, razao_social),
-          nome = COALESCE(?, nome),
-          telefone = COALESCE(?, telefone),
-          email_contato = COALESCE(?, email_contato),
-          municipio = COALESCE(?, municipio),
-          uf = COALESCE(?, uf),
-          address_type = COALESCE(?, address_type),
-          address_street = COALESCE(?, address_street),
-          address_number = COALESCE(?, address_number),
-          address_complement = COALESCE(?, address_complement),
-          address_neighborhood = COALESCE(?, address_neighborhood),
-          address_zip_code = COALESCE(?, address_zip_code),
-          capital_social_centavos = COALESCE(?, capital_social_centavos),
-          updated_at = datetime('now')
-        WHERE id = ?
-      `
-      )
-      .run(
-        process.razao_social || null,
-        process.nome_fantasia || null,
-        process.telefone || null,
-        process.email || null,
-        process.compl_municipio || null,
-        process.compl_uf || null,
-        process.compl_logradouro_tipo || null,
-        process.compl_logradouro || null,
-        process.compl_numero || null,
-        process.compl_complemento || null,
-        process.compl_bairro || null,
-        process.compl_cep || null,
-        process.capital_social_centavos ?? null,
-        process.company_id
-      );
+          razao_social = COALESCE($1, razao_social),
+          nome = COALESCE($2, nome),
+          telefone = COALESCE($3, telefone),
+          email_contato = COALESCE($4, email_contato),
+          municipio = COALESCE($5, municipio),
+          uf = COALESCE($6, uf),
+          address_type = COALESCE($7, address_type),
+          address_street = COALESCE($8, address_street),
+          address_number = COALESCE($9, address_number),
+          address_complement = COALESCE($10, address_complement),
+          address_neighborhood = COALESCE($11, address_neighborhood),
+          address_zip_code = COALESCE($12, address_zip_code),
+          capital_social_centavos = COALESCE($13, capital_social_centavos),
+          updated_at = NOW()
+        WHERE id = $14
+      `, [process.razao_social || null, process.nome_fantasia || null, process.telefone || null, process.email || null, process.compl_municipio || null, process.compl_uf || null, process.compl_logradouro_tipo || null, process.compl_logradouro || null, process.compl_numero || null, process.compl_complemento || null, process.compl_bairro || null, process.compl_cep || null, process.capital_social_centavos ?? null, process.company_id]);
   }
 
   if (process.company_id) {
-    const socios = await db
-      .prepare(
-        `
+    const socios = (await db.query(`
         SELECT nome, cpf, rg, cnh, participacao_percent, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf,
                natureza_evento
         FROM societario_process_socios
-        WHERE process_id = ?
-      `
-      )
-      .all(id);
+        WHERE process_id = $1
+      `, [id])).rows;
     if (socios.length > 0) {
       const total = socios.reduce(
         (sum: number, s: any) => {
@@ -603,36 +474,28 @@ export async function concludeProcess(
       if (rounded !== 100) {
         return { error: 'O total das participações dos sócios deve ser exatamente 100%.' };
       }
-      const upsertSocioStmt = db.prepare(`
-        INSERT INTO societario_socios (id, cpf, nome, data_nascimento, rg, cnh, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf, created_at, updated_at)
-        VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-        ON CONFLICT(cpf) DO UPDATE SET
-          nome = excluded.nome,
-          rg = excluded.rg,
-          cnh = excluded.cnh,
-          cep = excluded.cep,
-          logradouro_tipo = excluded.logradouro_tipo,
-          logradouro = excluded.logradouro,
-          numero = excluded.numero,
-          complemento = excluded.complemento,
-          bairro = excluded.bairro,
-          municipio = excluded.municipio,
-          uf = excluded.uf,
-          updated_at = datetime('now')
-      `);
-      const findSocioByCpfStmt = db.prepare(`SELECT id FROM societario_socios WHERE cpf = ?`);
-      const upsertLinkStmt = db.prepare(`
-        INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, created_at, updated_at)
-        VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-        ON CONFLICT(company_id, socio_id) DO UPDATE SET
-          participacao_percent = excluded.participacao_percent,
-          updated_at = datetime('now')
-      `);
       for (const s of socios as any[]) {
         const cpfDigits = String(s.cpf || '').replace(/\D/g, '');
-        const socioIdExisting = await findSocioByCpfStmt.get(cpfDigits) as { id: string } | undefined;
+        const socioIdExisting = (await db.query(`SELECT id FROM societario_socios WHERE cpf = $1`, [cpfDigits])).rows[0] as { id: string } | undefined;
         const socioId = socioIdExisting?.id || randomUUID();
-        await upsertSocioStmt.run(
+        
+        await db.query(`
+          INSERT INTO societario_socios (id, cpf, nome, data_nascimento, rg, cnh, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf, created_at, updated_at)
+          VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+          ON CONFLICT(cpf) DO UPDATE SET
+            nome = excluded.nome,
+            rg = excluded.rg,
+            cnh = excluded.cnh,
+            cep = excluded.cep,
+            logradouro_tipo = excluded.logradouro_tipo,
+            logradouro = excluded.logradouro,
+            numero = excluded.numero,
+            complemento = excluded.complemento,
+            bairro = excluded.bairro,
+            municipio = excluded.municipio,
+            uf = excluded.uf,
+            updated_at = NOW()
+        `, [
           socioId,
           cpfDigits,
           s.nome || '',
@@ -646,62 +509,56 @@ export async function concludeProcess(
           s.bairro || null,
           s.municipio || null,
           s.uf || null
-        );
+        ]);
+
         const participacaoForLink =
           s.natureza_evento === 'SAIDA' ? 0 : Number(s.participacao_percent || 0);
-        await upsertLinkStmt.run(
-          randomUUID(),
-          process.company_id,
-          socioId,
-          participacaoForLink
-        );
+          
+        await db.query(`
+          INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, NOW(), NOW())
+          ON CONFLICT(company_id, socio_id) DO UPDATE SET
+            participacao_percent = excluded.participacao_percent,
+            updated_at = NOW()
+        `, [randomUUID(), process.company_id, socioId, participacaoForLink]);
       }
     }
   }
 
   if (process.type === 'ALTERACAO' && process.company_id) {
-    await db.prepare(`
+    await db.query(`
       INSERT INTO societario_company_history (
         id, company_id, code, nome, razao_social, cnpj, telefone, email_contato, address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood, municipio, uf, data_abertura, status, capital_social_centavos, snapshot_at, source
       )
-      SELECT ?, cc.id, cc.code, cc.nome, cc.razao_social, cc.cnpj, cc.telefone, cc.email_contato, cc.address_type, cc.address_street, cc.address_number, cc.address_complement, cc.address_zip_code, cc.address_neighborhood, cc.municipio, cc.uf, cc.data_abertura, 'ATIVA', cc.capital_social_centavos, ?, ?
+      SELECT $1, cc.id, cc.code, cc.nome, cc.razao_social, cc.cnpj, cc.telefone, cc.email_contato, cc.address_type, cc.address_street, cc.address_number, cc.address_complement, cc.address_zip_code, cc.address_neighborhood, cc.municipio, cc.uf, cc.data_abertura, 'ATIVA', cc.capital_social_centavos, $2, $3
       FROM client_companies cc
-      WHERE cc.id = ?
-    `).run(
-      randomUUID(),
-      params.contractDate,
-      'process_conclusion',
-      process.company_id
-    );
+      WHERE cc.id = $4
+    `, [randomUUID(), params.contractDate, 'process_conclusion', process.company_id]);
   }
 
   if (process.type === 'BAIXA' && !params.baixaDate) {
     return { error: 'Data da baixa é obrigatória para processos de baixa.' };
   }
 
-  await db.prepare(
-    `
+  await db.query(`
     UPDATE societario_processes
     SET status = 'CONCLUIDO',
-        contract_registration_date = ?,
-        baixa_date = COALESCE(?, baixa_date),
-        updated_at = datetime('now')
-    WHERE id = ?
-  `
-  ).run(params.contractDate, params.baixaDate || null, id);
+        contract_registration_date = $1,
+        baixa_date = COALESCE($2, baixa_date),
+        updated_at = NOW()
+    WHERE id = $3
+  `, [params.contractDate, params.baixaDate || null, id]);
 
   if (process.type === 'BAIXA' && process.company_id) {
-    await db
-      .prepare(`UPDATE client_companies SET is_active = 0, updated_at = datetime('now') WHERE id = ?`)
-      .run(process.company_id);
-    await db.prepare(`
+    await db.query(`UPDATE client_companies SET is_active = 0, updated_at = NOW() WHERE id = $1`, [process.company_id]);
+    await db.query(`
       INSERT INTO societario_company_history (
         id, company_id, code, nome, razao_social, cnpj, telefone, email_contato, address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood, municipio, uf, data_abertura, status, capital_social_centavos, snapshot_at, source
       )
-      SELECT ?, cc.id, cc.code, cc.nome, cc.razao_social, cc.cnpj, cc.telefone, cc.email_contato, cc.address_type, cc.address_street, cc.address_number, cc.address_complement, cc.address_zip_code, cc.address_neighborhood, cc.municipio, cc.uf, cc.data_abertura, 'INATIVA', cc.capital_social_centavos, datetime('now'), ?
+      SELECT $1, cc.id, cc.code, cc.nome, cc.razao_social, cc.cnpj, cc.telefone, cc.email_contato, cc.address_type, cc.address_street, cc.address_number, cc.address_complement, cc.address_zip_code, cc.address_neighborhood, cc.municipio, cc.uf, cc.data_abertura, 'INATIVA', cc.capital_social_centavos, NOW(), $2
       FROM client_companies cc
-      WHERE cc.id = ?
-    `).run(randomUUID(), 'process_conclusion', process.company_id);
+      WHERE cc.id = $3
+    `, [randomUUID(), 'process_conclusion', process.company_id]);
   }
 
   revalidatePath('/admin/societario/processos');
@@ -716,30 +573,30 @@ export async function deleteProcess(id: string) {
   // Permission: admin/operator or societario.edit
   let hasPermission = session.role === 'admin' || session.role === 'operator';
   if (!hasPermission) {
-    const perms = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
+    const perms = (await db.query(`SELECT permission FROM role_permissions WHERE role = $1`, [session.role])).rows as { permission: string }[];
     hasPermission = perms.some(p => p.permission === 'societario.edit');
   }
   if (!hasPermission) return { error: 'Sem permissão.' };
 
-  const exists = await db.prepare(`SELECT id, company_id FROM societario_processes WHERE id = ?`).get(id) as any;
+  const exists = (await db.query(`SELECT id, company_id FROM societario_processes WHERE id = $1`, [id])).rows[0] as any;
   if (!exists) return { error: 'Processo não encontrado.' };
 
   // Permission check
   if (exists.company_id) {
       if (session.role === 'client_user') {
-          const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, exists.company_id])).rows[0];
           if (!hasAccess) return { error: 'Sem permissão para excluir este processo.' };
       } else if (session.role === 'operator') {
-          const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, exists.company_id);
+          const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, exists.company_id])).rows[0];
           if (restricted) return { error: 'Sem permissão para excluir este processo.' };
       }
   }
 
   try {
     const tx = db.transaction(async (processId: string) => {
-      await db.prepare(`DELETE FROM societario_process_socios WHERE process_id = ?`).run(processId);
-      await db.prepare(`DELETE FROM societario_process_cnaes WHERE process_id = ?`).run(processId);
-      await db.prepare(`DELETE FROM societario_processes WHERE id = ?`).run(processId);
+      await db.query(`DELETE FROM societario_process_socios WHERE process_id = $1`, [processId]);
+      await db.query(`DELETE FROM societario_process_cnaes WHERE process_id = $1`, [processId]);
+      await db.query(`DELETE FROM societario_processes WHERE id = $1`, [processId]);
     });
 
     await tx(id);

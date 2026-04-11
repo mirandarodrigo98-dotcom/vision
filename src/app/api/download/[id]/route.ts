@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
 
-  const attachment = await db.prepare('SELECT * FROM admission_attachments WHERE id = ?').get(id) as any;
+  const attachment = (await db.query(`SELECT * FROM admission_attachments WHERE id = $1`, [id])).rows[0] as any;
 
   if (!attachment) {
     return new NextResponse('File not found', { status: 404 });
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // Security check: If client, verify ownership
   if (session.role === 'client_user') {
-      const admission = await db.prepare('SELECT company_id FROM admission_requests WHERE id = ?').get(attachment.admission_id) as any;
-      const userCompany = await db.prepare('SELECT company_id FROM user_companies WHERE user_id = ?').get(session.user_id) as any;
+      const admission = (await db.query(`SELECT company_id FROM admission_requests WHERE id = $1`, [attachment.admission_id])).rows[0] as any;
+      const userCompany = (await db.query(`SELECT company_id FROM user_companies WHERE user_id = $1`, [session.user_id])).rows[0] as any;
       
       if (!admission || !userCompany || admission.company_id !== userCompany.company_id) {
           return new NextResponse('Forbidden', { status: 403 });

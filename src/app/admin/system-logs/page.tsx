@@ -12,7 +12,7 @@ export default async function SystemLogsPage() {
 
   try {
     // Tenta buscar os logs, se a tabela existir
-    logs = await db.prepare('SELECT * FROM system_errors ORDER BY created_at DESC LIMIT 50').all();
+    logs = (await db.query('SELECT * FROM system_errors ORDER BY created_at DESC LIMIT 50', [])).rows;
   } catch (error: any) {
     // Se a tabela não existir ainda ou der erro, captura
     errorMsg = error.message;

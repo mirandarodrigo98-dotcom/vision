@@ -20,19 +20,19 @@ async function logSystemError(context: string, details: any) {
     }
     
     // Tentar criar a tabela se não existir (apenas por garantia)
-    await db.prepare(`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS system_errors (
         id SERIAL PRIMARY KEY,
         context VARCHAR(255),
         details TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       )
-    `).run();
+    `, []);
 
     // Inserir o erro
-    await db.prepare(`
-      INSERT INTO system_errors (context, details) VALUES (?, ?)
-    `).run(context, detailStr);
+    await db.query(`
+      INSERT INTO system_errors (context, details) VALUES ($1, $2)
+    `, [context, detailStr]);
 
     // Também tentar gravar em arquivo como fallback local
     const logPath = path.join(process.cwd(), 'system_errors.log');
@@ -47,7 +47,7 @@ async function logSystemError(context: string, details: any) {
 // --- Actions: Config ---
 
 export async function getDigisacConfig() {
-  const config = await db.prepare('SELECT * FROM digisac_config WHERE id = 1').get() as any;
+  const config = (await db.query('SELECT * FROM digisac_config WHERE id = 1', [])).rows[0] as any;
   if (config) {
       config.is_active = Boolean(config.is_active);
   }
@@ -62,16 +62,12 @@ export async function saveDigisacConfig(data: DigisacConfig) {
   const existing = await getDigisacConfig();
 
   if (existing) {
-    await db.prepare(
-      `UPDATE digisac_config 
-       SET base_url = ?, api_token = ?, connection_phone = ?, is_active = ?, updated_at = datetime('now')
-       WHERE id = 1`
-    ).run(baseUrl, data.api_token || null, data.connection_phone || null, isActive);
+    await db.query(`UPDATE digisac_config 
+       SET base_url = $1, api_token = $2, connection_phone = $3, is_active = $4, updated_at = NOW()
+       WHERE id = 1`, [baseUrl, data.api_token || null, data.connection_phone || null, isActive]);
   } else {
-    await db.prepare(
-      `INSERT INTO digisac_config (id, base_url, api_token, connection_phone, is_active) 
-       VALUES (1, ?, ?, ?, ?)`
-    ).run(baseUrl, data.api_token || null, data.connection_phone || null, isActive);
+    await db.query(`INSERT INTO digisac_config (id, base_url, api_token, connection_phone, is_active) 
+       VALUES (1, $1, $2, $3, $4)`, [baseUrl, data.api_token || null, data.connection_phone || null, isActive]);
   }
   revalidatePath('/admin/integrations/digisac');
   return { success: true };

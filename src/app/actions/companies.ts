@@ -27,7 +27,7 @@ export async function saveQuestorCompany(companyData: any) {
         let existingNome: string | null = null;
 
         if (companyData.cnpj) {
-            const existing = await db.prepare('SELECT id, nome FROM client_companies WHERE cnpj = ?').get(companyData.cnpj) as any;
+            const existing = (await db.query(`SELECT id, nome FROM client_companies WHERE cnpj = $1`, [companyData.cnpj])).rows[0] as any;
             if (existing) {
                 existingId = existing.id;
                 existingNome = existing.nome;
@@ -37,7 +37,7 @@ export async function saveQuestorCompany(companyData: any) {
         // Se não achou por CNPJ, tenta por Código (mas cuidado, código pode duplicar em sistemas diferentes)
         // O ideal é confiar no CNPJ. Se não tiver CNPJ, aí sim Código.
         if (!existingId && companyData.code) {
-             const existing = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ?').get(companyData.code) as any;
+             const existing = (await db.query(`SELECT id, nome FROM client_companies WHERE code = $1`, [companyData.code])).rows[0] as any;
              if (existing) {
                  existingId = existing.id;
                  existingNome = existing.nome;
@@ -47,38 +47,19 @@ export async function saveQuestorCompany(companyData: any) {
         if (existingId) {
             // Check operator access
             if (session.role === 'operator') {
-                const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, existingId);
+                const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, existingId])).rows[0];
                 if (restricted) return { error: 'Sem permissão para esta empresa.' };
             }
 
             // ATUALIZAÇÃO (UPDATE)
-            await db.prepare(`
+            await db.query(`
                 UPDATE client_companies SET
-                    code = ?, nome = ?, razao_social = ?, filial = ?, telefone = ?, email_contato = ?,
-                    address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?, address_zip_code = ?,
-                    municipio = ?, uf = ?, data_abertura = ?, capital_social_centavos = ?, address_type = ?,
-                    is_active = ?, updated_at = datetime('now')
-                WHERE id = ?
-            `).run(
-                companyData.code,
-                companyData.nome,
-                companyData.razao_social,
-                companyData.filial,
-                companyData.telefone,
-                companyData.email_contato,
-                companyData.address_street,
-                companyData.address_number,
-                companyData.address_complement,
-                companyData.address_neighborhood,
-                companyData.address_zip_code,
-                companyData.municipio,
-                companyData.uf,
-                companyData.data_abertura,
-                companyData.capital_social_centavos,
-                companyData.address_type,
-                companyData.is_active,
-                existingId
-            );
+                    code = $1, nome = $2, razao_social = $3, filial = $4, telefone = $5, email_contato = $6,
+                    address_street = $7, address_number = $8, address_complement = $9, address_neighborhood = $10, address_zip_code = $11,
+                    municipio = $12, uf = $13, data_abertura = $14, capital_social_centavos = $15, address_type = $16,
+                    is_active = $17, updated_at = NOW()
+                WHERE id = $18
+            `, [companyData.code, companyData.nome, companyData.razao_social, companyData.filial, companyData.telefone, companyData.email_contato, companyData.address_street, companyData.address_number, companyData.address_complement, companyData.address_neighborhood, companyData.address_zip_code, companyData.municipio, companyData.uf, companyData.data_abertura, companyData.capital_social_centavos, companyData.address_type, companyData.is_active, existingId]);
 
             // Importar/Atualizar Sócios
             if (companyData.socios && Array.isArray(companyData.socios) && companyData.socios.length > 0) {
@@ -103,35 +84,15 @@ export async function saveQuestorCompany(companyData: any) {
         // INSERÇÃO (INSERT)
         const id = uuidv4();
         
-        await db.prepare(`
+        await db.query(`
             INSERT INTO client_companies (
                 id, code, nome, razao_social, cnpj, 
                 filial, telefone, email_contato, 
                 address_street, address_number, address_complement, address_neighborhood, address_zip_code, 
                 municipio, uf, data_abertura, capital_social_centavos, address_type,
                 is_active, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-        `).run(
-            id,
-            companyData.code,
-            companyData.nome,
-            companyData.razao_social,
-            companyData.cnpj,
-            companyData.filial,
-            companyData.telefone,
-            companyData.email_contato,
-            companyData.address_street,
-            companyData.address_number,
-            companyData.address_complement,
-            companyData.address_neighborhood,
-            companyData.address_zip_code,
-            companyData.municipio,
-            companyData.uf,
-            companyData.data_abertura,
-            companyData.capital_social_centavos,
-            companyData.address_type,
-            companyData.is_active
-        );
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW())
+        `, [id, companyData.code, companyData.nome, companyData.razao_social, companyData.cnpj, companyData.filial, companyData.telefone, companyData.email_contato, companyData.address_street, companyData.address_number, companyData.address_complement, companyData.address_neighborhood, companyData.address_zip_code, companyData.municipio, companyData.uf, companyData.data_abertura, companyData.capital_social_centavos, companyData.address_type, companyData.is_active]);
 
         // Importar Sócios se houver
         if (companyData.socios && Array.isArray(companyData.socios) && companyData.socios.length > 0) {
@@ -210,41 +171,12 @@ function extractSociosFromForm(data: FormData) {
 }
 
 async function insertCompanyHistorySnapshot(companyId: string, source: string) {
-  const company = await db
-    .prepare(
-      `SELECT id, code, nome, razao_social, cnpj, telefone, email_contato, address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood, municipio, uf, data_abertura, is_active, capital_social_centavos
-       FROM client_companies WHERE id = ?`
-    )
-    .get(companyId) as any;
+  const company = (await db.query(`SELECT id, code, nome, razao_social, cnpj, telefone, email_contato, address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood, municipio, uf, data_abertura, is_active, capital_social_centavos
+       FROM client_companies WHERE id = $1`, [companyId])).rows[0] as any;
   if (!company) return;
-  await db
-    .prepare(
-      `INSERT INTO societario_company_history (
+  await db.query(`INSERT INTO societario_company_history (
         id, company_id, code, nome, razao_social, cnpj, telefone, email_contato, address_type, address_street, address_number, address_complement, address_zip_code, address_neighborhood, municipio, uf, data_abertura, status, capital_social_centavos, snapshot_at, source
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)`
-    )
-    .run(
-      uuidv4(),
-      company.id,
-      company.code || null,
-      company.nome || null,
-      company.razao_social || null,
-      company.cnpj || null,
-      company.telefone || null,
-      company.email_contato || null,
-      company.address_type || null,
-      company.address_street || null,
-      company.address_number || null,
-      company.address_complement || null,
-      company.address_zip_code || null,
-      company.address_neighborhood || null,
-      company.municipio || null,
-      company.uf || null,
-      company.data_abertura || null,
-      company.is_active ? 'ATIVA' : 'INATIVA',
-      company.capital_social_centavos ?? null,
-      source
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), $20)`, [uuidv4(), company.id, company.code || null, company.nome || null, company.razao_social || null, company.cnpj || null, company.telefone || null, company.email_contato || null, company.address_type || null, company.address_street || null, company.address_number || null, company.address_complement || null, company.address_zip_code || null, company.address_neighborhood || null, company.municipio || null, company.uf || null, company.data_abertura || null, company.is_active ? 'ATIVA' : 'INATIVA', company.capital_social_centavos ?? null, source]);
 }
 
 async function upsertCompanySocios(companyId: string, sociosInput: any[], actorUserId?: string) {
@@ -254,44 +186,29 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
   if (rounded !== 100) {
     throw new Error('O total das participações dos sócios deve ser exatamente 100%.');
   }
-  const upsertSocioStmt = db.prepare(`
-    INSERT INTO societario_socios (id, cpf, nome, data_nascimento, rg, cnh, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    ON CONFLICT(cpf) DO UPDATE SET
-      nome = excluded.nome,
-      data_nascimento = excluded.data_nascimento,
-      rg = excluded.rg,
-      cnh = excluded.cnh,
-      cep = excluded.cep,
-      logradouro_tipo = excluded.logradouro_tipo,
-      logradouro = excluded.logradouro,
-      numero = excluded.numero,
-      complemento = excluded.complemento,
-      bairro = excluded.bairro,
-      municipio = excluded.municipio,
-      uf = excluded.uf,
-      updated_at = datetime('now')
-  `);
-  const findSocioByCpfStmt = db.prepare(`SELECT id FROM societario_socios WHERE cpf = ?`);
-  const upsertLinkStmt = db.prepare(`
-    INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, is_representative, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    ON CONFLICT(company_id, socio_id) DO UPDATE SET
-      participacao_percent = excluded.participacao_percent,
-      is_representative = excluded.is_representative,
-      updated_at = datetime('now')
-  `);
-  const insertSocioHistoryStmt = db.prepare(`
-    INSERT INTO societario_socio_history (
-      id, socio_id, cpf, nome, data_nascimento, rg, cnh, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf, snapshot_at, source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
-  `);
-
   for (const s of sociosInput) {
     const cpfDigits = String(s.cpf || '').replace(/\D/g, '');
-    const socioIdExisting = await findSocioByCpfStmt.get(cpfDigits) as { id: string } | undefined;
+    const socioIdExisting = (await db.query(`SELECT id FROM societario_socios WHERE cpf = $1`, [cpfDigits])).rows[0] as { id: string } | undefined;
     const socioId = socioIdExisting?.id || uuidv4();
-    await upsertSocioStmt.run(
+    
+    await db.query(`
+      INSERT INTO societario_socios (id, cpf, nome, data_nascimento, rg, cnh, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+      ON CONFLICT(cpf) DO UPDATE SET
+        nome = excluded.nome,
+        data_nascimento = excluded.data_nascimento,
+        rg = excluded.rg,
+        cnh = excluded.cnh,
+        cep = excluded.cep,
+        logradouro_tipo = excluded.logradouro_tipo,
+        logradouro = excluded.logradouro,
+        numero = excluded.numero,
+        complemento = excluded.complemento,
+        bairro = excluded.bairro,
+        municipio = excluded.municipio,
+        uf = excluded.uf,
+        updated_at = NOW()
+    `, [
       socioId,
       cpfDigits,
       s.nome || '',
@@ -306,9 +223,21 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
       s.bairro || null,
       s.municipio || null,
       s.uf || null
-    );
-    await upsertLinkStmt.run(randomUUID(), companyId, socioId, s.participacao_percent || 0, s.is_representative ? 1 : 0);
-    await insertSocioHistoryStmt.run(
+    ]);
+
+    await db.query(`
+      INSERT INTO societario_company_socios (id, company_id, socio_id, participacao_percent, is_representative, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      ON CONFLICT(company_id, socio_id) DO UPDATE SET
+        participacao_percent = excluded.participacao_percent,
+        is_representative = excluded.is_representative,
+        updated_at = NOW()
+    `, [randomUUID(), companyId, socioId, s.participacao_percent || 0, s.is_representative ? 1 : 0]);
+
+    await db.query(`
+      INSERT INTO societario_socios_history (id, socio_id, cpf, nome, data_nascimento, rg, cnh, cep, logradouro_tipo, logradouro, numero, complemento, bairro, municipio, uf, source, snapshot_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+    `, [
       uuidv4(),
       socioId,
       cpfDigits,
@@ -325,7 +254,7 @@ async function upsertCompanySocios(companyId: string, sociosInput: any[], actorU
       s.municipio || null,
       s.uf || null,
       'company_form'
-    );
+    ]);
   }
 }
 
@@ -360,31 +289,12 @@ export async function createCompany(data: FormData) {
 
   try {
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO client_companies (
         id, nome, razao_social, cnpj, telefone, email_contato, code, filial, municipio, uf, data_abertura, capital_social_centavos,
         address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code, is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
-    `).run(
-      id,
-      nome,
-      razao_social || null,
-      cnpj,
-      telefone || null,
-      email_contato || null,
-      code,
-      filial,
-      municipio || null,
-      uf || null,
-      data_abertura || null,
-      capital_social_centavos,
-      address_type || null,
-      address_street || null,
-      address_number || null,
-      address_complement || null,
-      address_neighborhood || null,
-      address_zip_code || null
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 1, NOW(), NOW())
+    `, [id, nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null]);
 
     // Socios
     const socios = extractSociosFromForm(data);
@@ -426,7 +336,7 @@ export async function updateCompany(companyId: string, data: FormData) {
   }
 
   if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
@@ -450,31 +360,12 @@ export async function updateCompany(companyId: string, data: FormData) {
   const capital_social_centavos = capitalStr ? Number(capitalStr) : null;
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE client_companies SET
-        nome = ?, razao_social = ?, cnpj = ?, telefone = ?, email_contato = ?, code = ?, filial = ?, municipio = ?, uf = ?, data_abertura = ?, capital_social_centavos = ?,
-        address_type = ?, address_street = ?, address_number = ?, address_complement = ?, address_neighborhood = ?, address_zip_code = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(
-      nome,
-      razao_social || null,
-      cnpj,
-      telefone || null,
-      email_contato || null,
-      code,
-      filial,
-      municipio || null,
-      uf || null,
-      data_abertura || null,
-      capital_social_centavos,
-      address_type || null,
-      address_street || null,
-      address_number || null,
-      address_complement || null,
-      address_neighborhood || null,
-      address_zip_code || null,
-      companyId
-    );
+        nome = $1, razao_social = $2, cnpj = $3, telefone = $4, email_contato = $5, code = $6, filial = $7, municipio = $8, uf = $9, data_abertura = $10, capital_social_centavos = $11,
+        address_type = $12, address_street = $13, address_number = $14, address_complement = $15, address_neighborhood = $16, address_zip_code = $17, updated_at = NOW()
+      WHERE id = $18
+    `, [nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null, companyId]);
 
     // Socios
     const socios = extractSociosFromForm(data);
@@ -520,9 +411,9 @@ export async function toggleCompanyStatus(companyId: string, isActive: boolean) 
     const status = isActive ? 1 : 0;
     // If activating, we also clear deleted_at if it was set
     if (isActive) {
-      await db.prepare("UPDATE client_companies SET is_active = 1, deleted_at = NULL, updated_at = datetime('now') WHERE id = ?").run(companyId);
+      await db.query(`UPDATE client_companies SET is_active = 1, deleted_at = NULL, updated_at = NOW() WHERE id = $1`, [companyId]);
     } else {
-      await db.prepare("UPDATE client_companies SET is_active = 0, updated_at = datetime('now') WHERE id = ?").run(companyId);
+      await db.query(`UPDATE client_companies SET is_active = 0, updated_at = NOW() WHERE id = $1`, [companyId]);
     }
     
     await logAudit({
@@ -543,20 +434,20 @@ export async function toggleCompanyStatus(companyId: string, isActive: boolean) 
 }
 
 export async function checkCompanyMovements(companyId: string): Promise<boolean> {
-  const employee = await db.prepare('SELECT 1 FROM employees WHERE company_id = ?').get(companyId);
+  const employee = (await db.query(`SELECT 1 FROM employees WHERE company_id = $1`, [companyId])).rows[0];
   if (employee) return true;
 
-  const admission = await db.prepare('SELECT 1 FROM admission_requests WHERE company_id = ?').get(companyId);
+  const admission = (await db.query(`SELECT 1 FROM admission_requests WHERE company_id = $1`, [companyId])).rows[0];
   if (admission) return true;
 
-  const transfer = await db.prepare('SELECT 1 FROM transfer_requests WHERE source_company_id = ? OR target_company_id = ?').get(companyId, companyId);
+  const transfer = (await db.query(`SELECT 1 FROM transfer_requests WHERE source_company_id = $1 OR target_company_id = $2`, [companyId, companyId])).rows[0];
   if (transfer) return true;
 
-  const user = await db.prepare('SELECT 1 FROM user_companies WHERE company_id = ?').get(companyId);
+  const user = (await db.query(`SELECT 1 FROM user_companies WHERE company_id = $1`, [companyId])).rows[0];
   if (user) return true;
 
   // Check societario processes
-  const process = await db.prepare('SELECT 1 FROM societario_processes WHERE company_id = ?').get(companyId);
+  const process = (await db.query(`SELECT 1 FROM societario_processes WHERE company_id = $1`, [companyId])).rows[0];
   if (process) return true;
 
   return false;
@@ -564,19 +455,19 @@ export async function checkCompanyMovements(companyId: string): Promise<boolean>
 
 async function cleanupCompanyDependencies(companyId: string) {
   // Delete history
-  await db.prepare('DELETE FROM societario_company_history WHERE company_id = ?').run(companyId);
+  await db.query(`DELETE FROM societario_company_history WHERE company_id = $1`, [companyId]);
   
   // Delete partners links
-  await db.prepare('DELETE FROM societario_company_socios WHERE company_id = ?').run(companyId);
+  await db.query(`DELETE FROM societario_company_socios WHERE company_id = $1`, [companyId]);
 
   // Delete profiles
-  await db.prepare('DELETE FROM societario_profiles WHERE company_id = ?').run(companyId);
+  await db.query(`DELETE FROM societario_profiles WHERE company_id = $1`, [companyId]);
 
   // Delete logs
-  await db.prepare('DELETE FROM societario_logs WHERE company_id = ?').run(companyId);
+  await db.query(`DELETE FROM societario_logs WHERE company_id = $1`, [companyId]);
 
   // Delete billing info
-  await db.prepare('DELETE FROM simples_nacional_billing WHERE company_id = ?').run(companyId);
+  await db.query(`DELETE FROM simples_nacional_billing WHERE company_id = $1`, [companyId]);
 }
 
 export async function deleteCompany(companyId: string) {
@@ -594,7 +485,7 @@ export async function deleteCompany(companyId: string) {
     // Cleanup dependencies before deleting the company
     await cleanupCompanyDependencies(companyId);
 
-    await db.prepare("DELETE FROM client_companies WHERE id = ?").run(companyId);
+    await db.query(`DELETE FROM client_companies WHERE id = $1`, [companyId]);
     
     await logAudit({
       actor_user_id: session.user_id,
@@ -624,7 +515,7 @@ export async function deleteCompaniesBatch(companyIds: string[]) {
   let errors = 0;
 
   try {
-    const deleteStmt = db.prepare("DELETE FROM client_companies WHERE id = ?");
+    
 
     for (const id of companyIds) {
       const hasMovements = await checkCompanyMovements(id);
@@ -632,7 +523,7 @@ export async function deleteCompaniesBatch(companyIds: string[]) {
         // Cleanup dependencies before deleting
         await cleanupCompanyDependencies(id);
         
-        deleteStmt.run(id);
+        await db.query(`DELETE FROM client_companies WHERE id = $1`, [id]);
         deletedCount++;
         await logAudit({
           actor_user_id: session.user_id,
@@ -670,16 +561,16 @@ export async function getCompaniesForSelect() {
   const params: any[] = [];
 
   if (session.role === 'client_user') {
-    query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+    query += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
     params.push(session.user_id);
   }
 
   query += ` ORDER BY nome ASC`;
 
-  const companies = await db.prepare(query).all(...params);
+  const companies = (await db.query(query, [...params])).rows;
   return companies;
 }
 
@@ -705,11 +596,7 @@ export async function importCompanies(formData: FormData) {
     const rows = result.data as any[];
     let count = 0;
 
-    const stmt = db.prepare(`
-      INSERT INTO client_companies (
-        id, nome, razao_social, cnpj, code, filial, municipio, uf, is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
-    `);
+    
 
     for (const row of rows) {
       const nome = row.nome || row.Nome || row.NOME;
@@ -722,10 +609,13 @@ export async function importCompanies(formData: FormData) {
       const cleanCnpj = String(cnpj).replace(/\D/g, '');
       
       // Check if exists by CNPJ or Code
-      const existing = await db.prepare('SELECT id FROM client_companies WHERE cnpj = ? OR code = ?').get(cleanCnpj, code);
+      const existing = (await db.query(`SELECT id FROM client_companies WHERE cnpj = $1 OR code = $2`, [cleanCnpj, code])).rows[0];
       
       if (!existing) {
-         stmt.run(
+         await db.query(`
+           INSERT INTO client_companies (id, nome, razao_social, cnpj, code, filial, municipio, uf, is_active, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1, NOW(), NOW())
+         `, [
            uuidv4(),
            nome,
            row.razao_social || row.RazaoSocial || '',
@@ -734,7 +624,7 @@ export async function importCompanies(formData: FormData) {
            filial || '1',
            row.municipio || row.Municipio || '',
            row.uf || row.UF || ''
-         );
+         ]);
          count++;
       }
     }
@@ -782,17 +672,17 @@ export async function getCompanies(filters?: { razao_social?: string, cnpj?: str
   }
 
   if (session.role === 'client_user') {
-    query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    query += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+    query += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
     params.push(session.user_id);
   }
 
   query += ` ORDER BY nome ASC`;
 
   try {
-    const companies = await db.prepare(query).all(...params);
+    const companies = (await db.query(query, [...params])).rows;
     return companies;
   } catch (error) {
     console.error('Failed to fetch companies:', error);
@@ -805,20 +695,20 @@ export async function getCompanySocios(companyId: string) {
   if (!session) return [];
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return [];
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return [];
   }
 
   try {
-    const socios = await db.prepare(`
+    const socios = (await db.query(`
       SELECT s.id, s.nome, s.cpf, cs.participacao_percent, cs.is_representative, s.data_nascimento, s.rg, s.cnh, s.cep, s.logradouro, s.numero, s.complemento, s.bairro, s.municipio, s.uf, s.logradouro_tipo
       FROM societario_socios s
       JOIN societario_company_socios cs ON s.id = cs.socio_id
-      WHERE cs.company_id = ?
-    `).all(companyId);
+      WHERE cs.company_id = $1
+    `, [companyId])).rows;
     return socios;
   } catch (error) {
     console.error('Error fetching company socios:', error);
@@ -831,17 +721,17 @@ export async function getCompanyDetailsFull(companyId: string) {
   if (!session) return null;
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return null;
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return null;
   }
 
   try {
-    const company = await db.prepare(`
-      SELECT * FROM client_companies WHERE id = ?
-    `).get(companyId);
+    const company = (await db.query(`
+      SELECT * FROM client_companies WHERE id = $1
+    `, [companyId])).rows[0];
     return company;
   } catch (error) {
     console.error('Error fetching company details:', error);

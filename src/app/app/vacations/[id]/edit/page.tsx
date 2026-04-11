@@ -23,13 +23,13 @@ export default async function ClientEditVacationPage({ params }: { params: Promi
          return <div>Esta solicitação já foi finalizada ou cancelada e não pode ser editada.</div>;
     }
 
-    const companies = await db.prepare(`
+    const companies = (await db.query(`
         SELECT c.id, c.nome, c.cnpj 
         FROM client_companies c 
         JOIN user_companies uc ON c.id = uc.company_id 
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = $1
         ORDER BY c.nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">

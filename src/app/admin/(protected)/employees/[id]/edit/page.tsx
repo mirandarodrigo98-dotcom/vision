@@ -16,18 +16,18 @@ export default async function EditEmployeePage({ params }: PageProps) {
 
   const { id } = await params;
 
-  let employeeQuery = 'SELECT * FROM employees WHERE id = ?';
+  let employeeQuery = `SELECT * FROM employees WHERE id = $1`;
   const queryParams: any[] = [id];
 
   if (session.role === 'client_user') {
-    employeeQuery += ' AND company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)';
+    employeeQuery += ` AND company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
     queryParams.push(session.user_id);
   } else if (session.role === 'operator') {
-    employeeQuery += ' AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))';
+    employeeQuery += ` AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     queryParams.push(session.user_id);
   }
 
-  const employee = await db.prepare(employeeQuery).get(...queryParams) as any;
+  const employee = (await db.query(employeeQuery, [...queryParams])).rows[0] as any;
 
   if (!employee) {
     notFound();
@@ -35,37 +35,37 @@ export default async function EditEmployeePage({ params }: PageProps) {
 
   let companies = [];
   if (session.role === 'client_user') {
-    companies = await db.prepare(`
+    companies = (await db.query(`
       SELECT id, nome, cnpj 
       FROM client_companies 
-      WHERE id IN (SELECT company_id FROM user_companies WHERE user_id = ?) 
+      WHERE id IN (SELECT company_id FROM user_companies WHERE user_id = $1) 
       AND is_active = 1 
       ORDER BY nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   } else if (session.role === 'operator') {
-    companies = await db.prepare(`
+    companies = (await db.query(`
       SELECT id, nome, cnpj 
       FROM client_companies 
-      WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?) 
+      WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1) 
       AND is_active = 1 
       ORDER BY nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   } else {
     // Admin
-    companies = await db.prepare('SELECT id, nome, cnpj FROM client_companies WHERE is_active = 1 ORDER BY nome').all() as Array<{ id: string; nome: string; cnpj: string }>;
+    companies = (await db.query('SELECT id, nome, cnpj FROM client_companies WHERE is_active = 1 ORDER BY nome', [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   }
 
-  const vacations = await db.prepare(`
+  const vacations = (await db.query(`
     SELECT * FROM vacations 
-    WHERE employee_id = ? AND status != 'CANCELLED' 
+    WHERE employee_id = $1 AND status != 'CANCELLED' 
     ORDER BY start_date DESC
-  `).all(id) as any[];
+  `, [id])).rows as any[];
 
-  const leaves = await db.prepare(`
+  const leaves = (await db.query(`
     SELECT * FROM leaves 
-    WHERE employee_id = ? AND status != 'CANCELLED' 
+    WHERE employee_id = $1 AND status != 'CANCELLED' 
     ORDER BY start_date DESC
-  `).all(id) as any[];
+  `, [id])).rows as any[];
 
   return (
     <div className="space-y-6">

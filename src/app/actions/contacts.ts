@@ -23,7 +23,7 @@ const emailSchema = z.object({
 
 export async function getContactCategories() {
   try {
-    const categories = await db.prepare('SELECT * FROM contact_categories ORDER BY name').all();
+    const categories = (await db.query('SELECT * FROM contact_categories ORDER BY name', [])).rows;
     return categories as { id: number; name: string }[];
   } catch (error) {
     console.error('Error fetching contact categories:', error);
@@ -36,7 +36,7 @@ export async function createContactCategory(name: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('INSERT INTO contact_categories (name) VALUES (?)').run(name);
+    await db.query(`INSERT INTO contact_categories (name) VALUES ($1)`, [name]);
     return { success: true };
   } catch (error) {
     console.error('Error creating category:', error);
@@ -46,13 +46,13 @@ export async function createContactCategory(name: string) {
 
 export async function getCompanyPhones(companyId: string) {
   try {
-    const phones = await db.prepare(`
+    const phones = (await db.query(`
       SELECT p.*, c.name as category_name 
       FROM company_phones p
       LEFT JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = ?
+      WHERE p.company_id = $1
       ORDER BY p.created_at DESC
-    `).all(companyId);
+    `, [companyId])).rows;
     return phones as any[];
   } catch (error) {
     console.error('Error fetching phones:', error);
@@ -70,16 +70,10 @@ export async function saveCompanyPhone(data: any) {
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       INSERT INTO company_phones (company_id, name, category_id, number, is_whatsapp)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(
-      data.company_id,
-      data.name,
-      data.category_id,
-      data.number,
-      data.is_whatsapp ? true : false
-    );
+      VALUES ($1, $2, $3, $4, $5)
+    `, [data.company_id, data.name, data.category_id, data.number, data.is_whatsapp ? true : false]);
     revalidatePath('/admin/companies');
     return { success: true };
   } catch (error) {
@@ -93,7 +87,7 @@ export async function deleteCompanyPhone(id: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('DELETE FROM company_phones WHERE id = ?').run(id);
+    await db.query(`DELETE FROM company_phones WHERE id = $1`, [id]);
     return { success: true };
   } catch (error) {
     console.error('Error deleting phone:', error);
@@ -103,13 +97,13 @@ export async function deleteCompanyPhone(id: string) {
 
 export async function getCompanyEmails(companyId: string) {
   try {
-    const emails = await db.prepare(`
+    const emails = (await db.query(`
       SELECT e.*, c.name as category_name 
       FROM company_emails e
       LEFT JOIN contact_categories c ON e.category_id = c.id
-      WHERE e.company_id = ?
+      WHERE e.company_id = $1
       ORDER BY e.created_at DESC
-    `).all(companyId);
+    `, [companyId])).rows;
     return emails as any[];
   } catch (error) {
     console.error('Error fetching emails:', error);
@@ -127,15 +121,10 @@ export async function saveCompanyEmail(data: any) {
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       INSERT INTO company_emails (company_id, name, category_id, email)
-      VALUES (?, ?, ?, ?)
-    `).run(
-      data.company_id,
-      data.name,
-      data.category_id,
-      data.email
-    );
+      VALUES ($1, $2, $3, $4)
+    `, [data.company_id, data.name, data.category_id, data.email]);
     revalidatePath('/admin/companies');
     return { success: true };
   } catch (error) {
@@ -149,7 +138,7 @@ export async function deleteCompanyEmail(id: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('DELETE FROM company_emails WHERE id = ?').run(id);
+    await db.query(`DELETE FROM company_emails WHERE id = $1`, [id]);
     return { success: true };
   } catch (error) {
     console.error('Error deleting email:', error);

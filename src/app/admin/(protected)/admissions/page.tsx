@@ -49,10 +49,10 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   const params: any[] = [];
 
   if (session.role === 'client_user') {
-    query += ` AND ar.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    query += ` AND ar.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (ar.company_id IS NULL OR ar.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    query += ` AND (ar.company_id IS NULL OR ar.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
   }
 
@@ -67,13 +67,13 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   }
 
   if (startDate) {
-    query += ` AND ar.created_at >= ?`;
+    query += ` AND ar.created_at >= $1`;
     params.push(startDate);
   }
 
   if (endDate) {
     // Add 1 day to include the end date fully if it's just a date string, or handle timestamp
-    query += ` AND ar.created_at <= ?`;
+    query += ` AND ar.created_at <= $1`;
     params.push(endDate + ' 23:59:59');
   }
 
@@ -90,7 +90,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   const orderBy = safeSort === 'company_name' ? 'cc.nome' : `ar.${safeSort}`;
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const admissionsData = await db.prepare(query).all(...params) as any[];
+  const admissionsData = (await db.query(query, [...params])).rows as any[];
 
   // Serialize dates
   const safeToISOString = (dateVal: any) => {

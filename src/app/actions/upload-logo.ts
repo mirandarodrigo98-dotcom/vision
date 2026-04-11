@@ -46,7 +46,7 @@ export async function uploadSystemLogo(formData: FormData) {
     }
 
     // Update DB
-    const oldLogo = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+    const oldLogo = (await db.query("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'", [])).rows[0] as { value: string } | undefined;
     
     // Tenta remover logo antiga se for local
     if (oldLogo?.value && oldLogo.value.startsWith('/uploads/')) {
@@ -58,11 +58,11 @@ export async function uploadSystemLogo(formData: FormData) {
          }
     }
 
-    await db.prepare(`
+    await db.query(`
         INSERT INTO settings (key, value) 
-        VALUES ('SYSTEM_LOGO_PATH', ?)
+        VALUES ('SYSTEM_LOGO_PATH', $1)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `).run(publicPath);
+    `, [publicPath]);
 
     revalidatePath('/');
     revalidatePath('/admin/settings');
@@ -76,7 +76,7 @@ export async function uploadSystemLogo(formData: FormData) {
 
 export async function removeSystemLogo() {
     try {
-        const oldLogo = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+        const oldLogo = (await db.query("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'", [])).rows[0] as { value: string } | undefined;
     
         if (oldLogo?.value && oldLogo.value.startsWith('/uploads/')) {
              const oldPath = join(process.cwd(), 'public', oldLogo.value);
@@ -87,7 +87,7 @@ export async function removeSystemLogo() {
              }
         }
 
-        await db.prepare("DELETE FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").run();
+        await db.query("DELETE FROM settings WHERE key = 'SYSTEM_LOGO_PATH'", []);
         
         revalidatePath('/');
         revalidatePath('/admin/settings');
@@ -99,7 +99,7 @@ export async function removeSystemLogo() {
 }
 
 export async function getSystemLogoUrl() {
-    const logo = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+    const logo = (await db.query("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'", [])).rows[0] as { value: string } | undefined;
     
     if (!logo?.value) return null;
 

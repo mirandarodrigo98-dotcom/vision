@@ -47,7 +47,7 @@ export default async function ClientVacationsPage({ searchParams }: ClientVacati
     FROM vacations v
     JOIN client_companies cc ON v.company_id = cc.id
     JOIN employees e ON v.employee_id = e.id
-    WHERE v.company_id = ?
+    WHERE v.company_id = $1
   `;
 
   const params: any[] = [activeCompanyId];
@@ -64,7 +64,7 @@ export default async function ClientVacationsPage({ searchParams }: ClientVacati
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const vacations = await db.prepare(query).all(...params) as any[];
+  const vacations = (await db.query(query, [...params])).rows as any[];
 
   return (
     <div className="space-y-6">

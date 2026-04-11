@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 async function getQuestorAuths() {
-  const result = await db.prepare('SELECT * FROM questor_company_auth').all();
+  const result = (await db.query('SELECT * FROM questor_company_auth', [])).rows;
   return result;
 }
 

@@ -19,9 +19,9 @@ export default async function EditLeavePage({ params }: { params: Promise<{ id: 
 
     // Check permissions
     if (session.role === 'client_user') {
-         const hasAccess = await db.prepare(`
-            SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, leave.company_id);
+         const hasAccess = (await db.query(`
+            SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, leave.company_id])).rows[0];
 
         if (!hasAccess && leave.created_by_user_id !== session.user_id) {
             redirect('/app/leaves');
@@ -53,13 +53,13 @@ export default async function EditLeavePage({ params }: { params: Promise<{ id: 
          redirect(`/app/leaves/${id}/view`);
     }
 
-    const companies = await db.prepare(`
+    const companies = (await db.query(`
         SELECT cc.id, cc.nome, cc.cnpj 
         FROM client_companies cc
         JOIN user_companies uc ON uc.company_id = cc.id
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = $1
         ORDER BY cc.nome
-      `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+      `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">

@@ -12,15 +12,15 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
 
     const { id } = await params;
 
-    let admissionQuery = 'SELECT * FROM admission_requests WHERE id = ?';
+    let admissionQuery = `SELECT * FROM admission_requests WHERE id = $1`;
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        admissionQuery += ' AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))';
+        admissionQuery += ` AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         queryParams.push(session.user_id);
     }
 
-    const admission = await db.prepare(admissionQuery).get(...queryParams) as any;
+    const admission = (await db.query(admissionQuery, [...queryParams])).rows[0] as any;
 
     if (!admission) {
         redirect('/admin/admissions');
@@ -28,19 +28,19 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
 
     let companies = [];
     if (session.role === 'operator') {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
-            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
-        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+        `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     } else {
         // Admin
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
             ORDER BY nome
-          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+          `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     }
 
     return (

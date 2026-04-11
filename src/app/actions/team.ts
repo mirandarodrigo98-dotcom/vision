@@ -34,12 +34,12 @@ export async function getActiveUsersForSelect() {
     throw new Error('Unauthorized');
   }
 
-  const users = await db.prepare(`
+  const users = (await db.query(`
     SELECT id, name
     FROM users
     WHERE role IN ('admin', 'operator') AND is_active = 1 AND deleted_at IS NULL
     ORDER BY name ASC
-  `).all() as { id: string, name: string }[];
+  `, [])).rows as { id: string, name: string }[];
 
   return users;
 }
@@ -50,7 +50,7 @@ export async function getTeamUsers() {
     throw new Error('Unauthorized');
   }
 
-  const users = await db.prepare(`
+  const users = (await db.query(`
     SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.receive_ticket_messages, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name, u.ir_commission_active, u.ir_commission_percent,
     (SELECT GROUP_CONCAT(urc.company_id) FROM user_restricted_companies urc WHERE urc.user_id = u.id) as restricted_company_ids
     FROM users u
@@ -58,7 +58,7 @@ export async function getTeamUsers() {
     LEFT JOIN access_schedules s ON u.access_schedule_id = s.id
     WHERE u.role IN ('admin', 'operator') AND u.deleted_at IS NULL
     ORDER BY u.name ASC
-  `).all() as (TeamUser & { restricted_company_ids: string | null })[];
+  `, [])).rows as (TeamUser & { restricted_company_ids: string | null })[];
 
   return users.map(u => ({
     ...u,
@@ -75,14 +75,14 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   const { name, email, role, cpf, phone, receive_ticket_messages, department_id, access_schedule_id, restricted_company_ids, ir_commission_active, ir_commission_percent } = data;
 
   // Validate email unique
-  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = (await db.query(`SELECT id FROM users WHERE email = $1`, [email])).rows[0];
   if (existing) {
     return { error: 'E-mail já cadastrado.' };
   }
 
   // Validate CPF unique if provided
   if (cpf) {
-    const existingCpf = await db.prepare('SELECT id FROM users WHERE cpf = ?').get(cpf);
+    const existingCpf = (await db.query(`SELECT id FROM users WHERE cpf = $1`, [cpf])).rows[0];
     if (existingCpf) {
       return { error: 'CPF já cadastrado.' };
     }
@@ -95,15 +95,15 @@ export async function createTeamUser(data: { name: string; email: string; role: 
   const hash = await hashPassword(password);
 
   try {
-    await db.prepare(`
+    await db.query(`
       INSERT INTO users (id, name, email, role, is_active, password_hash, password_temporary, cpf, phone, receive_ticket_messages, department_id, access_schedule_id, ir_commission_active, ir_commission_percent)
-      VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, name, email, role, hash, cpf || null, phone || null, receive_ticket_messages ? 1 : 0, department_id || null, access_schedule_id || null, ir_commission_active ? 1 : 0, ir_commission_percent || null);
+      VALUES ($1, $2, $3, $4, 1, $5, 1, $6, $7, $8, $9, $10, $11, $12)
+    `, [id, name, email, role, hash, cpf || null, phone || null, receive_ticket_messages ? 1 : 0, department_id || null, access_schedule_id || null, ir_commission_active ? 1 : 0, ir_commission_percent || null]);
 
     if (restricted_company_ids && restricted_company_ids.length > 0) {
-      const insertRestriction = db.prepare('INSERT INTO user_restricted_companies (user_id, company_id) VALUES (?, ?)');
+      
       for (const companyId of restricted_company_ids) {
-        await insertRestriction.run(id, companyId);
+        await db.query(`INSERT INTO user_restricted_companies (user_id, company_id) VALUES ($1, $2)`, [id, companyId]);
       }
     }
 
@@ -152,32 +152,32 @@ export async function updateTeamUser(id: string, data: { name: string; email: st
   const { name, email, role, cpf, phone, receive_ticket_messages, department_id, access_schedule_id, restricted_company_ids, ir_commission_active, ir_commission_percent } = data;
 
   // Validate email unique (excluding current user)
-  const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
+  const existing = (await db.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email, id])).rows[0];
   if (existing) {
     return { error: 'E-mail já cadastrado.' };
   }
 
   // Validate CPF unique if provided
   if (cpf) {
-    const existingCpf = await db.prepare('SELECT id FROM users WHERE cpf = ? AND id != ?').get(cpf, id);
+    const existingCpf = (await db.query(`SELECT id FROM users WHERE cpf = $1 AND id != $2`, [cpf, id])).rows[0];
     if (existingCpf) {
       return { error: 'CPF já cadastrado.' };
     }
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE users 
-      SET name = ?, email = ?, role = ?, cpf = ?, phone = ?, receive_ticket_messages = ?, department_id = ?, access_schedule_id = ?, ir_commission_active = ?, ir_commission_percent = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(name, email, role, cpf || null, phone || null, receive_ticket_messages ? 1 : 0, department_id || null, access_schedule_id || null, ir_commission_active ? 1 : 0, ir_commission_percent || null, id);
+      SET name = $1, email = $2, role = $3, cpf = $4, phone = $5, receive_ticket_messages = $6, department_id = $7, access_schedule_id = $8, ir_commission_active = $9, ir_commission_percent = $10, updated_at = NOW()
+      WHERE id = $11
+    `, [name, email, role, cpf || null, phone || null, receive_ticket_messages ? 1 : 0, department_id || null, access_schedule_id || null, ir_commission_active ? 1 : 0, ir_commission_percent || null, id]);
 
     // Update restrictions
-    await db.prepare('DELETE FROM user_restricted_companies WHERE user_id = ?').run(id);
+    await db.query(`DELETE FROM user_restricted_companies WHERE user_id = $1`, [id]);
     if (restricted_company_ids && restricted_company_ids.length > 0) {
-      const insertRestriction = db.prepare('INSERT INTO user_restricted_companies (user_id, company_id) VALUES (?, ?)');
+      
       for (const companyId of restricted_company_ids) {
-        await insertRestriction.run(id, companyId);
+        await db.query(`INSERT INTO user_restricted_companies (user_id, company_id) VALUES ($1, $2)`, [id, companyId]);
       }
     }
 
@@ -214,7 +214,7 @@ export async function toggleTeamUserStatus(userId: string, currentStatus: boolea
   const newStatus = !currentStatus;
 
   try {
-    await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, userId);
+    await db.query(`UPDATE users SET is_active = $1 WHERE id = $2`, [newStatus, userId]);
 
     logAudit({
       action: 'UPDATE_TEAM_USER_STATUS',
@@ -246,7 +246,7 @@ export async function deleteTeamUser(userId: string) {
   
     try {
       // Soft delete
-      await db.prepare("UPDATE users SET deleted_at = CURRENT_TIMESTAMP, is_active = 0 WHERE id = ?").run(userId);
+      await db.query(`UPDATE users SET deleted_at = CURRENT_TIMESTAMP, is_active = 0 WHERE id = $1`, [userId]);
   
       logAudit({
         action: 'DELETE_TEAM_USER',
@@ -272,18 +272,18 @@ export async function generateTempPassword(userId: string) {
     }
 
     try {
-        const user = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as { email: string, name: string };
+        const user = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [userId])).rows[0] as { email: string, name: string };
         if (!user) return { error: 'Usuário não encontrado' };
 
         const password = crypto.randomBytes(4).toString('hex'); // 8 chars
         const hash = await hashPassword(password);
 
         // Valid for 1 hour (Postgres syntax via converter)
-        await db.prepare(`
+        await db.query(`
             UPDATE users 
-            SET password_hash = ?, password_temporary = 1, temp_password_expires_at = datetime('now', '+1 hour'), updated_at = datetime('now')
-            WHERE id = ?
-        `).run(hash, userId);
+            SET password_hash = $1, password_temporary = 1, temp_password_expires_at = (NOW() + INTERVAL '1 hour'), updated_at = NOW()
+            WHERE id = $2
+        `, [hash, userId]);
 
         logAudit({
             action: 'GENERATE_TEMP_PASSWORD',
@@ -309,17 +309,17 @@ export async function sendPassword(userId: string) {
     }
 
     try {
-        const user = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as { email: string, name: string };
+        const user = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [userId])).rows[0] as { email: string, name: string };
         if (!user) return { error: 'Usuário não encontrado' };
 
         const password = crypto.randomBytes(4).toString('hex'); // 8 chars
         const hash = await hashPassword(password);
 
-        await db.prepare(`
+        await db.query(`
             UPDATE users 
-            SET password_hash = ?, password_temporary = 1, updated_at = datetime('now')
-            WHERE id = ?
-        `).run(hash, userId);
+            SET password_hash = $1, password_temporary = 1, updated_at = NOW()
+            WHERE id = $2
+        `, [hash, userId]);
 
         await sendEmail({
             to: user.email,

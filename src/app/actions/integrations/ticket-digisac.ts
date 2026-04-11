@@ -17,7 +17,7 @@ export async function sendTicketDigisacNotification({
     customText?: string;
 }) {
     try {
-        const user = await db.prepare('SELECT name, phone, receive_ticket_messages FROM users WHERE id = ?').get(userId) as any;
+        const user = (await db.query(`SELECT name, phone, receive_ticket_messages FROM users WHERE id = $1`, [userId])).rows[0] as any;
         
         if (!user || !user.receive_ticket_messages || !user.phone) {
             return { success: false, error: 'Usuário não configurado para receber mensagens ou sem telefone' };

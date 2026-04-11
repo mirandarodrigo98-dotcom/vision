@@ -5,13 +5,13 @@ async function generateAndSendCSVCompact() {
   console.log("=== Gerando CSV Compacto para Questor ===");
 
   try {
-    const config = await db.prepare("SELECT * FROM questor_syn_config LIMIT 1").get();
-    const routine = await db.prepare("SELECT * FROM questor_syn_routines WHERE system_code = 'CONTABIL_IMPORT'").get();
-    const company = await db.prepare("SELECT * FROM client_companies LIMIT 1").get();
+    const config = (await db.query("SELECT * FROM questor_syn_config LIMIT 1", [])).rows[0];
+    const routine = (await db.query("SELECT * FROM questor_syn_routines WHERE system_code = 'CONTABIL_IMPORT'", [])).rows[0];
+    const company = (await db.query("SELECT * FROM client_companies LIMIT 1", [])).rows[0];
 
     if (!config || !routine || !company) return;
 
-    const transaction = await db.prepare(`
+    const transaction = (await db.query(`
       SELECT t.*, 
              c.description as category_name, c.code as category_code, c.integration_code as category_integration_code, 
              a.description as account_name, a.code as account_code, a.integration_code as account_integration_code
@@ -19,7 +19,7 @@ async function generateAndSendCSVCompact() {
       LEFT JOIN enuves_categories c ON t.category_id = c.id
       LEFT JOIN enuves_accounts a ON t.account_id = a.id
       LIMIT 1
-    `).get();
+    `, [])).rows[0];
 
     if (!transaction) return;
 

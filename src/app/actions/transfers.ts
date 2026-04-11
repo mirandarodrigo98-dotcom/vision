@@ -39,30 +39,30 @@ export async function createTransfer(formData: FormData) {
         let userCompanyData;
 
         if (session.role === 'client_user') {
-            userCompanyData = await db.prepare(`
+            userCompanyData = (await db.query(`
                 SELECT cc.id, cc.nome, cc.cnpj, cc.is_active
                 FROM client_companies cc
                 JOIN user_companies uc ON uc.company_id = cc.id
-                WHERE uc.user_id = ? AND cc.id = ?
-            `).get(session.user_id, sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+                WHERE uc.user_id = $1 AND cc.id = $2
+            `, [session.user_id, sourceCompanyId])).rows[0] as { id: string, nome: string, cnpj: string, is_active: number };
         } else if (session.role === 'operator') {
             // Operator: Check if company exists and is NOT restricted
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, sourceCompanyId);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, sourceCompanyId])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa de origem.' };
             }
 
-            userCompanyData = await db.prepare(`
-                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = ?
-            `).get(sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+            userCompanyData = (await db.query(`
+                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = $1
+            `, [sourceCompanyId])).rows[0] as { id: string, nome: string, cnpj: string, is_active: number };
         } else {
             // Admin: Check if company exists
-            userCompanyData = await db.prepare(`
-                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = ?
-            `).get(sourceCompanyId) as { id: string, nome: string, cnpj: string, is_active: number };
+            userCompanyData = (await db.query(`
+                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = $1
+            `, [sourceCompanyId])).rows[0] as { id: string, nome: string, cnpj: string, is_active: number };
         }
 
         if (!userCompanyData) {
@@ -74,7 +74,7 @@ export async function createTransfer(formData: FormData) {
         }
 
         // Attempt to find employee ID by name and company to check pending requests
-        const employee = await db.prepare('SELECT id FROM employees WHERE name = ? AND company_id = ?').get(employeeName, sourceCompanyId) as { id: string };
+        const employee = (await db.query(`SELECT id FROM employees WHERE name = $1 AND company_id = $2`, [employeeName, sourceCompanyId])).rows[0] as { id: string };
         
         if (employee) {
             const pending = await checkPendingRequests(employee.id);
@@ -88,7 +88,7 @@ export async function createTransfer(formData: FormData) {
         }
 
         // Validate target company exists, is active (and get name for redundancy/legacy)
-        const targetCompany = await db.prepare('SELECT nome, is_active FROM client_companies WHERE id = ?').get(targetCompanyId) as { nome: string, is_active: number };
+        const targetCompany = (await db.query(`SELECT nome, is_active FROM client_companies WHERE id = $1`, [targetCompanyId])).rows[0] as { nome: string, is_active: number };
         if (!targetCompany) {
              return { error: 'Empresa destino inválida.' };
         }
@@ -99,16 +99,13 @@ export async function createTransfer(formData: FormData) {
         const protocolNumber = generateProtocolNumber();
         const transferId = randomUUID();
 
-        await db.prepare(`
+        await db.query(`
             INSERT INTO transfer_requests (
                 id, source_company_id, target_company_id, target_company_name, employee_name, 
                 transfer_date, observations, status, protocol_number, 
                 created_by_user_id, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).run(
-            transferId, sourceCompanyId, targetCompanyId, targetCompany.nome, employeeName, 
-            transferDate, observations, protocolNumber, session.user_id
-        );
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'SUBMITTED', $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `, [transferId, sourceCompanyId, targetCompanyId, targetCompany.nome, employeeName, transferDate, observations, protocolNumber, session.user_id]);
 
         // Audit Log
         logAudit({
@@ -163,23 +160,23 @@ export async function updateTransfer(id: string, formData: FormData) {
     }
 
     try {
-        const transfer = await db.prepare('SELECT * FROM transfer_requests WHERE id = ?').get(id) as any;
+        const transfer = (await db.query(`SELECT * FROM transfer_requests WHERE id = $1`, [id])).rows[0] as any;
         if (!transfer) return { error: 'Transferência não encontrada.' };
 
         // Validate permission (creator or company access?)
         // Usually company access is better.
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, transfer.source_company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, transfer.source_company_id])).rows[0];
 
             if (!hasAccess && transfer.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
             }
         } else if (session.role === 'operator') {
-             const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, transfer.source_company_id);
+             const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, transfer.source_company_id])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa.' };
@@ -198,7 +195,7 @@ export async function updateTransfer(id: string, formData: FormData) {
         // Let's assume the same here.
 
         // Validate target company exists
-        const targetCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(targetCompanyId) as { nome: string };
+        const targetCompany = (await db.query(`SELECT nome FROM client_companies WHERE id = $1`, [targetCompanyId])).rows[0] as { nome: string };
         if (!targetCompany) {
              return { error: 'Empresa destino inválida.' };
         }
@@ -233,11 +230,11 @@ export async function updateTransfer(id: string, formData: FormData) {
         if (!areDatesEqual(transfer.transfer_date, transferDate)) changes.push('transfer_date');
         if (normalize(transfer.observations) !== normalize(observations)) changes.push('observation');
 
-        await db.prepare(`
+        await db.query(`
             UPDATE transfer_requests 
-            SET target_company_id = ?, target_company_name = ?, transfer_date = ?, observations = ?, status = 'RECTIFIED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(targetCompanyId, targetCompany.nome, transferDate, observations, id);
+            SET target_company_id = $1, target_company_name = $2, transfer_date = $3, observations = $4, status = 'RECTIFIED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $5
+        `, [targetCompanyId, targetCompany.nome, transferDate, observations, id]);
 
          // Audit Log
          logAudit({
@@ -251,7 +248,7 @@ export async function updateTransfer(id: string, formData: FormData) {
         });
 
         // Send Notification
-        const sourceCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(transfer.source_company_id) as { nome: string };
+        const sourceCompany = (await db.query(`SELECT nome FROM client_companies WHERE id = $1`, [transfer.source_company_id])).rows[0] as { nome: string };
         
         const pdfBytes = await generateTransferPDF({
             source_company_name: sourceCompany.nome,
@@ -296,32 +293,32 @@ export async function cancelTransfer(id: string) {
     }
 
     try {
-        const transfer = db.prepare('SELECT * FROM transfer_requests WHERE id = ?').get(id) as any;
+        const transfer = (await db.query(`SELECT * FROM transfer_requests WHERE id = $1`, [id])).rows[0] as any;
         if (!transfer) return { error: 'Transferência não encontrada.' };
 
         if (session.role === 'client_user') {
-             const hasAccess = db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, transfer.source_company_id);
+             const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, transfer.source_company_id])).rows[0];
 
             if (!hasAccess && transfer.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
             }
         } else if (session.role === 'operator') {
-            const isRestricted = db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, transfer.source_company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, transfer.source_company_id])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa.' };
             }
         }
 
-        db.prepare(`
+        await db.query(`
             UPDATE transfer_requests 
-            SET status = 'CANCELLED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(id);
+            SET status = 'CANCELLED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $1
+        `, [id]);
 
         logAudit({
             actor_user_id: session.user_id,
@@ -334,14 +331,14 @@ export async function cancelTransfer(id: string) {
         });
 
         // Send Notification
-        const sourceCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(transfer.source_company_id) as { nome: string };
+        const sourceCompany = (await db.query(`SELECT nome FROM client_companies WHERE id = $1`, [transfer.source_company_id])).rows[0] as { nome: string };
 
         let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
         let recipientEmail: string | undefined = undefined;
 
         if (session.role === 'admin' || session.role === 'operator') {
             notifType = 'CANCEL_BY_ADMIN';
-            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(transfer.created_by_user_id) as { email: string };
+            const creator = (await db.query(`SELECT email FROM users WHERE id = $1`, [transfer.created_by_user_id])).rows[0] as { email: string };
             recipientEmail = creator?.email;
         }
 
@@ -371,13 +368,13 @@ export async function approveTransfer(id: string) {
     }
 
     try {
-        const transfer = await db.prepare('SELECT * FROM transfer_requests WHERE id = ?').get(id) as any;
+        const transfer = (await db.query(`SELECT * FROM transfer_requests WHERE id = $1`, [id])).rows[0] as any;
         if (!transfer) return { error: 'Transferência não encontrada.' };
 
         if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, transfer.source_company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, transfer.source_company_id])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa.' };
@@ -389,21 +386,21 @@ export async function approveTransfer(id: string) {
         }
 
         // Get creator info
-        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(transfer.created_by_user_id) as { email: string, name: string };
-        const sourceCompany = await db.prepare('SELECT nome FROM client_companies WHERE id = ?').get(transfer.source_company_id) as { nome: string };
+        const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [transfer.created_by_user_id])).rows[0] as { email: string, name: string };
+        const sourceCompany = (await db.query(`SELECT nome FROM client_companies WHERE id = $1`, [transfer.source_company_id])).rows[0] as { nome: string };
 
         // Transaction to ensure consistency
         const approveTransaction = db.transaction(async () => {
             // 1. Update Transfer Status
-            await db.prepare(`
+            await db.query(`
                 UPDATE transfer_requests 
                 SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `).run(id);
+                WHERE id = $1
+            `, [id]);
 
             // 2. Find Source Employee
             // Ideally we should have stored employee_id, but name+company is the key used in creation
-            const sourceEmployee = await db.prepare('SELECT * FROM employees WHERE name = ? AND company_id = ?').get(transfer.employee_name, transfer.source_company_id) as any;
+            const sourceEmployee = (await db.query(`SELECT * FROM employees WHERE name = $1 AND company_id = $2`, [transfer.employee_name, transfer.source_company_id])).rows[0] as any;
             
             if (!sourceEmployee) {
                  throw new Error('Funcionário não encontrado na empresa de origem.');
@@ -411,74 +408,49 @@ export async function approveTransfer(id: string) {
 
             // 3. Update Source Employee (Transferido, Inactive)
             // Keep company_id as source company, set status to Transferido, mark as inactive
-            await db.prepare(`
+            await db.query(`
                 UPDATE employees 
-                SET status = 'Transferido', is_active = 0, transfer_date = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE id = ?
-            `).run(transfer.transfer_date, sourceEmployee.id);
+                SET status = 'Transferido', is_active = 0, transfer_date = $1, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $2
+            `, [transfer.transfer_date, sourceEmployee.id]);
 
             // 4. Create Target Employee (Admitido, Active)
             const newEmployeeId = randomUUID();
             
             // We copy most fields, but reset specific ones
-            await db.prepare(`
+            await db.query(`
                 INSERT INTO employees (
                     id, company_id, code, employee_code, name, 
                     admission_date, birth_date, gender, pis, cpf, 
                     esocial_registration, is_active, status, created_at, updated_at
                 ) VALUES (
-                    ?, ?, ?, ?, ?, 
-                    ?, ?, ?, ?, ?, 
-                    ?, 1, 'Admitido', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    $1, $2, $3, $4, $5, 
+                    $6, $7, $8, $9, $10, 
+                    $11, 1, 'Admitido', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                 )
-            `).run(
-                newEmployeeId, 
-                transfer.target_company_id, 
-                sourceEmployee.code, 
-                sourceEmployee.employee_code, 
-                sourceEmployee.name,
-                sourceEmployee.admission_date, // Keep original admission date for history
-                sourceEmployee.birth_date,
-                sourceEmployee.gender,
-                sourceEmployee.pis,
-                sourceEmployee.cpf,
-                sourceEmployee.esocial_registration
-            );
+            `, [newEmployeeId, transfer.target_company_id, sourceEmployee.code, sourceEmployee.employee_code, sourceEmployee.name, sourceEmployee.admission_date, sourceEmployee.birth_date, sourceEmployee.gender, sourceEmployee.pis, sourceEmployee.cpf, sourceEmployee.esocial_registration]);
 
             // 5. Copy Vacations
-            const vacations = await db.prepare('SELECT * FROM vacations WHERE employee_id = ?').all(sourceEmployee.id) as any[];
+            const vacations = (await db.query(`SELECT * FROM vacations WHERE employee_id = $1`, [sourceEmployee.id])).rows as any[];
             for (const v of vacations) {
                 const newVacationId = randomUUID();
                 const newProtocol = generateProtocolNumber(); // Generate new protocol to avoid unique constraint violation
                 
-                await db.prepare(`
+                await db.query(`
                     INSERT INTO vacations (
                         id, company_id, employee_id, start_date, days_quantity, 
                         allowance_days, return_date, observations, status, 
                         protocol_number, created_by_user_id, created_at, updated_at
                     ) VALUES (
-                        ?, ?, ?, ?, ?, 
-                        ?, ?, ?, ?, 
-                        ?, ?, ?, CURRENT_TIMESTAMP
+                        $1, $2, $3, $4, $5, 
+                        $6, $7, $8, $9, 
+                        $10, $11, $12, CURRENT_TIMESTAMP
                     )
-                `).run(
-                    newVacationId,
-                    transfer.target_company_id,
-                    newEmployeeId,
-                    v.start_date,
-                    v.days_quantity,
-                    v.allowance_days,
-                    v.return_date,
-                    v.observations,
-                    v.status,
-                    newProtocol,
-                    v.created_by_user_id,
-                    v.created_at
-                );
+                `, [newVacationId, transfer.target_company_id, newEmployeeId, v.start_date, v.days_quantity, v.allowance_days, v.return_date, v.observations, v.status, newProtocol, v.created_by_user_id, v.created_at]);
             }
 
             // 6. Copy Leaves
-            const leaves = await db.prepare('SELECT * FROM leaves WHERE employee_id = ?').all(sourceEmployee.id) as any[];
+            const leaves = (await db.query(`SELECT * FROM leaves WHERE employee_id = $1`, [sourceEmployee.id])).rows as any[];
             for (const l of leaves) {
                 const newLeaveId = randomUUID();
                 // Protocol number in leaves is not unique, but good practice to generate new or keep?
@@ -488,29 +460,17 @@ export async function approveTransfer(id: string) {
                 // Let's generate new to be consistent with vacations.
                 const newProtocol = generateProtocolNumber(); 
 
-                await db.prepare(`
+                await db.query(`
                     INSERT INTO leaves (
                         id, company_id, employee_id, start_date, type, 
                         observations, attachment_key, status, protocol_number, 
                         created_by_user_id, created_at, updated_at
                     ) VALUES (
-                        ?, ?, ?, ?, ?, 
-                        ?, ?, ?, ?, 
-                        ?, ?, CURRENT_TIMESTAMP
+                        $1, $2, $3, $4, $5, 
+                        $6, $7, $8, $9, 
+                        $10, $11, CURRENT_TIMESTAMP
                     )
-                `).run(
-                    newLeaveId,
-                    transfer.target_company_id,
-                    newEmployeeId,
-                    l.start_date,
-                    l.type,
-                    l.observations,
-                    l.attachment_key,
-                    l.status,
-                    newProtocol,
-                    l.created_by_user_id,
-                    l.created_at
-                );
+                `, [newLeaveId, transfer.target_company_id, newEmployeeId, l.start_date, l.type, l.observations, l.attachment_key, l.status, newProtocol, l.created_by_user_id, l.created_at]);
             }
         });
 
@@ -585,7 +545,7 @@ export async function getTransfers(companyId?: string) {
             params.push(companyId);
         }
     } else if (session.role === 'operator') {
-        query += ` WHERE (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        query += ` WHERE (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         params.push(session.user_id);
 
         if (companyId) {
@@ -601,35 +561,35 @@ export async function getTransfers(companyId?: string) {
 
     query += ` ORDER BY tr.created_at DESC`;
 
-    return await db.prepare(query).all(...params);
+    return (await db.query(query, [...params])).rows;
 }
 
 export async function getTransfer(id: string) {
     const session = await getSession();
     if (!session) return null;
 
-    const transfer = await db.prepare(`
+    const transfer = (await db.query(`
         SELECT tr.*, cc.nome as source_company_name
         FROM transfer_requests tr
         JOIN client_companies cc ON tr.source_company_id = cc.id
-        WHERE tr.id = ?
-    `).get(id) as any;
+        WHERE tr.id = $1
+    `, [id])).rows[0] as any;
 
     if (!transfer) return null;
 
     // Check permissions
     if (session.role === 'client_user') {
-         const hasAccess = await db.prepare(`
-            SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, transfer.source_company_id);
+         const hasAccess = (await db.query(`
+            SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, transfer.source_company_id])).rows[0];
 
         if (!hasAccess && transfer.created_by_user_id !== session.user_id) {
             return null;
         }
     } else if (session.role === 'operator') {
-        const isRestricted = await db.prepare(`
-            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, transfer.source_company_id);
+        const isRestricted = (await db.query(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, transfer.source_company_id])).rows[0];
 
         if (isRestricted) {
             return null;

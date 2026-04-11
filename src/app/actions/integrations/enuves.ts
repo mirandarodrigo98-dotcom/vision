@@ -48,7 +48,7 @@ export async function getCategories(
   try {
     let query = `
       SELECT * FROM enuves_categories 
-      WHERE company_id = ?
+      WHERE company_id = $1
     `;
     const params: any[] = [targetCompanyId];
 
@@ -73,7 +73,7 @@ export async function getCategories(
 
     query += ` ORDER BY code ASC`;
 
-    const categories = await db.prepare(query).all(...params) as any[];
+    const categories = (await db.query(query, [...params])).rows as any[];
 
     return categories.map(cat => ({
       ...cat,
@@ -110,11 +110,11 @@ export async function getNextCode(nature: 'Saída' | 'Entrada' | 'Transferência
       maxCode = 799999;
     }
 
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM enuves_categories 
-      WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
-    `).get(targetCompanyId, minCode, maxCode) as { max_code: number | null };
+      WHERE company_id = $1 AND CAST(code AS INTEGER) >= $2 AND CAST(code AS INTEGER) <= $3
+    `, [targetCompanyId, minCode, maxCode])).rows[0] as { max_code: number | null };
 
     let nextCode = minCode;
     if (result && result.max_code) {
@@ -164,11 +164,11 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
       maxCode = 799999;
     }
 
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM enuves_categories 
-      WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
-    `).get(targetCompanyId, minCode, maxCode) as { max_code: number | null };
+      WHERE company_id = $1 AND CAST(code AS INTEGER) >= $2 AND CAST(code AS INTEGER) <= $3
+    `, [targetCompanyId, minCode, maxCode])).rows[0] as { max_code: number | null };
 
     let nextCode = minCode;
     if (result && result.max_code) {
@@ -182,17 +182,10 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
     const generatedCode = String(nextCode);
 
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO enuves_categories (id, company_id, code, description, integration_code, nature)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      targetCompanyId,
-      generatedCode,
-      data.description,
-      data.integration_code || null,
-      data.nature
-    );
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [id, targetCompanyId, generatedCode, data.description, data.integration_code || null, data.nature]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -219,16 +212,11 @@ export async function updateCategory(data: z.infer<typeof updateCategorySchema>,
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE enuves_categories 
-      SET description = ?, integration_code = ?
-      WHERE id = ? AND company_id = ?
-    `).run(
-      data.description,
-      data.integration_code || null,
-      data.id,
-      targetCompanyId
-    );
+      SET description = $1, integration_code = $2
+      WHERE id = $3 AND company_id = $4
+    `, [data.description, data.integration_code || null, data.id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -247,16 +235,16 @@ export async function deleteCategory(id: string, companyId: string) {
 
   try {
     // Check for linked transactions
-    const linkedTransactions = await db.prepare(`
+    const linkedTransactions = (await db.query(`
       SELECT COUNT(*) as count FROM enuves_transactions 
-      WHERE category_id = ? AND company_id = ?
-    `).get(id, targetCompanyId) as { count: number };
+      WHERE category_id = $1 AND company_id = $2
+    `, [id, targetCompanyId])).rows[0] as { count: number };
 
     if (linkedTransactions.count > 0) {
       return { error: 'Não é possível excluir: existem lançamentos vinculados a esta categoria.' };
     }
 
-    await db.prepare('DELETE FROM enuves_categories WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    await db.query(`DELETE FROM enuves_categories WHERE id = $1 AND company_id = $2`, [id, targetCompanyId]);
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
   } catch (error) {
@@ -273,11 +261,11 @@ export async function toggleCategoryStatus(id: string, isActive: boolean, compan
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE enuves_categories 
-      SET is_active = ? 
-      WHERE id = ? AND company_id = ?
-    `).run(isActive ? 1 : 0, id, targetCompanyId);
+      SET is_active = $1 
+      WHERE id = $2 AND company_id = $3
+    `, [isActive ? 1 : 0, id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -321,28 +309,28 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
     let minCode = nature === 'Entrada' ? 800000 : 900000;
     
     // Check existing
-    const existing = await db.prepare('SELECT description FROM enuves_categories WHERE company_id = ?').all(targetCompanyId) as { description: string }[];
+    const existing = (await db.query(`SELECT description FROM enuves_categories WHERE company_id = $1`, [targetCompanyId])).rows as { description: string }[];
     const existingSet = new Set(existing.map(e => e.description));
 
     let count = 0;
     
     // Need to find the next available code
     // Optimization: fetch max code once
-    const result = await db.prepare(`
+    const result = (await db.query(`
         SELECT MAX(CAST(code AS INTEGER)) as max_code 
         FROM enuves_categories 
-        WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
-    `).get(targetCompanyId, minCode, minCode + 99999) as { max_code: number | null };
+        WHERE company_id = $1 AND CAST(code AS INTEGER) >= $2 AND CAST(code AS INTEGER) <= $3
+    `, [targetCompanyId, minCode, minCode + 99999])).rows[0] as { max_code: number | null };
 
     let nextCode = (result && result.max_code) ? result.max_code + 1 : minCode;
 
     for (const desc of listToUse) {
       if (!existingSet.has(desc)) {
         const id = uuidv4();
-        await db.prepare(`
+        await db.query(`
           INSERT INTO enuves_categories (id, company_id, code, description, nature)
-          VALUES (?, ?, ?, ?, ?)
-        `).run(id, targetCompanyId, String(nextCode), desc, nature);
+          VALUES ($1, $2, $3, $4, $5)
+        `, [id, targetCompanyId, String(nextCode), desc, nature]);
         nextCode++;
         count++;
       }
@@ -396,7 +384,7 @@ export async function getTransactions(
       FROM enuves_transactions t
       LEFT JOIN enuves_categories c ON t.category_id = c.id
       LEFT JOIN enuves_accounts a ON t.account_id = a.id
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
 
     const params: any[] = [targetCompanyId];
@@ -438,7 +426,7 @@ export async function getTransactions(
 
     query += ` ORDER BY t.date DESC`;
 
-    const transactions = await db.prepare(query).all(...params) as any[];
+    const transactions = (await db.query(query, [...params])).rows as any[];
     
     return transactions.map(t => {
       let dateStr = null;
@@ -487,20 +475,12 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE enuves_transactions
-      SET date = ?, category_id = ?, account_id = ?, description = ?, value = ?,
+      SET date = $1, category_id = $2, account_id = $3, description = $4, value = $5,
           questor_synced_at = NULL, questor_sync_id = NULL, questor_sync_error = NULL
-      WHERE id = ? AND company_id = ?
-    `).run(
-      data.date,
-      data.categoryId,
-      data.accountId || null,
-      data.description,
-      data.value,
-      data.id,
-      targetCompanyId
-    );
+      WHERE id = $6 AND company_id = $7
+    `, [data.date, data.categoryId, data.accountId || null, data.description, data.value, data.id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -518,7 +498,7 @@ export async function deleteTransaction(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM enuves_transactions WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    await db.query(`DELETE FROM enuves_transactions WHERE id = $1 AND company_id = $2`, [id, targetCompanyId]);
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
   } catch (error) {
@@ -541,7 +521,7 @@ export async function deleteTransactionsBatch(ids: string[], companyId: string) 
     const placeholders = ids.map(() => '?').join(',');
     const query = `DELETE FROM enuves_transactions WHERE id IN (${placeholders}) AND company_id = ?`;
     
-    await db.prepare(query).run(...ids, targetCompanyId);
+    await db.query(query, [...ids, targetCompanyId]);
     
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -591,7 +571,7 @@ export async function getAccounts(
   try {
     let query = `
       SELECT * FROM enuves_accounts 
-      WHERE company_id = ?
+      WHERE company_id = $1
     `;
     const params: any[] = [targetCompanyId];
 
@@ -612,7 +592,7 @@ export async function getAccounts(
 
     query += ` ORDER BY CAST(code AS INTEGER) ASC`;
 
-    const accounts = await db.prepare(query).all(...params) as any[];
+    const accounts = (await db.query(query, [...params])).rows as any[];
     
     // Ensure dates are serialized as strings to avoid "Date object" issues in Client Components
     return accounts.map(account => ({
@@ -634,11 +614,11 @@ export async function getNextAccountCode(companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM enuves_accounts 
-      WHERE company_id = ?
-    `).get(targetCompanyId) as { max_code: number | null };
+      WHERE company_id = $1
+    `, [targetCompanyId])).rows[0] as { max_code: number | null };
 
     let nextCode = 1;
     if (result && result.max_code) {
@@ -673,16 +653,10 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
     }
 
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO enuves_accounts (id, company_id, code, description, integration_code)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(
-      id,
-      targetCompanyId,
-      codeResult.nextCode,
-      data.description,
-      data.integration_code || null
-    );
+      VALUES ($1, $2, $3, $4, $5)
+    `, [id, targetCompanyId, codeResult.nextCode, data.description, data.integration_code || null]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -710,16 +684,11 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE enuves_accounts 
-      SET description = ?, integration_code = ?
-      WHERE id = ? AND company_id = ?
-    `).run(
-      data.description,
-      data.integration_code || null,
-      data.id,
-      targetCompanyId
-    );
+      SET description = $1, integration_code = $2
+      WHERE id = $3 AND company_id = $4
+    `, [data.description, data.integration_code || null, data.id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -738,16 +707,16 @@ export async function deleteAccount(id: string, companyId: string) {
 
   try {
     // Check for linked transactions
-    const linkedTransactions = await db.prepare(`
+    const linkedTransactions = (await db.query(`
       SELECT COUNT(*) as count FROM enuves_transactions 
-      WHERE account_id = ? AND company_id = ?
-    `).get(id, targetCompanyId) as { count: number };
+      WHERE account_id = $1 AND company_id = $2
+    `, [id, targetCompanyId])).rows[0] as { count: number };
 
     if (linkedTransactions.count > 0) {
       return { error: 'Não é possível excluir: existem lançamentos vinculados a esta conta.' };
     }
 
-    await db.prepare('DELETE FROM enuves_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    await db.query(`DELETE FROM enuves_accounts WHERE id = $1 AND company_id = $2`, [id, targetCompanyId]);
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
   } catch (error) {
@@ -764,11 +733,11 @@ export async function toggleAccountStatus(id: string, isActive: boolean, company
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE enuves_accounts 
-      SET is_active = ? 
-      WHERE id = ? AND company_id = ?
-    `).run(isActive ? 1 : 0, id, targetCompanyId);
+      SET is_active = $1 
+      WHERE id = $2 AND company_id = $3
+    `, [isActive ? 1 : 0, id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/enuves');
     return { success: true };
@@ -793,7 +762,7 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
       FROM enuves_transactions t
       LEFT JOIN enuves_categories c ON t.category_id = c.id
       LEFT JOIN enuves_accounts a ON t.account_id = a.id
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
     const params: any[] = [targetCompanyId];
 
@@ -830,7 +799,7 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
 
     query += ` ORDER BY t.date ASC`; // Export usually sorted by date ascending
 
-    const transactions = await db.prepare(query).all(...params) as any[];
+    const transactions = (await db.query(query, [...params])).rows as any[];
 
     // Validate Integration Codes
     const missingIntegrationCode: string[] = [];
@@ -1332,15 +1301,15 @@ export async function saveTransactions(transactions: any[], companyId: string) {
 
   try {
     const insertMany = db.transaction(async (txs: any[]) => {
-        const stmt = db.prepare(`
-            INSERT INTO enuves_transactions (id, company_id, category_id, account_id, date, description, original_description, value)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `);
+        
 
         for (const t of txs) {
             // Ensure we have a new ID if not provided (though parse generates it)
             const id = t.id || uuidv4();
-            await stmt.run(id, targetCompanyId, t.category_id, t.account_id || null, t.date, t.description, t.original_description || t.description, t.value);
+            await db.query(`
+            INSERT INTO enuves_transactions (id, company_id, category_id, account_id, date, description, original_description, value)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [id, targetCompanyId, t.category_id, t.account_id || null, t.date, t.description, t.original_description || t.description, t.value]);
         }
     });
 

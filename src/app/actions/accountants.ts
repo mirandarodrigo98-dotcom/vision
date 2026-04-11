@@ -33,7 +33,7 @@ export async function getAccountants() {
   if (!session) return [];
   
   try {
-    const accountants = db.prepare('SELECT * FROM accountants ORDER BY name ASC').all();
+    const accountants = (await db.query('SELECT * FROM accountants ORDER BY name ASC', [])).rows;
     return accountants;
   } catch (error) {
     console.error('Error fetching accountants:', error);
@@ -46,7 +46,7 @@ export async function getAccountant(id: string) {
   if (!session) return null;
   
   try {
-    const accountant = db.prepare('SELECT * FROM accountants WHERE id = ?').get(id);
+    const accountant = (await db.query(`SELECT * FROM accountants WHERE id = $1`, [id])).rows[0];
     return accountant;
   } catch (error) {
     console.error('Error fetching accountant:', error);
@@ -72,17 +72,13 @@ export async function createAccountant(data: z.infer<typeof accountantSchema>) {
       city, state, phone, fax, cellphone, email 
     } = result.data;
     
-    db.prepare(`
+    await db.query(`
       INSERT INTO accountants (
         name, type, document, crc_number, crc_uf, crc_sequence, crc_date,
         qualification, zip_code, address, number, complement, neighborhood,
         city, state, phone, fax, cellphone, email
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      name, type, document, crc_number, crc_uf, crc_sequence, crc_date || null,
-      qualification, zip_code, address, number, complement, neighborhood,
-      city, state, phone, fax, cellphone, email
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+    `, [name, type, document, crc_number, crc_uf, crc_sequence, crc_date || null, qualification, zip_code, address, number, complement, neighborhood, city, state, phone, fax, cellphone, email]);
     
     revalidatePath('/admin/accountants');
     return { success: true };
@@ -108,20 +104,15 @@ export async function updateAccountant(id: string, data: z.infer<typeof accounta
       city, state, phone, fax, cellphone, email 
     } = result.data;
     
-    db.prepare(`
+    await db.query(`
       UPDATE accountants SET
-        name = ?, type = ?, document = ?, crc_number = ?, crc_uf = ?, 
-        crc_sequence = ?, crc_date = ?, qualification = ?, zip_code = ?, 
-        address = ?, number = ?, complement = ?, neighborhood = ?, 
-        city = ?, state = ?, phone = ?, fax = ?, cellphone = ?, email = ?,
+        name = $1, type = $2, document = $3, crc_number = $4, crc_uf = $5, 
+        crc_sequence = $6, crc_date = $7, qualification = $8, zip_code = $9, 
+        address = $10, number = $11, complement = $12, neighborhood = $13, 
+        city = $14, state = $15, phone = $16, fax = $17, cellphone = $18, email = $19,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(
-      name, type, document, crc_number, crc_uf, crc_sequence, crc_date || null,
-      qualification, zip_code, address, number, complement, neighborhood,
-      city, state, phone, fax, cellphone, email,
-      id
-    );
+      WHERE id = $20
+    `, [name, type, document, crc_number, crc_uf, crc_sequence, crc_date || null, qualification, zip_code, address, number, complement, neighborhood, city, state, phone, fax, cellphone, email, id]);
     
     revalidatePath('/admin/accountants');
     return { success: true };
@@ -137,7 +128,7 @@ export async function deleteAccountant(id: string) {
   
   try {
     // Soft delete
-    db.prepare('UPDATE accountants SET is_active = false WHERE id = ?').run(id);
+    await db.query(`UPDATE accountants SET is_active = false WHERE id = $1`, [id]);
     revalidatePath('/admin/accountants');
     return { success: true };
   } catch (error) {

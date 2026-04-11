@@ -20,19 +20,19 @@ export default async function AdmissionDetailPage({ params }: { params: Promise<
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
     LEFT JOIN admission_attachments aa ON a.id = aa.admission_id
-    WHERE a.id = ?
+    WHERE a.id = $1
   `;
   const queryParams: any[] = [id];
 
   if (session.role === 'client_user') {
-    query += ` AND a.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    query += ` AND a.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
     queryParams.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (a.company_id IS NULL OR a.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    query += ` AND (a.company_id IS NULL OR a.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     queryParams.push(session.user_id);
   }
 
-  const admission = await db.prepare(query).get(...queryParams) as any;
+  const admission = (await db.query(query, [...queryParams])).rows[0] as any;
 
   if (!admission) {
     return <div>Admissão não encontrada ou permissão negada.</div>;

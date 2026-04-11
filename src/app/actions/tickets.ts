@@ -36,7 +36,7 @@ const CommentSchema = z.object({
 
 async function getUserEmail(userId: string) {
   try {
-    const user = await db.prepare('SELECT id, email, name FROM users WHERE id = ?').get(userId) as any;
+    const user = (await db.query(`SELECT id, email, name FROM users WHERE id = $1`, [userId])).rows[0] as any;
     return user;
   } catch (error) {
     return null;
@@ -44,7 +44,7 @@ async function getUserEmail(userId: string) {
 }
 
 async function createTicketsSequencesTable() {
-  await db.prepare(`
+  await db.query(`
     CREATE TABLE IF NOT EXISTS tickets_sequences (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       year INTEGER NOT NULL,
@@ -52,17 +52,17 @@ async function createTicketsSequencesTable() {
       current_number INTEGER NOT NULL DEFAULT 1,
       UNIQUE(year, month)
     )
-  `).run();
+  `, []);
 
   // Ensure protocol column exists in tickets table
   try {
     // Postgres compatible way to ensure column exists
-    await db.prepare("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS protocol TEXT").run();
+    await db.query("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS protocol TEXT", []);
   } catch (e) {
     console.error("Error ensuring protocol column:", e);
     // Fallback for older DBs or if IF NOT EXISTS is not supported
     try {
-      await db.prepare("ALTER TABLE tickets ADD COLUMN protocol TEXT").run();
+      await db.query("ALTER TABLE tickets ADD COLUMN protocol TEXT", []);
     } catch (e2) {
       // Ignore error if column already exists
     }
@@ -76,23 +76,23 @@ async function getNextSequentialNumber(date: Date) {
 
   // Usar transação para garantir atomicidade se possível, mas SQLite em modo WAL deve lidar bem
   // Primeiro tenta pegar o atual
-  const sequence = await db.prepare(`
-    SELECT current_number FROM tickets_sequences WHERE year = ? AND month = ?
-  `).get(year, month) as any;
+  const sequence = (await db.query(`
+    SELECT current_number FROM tickets_sequences WHERE year = $1 AND month = $2
+  `, [year, month])).rows[0] as any;
 
   let nextNum = 1;
   if (sequence) {
     nextNum = sequence.current_number;
     // Incrementa para o próximo
-    await db.prepare(`
-      UPDATE tickets_sequences SET current_number = current_number + 1 WHERE year = ? AND month = ?
-    `).run(year, month);
+    await db.query(`
+      UPDATE tickets_sequences SET current_number = current_number + 1 WHERE year = $1 AND month = $2
+    `, [year, month]);
   } else {
     // Inicia sequência do mês
     // Próximo será 2, atual é 1
-    await db.prepare(`
-      INSERT INTO tickets_sequences (year, month, current_number) VALUES (?, ?, 2)
-    `).run(year, month);
+    await db.query(`
+      INSERT INTO tickets_sequences (year, month, current_number) VALUES ($1, $2, 2)
+    `, [year, month]);
   }
   
   // Format: AAAAMMDD-XXXX
@@ -135,10 +135,10 @@ export async function createTicket(prevState: any, formData: FormData) {
   
   if (company_id) {
     if (session.role === 'client_user') {
-        const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+        const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
         if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
     } else if (session.role === 'operator') {
-        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+        const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
         if (restricted) return { error: 'Sem permissão para esta empresa.' };
     }
   }
@@ -165,28 +165,17 @@ export async function createTicket(prevState: any, formData: FormData) {
       }
     }
 
-    await db.prepare(`
+    await db.query(`
       INSERT INTO tickets (id, protocol, title, description, priority, category, requester_id, assignee_id, status, due_date, company_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)
-    `).run(
-      ticketId,
-      protocol,
-      title,
-      description,
-      priority,
-      category,
-      session.user_id,
-      assignee_id,
-      due_date ? new Date(due_date).toISOString() : null,
-      company_id
-    );
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'open', $9, $10)
+    `, [ticketId, protocol, title, description, priority, category, session.user_id, assignee_id, due_date ? new Date(due_date).toISOString() : null, company_id]);
 
     // Adicionar registro no histórico
     const interactionId = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'creation', 'Chamado criado')
-    `).run(interactionId, ticketId, session.user_id);
+      VALUES ($1, $2, $3, 'creation', 'Chamado criado')
+    `, [interactionId, ticketId, session.user_id]);
 
     // Upload de anexos
     for (const file of validAttachments) {
@@ -198,18 +187,10 @@ export async function createTicket(prevState: any, formData: FormData) {
         const uploadResult = await uploadToR2(buffer, fileName, file.type);
         
         if (uploadResult) {
-          await db.prepare(`
+          await db.query(`
             INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size, interaction_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `).run(
-            uuidv4(),
-            ticketId,
-            uploadResult.fileKey,
-            file.name,
-            file.type,
-            file.size,
-            interactionId
-          );
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `, [uuidv4(), ticketId, uploadResult.fileKey, file.name, file.type, file.size, interactionId]);
         }
       } catch (uploadError) {
         console.error(`Erro ao fazer upload do arquivo ${file.name}:`, uploadError);
@@ -274,7 +255,7 @@ export async function returnTicket(ticketId: string, reason: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticket = await db.prepare('SELECT assignee_id, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT assignee_id, requester_id, title FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can return
@@ -285,17 +266,17 @@ export async function returnTicket(ticketId: string, reason: string) {
        return { error: 'Permissão negada' };
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
       SET status = 'returned', updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(ticketId);
+      WHERE id = $1
+    `, [ticketId]);
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, `Chamado devolvido pelo motivo: ${reason}`);
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, `Chamado devolvido pelo motivo: ${reason}`]);
 
     // Notify requester
     const requester = await getUserEmail(ticket.requester_id);
@@ -344,7 +325,7 @@ export async function resubmitTicket(ticketId: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticket = await db.prepare('SELECT requester_id, assignee_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT requester_id, assignee_id, title FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only requester can resubmit
@@ -355,17 +336,17 @@ export async function resubmitTicket(ticketId: string) {
        return { error: 'Permissão negada' };
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
       SET status = 'open', updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(ticketId);
+      WHERE id = $1
+    `, [ticketId]);
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, `Chamado reenviado após ajustes.`);
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, `Chamado reenviado após ajustes.`]);
 
     // Notify assignee
     if (ticket.assignee_id) {
@@ -406,7 +387,7 @@ export async function acceptTicket(ticketId: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can accept, OR if it's unassigned (pickup)
@@ -426,24 +407,24 @@ export async function acceptTicket(ticketId: string) {
     let newAssigneeId = ticket.assignee_id;
     if (isUnassigned) {
       newAssigneeId = session.user_id;
-      await db.prepare(`
+      await db.query(`
         UPDATE tickets 
-        SET status = 'in_progress', assignee_id = ?, updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
-      `).run(session.user_id, ticketId);
+        SET status = 'in_progress', assignee_id = $1, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $2
+      `, [session.user_id, ticketId]);
     } else {
-      await db.prepare(`
+      await db.query(`
         UPDATE tickets 
         SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
-      `).run(ticketId);
+        WHERE id = $1
+      `, [ticketId]);
     }
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, isUnassigned ? 'Chamado aceito e assumido' : 'Chamado aceito e em andamento');
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, isUnassigned ? 'Chamado aceito e assumido' : 'Chamado aceito e em andamento']);
 
     // Notify requester
     const requester = await getUserEmail(ticket.requester_id);
@@ -478,7 +459,7 @@ export async function resolveTicket(ticketId: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT status, assignee_id, requester_id, title FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can resolve
@@ -493,17 +474,17 @@ export async function resolveTicket(ticketId: string) {
       return { error: 'O chamado deve estar em andamento para ser resolvido' };
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
-      SET status = 'resolved', updated_at = CURRENT_TIMESTAMP, closed_at = ?
-      WHERE id = ?
-    `).run(new Date().toISOString(), ticketId);
+      SET status = 'resolved', updated_at = CURRENT_TIMESTAMP, closed_at = $1
+      WHERE id = $2
+    `, [new Date().toISOString(), ticketId]);
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, 'Chamado resolvido');
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, 'Chamado resolvido']);
 
     // Notify requester
     const requester = await getUserEmail(ticket.requester_id);
@@ -550,7 +531,7 @@ export async function reopenTicket(ticketId: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticket = await db.prepare('SELECT status, requester_id, closed_at, title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT status, requester_id, closed_at, title, assignee_id FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only requester or admin can reopen
@@ -577,17 +558,17 @@ export async function reopenTicket(ticketId: string) {
       }
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
       SET status = 'open', updated_at = CURRENT_TIMESTAMP, closed_at = NULL
-      WHERE id = ?
-    `).run(ticketId);
+      WHERE id = $1
+    `, [ticketId]);
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, 'Chamado reaberto pelo solicitante');
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, 'Chamado reaberto pelo solicitante']);
 
     // Notify assignee
     if (ticket.assignee_id) {
@@ -628,7 +609,7 @@ export async function cancelTicket(ticketId: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticket = await db.prepare('SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT status, assignee_id, requester_id, title, protocol FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     // Only assignee or admin can cancel
@@ -639,17 +620,17 @@ export async function cancelTicket(ticketId: string) {
        return { error: 'Permissão negada' };
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
-      SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP, closed_at = ?
-      WHERE id = ?
-    `).run(new Date().toISOString(), ticketId);
+      SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP, closed_at = $1
+      WHERE id = $2
+    `, [new Date().toISOString(), ticketId]);
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, 'Chamado cancelado');
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, 'Chamado cancelado']);
 
     // Notify requester
     const requester = await getUserEmail(ticket.requester_id);
@@ -705,7 +686,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const currentTicket = await db.prepare('SELECT status, requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
+    const currentTicket = (await db.query(`SELECT status, requester_id, assignee_id, title, protocol FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!currentTicket) return { error: 'Chamado não encontrado' };
 
     const permissions = await getUserPermissions();
@@ -717,21 +698,17 @@ export async function updateTicketStatus(ticketId: string, status: string) {
        return { error: 'Permissão negada' };
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
-      SET status = ?, updated_at = CURRENT_TIMESTAMP, closed_at = ?
-      WHERE id = ?
-    `).run(
-      status, 
-      status === 'closed' || status === 'resolved' ? new Date().toISOString() : null,
-      ticketId
-    );
+      SET status = $1, updated_at = CURRENT_TIMESTAMP, closed_at = $2
+      WHERE id = $3
+    `, [status, status === 'closed' || status === 'resolved' ? new Date().toISOString() : null, ticketId]);
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'status_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, `Status alterado de ${translateStatus(currentTicket.status)} para ${translateStatus(status)}`);
+      VALUES ($1, $2, $3, 'status_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, `Status alterado de ${translateStatus(currentTicket.status)} para ${translateStatus(status)}`]);
 
     // Notificar Requester se fechado/resolvido
     if (status === 'closed' || status === 'resolved') {
@@ -775,7 +752,7 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
   if (!session) return { error: 'Não autenticado' };
 
   try {
-    const ticketInfo = await db.prepare('SELECT title, assignee_id FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticketInfo = (await db.query(`SELECT title, assignee_id FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticketInfo) return { error: 'Chamado não encontrado' };
 
     const permissions = await getUserPermissions();
@@ -787,16 +764,16 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
        return { error: 'Permissão negada' };
     }
 
-    await db.prepare(`
+    await db.query(`
       UPDATE tickets 
-      SET assignee_id = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(assigneeId, ticketId);
+      SET assignee_id = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [assigneeId, ticketId]);
 
     // Get assignee name for log
     let logMessage = 'Atribuído a Ninguém';
     if (assigneeId) {
-      const assignee = await db.prepare('SELECT name, email FROM users WHERE id = ?').get(assigneeId) as any;
+      const assignee = (await db.query(`SELECT name, email FROM users WHERE id = $1`, [assigneeId])).rows[0] as any;
       const assigneeName = assignee?.name || 'Desconhecido';
       logMessage = `Atribuído a ${assigneeName}`;
 
@@ -828,10 +805,10 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
     }
 
     // Log interaction
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'assignment_change', ?)
-    `).run(uuidv4(), ticketId, session.user_id, logMessage);
+      VALUES ($1, $2, $3, 'assignment_change', $4)
+    `, [uuidv4(), ticketId, session.user_id, logMessage]);
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath('/admin/tickets');
@@ -850,14 +827,14 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
   if (!content || !content.trim()) return { error: 'Comentário não pode ser vazio' };
 
   try {
-    const ticket = await db.prepare('SELECT id, requester_id, assignee_id, title, protocol FROM tickets WHERE id = ?').get(ticketId) as any;
+    const ticket = (await db.query(`SELECT id, requester_id, assignee_id, title, protocol FROM tickets WHERE id = $1`, [ticketId])).rows[0] as any;
     if (!ticket) return { error: 'Chamado não encontrado' };
 
     const interactionId = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ticket_interactions (id, ticket_id, user_id, type, content)
-      VALUES (?, ?, ?, 'comment', ?)
-    `).run(interactionId, ticketId, session.user_id, content);
+      VALUES ($1, $2, $3, 'comment', $4)
+    `, [interactionId, ticketId, session.user_id, content]);
 
     // Processar anexos
     const attachments = formData.getAll('attachments') as File[];
@@ -883,27 +860,19 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
         const uploadResult = await uploadToR2(buffer, fileName, file.type);
         
         if (uploadResult) {
-          await db.prepare(`
+          await db.query(`
             INSERT INTO ticket_attachments (id, ticket_id, file_key, original_name, content_type, size, interaction_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `).run(
-            uuidv4(),
-            ticketId,
-            uploadResult.fileKey,
-            file.name,
-            file.type,
-            file.size,
-            interactionId
-          );
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `, [uuidv4(), ticketId, uploadResult.fileKey, file.name, file.type, file.size, interactionId]);
         }
       } catch (uploadError) {
         console.error(`Erro ao fazer upload do arquivo ${file.name}:`, uploadError);
       }
     }
 
-    await db.prepare(`
-      UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(ticketId);
+    await db.query(`
+      UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = $1
+    `, [ticketId]);
 
     // Notificações
     const sender = await getUserEmail(session.user_id);
@@ -1041,7 +1010,7 @@ export async function getTickets(filters?: {
   if (!session) return [];
 
   // Fetch user's department
-  const user = await db.prepare('SELECT department_id FROM users WHERE id = ?').get(session.user_id) as any;
+  const user = (await db.query(`SELECT department_id FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
   const userDepartmentId = user?.department_id;
 
   let query = `
@@ -1066,7 +1035,7 @@ export async function getTickets(filters?: {
   
   // Apply company restrictions for operators (even if they are admins/have permissions, they shouldn't see restricted companies)
   if (session.role === 'operator') {
-    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
   }
 
@@ -1106,19 +1075,19 @@ export async function getTickets(filters?: {
   }
 
   if (filters?.startDate) {
-    query += ` AND date(t.created_at) >= date(?)`;
+    query += ` AND date(t.created_at) >= date($1)`;
     params.push(filters.startDate);
   }
 
   if (filters?.endDate) {
-    query += ` AND date(t.created_at) <= date(?)`;
+    query += ` AND date(t.created_at) <= date($1)`;
     params.push(filters.endDate);
   }
 
   query += ` ORDER BY t.created_at DESC`;
 
   try {
-    const tickets = await db.prepare(query).all(...params);
+    const tickets = (await db.query(query, [...params])).rows;
     return tickets;
   } catch (error) {
     console.error('Error fetching tickets:', error);
@@ -1138,7 +1107,7 @@ export async function getTicketCounts(filters?: {
   if (!session) return { total: 0, open: 0, in_progress: 0, closed: 0 };
 
   // Fetch user's department
-  const user = await db.prepare('SELECT department_id FROM users WHERE id = ?').get(session.user_id) as any;
+  const user = (await db.query(`SELECT department_id FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
   const userDepartmentId = user?.department_id;
 
   let query = `
@@ -1161,7 +1130,7 @@ export async function getTicketCounts(filters?: {
   
   // Apply company restrictions for operators
   if (session.role === 'operator') {
-    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
   }
 
@@ -1197,17 +1166,17 @@ export async function getTicketCounts(filters?: {
   }
 
   if (filters?.startDate) {
-    query += ` AND date(t.created_at) >= date(?)`;
+    query += ` AND date(t.created_at) >= date($1)`;
     params.push(filters.startDate);
   }
 
   if (filters?.endDate) {
-    query += ` AND date(t.created_at) <= date(?)`;
+    query += ` AND date(t.created_at) <= date($1)`;
     params.push(filters.endDate);
   }
 
   try {
-    const result = await db.prepare(query).get(...params) as any;
+    const result = (await db.query(query, [...params])).rows[0] as any;
     return {
       total: result.total || 0,
       open: result.open || 0,
@@ -1225,13 +1194,13 @@ export async function getTicketFilterOptions() {
   if (!session) return { requesters: [], departments: [], assignees: [] };
 
   try {
-    const requesters = await db.prepare(`
+    const requesters = (await db.query(`
       SELECT id, name FROM users WHERE deleted_at IS NULL ORDER BY name ASC
-    `).all();
+    `, [])).rows;
 
-    const departments = await db.prepare(`
+    const departments = (await db.query(`
       SELECT id, name FROM departments ORDER BY name ASC
-    `).all();
+    `, [])).rows;
 
     const assignees = await getPotentialAssignees(false);
 
@@ -1247,7 +1216,7 @@ export async function getTicketById(id: string) {
   if (!session) return null;
 
   try {
-    const ticket = await db.prepare(`
+    const ticket = (await db.query(`
       SELECT t.*, 
         r.name as requester_name, r.email as requester_email, r.avatar_path as requester_avatar,
         a.name as assignee_name, a.avatar_path as assignee_avatar,
@@ -1256,34 +1225,34 @@ export async function getTicketById(id: string) {
       JOIN users r ON t.requester_id = r.id
       LEFT JOIN users a ON t.assignee_id = a.id
       LEFT JOIN client_companies c ON t.company_id = c.id
-      WHERE t.id = ?
-    `).get(id);
+      WHERE t.id = $1
+    `, [id])).rows[0];
 
     if (!ticket) return null;
 
     if (ticket.company_id) {
       if (session.role === 'client_user') {
-        const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, ticket.company_id);
+        const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, ticket.company_id])).rows[0];
         if (!hasAccess) return null;
       } else if (session.role === 'operator') {
-        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, ticket.company_id);
+        const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, ticket.company_id])).rows[0];
         if (restricted) return null;
       }
     }
 
 
-    const interactions = await db.prepare(`
+    const interactions = (await db.query(`
       SELECT i.*, u.name as user_name, u.avatar_path as user_avatar
       FROM ticket_interactions i
       JOIN users u ON i.user_id = u.id
-      WHERE i.ticket_id = ?
+      WHERE i.ticket_id = $1
       ORDER BY i.created_at ASC
-    `).all(id);
+    `, [id])).rows;
 
     // Get attachments
-    const attachmentsRaw = await db.prepare(`
-      SELECT * FROM ticket_attachments WHERE ticket_id = ?
-    `).all(id) as any[];
+    const attachmentsRaw = (await db.query(`
+      SELECT * FROM ticket_attachments WHERE ticket_id = $1
+    `, [id])).rows as any[];
 
     const attachments = await Promise.all(attachmentsRaw.map(async (att) => {
       try {
@@ -1338,7 +1307,7 @@ export async function getPotentialAssignees(excludeCurrentUser: boolean = true) 
 
     query += ` ORDER BY u.name ASC`;
 
-    const assignees = await db.prepare(query).all(...params);
+    const assignees = (await db.query(query, [...params])).rows;
     
     return assignees as { id: string; name: string; email: string; role: string; department_name: string }[];
   } catch (error) {

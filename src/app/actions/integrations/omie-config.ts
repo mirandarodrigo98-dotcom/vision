@@ -12,7 +12,7 @@ export interface OmieConfig {
 export async function getOmieConfig() {
   try {
     // Ensure table exists
-    await db.prepare(`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS omie_config (
         id SERIAL PRIMARY KEY,
         app_key VARCHAR(255),
@@ -20,9 +20,9 @@ export async function getOmieConfig() {
         is_active BOOLEAN DEFAULT TRUE,
         updated_at TIMESTAMP DEFAULT NOW()
       )
-    `).run();
+    `, []);
 
-    const config = await db.prepare('SELECT * FROM omie_config WHERE id = 1').get() as any;
+    const config = (await db.query('SELECT * FROM omie_config WHERE id = 1', [])).rows[0] as any;
     if (config) {
       config.is_active = Boolean(config.is_active);
     }
@@ -35,7 +35,7 @@ export async function getOmieConfig() {
 
 export async function saveOmieConfig(data: OmieConfig) {
   try {
-    await db.prepare(`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS omie_config (
         id SERIAL PRIMARY KEY,
         app_key VARCHAR(255),
@@ -43,22 +43,18 @@ export async function saveOmieConfig(data: OmieConfig) {
         is_active BOOLEAN DEFAULT TRUE,
         updated_at TIMESTAMP DEFAULT NOW()
       )
-    `).run();
+    `, []);
 
     const isActive = data.is_active ? 1 : 0;
-    const existing = await db.prepare('SELECT * FROM omie_config WHERE id = 1').get();
+    const existing = (await db.query('SELECT * FROM omie_config WHERE id = 1', [])).rows[0];
 
     if (existing) {
-      await db.prepare(
-        `UPDATE omie_config 
-         SET app_key = ?, app_secret = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = 1`
-      ).run(data.app_key || null, data.app_secret || null, isActive);
+      await db.query(`UPDATE omie_config 
+         SET app_key = $1, app_secret = $2, is_active = $3, updated_at = CURRENT_TIMESTAMP
+         WHERE id = 1`, [data.app_key || null, data.app_secret || null, isActive]);
     } else {
-      await db.prepare(
-        `INSERT INTO omie_config (id, app_key, app_secret, is_active) 
-         VALUES (1, ?, ?, ?)`
-      ).run(data.app_key || null, data.app_secret || null, isActive);
+      await db.query(`INSERT INTO omie_config (id, app_key, app_secret, is_active) 
+         VALUES (1, $1, $2, $3)`, [data.app_key || null, data.app_secret || null, isActive]);
     }
     revalidatePath('/admin/integrations/omie');
     return { success: true };

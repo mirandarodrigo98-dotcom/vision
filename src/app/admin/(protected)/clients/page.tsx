@@ -54,10 +54,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
 
   if (session) {
     if (session.role === 'client_user') {
-      query += ` AND c.id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      query += ` AND c.id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     } else if (session.role === 'operator') {
-      query += ` AND c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+      query += ` AND c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     }
   }
@@ -93,7 +93,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
 
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const companies = await db.prepare(query).all(...params) as any[];
+  const companies = (await db.query(query, [...params])).rows as any[];
 
   return (
     <div className="space-y-6">

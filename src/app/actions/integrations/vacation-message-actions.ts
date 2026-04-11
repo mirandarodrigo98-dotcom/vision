@@ -19,19 +19,19 @@ async function logSystemError(context: string, details: any) {
     }
     
     // Tentar criar a tabela se não existir
-    await db.prepare(`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS system_errors (
         id SERIAL PRIMARY KEY,
         context VARCHAR(255),
         details TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       )
-    `).run();
+    `, []);
 
     // Inserir o erro
-    await db.prepare(`
-      INSERT INTO system_errors (context, details) VALUES (?, ?)
-    `).run(context, detailStr);
+    await db.query(`
+      INSERT INTO system_errors (context, details) VALUES ($1, $2)
+    `, [context, detailStr]);
 
     // Salvar localmente por precaução
     const logPath = path.join(process.cwd(), 'system_errors.log');
@@ -53,20 +53,20 @@ export async function sendVacationNoticeMessage(companyCode: string, employees: 
     try {
         // Buscar a empresa pelo código numérico do Questor
         const paddedCode = companyCode.padStart(4, '0');
-        const company = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ? OR code = ?').get(companyCode, paddedCode) as any;
+        const company = (await db.query(`SELECT id, nome FROM client_companies WHERE code = $1 OR code = $2`, [companyCode, paddedCode])).rows[0] as any;
         
         if (!company) {
             return { success: false, error: 'Empresa não encontrada no banco de dados com o código informado.' };
         }
 
         // Buscar telefone na aba de contatos com categoria "Administrativo"
-        const adminPhone = await db.prepare(`
+        const adminPhone = (await db.query(`
             SELECT p.number 
             FROM company_phones p
             JOIN contact_categories c ON p.category_id = c.id
-            WHERE p.company_id = ? AND c.name LIKE '%Administrativo%'
+            WHERE p.company_id = $1 AND c.name LIKE '%Administrativo%'
             LIMIT 1
-        `).get(company.id) as any;
+        `, [company.id])).rows[0] as any;
 
         if (!adminPhone || !adminPhone.number) {
             return { success: false, error: 'Empresa não possui um contato com a categoria Administrativo cadastrado.' };

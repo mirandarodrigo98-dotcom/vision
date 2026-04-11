@@ -16,7 +16,7 @@ export async function deleteTicketAttachment(attachmentId: string, ticketId: str
 
   try {
     // Get attachment info first
-    const attachment = await db.prepare('SELECT file_key FROM ticket_attachments WHERE id = ?').get(attachmentId) as any;
+    const attachment = (await db.query(`SELECT file_key FROM ticket_attachments WHERE id = $1`, [attachmentId])).rows[0] as any;
     
     if (!attachment) {
       return { error: 'Anexo não encontrado' };
@@ -32,7 +32,7 @@ export async function deleteTicketAttachment(attachmentId: string, ticketId: str
     }
 
     // Delete from DB
-    await db.prepare('DELETE FROM ticket_attachments WHERE id = ?').run(attachmentId);
+    await db.query(`DELETE FROM ticket_attachments WHERE id = $1`, [attachmentId]);
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     return { success: true };

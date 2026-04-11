@@ -15,16 +15,16 @@ export default async function AdminViewTransferPage({ params }: { params: Promis
         SELECT tr.*, cc.nome as source_company_name
         FROM transfer_requests tr
         LEFT JOIN client_companies cc ON tr.source_company_id = cc.id
-        WHERE tr.id = ?
+        WHERE tr.id = $1
     `;
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        transferQuery += ` AND (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        transferQuery += ` AND (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         queryParams.push(session.user_id);
     }
 
-    const transfer = await db.prepare(transferQuery).get(...queryParams) as any;
+    const transfer = (await db.query(transferQuery, [...queryParams])).rows[0] as any;
 
     if (!transfer) {
         redirect('/admin/transfers');
@@ -32,18 +32,18 @@ export default async function AdminViewTransferPage({ params }: { params: Promis
 
     let companies = [];
     if (session.role === 'operator') {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
-            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
-        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+        `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     } else {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
             ORDER BY nome
-          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+          `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     }
 
     return (

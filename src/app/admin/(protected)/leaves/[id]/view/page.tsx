@@ -15,16 +15,16 @@ export default async function AdminViewLeavePage({ params }: { params: Promise<{
         SELECT l.*, c.nome as company_name
         FROM leaves l
         JOIN client_companies c ON l.company_id = c.id
-        WHERE l.id = ?
+        WHERE l.id = $1
     `;
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        leaveQuery += ` AND (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        leaveQuery += ` AND (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         queryParams.push(session.user_id);
     }
 
-    const leave = await db.prepare(leaveQuery).get(...queryParams) as any;
+    const leave = (await db.query(leaveQuery, [...queryParams])).rows[0] as any;
 
     if (!leave) {
         redirect('/admin/leaves');
@@ -32,18 +32,18 @@ export default async function AdminViewLeavePage({ params }: { params: Promise<{
 
     let companies = [];
     if (session.role === 'operator') {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
-            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
-        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+        `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     } else {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
             ORDER BY nome
-          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+          `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     }
 
     return (

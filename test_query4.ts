@@ -22,11 +22,11 @@ const db = require('./src/lib/db').default;
 
 async function main() {
   try {
-    const res1 = await db.prepare("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'dismissals';").all();
+    const res1 = (await db.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'dismissals';", [])).rows;
     console.log("dismissals:", res1.map((r:any) => r.column_name));
-    const res2 = await db.prepare("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'vacations';").all();
+    const res2 = (await db.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'vacations';", [])).rows;
     console.log("vacations:", res2.map((r:any) => r.column_name));
-    const res3 = await db.prepare("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'leaves';").all();
+    const res3 = (await db.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'leaves';", [])).rows;
     console.log("leaves:", res3.map((r:any) => r.column_name));
   } catch (e) {
     console.error("Error:", e);

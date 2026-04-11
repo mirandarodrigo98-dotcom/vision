@@ -55,10 +55,10 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   
   if (session) {
     if (session.role === 'client_user') {
-      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     } else if (session.role === 'operator') {
-      query += ` AND (e.company_id IS NULL OR e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+      query += ` AND (e.company_id IS NULL OR e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
       params.push(session.user_id);
     }
   }
@@ -104,7 +104,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const employeesData = await db.prepare(query).all(...params) as Array<{
+  const employeesData = (await db.query(query, [...params])).rows as Array<{
     id: string;
     code: string;
     name: string;

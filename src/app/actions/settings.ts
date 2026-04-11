@@ -13,13 +13,13 @@ export async function updateSettings(settings: { key: string; value: string }[])
 
     try {
         const updateTransaction = await db.transaction(async (items: typeof settings) => {
-            const insert = db.prepare(`
-                INSERT INTO settings (key, value) 
-                VALUES (?, ?)
-                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-            `);
+            
             for (const item of items) {
-                await insert.run(item.key, item.value);
+                await db.query(`
+                INSERT INTO settings (key, value) 
+                VALUES ($1, $2)
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+            `, [item.key, item.value]);
             }
         });
 
@@ -54,27 +54,27 @@ export async function clearPersonnelMovements() {
             // 1. Delete dependent records first (children)
             
             // Vacations (linked to employees)
-            await db.prepare('DELETE FROM vacations').run();
+            await db.query('DELETE FROM vacations', []);
             
             // Leaves (linked to employees)
-            await db.prepare('DELETE FROM leaves').run();
+            await db.query('DELETE FROM leaves', []);
             
             // Dismissals (linked to employees)
-            await db.prepare('DELETE FROM dismissals').run();
+            await db.query('DELETE FROM dismissals', []);
             
             // Admission Attachments (linked to admission_requests)
-            await db.prepare('DELETE FROM admission_attachments').run();
+            await db.query('DELETE FROM admission_attachments', []);
             
             // 2. Delete main records
             
             // Admission Requests
-            await db.prepare('DELETE FROM admission_requests').run();
+            await db.query('DELETE FROM admission_requests', []);
             
             // Transfer Requests
-            await db.prepare('DELETE FROM transfer_requests').run();
+            await db.query('DELETE FROM transfer_requests', []);
             
             // Employees (linked to companies, but parent to vacations/leaves/dismissals)
-            await db.prepare('DELETE FROM employees').run();
+            await db.query('DELETE FROM employees', []);
         });
 
         await performClear();

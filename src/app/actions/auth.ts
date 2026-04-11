@@ -37,7 +37,7 @@ export async function checkUserType(rawEmail: string) {
     const email = rawEmail.toLowerCase().trim();
     
     // 1. Check if user exists and has a password
-    const user = await db.prepare('SELECT role, password_hash FROM users WHERE email = ? AND is_active = 1').get(email) as any;
+    const user = (await db.query(`SELECT role, password_hash FROM users WHERE email = $1 AND is_active = 1`, [email])).rows[0] as any;
     
     // If user has password, prefer password method
     if (user && user.password_hash) {
@@ -45,7 +45,7 @@ export async function checkUserType(rawEmail: string) {
     }
 
     // 2. Check if it's an allowed admin email (for OTP fallback if no password)
-    const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = 1').get(email);
+    const adminAllowed = (await db.query(`SELECT * FROM admin_allowed_emails WHERE email = $1 AND is_active = 1`, [email])).rows[0];
     if (adminAllowed) {
       return { type: 'admin', authMethod: 'otp' };
     }
@@ -69,8 +69,8 @@ export async function requestOtp(rawEmail: string) {
 
   const email = rawEmail.toLowerCase().trim();
   // 1. Verificar permissão (Admin Whitelist OU Usuário Existente com role admin/operator)
-  const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = 1').get(email);
-  const user = await db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(email) as any;
+  const adminAllowed = (await db.query(`SELECT * FROM admin_allowed_emails WHERE email = $1 AND is_active = 1`, [email])).rows[0];
+  const user = (await db.query(`SELECT * FROM users WHERE email = $1 AND is_active = 1`, [email])).rows[0] as any;
 
   let role = null;
 
@@ -97,10 +97,10 @@ export async function requestOtp(rawEmail: string) {
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
 
   // 3. Salvar Token
-  await db.prepare(`
+  await db.query(`
     INSERT INTO otp_tokens (id, email, token_hash, expires_at)
-    VALUES (?, ?, ?, ?)
-  `).run(uuidv4(), email, tokenHash, expiresAt);
+    VALUES ($1, $2, $3, $4)
+  `, [uuidv4(), email, tokenHash, expiresAt]);
 
   // LOG TEMPORÁRIO PARA DEBUG (MOSTRAR NO TERMINAL)
   console.log('------------------------------------------------');
@@ -143,10 +143,10 @@ export async function verifyOtp(rawEmail: string, token: string) {
   console.log(`[VERIFY] Checking ${email} token ${token}`);
 
   // Buscar token sem verificar expiração no SQL para debug
-  const record = await db.prepare(`
+  const record = (await db.query(`
     SELECT * FROM otp_tokens 
-    WHERE email = ? AND token_hash = ? AND used_at IS NULL
-  `).get(email, tokenHash) as any;
+    WHERE email = $1 AND token_hash = $2 AND used_at IS NULL
+  `, [email, tokenHash])).rows[0] as any;
   
   if (!record) {
     console.log('[VERIFY] Token not found or already used');
@@ -172,20 +172,20 @@ export async function verifyOtp(rawEmail: string, token: string) {
   }
 
   // Marcar como usado
-  await db.prepare("UPDATE otp_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(record.id);
+  await db.query(`UPDATE otp_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = $1`, [record.id]);
   
-  let user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+  let user = (await db.query(`SELECT * FROM users WHERE email = $1`, [email])).rows[0] as any;
   
   // Se usuário não existe, só cria se for Admin (whitelist)
   if (!user) {
-     const adminAllowed = await db.prepare('SELECT * FROM admin_allowed_emails WHERE email = ? AND is_active = 1').get(email);
+     const adminAllowed = (await db.query(`SELECT * FROM admin_allowed_emails WHERE email = $1 AND is_active = 1`, [email])).rows[0];
      
      if (adminAllowed) {
         const userId = uuidv4();
-        await db.prepare(`
+        await db.query(`
           INSERT INTO users (id, name, email, role, is_active, created_at, updated_at)
-          VALUES (?, ?, ?, 'admin', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).run(userId, 'Admin', email);
+          VALUES ($1, $2, $3, 'admin', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `, [userId, 'Admin', email]);
         user = { id: userId, role: 'admin' };
      } else {
          // Teoricamente não deveria chegar aqui se requestOtp validar bem, mas por segurança:
@@ -219,7 +219,7 @@ export async function loginClient(email: string, password: string) {
   }
 
   // Allow any user with a password to login here (Admin, Operator, Client)
-  const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+  const user = (await db.query(`SELECT * FROM users WHERE email = $1`, [email])).rows[0] as any;
 
   if (!user || !user.password_hash) {
      logAudit({ action: 'LOGIN_FAIL', actor_email: email, role: 'unknown', success: false, error_message: 'Invalid credentials' });
@@ -281,11 +281,11 @@ export async function updatePassword(password: string) {
     try {
         const hash = await hashPassword(password);
         
-        await db.prepare(`
+        await db.query(`
             UPDATE users 
-            SET password_hash = ?, password_temporary = 0, temp_password_expires_at = NULL, updated_at = datetime('now')
-            WHERE id = ?
-        `).run(hash, session.user_id);
+            SET password_hash = $1, password_temporary = 0, temp_password_expires_at = NULL, updated_at = NOW()
+            WHERE id = $2
+        `, [hash, session.user_id]);
 
         logAudit({
             action: 'UPDATE_PASSWORD',

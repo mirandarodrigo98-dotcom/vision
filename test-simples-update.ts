@@ -134,11 +134,11 @@ async function test() {
   
   for (const competence of Object.keys(monthData)) {
       const rpa_cash = monthData[competence].rpa_cash;
-      await db.prepare(`
+      await db.query(`
           UPDATE simples_nacional_billing
-          SET rpa_cash = ?
-          WHERE company_id = ? AND competence = ?
-      `).run(rpa_cash, companyId, competence);
+          SET rpa_cash = $1
+          WHERE company_id = $2 AND competence = $3
+      `, [rpa_cash, companyId, competence]);
   }
   
   console.log("Updated DB");

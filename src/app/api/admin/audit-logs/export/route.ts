@@ -12,7 +12,7 @@ export async function GET(_request: NextRequest) {
   }
 
   try {
-      const logs = await db.prepare('SELECT * FROM audit_logs ORDER BY timestamp DESC').all() as Array<{
+      const logs = (await db.query('SELECT * FROM audit_logs ORDER BY timestamp DESC', [])).rows as Array<{
           id: string;
           timestamp: string;
           actor_email: string;

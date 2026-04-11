@@ -48,10 +48,10 @@ export async function getDismissals(
 
         // Filter by company permission (if not admin)
         if (session.role === 'client_user') {
-            query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+            query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
             params.push(session.user_id);
         } else if (session.role === 'operator') {
-            query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+            query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
             params.push(session.user_id);
         }
 
@@ -71,12 +71,12 @@ export async function getDismissals(
         }
 
         const countQuery = `SELECT COUNT(*) as total FROM (${query})`;
-        const totalResult = await db.prepare(countQuery).get(...params) as { total: number };
+        const totalResult = (await db.query(countQuery, [...params])).rows[0] as { total: number };
         
-        query += ` ORDER BY d.created_at DESC LIMIT ? OFFSET ?`;
+        query += ` ORDER BY d.created_at DESC LIMIT $1 OFFSET $2`;
         params.push(limit, offset);
 
-        const dismissals = await db.prepare(query).all(...params);
+        const dismissals = (await db.query(query, [...params])).rows;
 
         return {
             dismissals,
@@ -105,23 +105,23 @@ export async function getDismissal(id: string) {
             FROM dismissals d
             JOIN client_companies cc ON d.company_id = cc.id
             JOIN employees e ON d.employee_id = e.id
-            WHERE d.id = ?
+            WHERE d.id = $1
         `;
 
-        const dismissal = await db.prepare(query).get(id) as any;
+        const dismissal = (await db.query(query, [id])).rows[0] as any;
 
         if (!dismissal) return null;
 
         // Check permission
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, dismissal.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, dismissal.company_id])).rows[0];
             if (!hasAccess) return null;
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, dismissal.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, dismissal.company_id])).rows[0];
             if (isRestricted) return null;
         }
 
@@ -162,20 +162,20 @@ export async function createDismissal(formData: FormData) {
 
     // Check if user has access to this company
     if (session.role === 'client_user') {
-        const hasAccess = await db.prepare(`
-            SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, company_id);
+        const hasAccess = (await db.query(`
+            SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, company_id])).rows[0];
         if (!hasAccess) return { error: 'Você não tem acesso a esta empresa.' };
     } else if (session.role === 'operator') {
-        const isRestricted = await db.prepare(`
-            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, company_id);
+        const isRestricted = (await db.query(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, company_id])).rows[0];
         if (isRestricted) return { error: 'Você não tem acesso a esta empresa.' };
     }
 
     // Fetch details for email/PDF
-    const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(company_id) as any;
-    const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(employee_id) as any;
+    const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [company_id])).rows[0] as any;
+    const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [employee_id])).rows[0] as any;
 
     if (!company || !employee) {
         return { error: 'Empresa ou funcionário não encontrados.' };
@@ -191,15 +191,12 @@ export async function createDismissal(formData: FormData) {
         const id = randomUUID();
         const protocol_number = generateProtocolNumber();
 
-        await db.prepare(`
+        await db.query(`
             INSERT INTO dismissals (
                 id, company_id, employee_id, notice_type, dismissal_cause, 
                 dismissal_date, observations, protocol_number, created_by_user_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            id, company_id, employee_id, notice_type, dismissal_cause,
-            dismissal_date, observations, protocol_number, session.user_id
-        );
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `, [id, company_id, employee_id, notice_type, dismissal_cause, dismissal_date, observations, protocol_number, session.user_id]);
 
         await logAudit({
             actor_user_id: session.user_id,
@@ -288,11 +285,11 @@ export async function updateDismissal(id: string, formData: FormData) {
     const observations = formData.get('observations') as string;
 
     try {
-        await db.prepare(`
+        await db.query(`
             UPDATE dismissals 
-            SET notice_type = ?, dismissal_cause = ?, dismissal_date = ?, observations = ?, status = 'RECTIFIED', updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `).run(notice_type, dismissal_cause, dismissal_date, observations, id);
+            SET notice_type = $1, dismissal_cause = $2, dismissal_date = $3, observations = $4, status = 'RECTIFIED', updated_at = CURRENT_TIMESTAMP
+            WHERE id = $5
+        `, [notice_type, dismissal_cause, dismissal_date, observations, id]);
 
         await logAudit({
             actor_user_id: session.user_id,
@@ -305,7 +302,7 @@ export async function updateDismissal(id: string, formData: FormData) {
         });
 
         // Fetch CNPJ for PDF
-        const company = await db.prepare('SELECT cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
+        const company = (await db.query(`SELECT cnpj FROM client_companies WHERE id = $1`, [dismissal.company_id])).rows[0] as any;
 
         // Detect changes
     const changes: string[] = [];
@@ -404,9 +401,9 @@ export async function cancelDismissal(id: string) {
     // }
 
     try {
-        db.prepare(`
-            UPDATE dismissals SET status = 'CANCELLED', updated_at = datetime('now') WHERE id = ?
-        `).run(id);
+        await db.query(`
+            UPDATE dismissals SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1
+        `, [id]);
 
         await logAudit({
             actor_user_id: session.user_id,
@@ -419,7 +416,7 @@ export async function cancelDismissal(id: string) {
         });
 
         // Fetch CNPJ
-        const company = db.prepare('SELECT cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
+        const company = (await db.query(`SELECT cnpj FROM client_companies WHERE id = $1`, [dismissal.company_id])).rows[0] as any;
 
         if (company) {
              let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
@@ -427,7 +424,7 @@ export async function cancelDismissal(id: string) {
 
              if (session.role === 'admin' || session.role === 'operator') {
                  notifType = 'CANCEL_BY_ADMIN';
-                 const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(dismissal.created_by_user_id) as { email: string };
+                 const creator = (await db.query(`SELECT email FROM users WHERE id = $1`, [dismissal.created_by_user_id])).rows[0] as { email: string };
                  recipientEmail = creator?.email;
              }
 
@@ -469,9 +466,9 @@ export async function approveDismissal(id: string) {
 
     try {
         // Get creator info for email
-        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(dismissal.created_by_user_id) as { email: string, name: string };
-        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(dismissal.company_id) as any;
-        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(dismissal.employee_id) as any;
+        const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [dismissal.created_by_user_id])).rows[0] as { email: string, name: string };
+        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [dismissal.company_id])).rows[0] as any;
+        const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [dismissal.employee_id])).rows[0] as any;
 
         // Generate PDF first (fail fast)
         const pdfBytes = await generateDismissalPDF({
@@ -488,16 +485,16 @@ export async function approveDismissal(id: string) {
 
         const txn = db.transaction(async () => {
             // Update dismissal status
-            await db.prepare(`
-                UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?
-            `).run(id);
+            await db.query(`
+                UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = $1
+            `, [id]);
 
             // Update employee status to inactive and Desligado
-            await db.prepare(`
+            await db.query(`
                 UPDATE employees 
-                SET is_active = 0, status = 'Desligado', dismissal_date = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE id = ?
-            `).run(dismissal.dismissal_date, dismissal.employee_id);
+                SET is_active = 0, status = 'Desligado', dismissal_date = $1, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $2
+            `, [dismissal.dismissal_date, dismissal.employee_id]);
         });
         await txn();
 
@@ -545,27 +542,27 @@ export async function completeDismissal(id: string) {
         return { error: 'Unauthorized' };
     }
 
-    const dismissal = await db.prepare('SELECT * FROM dismissals WHERE id = ?').get(id) as any;
+    const dismissal = (await db.query(`SELECT * FROM dismissals WHERE id = $1`, [id])).rows[0] as any;
     if (!dismissal) return { error: 'Rescisão não encontrada.' };
 
     if (session.role === 'operator') {
-        const isRestricted = await db.prepare(`
-            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, dismissal.company_id);
+        const isRestricted = (await db.query(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, dismissal.company_id])).rows[0];
         if (isRestricted) return { error: 'Você não tem acesso a esta empresa.' };
     }
 
     try {
         const txn = db.transaction(async () => {
              // Update dismissal status
-             await db.prepare("UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+             await db.query(`UPDATE dismissals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
              
              // Update employee dismissal date and status
-             await db.prepare(`
+             await db.query(`
                  UPDATE employees 
-                 SET dismissal_date = ?, status = 'Desligado', is_active = 0, updated_at = CURRENT_TIMESTAMP 
-                 WHERE id = ?
-             `).run(dismissal.dismissal_date, dismissal.employee_id);
+                 SET dismissal_date = $1, status = 'Desligado', is_active = 0, updated_at = CURRENT_TIMESTAMP 
+                 WHERE id = $2
+             `, [dismissal.dismissal_date, dismissal.employee_id]);
         });
 
         await txn();

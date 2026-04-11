@@ -22,7 +22,7 @@ const db = require('./src/lib/db').default;
 
 async function main() {
   try {
-    const res = await db.prepare("SELECT 1 FROM user_restricted_companies LIMIT 1").get();
+    const res = (await db.query("SELECT 1 FROM user_restricted_companies LIMIT 1", [])).rows[0];
     console.log("user_restricted_companies exists:", res);
   } catch (e) {
     console.error("Error:", e);

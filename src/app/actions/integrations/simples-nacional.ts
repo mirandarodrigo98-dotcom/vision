@@ -32,16 +32,16 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
   if (!session) return { success: false, error: 'Não autorizado' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, params.companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, params.companyId])).rows[0];
     if (!hasAccess) return { success: false, error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, params.companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, params.companyId])).rows[0];
     if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
   }
 
   try {
     // 1. Get Company Code
-    const company = await db.prepare('SELECT code, filial FROM client_companies WHERE id = ?').get(params.companyId) as { code: number, filial: number } | undefined;
+    const company = (await db.query(`SELECT code, filial FROM client_companies WHERE id = $1`, [params.companyId])).rows[0] as { code: number, filial: number } | undefined;
 
     if (!company) {
       return { error: 'Empresa não encontrada' };
@@ -529,11 +529,11 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         const insertMany = db.transaction(async (data: SimplesNacionalBillingData[]) => {
             for (const item of data) {
                 const id = crypto.randomUUID();
-                await db.prepare(`
+                await db.query(`
                   INSERT INTO simples_nacional_billing (
                     id, company_id, competence, rpa_competence, rpa_cash, rpa_accumulated, rbt12, rba, rbaa, payroll_12_months, recebimento, aliquota_efetiva, updated_at
                   ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW()
                   )
                   ON CONFLICT(company_id, competence) DO UPDATE SET
                     rpa_competence = excluded.rpa_competence,
@@ -545,21 +545,8 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                     payroll_12_months = excluded.payroll_12_months,
                     recebimento = excluded.recebimento,
                     aliquota_efetiva = excluded.aliquota_efetiva,
-                    updated_at = datetime('now')
-                `).run(
-                    id,
-                    item.company_id,
-                    item.competence,
-                    item.rpa_competence,
-                    item.rpa_cash,
-                    item.rpa_accumulated,
-                    item.rbt12,
-                    item.rba,
-                    item.rbaa,
-                    item.payroll_12_months,
-                    item.recebimento || 0,
-                    item.aliquota_efetiva || 0
-                );
+                    updated_at = NOW()
+                `, [id, item.company_id, item.competence, item.rpa_competence, item.rpa_cash, item.rpa_accumulated, item.rbt12, item.rba, item.rbaa, item.payroll_12_months, item.recebimento || 0, item.aliquota_efetiva || 0]);
             }
         });
         
@@ -576,13 +563,13 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
 
 export async function getStoredSimplesNacionalBilling(companyId: string, startCompetence: string, endCompetence: string) {
   try {
-    const data = await db.prepare(`
+    const data = (await db.query(`
       SELECT * FROM simples_nacional_billing
-      WHERE company_id = ? 
-      AND competence >= ? 
-      AND competence <= ?
+      WHERE company_id = $1 
+      AND competence >= $2 
+      AND competence <= $3
       ORDER BY competence ASC
-    `).all(companyId, startCompetence, endCompetence);
+    `, [companyId, startCompetence, endCompetence])).rows;
     
     return { success: true, data };
   } catch (error: any) {

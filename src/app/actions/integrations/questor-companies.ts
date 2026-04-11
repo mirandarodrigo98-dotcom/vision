@@ -298,26 +298,26 @@ export async function fetchCompanyFromQuestor(identifier: string) {
     let existing = null;
     
     if (normalizedData.company.cnpj) {
-        existing = await db.prepare(`
+        existing = (await db.query(`
             SELECT id, nome, code, cnpj FROM client_companies 
-            WHERE cnpj = ?
-        `).get(normalizedData.company.cnpj) as any;
+            WHERE cnpj = $1
+        `, [normalizedData.company.cnpj])).rows[0] as any;
     }
 
     // If not found by CNPJ, try by Code (only if using SYN/Code as identifier, but code is not unique across systems...)
     // Actually, Code in Vision is usually the Questor Code.
     if (!existing && normalizedData.company.code) {
-        existing = await db.prepare(`
+        existing = (await db.query(`
             SELECT id, nome, code, cnpj FROM client_companies 
-            WHERE code = ?
-        `).get(normalizedData.company.code) as any;
+            WHERE code = $1
+        `, [normalizedData.company.code])).rows[0] as any;
     }
 
     // Check permissions for existing company
     if (existing) {
         const session = await getSession();
         if (session && session.role === 'operator') {
-            const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, existing.id);
+            const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, existing.id])).rows[0];
             if (restricted) {
                 return { error: 'Sem permissão para acessar esta empresa (restrita).' };
             }

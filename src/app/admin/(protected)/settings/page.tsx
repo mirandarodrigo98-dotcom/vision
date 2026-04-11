@@ -8,7 +8,7 @@ import { getSystemLogoUrl } from '@/app/actions/upload-logo';
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const emailSetting = await db.prepare('SELECT value FROM settings WHERE key = ?').get('NZD_DEST_EMAIL') as { value: string } | undefined;
+  const emailSetting = (await db.query(`SELECT value FROM settings WHERE key = $1`, ['NZD_DEST_EMAIL'])).rows[0] as { value: string } | undefined;
   const logoUrl = await getSystemLogoUrl();
 
   const initialData = {

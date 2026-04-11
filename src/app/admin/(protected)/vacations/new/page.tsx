@@ -29,26 +29,26 @@ export default async function NewVacationPage() {
   let companies = [];
   if (session.role === 'admin') {
     // Admin sees all companies
-    companies = await db.prepare(`
+    companies = (await db.query(`
         SELECT id, nome, cnpj FROM client_companies ORDER BY nome
-    `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   } else if (session.role === 'operator') {
     // Operator sees all companies except restricted ones
-    companies = await db.prepare(`
+    companies = (await db.query(`
         SELECT id, nome, cnpj 
         FROM client_companies 
-        WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+        WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
         ORDER BY nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   } else {
     // Client User sees only their companies
-    companies = await db.prepare(`
+    companies = (await db.query(`
         SELECT c.id, c.nome, c.cnpj 
         FROM client_companies c 
         JOIN user_companies uc ON c.id = uc.company_id 
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = $1
         ORDER BY c.nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   }
 
   return (

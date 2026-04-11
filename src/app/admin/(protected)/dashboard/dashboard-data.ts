@@ -49,11 +49,11 @@ export async function getDashboardData(): Promise<DashboardStats> {
   // ----------------------------------------------------------------------
   if (isAdmin) {
     // Active Companies
-    const companiesCount = await db.prepare('SELECT COUNT(*) FROM client_companies WHERE is_active = 1').pluck().get();
+    const companiesCount = Object.values((await db.query('SELECT COUNT(*) FROM client_companies WHERE is_active = 1')).rows[0] || {})[0];
     const companies = Number(companiesCount);
     
     // Active Client Users (changed from Total Clients)
-    const activeClientUsersCount = await db.prepare("SELECT COUNT(*) FROM users WHERE role = 'client_user' AND is_active = 1").pluck().get();
+    const activeClientUsersCount = Object.values((await db.query("SELECT COUNT(*) FROM users WHERE role = 'client_user' AND is_active = 1")).rows[0] || {})[0];
     const activeClientUsers = Number(activeClientUsersCount);
 
     // Helper for Total Requests (Admissions + Dismissals + Vacations + Transfers)
@@ -63,10 +63,10 @@ export async function getDashboardData(): Promise<DashboardStats> {
     const getCount = async (start: Date, end: Date) => {
       let total = 0;
       for (const table of tables) {
-        const count = await db.prepare(`
+        const count = (await db.query(`
           SELECT COUNT(*) FROM ${table} 
           WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
-        `).pluck().get(start.toISOString(), end.toISOString()) as number;
+        `).pluck(, [start.toISOString(])).rows[0], end.toISOString()) as number;
         total += Number(count);
       }
       return total;
@@ -78,12 +78,12 @@ export async function getDashboardData(): Promise<DashboardStats> {
     // Chart: Last 12 Months (All types)
     // We fetch each table grouped by month and aggregate in JS
     const getChartData = async (table: string) => {
-        return await db.prepare(`
+        return (await db.query(`
             SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count 
             FROM ${table} 
-            WHERE status = 'COMPLETED' AND created_at >= ?
+            WHERE status = 'COMPLETED' AND created_at >= $1
             GROUP BY month
-        `).all(twelveMonthsAgo.toISOString()) as { month: string, count: number }[];
+        `, [twelveMonthsAgo.toISOString()])).rows as { month: string, count: number }[];
     };
 
     const chartMap = new Map<string, number>();
@@ -116,13 +116,13 @@ export async function getDashboardData(): Promise<DashboardStats> {
     // We need to aggregate by company_id across tables
     const getRankingData = async (table: string) => {
         const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
-        return await db.prepare(`
+        return (await db.query(`
             SELECT cc.nome, COUNT(*) as count 
             FROM ${table} t
             JOIN client_companies cc ON t.${companyCol} = cc.id
-            WHERE t.status = 'COMPLETED' AND t.created_at >= ?
+            WHERE t.status = 'COMPLETED' AND t.created_at >= $1
             GROUP BY cc.nome
-        `).all(twelveMonthsAgo.toISOString()) as { nome: string, count: number }[];
+        `, [twelveMonthsAgo.toISOString()])).rows as { nome: string, count: number }[];
     };
 
     const rankingMap = new Map<string, number>();
@@ -167,24 +167,24 @@ export async function getDashboardData(): Promise<DashboardStats> {
     }
 
     // Counts
-    const prevMonthCount = await db.prepare(`
+    const prevMonthCount = (await db.query(`
         SELECT COUNT(*) FROM ${table} ${whereClause} AND created_at >= ? AND created_at < ?
-    `).pluck().get(...queryParams, prevMonthStart.toISOString(), currMonthStart.toISOString());
+    `).pluck(, [...queryParams, prevMonthStart.toISOString(])).rows[0], currMonthStart.toISOString());
     const prevMonth = Number(prevMonthCount);
 
-    const currMonthCount = await db.prepare(`
+    const currMonthCount = (await db.query(`
         SELECT COUNT(*) FROM ${table} ${whereClause} AND created_at >= ? AND created_at < ?
-    `).pluck().get(...queryParams, currMonthStart.toISOString(), nextMonthStart.toISOString());
+    `).pluck(, [...queryParams, currMonthStart.toISOString(])).rows[0], nextMonthStart.toISOString());
     const currMonth = Number(currMonthCount);
 
     // Chart (Last 6 Months)
-    const chartData = await db.prepare(`
+    const chartData = (await db.query(`
         SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count 
         FROM ${table} 
-        ${whereClause} AND created_at >= ?
+        ${whereClause} AND created_at >= $1
         GROUP BY month
         ORDER BY month
-    `).all(...queryParams, sixMonthsAgo.toISOString()) as { month: string, count: number }[];
+    `, [...queryParams, sixMonthsAgo.toISOString()])).rows as { month: string, count: number }[];
 
     // Fill missing months
     const chart: { month: string; count: number }[] = [];
@@ -217,15 +217,15 @@ export async function getDashboardData(): Promise<DashboardStats> {
         rankingParams.push(session.user_id);
     }
 
-    const topClientsData = await db.prepare(`
+    const topClientsData = (await db.query(`
         SELECT cc.nome, COUNT(*) as count 
         FROM ${table} t
         JOIN client_companies cc ON t.${companyCol} = cc.id
-        ${rankingWhere} AND t.created_at >= ?
+        ${rankingWhere} AND t.created_at >= $1
         GROUP BY cc.nome
         ORDER BY count DESC
         LIMIT 5
-    `).all(...rankingParams, sixMonthsAgo.toISOString()) as { nome: string, count: number }[];
+    `, [...rankingParams, sixMonthsAgo.toISOString()])).rows as { nome: string, count: number }[];
     
     const topClients = topClientsData.map(d => ({ name: d.nome, count: Number(d.count) }));
 

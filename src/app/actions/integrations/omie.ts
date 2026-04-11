@@ -233,10 +233,10 @@ export async function lancarRecebimentoOmie(payloadData: any) {
     // Armazenar localmente o codigo_baixa gerado pelo Vision para possibilitar o cancelamento futuro
     if (response.data && response.data.codigo_baixa && payloadData.codigo_lancamento) {
       try {
-        await db.prepare(`
+        await db.query(`
           INSERT INTO omie_recebimentos (codigo_lancamento, codigo_baixa, valor, data)
-          VALUES (?, ?, ?, NOW())
-        `).run(payloadData.codigo_lancamento, response.data.codigo_baixa, payloadData.valor);
+          VALUES ($1, $2, $3, NOW())
+        `, [payloadData.codigo_lancamento, response.data.codigo_baixa, payloadData.valor]);
       } catch (err) {
         console.error('Erro ao salvar codigo_baixa localmente:', err);
       }
@@ -267,7 +267,7 @@ export async function cancelarRecebimentoOmie(codigoBaixa: number) {
     
     // Limpar localmente o codigo_baixa após o cancelamento
     try {
-      await db.prepare(`DELETE FROM omie_recebimentos WHERE codigo_baixa = ?`).run(codigoBaixa);
+      await db.query(`DELETE FROM omie_recebimentos WHERE codigo_baixa = $1`, [codigoBaixa]);
     } catch (err) {
       console.error('Erro ao remover codigo_baixa localmente:', err);
     }
@@ -299,7 +299,7 @@ export async function consultarContaReceberOmie(codigoLancamento: number) {
     
     // Obter os recebimentos registrados localmente pelo Vision
     try {
-      const localRecebimentos = await db.prepare(`SELECT codigo_baixa, valor, data FROM omie_recebimentos WHERE codigo_lancamento = ? ORDER BY data DESC`).all(codigoLancamento) as any[];
+      const localRecebimentos = (await db.query(`SELECT codigo_baixa, valor, data FROM omie_recebimentos WHERE codigo_lancamento = $1 ORDER BY data DESC`, [codigoLancamento])).rows as any[];
       if (localRecebimentos.length > 0) {
         data.local_recebimentos = localRecebimentos;
       }
@@ -324,20 +324,20 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     }
 
     // 1. Encontrar o cliente localmente
-    const company = await db.prepare("SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = ?").get(cleanCnpj) as any;
+    const company = (await db.query(`SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = $1`, [cleanCnpj])).rows[0] as any;
 
     if (!company) {
       return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
     }
 
     // 2. Encontrar o contato Financeiro
-    const phone = await db.prepare(`
+    const phone = (await db.query(`
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = ? AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
+      WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
       LIMIT 1
-    `).get(company.id) as any;
+    `, [company.id])).rows[0] as any;
 
     if (!phone || !phone.number) {
       return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };
@@ -425,19 +425,19 @@ export async function enviarCobrancaDigisacOmie(conta: any) {
       return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
     }
 
-    const company = await db.prepare("SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = ?").get(cleanCnpj) as any;
+    const company = (await db.query(`SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = $1`, [cleanCnpj])).rows[0] as any;
 
     if (!company) {
       return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
     }
 
-    const phone = await db.prepare(`
+    const phone = (await db.query(`
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = ? AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
+      WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
       LIMIT 1
-    `).get(company.id) as any;
+    `, [company.id])).rows[0] as any;
 
     if (!phone || !phone.number) {
       return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };

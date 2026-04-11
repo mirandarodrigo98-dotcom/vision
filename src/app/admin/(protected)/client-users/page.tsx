@@ -38,7 +38,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       SELECT 1 
       FROM user_companies sub_uc
       JOIN user_restricted_companies sub_urc ON sub_urc.company_id = sub_uc.company_id
-      WHERE sub_uc.user_id = u.id AND sub_urc.user_id = ?
+      WHERE sub_uc.user_id = u.id AND sub_urc.user_id = $1
     )`;
     params.push(session.user_id);
   }
@@ -51,19 +51,19 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   query += ` GROUP BY u.id ORDER BY u.${safeSort} ${safeOrder}`;
 
-  const users = await db.prepare(query).all(...params) as any[];
+  const users = (await db.query(query, [...params])).rows as any[];
 
   let companiesQuery = "SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1";
   const companiesParams: any[] = [];
 
   if (session && session.role === 'operator') {
-      companiesQuery += " AND (id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))";
+      companiesQuery += ` AND (id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
       companiesParams.push(session.user_id);
   }
 
   companiesQuery += " ORDER BY COALESCE(NULLIF(nome, ''), razao_social)";
 
-  const companies = await db.prepare(companiesQuery).all(...companiesParams) as any[];
+  const companies = (await db.query(companiesQuery, [...companiesParams])).rows as any[];
   
   return (
     <div className="space-y-6">

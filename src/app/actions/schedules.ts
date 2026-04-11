@@ -6,12 +6,12 @@ import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 
 export async function getAccessSchedules(): Promise<AccessSchedule[]> {
-  const schedules = await db.prepare('SELECT * FROM access_schedules ORDER BY name ASC').all<Omit<AccessSchedule, 'items'>>();
+  const schedules = (await db.query('SELECT * FROM access_schedules ORDER BY name ASC', [])).rows;
   
   // Fetch items for each schedule
   const result: AccessSchedule[] = [];
   for (const schedule of schedules) {
-    const items = await db.prepare('SELECT * FROM access_schedule_items WHERE schedule_id = ? ORDER BY day_of_week, start_time').all<AccessScheduleItem>(schedule.id);
+    const items = (await db.query(`SELECT * FROM access_schedule_items WHERE schedule_id = $1 ORDER BY day_of_week, start_time`, [schedule.id])).rows;
     result.push({ ...schedule, items });
   }
   
@@ -19,11 +19,11 @@ export async function getAccessSchedules(): Promise<AccessSchedule[]> {
 }
 
 export async function getAccessSchedule(id: string): Promise<AccessSchedule | null> {
-  const schedule = await db.prepare('SELECT * FROM access_schedules WHERE id = ?').get<Omit<AccessSchedule, 'items'>>(id);
+  const schedule = (await db.query(`SELECT * FROM access_schedules WHERE id = $1`, [id])).rows[0];
   
   if (!schedule) return null;
 
-  const items = await db.prepare('SELECT * FROM access_schedule_items WHERE schedule_id = ? ORDER BY day_of_week, start_time').all<AccessScheduleItem>(schedule.id);
+  const items = (await db.query(`SELECT * FROM access_schedule_items WHERE schedule_id = $1 ORDER BY day_of_week, start_time`, [schedule.id])).rows;
   
   return { ...schedule, items };
 }
@@ -38,16 +38,16 @@ export async function createAccessSchedule(data: AccessScheduleInput) {
   
   try {
     // Transaction handled by sequential operations (or could wrap if supported)
-    await db.prepare(`
+    await db.query(`
       INSERT INTO access_schedules (id, name, description, notification_minutes)
-      VALUES (?, ?, ?, ?)
-    `).run(id, data.name, data.description || null, data.notification_minutes);
+      VALUES ($1, $2, $3, $4)
+    `, [id, data.name, data.description || null, data.notification_minutes]);
 
     for (const item of data.items) {
-      await db.prepare(`
+      await db.query(`
         INSERT INTO access_schedule_items (id, schedule_id, day_of_week, start_time, end_time)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(randomUUID(), id, item.day_of_week, item.start_time, item.end_time);
+        VALUES ($1, $2, $3, $4, $5)
+      `, [randomUUID(), id, item.day_of_week, item.start_time, item.end_time]);
     }
 
     revalidatePath('/admin/settings/access-schedules');
@@ -61,20 +61,20 @@ export async function createAccessSchedule(data: AccessScheduleInput) {
 
 export async function updateAccessSchedule(id: string, data: AccessScheduleInput) {
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE access_schedules 
-      SET name = ?, description = ?, notification_minutes = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(data.name, data.description || null, data.notification_minutes, id);
+      SET name = $1, description = $2, notification_minutes = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4
+    `, [data.name, data.description || null, data.notification_minutes, id]);
 
     // Replace items: delete all and insert new ones
-    await db.prepare('DELETE FROM access_schedule_items WHERE schedule_id = ?').run(id);
+    await db.query(`DELETE FROM access_schedule_items WHERE schedule_id = $1`, [id]);
 
     for (const item of data.items) {
-      await db.prepare(`
+      await db.query(`
         INSERT INTO access_schedule_items (id, schedule_id, day_of_week, start_time, end_time)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(randomUUID(), id, item.day_of_week, item.start_time, item.end_time);
+        VALUES ($1, $2, $3, $4, $5)
+      `, [randomUUID(), id, item.day_of_week, item.start_time, item.end_time]);
     }
 
     revalidatePath('/admin/settings/access-schedules');
@@ -91,12 +91,12 @@ export async function updateAccessSchedule(id: string, data: AccessScheduleInput
 export async function deleteAccessSchedule(id: string) {
   try {
     // Check if used by any user
-    const users = await db.prepare('SELECT count(*) as count FROM users WHERE access_schedule_id = ?').get<{count: number}>(id);
+    const users = (await db.query(`SELECT count(*) as count FROM users WHERE access_schedule_id = $1`, [id])).rows[0];
     if (users && users.count > 0) {
       return { success: false, error: 'Esta tabela de horário está vinculada a usuários e não pode ser excluída.' };
     }
 
-    await db.prepare('DELETE FROM access_schedules WHERE id = ?').run(id);
+    await db.query(`DELETE FROM access_schedules WHERE id = $1`, [id]);
     revalidatePath('/admin/settings');
     return { success: true };
   } catch (error) {
@@ -107,7 +107,7 @@ export async function deleteAccessSchedule(id: string) {
 
 // Check if current time is allowed for the user
 export async function checkUserAccess(userId: string): Promise<{ allowed: boolean; reason?: string; nextLogout?: Date }> {
-  const user = await db.prepare('SELECT access_schedule_id, role FROM users WHERE id = ?').get<{access_schedule_id: string | null, role: string}>(userId);
+  const user = (await db.query(`SELECT access_schedule_id, role FROM users WHERE id = $1`, [userId])).rows[0];
   
   if (!user) return { allowed: false, reason: 'Usuário não encontrado' };
   

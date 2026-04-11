@@ -22,9 +22,9 @@ export async function getIRPartners() {
     throw new Error('Unauthorized');
   }
 
-  const partners = await db.prepare(`
+  const partners = (await db.query(`
     SELECT * FROM ir_partners ORDER BY name ASC
-  `).all() as IRPartner[];
+  `, [])).rows as IRPartner[];
 
   return partners;
 }
@@ -38,10 +38,10 @@ export async function createIRPartner(data: Omit<IRPartner, 'id' | 'created_at' 
   const id = uuidv4();
   
   try {
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_partners (id, name, commission_percent, email, phone, payment_data)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, data.name, data.commission_percent, data.email || null, data.phone || null, data.payment_data || null);
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [id, data.name, data.commission_percent, data.email || null, data.phone || null, data.payment_data || null]);
 
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
     return { success: true, id };
@@ -58,11 +58,11 @@ export async function updateIRPartner(id: string, data: Omit<IRPartner, 'id' | '
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE ir_partners 
-      SET name = ?, commission_percent = ?, email = ?, phone = ?, payment_data = ?, updated_at = NOW()
-      WHERE id = ?
-    `).run(data.name, data.commission_percent, data.email || null, data.phone || null, data.payment_data || null, id);
+      SET name = $1, commission_percent = $2, email = $3, phone = $4, payment_data = $5, updated_at = NOW()
+      WHERE id = $6
+    `, [data.name, data.commission_percent, data.email || null, data.phone || null, data.payment_data || null, id]);
 
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
     return { success: true };
@@ -80,12 +80,12 @@ export async function deleteIRPartner(id: string) {
 
   try {
     // Check if it's used in declarations
-    const used = await db.prepare(`SELECT id FROM ir_declarations WHERE indicated_by_partner_id = ? LIMIT 1`).get(id);
+    const used = (await db.query(`SELECT id FROM ir_declarations WHERE indicated_by_partner_id = $1 LIMIT 1`, [id])).rows[0];
     if (used) {
         return { error: 'Não é possível excluir este parceiro pois ele está vinculado a uma ou mais declarações.' };
     }
 
-    await db.prepare('DELETE FROM ir_partners WHERE id = ?').run(id);
+    await db.query(`DELETE FROM ir_partners WHERE id = $1`, [id]);
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
     return { success: true };
   } catch (error) {

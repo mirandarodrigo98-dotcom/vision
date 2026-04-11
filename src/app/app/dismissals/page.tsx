@@ -46,7 +46,7 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
     FROM dismissals d
     JOIN client_companies cc ON d.company_id = cc.id
     JOIN employees e ON d.employee_id = e.id
-    WHERE d.company_id = ?
+    WHERE d.company_id = $1
   `;
 
   const params: any[] = [activeCompanyId];
@@ -63,7 +63,7 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const dismissals = await db.prepare(query).all(...params) as any[];
+  const dismissals = (await db.query(query, [...params])).rows as any[];
 
   return (
     <div className="space-y-6">

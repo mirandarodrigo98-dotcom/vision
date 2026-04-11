@@ -26,7 +26,7 @@ export async function getTicketCategories(includeInactive = false) {
     
     sql += ' ORDER BY lower(name)';
     
-    const categories = await db.prepare(sql).all(...params);
+    const categories = (await db.query(sql, [...params])).rows;
     return categories as { id: string; name: string; active: number }[];
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -54,7 +54,7 @@ export async function getAdminTicketCategories(search?: string) {
     
     sql += ' ORDER BY lower(name)';
     
-    const categories = await db.prepare(sql).all(...params);
+    const categories = (await db.query(sql, [...params])).rows;
     return categories as { id: string; name: string; active: number }[];
   } catch (error) {
     console.error('Error fetching admin categories:', error);
@@ -89,7 +89,7 @@ export async function updateTicketCategory(id: string, data: { name?: string; ac
 
     params.push(id);
     
-    await db.prepare(`UPDATE ticket_categories SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+    await db.query(`UPDATE ticket_categories SET ${updates.join(', ')} WHERE id = $1`, [...params]);
     
     revalidatePath('/admin/tickets');
     return { success: true };
@@ -114,13 +114,13 @@ export async function deleteTicketCategory(id: string) {
 
   try {
     // Check for usage in tickets
-    const usageCount = await db.prepare('SELECT COUNT(*) as count FROM tickets WHERE category = (SELECT name FROM ticket_categories WHERE id = ?)').get(id) as { count: number };
+    const usageCount = (await db.query(`SELECT COUNT(*) as count FROM tickets WHERE category = (SELECT name FROM ticket_categories WHERE id = $1)`, [id])).rows[0] as { count: number };
     
     if (usageCount && usageCount.count > 0) {
       return { error: 'Não é possível excluir: existem chamados vinculados a esta categoria.' };
     }
 
-    await db.prepare('DELETE FROM ticket_categories WHERE id = ?').run(id);
+    await db.query(`DELETE FROM ticket_categories WHERE id = $1`, [id]);
     
     revalidatePath('/admin/tickets');
     return { success: true };
@@ -148,7 +148,7 @@ export async function createTicketCategory(name: string) {
   try {
     const id = uuidv4(); // Use standard UUID
     // Use explicit active field to ensure compatibility
-    await db.prepare('INSERT INTO ticket_categories (id, name, active) VALUES (?, ?, ?)').run(id, name, true);
+    await db.query(`INSERT INTO ticket_categories (id, name, active) VALUES ($1, $2, $3)`, [id, name, true]);
     
     revalidatePath('/admin/tickets');
     return { success: true, category: { id, name } };

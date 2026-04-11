@@ -22,17 +22,15 @@ export async function getSocietarioProfile(companyId: string) {
   if (!session) return null;
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return null;
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return null;
   }
 
   try {
-    const profile = await db
-      .prepare('SELECT * FROM societario_profiles WHERE company_id = ?')
-      .get(companyId);
+    const profile = (await db.query(`SELECT * FROM societario_profiles WHERE company_id = $1`, [companyId])).rows[0];
     return profile || null;
   } catch {
     return null;
@@ -44,19 +42,15 @@ export async function getSocietarioLogs(companyId: string) {
   if (!session) return [];
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return [];
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return [];
   }
 
   try {
-    const logs = await db
-      .prepare(
-        'SELECT sl.*, u.name as actor_name, u.email as actor_email FROM societario_logs sl LEFT JOIN users u ON u.id = sl.actor_user_id WHERE sl.company_id = ? ORDER BY sl.created_at DESC'
-      )
-      .all(companyId);
+    const logs = (await db.query(`SELECT sl.*, u.name as actor_name, u.email as actor_email FROM societario_logs sl LEFT JOIN users u ON u.id = sl.actor_user_id WHERE sl.company_id = $1 ORDER BY sl.created_at DESC`, [companyId])).rows;
     return logs as any[];
   } catch {
     return [];
@@ -70,11 +64,7 @@ export async function listLogs(companyId: string) {
 
 async function logEvent(companyId: string, tipo_evento: string, campo_alterado?: string, valor_anterior?: string, valor_novo?: string, motivo?: string, actor_user_id?: string) {
   const id = randomUUID();
-  await db
-    .prepare(
-      'INSERT INTO societario_logs (id, company_id, tipo_evento, campo_alterado, valor_anterior, valor_novo, motivo, actor_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    )
-    .run(id, companyId, tipo_evento, campo_alterado || null, valor_anterior || null, valor_novo || null, motivo || null, actor_user_id || null);
+  await db.query(`INSERT INTO societario_logs (id, company_id, tipo_evento, campo_alterado, valor_anterior, valor_novo, motivo, actor_user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [id, companyId, tipo_evento, campo_alterado || null, valor_anterior || null, valor_novo || null, motivo || null, actor_user_id || null]);
 }
 
 export async function upsertSocietarioProfile(formData: FormData) {
@@ -84,7 +74,7 @@ export async function upsertSocietarioProfile(formData: FormData) {
   let hasPermission = false;
   if (session.role === 'admin') hasPermission = true;
   else {
-    const perms = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
+    const perms = (await db.query(`SELECT permission FROM role_permissions WHERE role = $1`, [session.role])).rows as { permission: string }[];
     hasPermission = perms.map(p => p.permission).includes('societario.edit');
   }
   if (!hasPermission) return { error: 'Sem permissão' };
@@ -104,33 +94,20 @@ export async function upsertSocietarioProfile(formData: FormData) {
   if (!data.company_id) return { error: 'Empresa obrigatória' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, data.company_id);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, data.company_id])).rows[0];
     if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, data.company_id);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, data.company_id])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
-  const existing = await db
-    .prepare('SELECT * FROM societario_profiles WHERE company_id = ?')
-    .get(data.company_id) as any;
+  const existing = (await db.query(`SELECT * FROM societario_profiles WHERE company_id = $1`, [data.company_id])).rows[0] as any;
 
   const insertSql =
-    'INSERT INTO societario_profiles (company_id, data_constituicao, responsavel_legal, capital_social_centavos, email_institucional, endereco, telefone, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\')) ' +
+    `INSERT INTO societario_profiles (company_id, data_constituicao, responsavel_legal, capital_social_centavos, email_institucional, endereco, telefone, status, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) ` +
     'ON CONFLICT(company_id) DO UPDATE SET data_constituicao=excluded.data_constituicao, responsavel_legal=excluded.responsavel_legal, capital_social_centavos=excluded.capital_social_centavos, email_institucional=excluded.email_institucional, endereco=excluded.endereco, telefone=excluded.telefone, status=excluded.status, updated_at=excluded.updated_at';
 
-  await db
-    .prepare(insertSql)
-    .run(
-      data.company_id,
-      data.data_constituicao || null,
-      data.responsavel_legal || null,
-      data.capital_social_centavos ?? null,
-      data.email_institucional || null,
-      data.endereco || null,
-      data.telefone || null,
-      data.status || 'EM_REGISTRO'
-    );
+  await db.query(insertSql, [data.company_id, data.data_constituicao || null, data.responsavel_legal || null, data.capital_social_centavos ?? null, data.email_institucional || null, data.endereco || null, data.telefone || null, data.status || 'EM_REGISTRO']);
 
   if (existing) {
     const fields = ['data_constituicao','responsavel_legal','capital_social_centavos','email_institucional','endereco','telefone','status'] as const;
@@ -163,9 +140,7 @@ export async function findSocioByCpf(cpf: string) {
   if (!session) return null;
   try {
     const digits = String(cpf || '').replace(/\D/g, '');
-    const socio = await db
-      .prepare('SELECT * FROM societario_socios WHERE cpf = ?')
-      .get(digits);
+    const socio = (await db.query(`SELECT * FROM societario_socios WHERE cpf = $1`, [digits])).rows[0];
     return socio || null;
   } catch {
     return null;
@@ -182,16 +157,12 @@ export async function searchSocios(term: string) {
     // Check if it's CPF (digits only)
     const digitsOnly = cleanTerm.replace(/\D/g, '');
     if (digitsOnly.length > 3) {
-       const socios = await db
-        .prepare('SELECT * FROM societario_socios WHERE cpf LIKE ? LIMIT 10')
-        .all(`%${digitsOnly}%`);
+       const socios = (await db.query(`SELECT * FROM societario_socios WHERE cpf LIKE $1 LIMIT 10`, [`%${digitsOnly}%`])).rows;
        return socios as any[];
     }
 
     // Search by name
-    const socios = await db
-      .prepare('SELECT * FROM societario_socios WHERE LOWER(nome) LIKE LOWER(?) LIMIT 10')
-      .all(`%${cleanTerm}%`);
+    const socios = (await db.query(`SELECT * FROM societario_socios WHERE LOWER(nome) LIKE LOWER($1) LIMIT 10`, [`%${cleanTerm}%`])).rows;
     return socios as any[];
   } catch (err) {
     console.error('Error searching socios:', err);
@@ -204,28 +175,28 @@ export async function changeStatus(companyId: string, status: 'EM_REGISTRO' | 'A
   if (!session) return { error: 'Unauthorized' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
   let hasPermission = false;
   if (session.role === 'admin') hasPermission = true;
   else {
-    const perms = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(session.role) as { permission: string }[];
+    const perms = (await db.query(`SELECT permission FROM role_permissions WHERE role = $1`, [session.role])).rows as { permission: string }[];
     hasPermission = perms.map(p => p.permission).includes('societario.edit');
   }
   if (!hasPermission) return { error: 'Sem permissão' };
 
-  const existing = await db.prepare('SELECT status FROM societario_profiles WHERE company_id = ?').get(companyId) as { status: string } | undefined;
+  const existing = (await db.query(`SELECT status FROM societario_profiles WHERE company_id = $1`, [companyId])).rows[0] as { status: string } | undefined;
 
-  await db.prepare(`
+  await db.query(`
     UPDATE societario_profiles
-    SET status = ?, updated_at = datetime('now')
-    WHERE company_id = ?
-  `).run(status, companyId);
+    SET status = $1, updated_at = NOW()
+    WHERE company_id = $2
+  `, [status, companyId]);
 
   await logEvent(
     companyId,

@@ -20,7 +20,7 @@ const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha']
 export async function getDashboardFinanceiroData(forceRefresh = false) {
   if (!forceRefresh) {
     try {
-      const cached = await db.prepare('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1').get();
+      const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
       if (cached) {
         const lastUpdate = new Date(cached.updated_at);
         const now = new Date();
@@ -284,11 +284,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     // Salvar no Cache
     try {
-      await db.prepare(`
+      await db.query(`
         INSERT INTO omie_dashboard_cache (id, data, updated_at) 
-        VALUES (1, ?, NOW()) 
+        VALUES (1, $1, NOW()) 
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-      `).run(JSON.stringify(finalData));
+      `, [JSON.stringify(finalData)]);
     } catch (e) {
       console.warn("Erro ao salvar cache", e);
     }

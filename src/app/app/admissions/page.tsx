@@ -30,13 +30,13 @@ export default async function AdmissionsListPage() {
       return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa para visualizar as admissões.</div>;
   }
 
-  const admissionsData = await db.prepare(`
+  const admissionsData = (await db.query(`
     SELECT a.*, c.nome as company_name
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
-    WHERE a.company_id = ?
+    WHERE a.company_id = $1
     ORDER BY a.created_at DESC
-  `).all(activeCompanyId) as Array<{
+  `, [activeCompanyId])).rows as Array<{
     id: string;
     employee_full_name: string;
     job_role: string;

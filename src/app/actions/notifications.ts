@@ -19,11 +19,11 @@ export async function getUnreadNotifications() {
   if (!session) return [];
 
   try {
-    const notifications = await db.prepare(`
+    const notifications = (await db.query(`
       SELECT * FROM notifications 
-      WHERE user_id = ? AND read = FALSE 
+      WHERE user_id = $1 AND read = FALSE 
       ORDER BY created_at DESC
-    `).all(session.user_id);
+    `, [session.user_id])).rows;
     
     // Converter boolean integer para boolean real
     return notifications.map((n: any) => ({
@@ -41,17 +41,17 @@ export async function getUserNotifications(limit = 20, offset = 0) {
   if (!session) return { notifications: [], total: 0 };
 
   try {
-    const notifications = await db.prepare(`
+    const notifications = (await db.query(`
       SELECT * FROM notifications 
-      WHERE user_id = ? 
+      WHERE user_id = $1 
       ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(session.user_id, limit, offset);
+      LIMIT $2 OFFSET $3
+    `, [session.user_id, limit, offset])).rows;
 
-    const total = await db.prepare(`
+    const total = (await db.query(`
       SELECT COUNT(*) as count FROM notifications 
-      WHERE user_id = ?
-    `).get(session.user_id) as { count: number };
+      WHERE user_id = $1
+    `, [session.user_id])).rows[0] as { count: number };
     
     return {
       notifications: notifications.map((n: any) => ({
@@ -71,7 +71,7 @@ export async function markNotificationAsRead(id: string) {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('UPDATE notifications SET read = TRUE WHERE id = ? AND user_id = ?').run(id, session.user_id);
+    await db.query(`UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`, [id, session.user_id]);
     return { success: true };
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -84,7 +84,7 @@ export async function markAllNotificationsAsRead() {
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    await db.prepare('UPDATE notifications SET read = TRUE WHERE user_id = ? AND read = FALSE').run(session.user_id);
+    await db.query(`UPDATE notifications SET read = TRUE WHERE user_id = $1 AND read = FALSE`, [session.user_id]);
     return { success: true };
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
@@ -96,10 +96,10 @@ export async function createNotification(userId: string, title: string, message:
   // Internal function to be called by other actions
   try {
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO notifications (id, user_id, title, message, link, type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, userId, title, message, link || null, type);
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [id, userId, title, message, link || null, type]);
     return { success: true, id };
   } catch (error) {
     console.error('Error creating notification:', error);

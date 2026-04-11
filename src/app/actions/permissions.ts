@@ -19,12 +19,12 @@ export async function getUserPermissions() {
     try {
         if (session.role === 'client_user') {
             // Client users have permissions assigned directly to them
-            const result = await db.prepare('SELECT permission_code FROM user_permissions WHERE user_id = ?').all(session.user_id) as { permission_code: string }[];
+            const result = (await db.query(`SELECT permission_code FROM user_permissions WHERE user_id = $1`, [session.user_id])).rows as { permission_code: string }[];
             return result.map(r => r.permission_code);
         } else if (session.role === 'operator') {
             // Operators inherit permissions from their department
             if (!session.department_id) return [];
-            const result = await db.prepare('SELECT permission_code FROM department_permissions WHERE department_id = ?').all(session.department_id) as { permission_code: string }[];
+            const result = (await db.query(`SELECT permission_code FROM department_permissions WHERE department_id = $1`, [session.department_id])).rows as { permission_code: string }[];
             return result.map(r => r.permission_code);
         } else {
             // Fallback (should not happen for admin as it's handled above)
@@ -52,7 +52,7 @@ export async function getRolePermissions(role: string) {
     }
 
     try {
-        const result = await db.prepare('SELECT permission FROM role_permissions WHERE role = ?').all(role) as { permission: string }[];
+        const result = (await db.query(`SELECT permission FROM role_permissions WHERE role = $1`, [role])).rows as { permission: string }[];
         return result.map(r => r.permission);
     } catch (error) {
         console.error('Error fetching permissions:', error);
@@ -69,12 +69,12 @@ export async function updateRolePermissions(role: string, permissions: string[])
     try {
         const updateTransaction = await db.transaction(async () => {
             // Remove all existing permissions for the role
-            await db.prepare('DELETE FROM role_permissions WHERE role = ?').run(role);
+            await db.query(`DELETE FROM role_permissions WHERE role = $1`, [role]);
             
             // Insert new permissions
-            const insert = db.prepare('INSERT INTO role_permissions (role, permission) VALUES (?, ?)');
+            
             for (const perm of permissions) {
-                await insert.run(role, perm);
+                await db.query(`INSERT INTO role_permissions (role, permission) VALUES ($1, $2)`, [role, perm]);
             }
         });
 

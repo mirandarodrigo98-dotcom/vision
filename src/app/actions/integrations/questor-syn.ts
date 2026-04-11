@@ -70,7 +70,7 @@ export async function resolveQuestorUrl(config: QuestorSynConfig): Promise<strin
 // --- Actions: Config ---
 
 export async function getQuestorSynConfig() {
-  const config = await db.prepare('SELECT * FROM questor_syn_config WHERE id = 1').get();
+  const config = (await db.query('SELECT * FROM questor_syn_config WHERE id = 1', [])).rows[0];
   return config as QuestorSynConfig | undefined;
 }
 
@@ -78,16 +78,12 @@ export async function saveQuestorSynConfig(data: QuestorSynConfig) {
   const existing = await getQuestorSynConfig();
 
   if (existing) {
-    await db.prepare(
-      `UPDATE questor_syn_config 
-       SET base_url = ?, internal_url = ?, external_url = ?, api_token = ?, updated_at = datetime('now')
-       WHERE id = 1`
-    ).run(data.base_url || null, data.internal_url || null, data.external_url || null, data.api_token || null);
+    await db.query(`UPDATE questor_syn_config 
+       SET base_url = $1, internal_url = $2, external_url = $3, api_token = $4, updated_at = NOW()
+       WHERE id = 1`, [data.base_url || null, data.internal_url || null, data.external_url || null, data.api_token || null]);
   } else {
-    await db.prepare(
-      `INSERT INTO questor_syn_config (id, base_url, internal_url, external_url, api_token) 
-       VALUES (1, ?, ?, ?, ?)`
-    ).run(data.base_url || null, data.internal_url || null, data.external_url || null, data.api_token || null);
+    await db.query(`INSERT INTO questor_syn_config (id, base_url, internal_url, external_url, api_token) 
+       VALUES (1, $1, $2, $3, $4)`, [data.base_url || null, data.internal_url || null, data.external_url || null, data.api_token || null]);
   }
   revalidatePath('/admin/integrations/questor');
   return { success: true };
@@ -96,43 +92,19 @@ export async function saveQuestorSynConfig(data: QuestorSynConfig) {
 // --- Actions: Routines ---
 
 export async function getQuestorSynRoutines() {
-  return await db.prepare('SELECT * FROM questor_syn_routines ORDER BY name ASC').all() as QuestorSynRoutine[];
+  return (await db.query('SELECT * FROM questor_syn_routines ORDER BY name ASC', [])).rows as QuestorSynRoutine[];
 }
 
 export async function saveQuestorSynRoutine(data: QuestorSynRoutine) {
   try {
     if (data.id) {
-      await db.prepare(
-        `UPDATE questor_syn_routines 
-         SET name = ?, action_name = ?, type = ?, description = ?, parameters_schema = ?, layout_content = ?, system_code = ?, is_active = ?, updated_at = datetime('now')
-         WHERE id = ?`
-      ).run(
-        data.name,
-        data.action_name,
-        data.type,
-        data.description || null,
-        data.parameters_schema || null,
-        data.layout_content || null,
-        data.system_code || null,
-        data.is_active,
-        data.id
-      );
+      await db.query(`UPDATE questor_syn_routines 
+         SET name = $1, action_name = $2, type = $3, description = $4, parameters_schema = $5, layout_content = $6, system_code = $7, is_active = $8, updated_at = NOW()
+         WHERE id = $9`, [data.name, data.action_name, data.type, data.description || null, data.parameters_schema || null, data.layout_content || null, data.system_code || null, data.is_active, data.id]);
     } else {
       const id = uuidv4();
-      await db.prepare(
-        `INSERT INTO questor_syn_routines (id, name, action_name, type, description, parameters_schema, layout_content, system_code, is_active) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(
-        id,
-        data.name,
-        data.action_name,
-        data.type,
-        data.description || null,
-        data.parameters_schema || null,
-        data.layout_content || null,
-        data.system_code || null,
-        data.is_active
-      );
+      await db.query(`INSERT INTO questor_syn_routines (id, name, action_name, type, description, parameters_schema, layout_content, system_code, is_active) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [id, data.name, data.action_name, data.type, data.description || null, data.parameters_schema || null, data.layout_content || null, data.system_code || null, data.is_active]);
     }
     revalidatePath('/admin/integrations/questor');
     return { success: true };
@@ -148,7 +120,7 @@ export async function saveQuestorSynRoutine(data: QuestorSynRoutine) {
 
 export async function deleteQuestorSynRoutine(id: string) {
   try {
-    await db.prepare('DELETE FROM questor_syn_routines WHERE id = ?').run(id);
+    await db.query(`DELETE FROM questor_syn_routines WHERE id = $1`, [id]);
     revalidatePath('/admin/integrations/questor');
     return { success: true };
   } catch (error) {
@@ -405,9 +377,7 @@ export async function executeQuestorProcess(
 
 export async function getQuestorSynRoutineBySystemCode(systemCode: string): Promise<QuestorSynRoutine | undefined> {
   try {
-    const row = await db.prepare(
-      'SELECT * FROM questor_syn_routines WHERE system_code = ?'
-    ).get(systemCode);
+    const row = (await db.query(`SELECT * FROM questor_syn_routines WHERE system_code = $1`, [systemCode])).rows[0];
     
     if (!row) return undefined;
     
@@ -453,9 +423,7 @@ export async function deleteQuestorSynModuleToken(_id: string) {
 
 export async function getQuestorSynRoutineByAction(actionName: string): Promise<QuestorSynRoutine | undefined> {
   try {
-    const row = await db.prepare(
-      'SELECT * FROM questor_syn_routines WHERE action_name = ?'
-    ).get(actionName);
+    const row = (await db.query(`SELECT * FROM questor_syn_routines WHERE action_name = $1`, [actionName])).rows[0];
     
     if (!row) return undefined;
     

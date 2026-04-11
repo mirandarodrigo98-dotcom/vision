@@ -9,7 +9,7 @@ const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
 async function getLogoBase64(): Promise<string | null> {
     try {
-        const logoSetting = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+        const logoSetting = (await db.query("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'", [])).rows[0] as { value: string } | undefined;
         if (!logoSetting?.value) return null;
 
         let buffer: Buffer;
@@ -69,7 +69,7 @@ async function wrapHtml(content: string) {
 
 // Helper to get destination email
 async function getDestEmail() {
-    const setting = await db.prepare("SELECT value FROM settings WHERE key = 'NZD_DEST_EMAIL'").get() as { value: string };
+    const setting = (await db.query("SELECT value FROM settings WHERE key = 'NZD_DEST_EMAIL'", [])).rows[0] as { value: string };
     return setting?.value;
 }
 

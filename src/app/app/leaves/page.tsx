@@ -20,7 +20,7 @@ export default async function LeavesListPage() {
   }
 
   // Get User Companies
-  const userCompanies = await db.prepare('SELECT company_id FROM user_companies WHERE user_id = ?').all(session.user_id) as Array<{ company_id: string }>;
+  const userCompanies = (await db.query(`SELECT company_id FROM user_companies WHERE user_id = $1`, [session.user_id])).rows as Array<{ company_id: string }>;
 
   if (userCompanies.length === 0) {
       return <div>Você não está vinculado a nenhuma empresa. Contate o suporte.</div>;
@@ -29,14 +29,14 @@ export default async function LeavesListPage() {
   const activeCompanyId = session.active_company_id;
   if (!activeCompanyId) return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa.</div>;
 
-  const leaves = await db.prepare(`
+  const leaves = (await db.query(`
     SELECT l.*, c.nome as company_name, e.name as employee_name
     FROM leaves l
     JOIN client_companies c ON l.company_id = c.id
     JOIN employees e ON l.employee_id = e.id
-    WHERE l.company_id = ?
+    WHERE l.company_id = $1
     ORDER BY l.created_at DESC
-  `).all(activeCompanyId) as Array<{
+  `, [activeCompanyId])).rows as Array<{
     id: string;
     company_name: string;
     employee_name: string;

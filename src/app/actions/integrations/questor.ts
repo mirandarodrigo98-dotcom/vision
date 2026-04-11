@@ -25,7 +25,7 @@ const questorConfigSchema = z.object({
 // --- Actions ---
 
 export async function getQuestorConfig() {
-  return await db.prepare('SELECT * FROM questor_config WHERE id = 1').get();
+  return (await db.query('SELECT * FROM questor_config WHERE id = 1', [])).rows[0];
 }
 
 export async function saveQuestorConfig(data: z.infer<typeof questorConfigSchema>) {
@@ -35,25 +35,19 @@ export async function saveQuestorConfig(data: z.infer<typeof questorConfigSchema
   const existing = await getQuestorConfig();
   
   if (existing) {
-    await db.prepare(
-      `UPDATE questor_config 
-       SET environment = ?, erp_cnpj = ?, default_accountant_cnpj = ?, access_token = COALESCE(?, access_token), updated_at = datetime('now') 
-       WHERE id = 1`
-    ).run(data.environment, data.erp_cnpj, data.default_accountant_cnpj, data.access_token || null);
+    await db.query(`UPDATE questor_config 
+       SET environment = $1, erp_cnpj = $2, default_accountant_cnpj = $3, access_token = COALESCE($4, access_token), updated_at = NOW() 
+       WHERE id = 1`, [data.environment, data.erp_cnpj, data.default_accountant_cnpj, data.access_token || null]);
   } else {
-    await db.prepare(
-      `INSERT INTO questor_config (id, environment, erp_cnpj, default_accountant_cnpj, access_token) 
-       VALUES (1, ?, ?, ?, ?)`
-    ).run(data.environment, data.erp_cnpj, data.default_accountant_cnpj, data.access_token || null);
+    await db.query(`INSERT INTO questor_config (id, environment, erp_cnpj, default_accountant_cnpj, access_token) 
+       VALUES (1, $1, $2, $3, $4)`, [data.environment, data.erp_cnpj, data.default_accountant_cnpj, data.access_token || null]);
   }
   revalidatePath('/admin/integrations/questor');
   return { success: true };
 }
 
 export async function getQuestorCompanyStatus(companyId: string) {
-  return await db.prepare(
-    'SELECT * FROM questor_company_auth WHERE company_id = ?'
-  ).get(companyId);
+  return (await db.query(`SELECT * FROM questor_company_auth WHERE company_id = $1`, [companyId])).rows[0];
 }
 
 // --- API Interactions ---
@@ -79,10 +73,10 @@ export async function checkQuestorSyncStatus(companyId: string, filters: any) {
   if (!session) return { error: 'Não autorizado' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
@@ -95,7 +89,7 @@ export async function checkQuestorSyncStatus(companyId: string, filters: any) {
         MIN(date) as min_date,
         MAX(date) as max_date
       FROM enuves_transactions t
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
     const params: any[] = [companyId];
 
@@ -110,7 +104,7 @@ export async function checkQuestorSyncStatus(companyId: string, filters: any) {
         }
     }
 
-    const result = await db.prepare(query).get(...params) as any;
+    const result = (await db.query(query, [...params])).rows[0] as any;
     
     return {
       total: result.total || 0,
@@ -131,10 +125,10 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
   if (!session) return { error: 'Não autorizado' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
@@ -149,7 +143,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
       LEFT JOIN enuves_categories c ON t.category_id = c.id
       LEFT JOIN enuves_accounts a ON t.account_id = a.id
       LEFT JOIN client_companies comp ON t.company_id = comp.id
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
     const params: any[] = [companyId];
 
@@ -168,7 +162,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         }
     }
 
-    const transactions = await db.prepare(query).all(...params) as any[];
+    const transactions = (await db.query(query, [...params])).rows as any[];
 
     if (transactions.length === 0) {
         return { error: 'Nenhum lançamento encontrado para os filtros selecionados.' };
@@ -389,11 +383,11 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         const ids = transactions.map((t: any) => t.id);
         const placeholders = ids.map(() => '?').join(',');
         
-        await db.prepare(`
+        await db.query(`
             UPDATE enuves_transactions 
-            SET questor_synced_at = ?, questor_sync_id = ? 
+            SET questor_synced_at = $1, questor_sync_id = $2 
             WHERE id IN (${placeholders})
-        `).run(now, syncId, ...ids);
+        `, [now, syncId, ...ids]);
 
         return { success: true, message: `${transactions.length} lançamentos enviados com sucesso via SYN.` };
     }
@@ -422,10 +416,10 @@ export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: 
   if (!session) return { error: 'Não autorizado' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
@@ -438,7 +432,7 @@ export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: 
         MIN(date) as min_date,
         MAX(date) as max_date
       FROM eklesia_transactions t
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
     const params: any[] = [companyId];
 
@@ -453,7 +447,7 @@ export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: 
         }
     }
 
-    const result = await db.prepare(query).get(...params) as any;
+    const result = (await db.query(query, [...params])).rows[0] as any;
     
     return {
       total: Number(result?.total || 0),
@@ -474,10 +468,10 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
   if (!session) return { error: 'Não autorizado' };
 
   if (session.role === 'client_user') {
-    const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
   } else if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
@@ -492,7 +486,7 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
       LEFT JOIN eklesia_categories c ON t.category_id = c.id
       LEFT JOIN eklesia_accounts a ON t.account_id = a.id
       LEFT JOIN client_companies comp ON t.company_id = comp.id
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
     const params: any[] = [companyId];
 
@@ -511,7 +505,7 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
         }
     }
 
-    const transactions = await db.prepare(query).all(...params) as any[];
+    const transactions = (await db.query(query, [...params])).rows as any[];
 
     if (transactions.length === 0) {
         return { error: 'Nenhum lançamento encontrado para os filtros selecionados.' };
@@ -717,11 +711,11 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
         const ids = transactions.map((t: any) => t.id);
         const placeholders = ids.map(() => '?').join(',');
         
-        await db.prepare(`
+        await db.query(`
             UPDATE eklesia_transactions 
-            SET questor_synced_at = ?, questor_sync_id = ? 
+            SET questor_synced_at = $1, questor_sync_id = $2 
             WHERE id IN (${placeholders})
-        `).run(now, syncId, ...ids);
+        `, [now, syncId, ...ids]);
 
         return { success: true, message: `${transactions.length} lançamentos enviados com sucesso via SYN.` };
     }

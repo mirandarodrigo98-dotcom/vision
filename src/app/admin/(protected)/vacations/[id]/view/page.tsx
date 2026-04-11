@@ -16,16 +16,16 @@ export default async function AdminViewVacationPage({ params }: { params: Promis
         FROM vacations v
         LEFT JOIN client_companies cc ON v.company_id = cc.id
         LEFT JOIN employees e ON v.employee_id = e.id
-        WHERE v.id = ?
+        WHERE v.id = $1
     `;
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        vacationQuery += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        vacationQuery += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         queryParams.push(session.user_id);
     }
 
-    const vacation = await db.prepare(vacationQuery).get(...queryParams) as any;
+    const vacation = (await db.query(vacationQuery, [...queryParams])).rows[0] as any;
 
     if (!vacation) {
         redirect('/admin/vacations');
@@ -33,18 +33,18 @@ export default async function AdminViewVacationPage({ params }: { params: Promis
 
     let companies = [];
     if (session.role === 'operator') {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
-            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
-        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+        `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     } else {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
             ORDER BY nome
-          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+          `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     }
 
     return (

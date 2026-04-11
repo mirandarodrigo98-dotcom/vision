@@ -33,10 +33,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
 
   // Verify access
   if (session.role === 'client_user') {
-     const hasAccess = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+     const hasAccess = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
      if (!hasAccess) return null;
   } else if (session.role === 'operator') {
-     const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+     const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
      if (restricted) return null;
   }
 
@@ -53,37 +53,37 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
   // Helper for counts
   async function getCounts(startDate: Date, endDate?: Date) {
     const params: any[] = [companyId, startDate.toISOString()];
-    let dateFilter = `created_at >= ?`;
+    let dateFilter = `created_at >= $1`;
     
     if (endDate) {
-      dateFilter += ` AND created_at <= ?`;
+      dateFilter += ` AND created_at <= $1`;
       params.push(endDate.toISOString());
     }
 
     // Admissions
-    const admissions = await db.prepare(`
+    const admissions = (await db.query(`
       SELECT COUNT(*) as total FROM admission_requests 
-      WHERE company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
-    `).get(...params) as { total: number };
+      WHERE company_id = $1 AND ${dateFilter} AND status = 'COMPLETED'
+    `, [...params])).rows[0] as { total: number };
 
     // Dismissals
-    const dismissals = await db.prepare(`
+    const dismissals = (await db.query(`
       SELECT COUNT(*) as total FROM dismissals 
-      WHERE company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
-    `).get(...params) as { total: number };
+      WHERE company_id = $1 AND ${dateFilter} AND status = 'COMPLETED'
+    `, [...params])).rows[0] as { total: number };
 
     // Vacations
-    const vacations = await db.prepare(`
+    const vacations = (await db.query(`
       SELECT COUNT(*) as total FROM vacations 
-      WHERE company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
-    `).get(...params) as { total: number };
+      WHERE company_id = $1 AND ${dateFilter} AND status = 'COMPLETED'
+    `, [...params])).rows[0] as { total: number };
 
     // Transfers (Source Company)
     // Counting transfers initiated by this company
-    const transfers = await db.prepare(`
+    const transfers = (await db.query(`
       SELECT COUNT(*) as total FROM transfer_requests 
-      WHERE source_company_id = ? AND ${dateFilter} AND status = 'COMPLETED'
-    `).get(...params) as { total: number };
+      WHERE source_company_id = $1 AND ${dateFilter} AND status = 'COMPLETED'
+    `, [...params])).rows[0] as { total: number };
 
     return {
       admissions: Number(admissions.total),

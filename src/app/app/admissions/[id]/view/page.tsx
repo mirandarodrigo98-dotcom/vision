@@ -11,27 +11,27 @@ export default async function ViewAdmissionPage({ params }: { params: Promise<{ 
 
     const { id } = await params;
 
-    const admission = await db.prepare('SELECT * FROM admission_requests WHERE id = ?').get(id) as any;
+    const admission = (await db.query(`SELECT * FROM admission_requests WHERE id = $1`, [id])).rows[0] as any;
 
     if (!admission) {
         redirect('/app/admissions');
     }
 
     // Access control: User must have access to the company of the admission
-    const userCompany = await db.prepare('SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, admission.company_id);
+    const userCompany = (await db.query(`SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, admission.company_id])).rows[0];
     const hasAccess = userCompany || session.active_company_id === admission.company_id;
 
     if (!hasAccess) {
         redirect('/app/admissions');
     }
 
-    const companies = await db.prepare(`
+    const companies = (await db.query(`
         SELECT c.id, c.nome, c.cnpj 
         FROM client_companies c 
         JOIN user_companies uc ON c.id = uc.company_id 
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = $1
         ORDER BY c.nome
-      `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+      `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">

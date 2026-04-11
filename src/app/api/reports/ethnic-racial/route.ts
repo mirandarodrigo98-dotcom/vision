@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (session.role === 'operator') {
-         const restricted = await db.prepare(`
-            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-         `).get(session.user_id, activeCompanyId);
+         const restricted = (await db.query(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+         `, [session.user_id, activeCompanyId])).rows[0];
          if (restricted) return new NextResponse('Unauthorized', { status: 401 });
     }
     
     try {
-        const company = await db.prepare('SELECT * FROM client_companies WHERE id = ?').get(activeCompanyId);
+        const company = (await db.query(`SELECT * FROM client_companies WHERE id = $1`, [activeCompanyId])).rows[0];
         
         if (!company) {
             return new NextResponse('Empresa não encontrada.', { status: 404 });

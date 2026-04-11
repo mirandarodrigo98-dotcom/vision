@@ -69,10 +69,10 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
 
   // Filter by company permission (if not admin/operator)
   if (session.role === 'client_user') {
-    query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+    query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+    query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
   }
 
@@ -92,12 +92,12 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   }
 
   if (startDate) {
-    query += ` AND d.created_at >= ?`;
+    query += ` AND d.created_at >= $1`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND d.created_at <= ?`;
+    query += ` AND d.created_at <= $1`;
     params.push(endDate + ' 23:59:59');
   }
 
@@ -112,7 +112,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
-  const dismissalsData = await db.prepare(query).all(...params) as any[];
+  const dismissalsData = (await db.query(query, [...params])).rows as any[];
 
   // Serialize dates to avoid Server Components render error
   const dismissals = dismissalsData.map(dismissal => ({

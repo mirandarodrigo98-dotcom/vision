@@ -1,12 +1,7 @@
-import { Pool, PoolClient, QueryResult as PgQueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { AsyncLocalStorage } from 'async_hooks';
 
-// dotenv is automatically loaded by Next.js, no need to import it explicitly
-// dotenv.config();
-
-// Fix for "SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'"
-// We handle SSL configuration via the 'ssl' property below, so we can remove sslmode from the connection string
-// to avoid the warning from pg-connection-string.
+// Fix for SSL mode warning
 const originalConnectionString = process.env.DATABASE_URL || '';
 const hasSslMode = originalConnectionString.includes('sslmode=require');
 const isNeon = originalConnectionString.includes('neon.tech');
@@ -17,7 +12,7 @@ if (hasSslMode) {
 }
 
 // Create a connection pool
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: connectionString,
   ssl: (isNeon || hasSslMode || process.env.NODE_ENV === 'production') 
     ? { rejectUnauthorized: false } 
@@ -31,148 +26,27 @@ if (!process.env.DATABASE_URL && typeof window === 'undefined') {
 // AsyncLocalStorage to manage transaction context
 const txContext = new AsyncLocalStorage<PoolClient>();
 
-// Helper to convert SQLite SQL to Postgres SQL
-function convertSql(sql: string): string {
-  let i = 1;
-  // Replace ? with $1, $2, etc.
-  let converted = sql.replace(/\?/g, () => `$${i++}`);
-  
-  // Replace SQLite datetime('now') with Postgres NOW()
-  converted = converted.replace(/datetime\('now'\)/gi, "NOW()");
-  converted = converted.replace(/datetime\("now"\)/gi, "NOW()");
-  
-  // Replace SQLite datetime('now', '-03:00') with Postgres NOW() - INTERVAL '3 hours'
-  // Handling variations with spaces
-  converted = converted.replace(/datetime\('now',\s*'-03:00'\)/gi, "(NOW() - INTERVAL '3 hours')");
-  converted = converted.replace(/datetime\("now",\s*'-03:00'\)/gi, "(NOW() - INTERVAL '3 hours')");
-  
-  // Handle +1 hour
-  converted = converted.replace(/datetime\('now',\s*'\+1 hour'\)/gi, "(NOW() + INTERVAL '1 hour')");
-  converted = converted.replace(/datetime\("now",\s*'\+1 hour'\)/gi, "(NOW() + INTERVAL '1 hour')");
-  
-  // Replace GROUP_CONCAT with STRING_AGG
-  converted = converted.replace(/GROUP_CONCAT\(([^)]+)\)/gi, (match, args) => {
-    const parts = args.split(',').map((s: string) => s.trim());
-    if (parts.length === 1) {
-       return `STRING_AGG(${parts[0]}, ',')`;
-    } else {
-       const sep = parts.slice(1).join(',');
-       return `STRING_AGG(${parts[0]}, ${sep})`;
+// Create the db object that mimics Pool but uses txContext if available
+const db = {
+  async query<R extends QueryResultRow = any, I extends any[] = any[]>(
+    queryTextOrConfig: string | { text: string; values?: I },
+    values?: I
+  ): Promise<QueryResult<R>> {
+    const client = txContext.getStore();
+    if (client) {
+      return client.query<R, I>(queryTextOrConfig, values);
     }
-  });
+    return pool.query<R, I>(queryTextOrConfig, values);
+  },
 
-  // Replace AUTOINCREMENT with GENERATED ALWAYS AS IDENTITY or SERIAL
-  // Postgres doesn't support AUTOINCREMENT keyword
-  converted = converted.replace(/\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b/gi, 'SERIAL PRIMARY KEY');
-  converted = converted.replace(/\bAUTOINCREMENT\b/gi, '');
+  async connect(): Promise<PoolClient> {
+    return pool.connect();
+  },
 
-  return converted;
-}
-
-type QueryResult = {
-  changes: number;
-  lastInsertRowid: number | null; // Not supported in PG without RETURNING id
-};
-
-// Interface for the DB client
-interface DBClient {
-  prepare: (sql: string) => {
-    run: (...params: any[]) => Promise<QueryResult>;
-    get: <T = any>(...params: any[]) => Promise<T | undefined>;
-    all: <T = any>(...params: any[]) => Promise<T[]>;
-    pluck: (enable?: boolean) => any;
-  };
-  transaction: <T extends (...args: any[]) => any>(fn: T) => (...args: Parameters<T>) => Promise<ReturnType<T>>;
-  pragma: (sql: string) => void;
-}
-
-class PostgresAdapter implements DBClient {
-  private pool: Pool;
-
-  constructor(pool: Pool) {
-    this.pool = pool;
-  }
-
-  prepare(sql: string) {
-    // Basic SQLite to Postgres conversion
-    let convertedSql = convertSql(sql);
-
-    // Create a prepared statement object
-    let pluckEnabled = false;
-
-    const stmt = {
-      pluck: (enable = true) => {
-        pluckEnabled = enable;
-        return stmt; 
-      },
-      
-      run: async (...params: any[]) => {
-        const txClient = txContext.getStore();
-        const client = txClient || await pool.connect();
-        try {
-          // Replace ? with $1, $2, etc.
-          let paramIndex = 1;
-          const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
-          
-          const result = await client.query(finalSql, params);
-          return { changes: result.rowCount || 0, lastInsertRowid: null }; // PG doesn't return lastID easily without RETURNING
-        } finally {
-          if (!txClient) client.release();
-        }
-      },
-
-      get: async <T = any>(...params: any[]) => {
-        const txClient = txContext.getStore();
-        const client = txClient || await pool.connect();
-        try {
-          let paramIndex = 1;
-          const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
-          
-          const result = await client.query(finalSql, params);
-          const row = result.rows[0];
-          
-          if (pluckEnabled && row) {
-             const keys = Object.keys(row);
-             if (keys.length > 0) {
-                 return row[keys[0]] as T;
-             }
-          }
-          
-          return row as T;
-        } finally {
-          if (!txClient) client.release();
-        }
-      },
-
-      all: async <T = any>(...params: any[]) => {
-        const txClient = txContext.getStore();
-        const client = txClient || await pool.connect();
-        try {
-          let paramIndex = 1;
-          const finalSql = convertedSql.replace(/\?/g, () => `$${paramIndex++}`);
-          
-          const result = await client.query(finalSql, params);
-          
-          if (pluckEnabled) {
-              return result.rows.map(row => {
-                  const keys = Object.keys(row);
-                  return (keys.length > 0 ? row[keys[0]] : undefined) as T;
-              });
-          }
-          
-          return result.rows as T[];
-        } finally {
-          if (!txClient) client.release();
-        }
-      }
-    };
-
-    return stmt;
-  }
-
+  // Keep the exact same signature for transaction to avoid breaking the 29 usages
   transaction<T extends (...args: any[]) => any>(fn: T) {
     return async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-      const client = await this.pool.connect();
+      const client = await pool.connect();
       try {
         await client.query('BEGIN');
         
@@ -192,12 +66,6 @@ class PostgresAdapter implements DBClient {
       }
     };
   }
-
-  pragma(sql: string) {
-    // No-op
-  }
-}
-
-const db = new PostgresAdapter(pool);
+};
 
 export default db;

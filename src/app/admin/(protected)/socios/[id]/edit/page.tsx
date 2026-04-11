@@ -24,41 +24,29 @@ async function getAllowed() {
 
   let companies = [];
   if (session.role === 'operator') {
-    companies = await db
-    .prepare(
-      `
+    companies = (await db.query(`
       SELECT id, razao_social, cnpj, code, filial
       FROM client_companies
       WHERE is_active = 1
-      AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+      AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
       ORDER BY razao_social ASC
-    `
-    )
-    .all(session.user_id) as any[];
+    `, [session.user_id])).rows as any[];
   } else if (session.role === 'client_user') {
-     companies = await db
-    .prepare(
-      `
+     companies = (await db.query(`
       SELECT id, razao_social, cnpj, code, filial
       FROM client_companies
       WHERE is_active = 1
-      AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)
+      AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)
       ORDER BY razao_social ASC
-    `
-    )
-    .all(session.user_id) as any[];
+    `, [session.user_id])).rows as any[];
   } else {
     // Admin
-    companies = await db
-    .prepare(
-      `
+    companies = (await db.query(`
       SELECT id, razao_social, cnpj, code, filial
       FROM client_companies
       WHERE is_active = 1
       ORDER BY razao_social ASC
-    `
-    )
-    .all() as any[];
+    `, [])).rows as any[];
   }
 
   return { allowed: true, companies };

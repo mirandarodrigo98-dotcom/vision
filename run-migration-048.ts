@@ -16,7 +16,7 @@ async function migrate() {
 
         for (const statement of statements) {
             if (statement.trim()) {
-                await db.prepare(statement).run();
+                await db.query(statement, []);
             }
         }
         console.log('Migration 048 successful.');

@@ -28,7 +28,7 @@ export default async function ClientLayout({
   // Auto-select first company if none active
   if (!activeCompany && companies.length > 0) {
     const first = companies[0];
-    await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(first.id, session.user_id);
+    await db.query(`UPDATE users SET active_company_id = $1 WHERE id = $2`, [first.id, session.user_id]);
     activeCompany = { id: first.id, name: first.razao_social, cnpj: first.cnpj };
   }
 

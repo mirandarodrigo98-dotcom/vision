@@ -14,13 +14,13 @@ export default async function NewLeavePage() {
     return <div>Selecione uma empresa para continuar.</div>;
   }
 
-  const companies = await db.prepare(`
+  const companies = (await db.query(`
     SELECT cc.id, cc.nome, cc.cnpj 
     FROM client_companies cc
     JOIN user_companies uc ON uc.company_id = cc.id
-    WHERE uc.user_id = ?
+    WHERE uc.user_id = $1
     ORDER BY cc.nome
-  `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+  `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-8">

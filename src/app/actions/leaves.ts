@@ -41,28 +41,28 @@ export async function createLeave(formData: FormData) {
         let userCompanyData;
 
         if (session.role === 'client_user') {
-            userCompanyData = await db.prepare(`
+            userCompanyData = (await db.query(`
                 SELECT cc.id, cc.nome, cc.cnpj 
                 FROM client_companies cc
                 JOIN user_companies uc ON uc.company_id = cc.id
-                WHERE uc.user_id = ? AND cc.id = ?
-            `).get(session.user_id, companyId) as { id: string, nome: string, cnpj: string };
+                WHERE uc.user_id = $1 AND cc.id = $2
+            `, [session.user_id, companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, companyId);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, companyId])).rows[0];
 
             if (isRestricted) {
                  return { error: 'Você não tem permissão para esta empresa.' };
             }
 
-            userCompanyData = await db.prepare(`
-                SELECT id, nome, cnpj FROM client_companies WHERE id = ?
-            `).get(companyId) as { id: string, nome: string, cnpj: string };
+            userCompanyData = (await db.query(`
+                SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+            `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         } else {
-             userCompanyData = await db.prepare(`
-                SELECT id, nome, cnpj FROM client_companies WHERE id = ?
-            `).get(companyId) as { id: string, nome: string, cnpj: string };
+             userCompanyData = (await db.query(`
+                SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+            `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         }
 
         if (!userCompanyData) {
@@ -70,7 +70,7 @@ export async function createLeave(formData: FormData) {
         }
 
         // Validate employee exists and belongs to company
-        const employee = await db.prepare('SELECT id, name FROM employees WHERE id = ? AND company_id = ?').get(employeeId, companyId) as { id: string, name: string };
+        const employee = (await db.query(`SELECT id, name FROM employees WHERE id = $1 AND company_id = $2`, [employeeId, companyId])).rows[0] as { id: string, name: string };
         
         if (!employee) {
              return { error: 'Funcionário não encontrado.' };
@@ -114,16 +114,13 @@ export async function createLeave(formData: FormData) {
         const protocolNumber = generateProtocolNumber();
         const leaveId = randomUUID();
 
-        await db.prepare(`
+        await db.query(`
             INSERT INTO leaves (
                 id, company_id, employee_id, start_date, type, 
                 observations, attachment_key, status, protocol_number, 
                 created_by_user_id, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).run(
-            leaveId, companyId, employeeId, startDate, type, 
-            observations, attachmentKey, protocolNumber, session.user_id
-        );
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'SUBMITTED', $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `, [leaveId, companyId, employeeId, startDate, type, observations, attachmentKey, protocolNumber, session.user_id]);
 
         // Audit Log
         logAudit({
@@ -178,21 +175,21 @@ export async function updateLeave(id: string, formData: FormData) {
     }
 
     try {
-        const leave = await db.prepare('SELECT * FROM leaves WHERE id = ?').get(id) as any;
+        const leave = (await db.query(`SELECT * FROM leaves WHERE id = $1`, [id])).rows[0] as any;
         if (!leave) return { error: 'Afastamento não encontrado.' };
 
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, leave.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, leave.company_id])).rows[0];
 
             if (!hasAccess && leave.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
             }
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, leave.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, leave.company_id])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa.' };
@@ -267,11 +264,11 @@ export async function updateLeave(id: string, formData: FormData) {
             downloadLink = await getR2DownloadLink(attachmentKey);
         }
 
-        await db.prepare(`
+        await db.query(`
             UPDATE leaves 
-            SET start_date = ?, type = ?, observations = ?, attachment_key = ?, status = 'RECTIFIED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(startDate, type, observations, attachmentKey, id);
+            SET start_date = $1, type = $2, observations = $3, attachment_key = $4, status = 'RECTIFIED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $5
+        `, [startDate, type, observations, attachmentKey, id]);
 
          // Audit Log
          logAudit({
@@ -285,8 +282,8 @@ export async function updateLeave(id: string, formData: FormData) {
         });
 
         // Send Notification
-        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(leave.company_id) as { nome: string, cnpj: string };
-        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(leave.employee_id) as { name: string };
+        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
+        const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [leave.employee_id])).rows[0] as { name: string };
         
         const pdfBytes = await generateLeavePDF({
             company_name: company.nome,
@@ -333,32 +330,32 @@ export async function cancelLeave(id: string) {
     }
 
     try {
-        const leave = await db.prepare('SELECT * FROM leaves WHERE id = ?').get(id) as any;
+        const leave = (await db.query(`SELECT * FROM leaves WHERE id = $1`, [id])).rows[0] as any;
         if (!leave) return { error: 'Afastamento não encontrado.' };
 
         if (session.role === 'client_user') {
-             const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, leave.company_id);
+             const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, leave.company_id])).rows[0];
 
             if (!hasAccess && leave.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão.' };
             }
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, leave.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, leave.company_id])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa.' };
             }
         }
 
-        await db.prepare(`
+        await db.query(`
             UPDATE leaves 
-            SET status = 'CANCELLED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(id);
+            SET status = 'CANCELLED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $1
+        `, [id]);
 
         logAudit({
             actor_user_id: session.user_id,
@@ -371,15 +368,15 @@ export async function cancelLeave(id: string) {
         });
 
         // Send Notification
-        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(leave.company_id) as { nome: string, cnpj: string };
-        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(leave.employee_id) as { name: string };
+        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
+        const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [leave.employee_id])).rows[0] as { name: string };
 
         let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
         let recipientEmail: string | undefined = undefined;
 
         if (session.role === 'admin' || session.role === 'operator') {
             notifType = 'CANCEL_BY_ADMIN';
-            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(leave.created_by_user_id) as { email: string };
+            const creator = (await db.query(`SELECT email FROM users WHERE id = $1`, [leave.created_by_user_id])).rows[0] as { email: string };
             recipientEmail = creator?.email;
         }
 
@@ -410,13 +407,13 @@ export async function approveLeave(id: string) {
     }
 
     try {
-        const leave = await db.prepare('SELECT * FROM leaves WHERE id = ?').get(id) as any;
+        const leave = (await db.query(`SELECT * FROM leaves WHERE id = $1`, [id])).rows[0] as any;
         if (!leave) return { error: 'Afastamento não encontrado.' };
 
         if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, leave.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, leave.company_id])).rows[0];
 
             if (isRestricted) {
                 return { error: 'Você não tem permissão para esta empresa.' };
@@ -428,16 +425,16 @@ export async function approveLeave(id: string) {
         }
 
         // Get creator info
-        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(leave.created_by_user_id) as { email: string, name: string };
-        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(leave.company_id) as { nome: string, cnpj: string };
-        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(leave.employee_id) as { name: string };
+        const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [leave.created_by_user_id])).rows[0] as { email: string, name: string };
+        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
+        const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [leave.employee_id])).rows[0] as { name: string };
 
         // Update Leave Status
-        await db.prepare(`
+        await db.query(`
             UPDATE leaves 
             SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `).run(id);
+            WHERE id = $1
+        `, [id]);
 
         logAudit({
             actor_user_id: session.user_id,
@@ -509,7 +506,7 @@ export async function getLeaves(companyId?: string) {
             params.push(companyId);
         }
     } else if (session.role === 'operator') {
-        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         params.push(session.user_id);
 
         if (companyId) {
@@ -527,36 +524,36 @@ export async function getLeaves(companyId?: string) {
 
     query += ` ORDER BY l.created_at DESC`;
 
-    return await db.prepare(query).all(...params);
+    return (await db.query(query, [...params])).rows;
 }
 
 export async function getLeave(id: string) {
     const session = await getSession();
     if (!session) return null;
 
-    const leave = await db.prepare(`
+    const leave = (await db.query(`
         SELECT l.*, cc.nome as company_name, e.name as employee_name
         FROM leaves l
         JOIN client_companies cc ON l.company_id = cc.id
         JOIN employees e ON l.employee_id = e.id
-        WHERE l.id = ?
-    `).get(id) as any;
+        WHERE l.id = $1
+    `, [id])).rows[0] as any;
 
     if (!leave) return null;
 
     // Check permissions
     if (session.role === 'client_user') {
-         const hasAccess = await db.prepare(`
-            SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, leave.company_id);
+         const hasAccess = (await db.query(`
+            SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, leave.company_id])).rows[0];
 
         if (!hasAccess && leave.created_by_user_id !== session.user_id) {
             return null;
         }
     } else if (session.role === 'operator') {
-         const isRestricted = await db.prepare(`
-            SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-        `).get(session.user_id, leave.company_id);
+         const isRestricted = (await db.query(`
+            SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+        `, [session.user_id, leave.company_id])).rows[0];
 
         if (isRestricted) {
             return null;

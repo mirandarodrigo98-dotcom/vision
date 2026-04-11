@@ -24,13 +24,13 @@ export default async function EditTransferPage({ params }: { params: Promise<{ i
     }
 
     // Get User Companies
-    const companies = await db.prepare(`
+    const companies = (await db.query(`
         SELECT c.id, c.nome, c.cnpj
         FROM client_companies c
         JOIN user_companies uc ON uc.company_id = c.id
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = $1
         ORDER BY c.nome ASC
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
     return (
         <div className="space-y-6">

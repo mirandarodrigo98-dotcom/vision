@@ -24,25 +24,25 @@ export default async function AdminNewDismissalPage() {
   // Get companies based on role
   let companies = [];
   if (session.role === 'admin') {
-    companies = await db.prepare(`
+    companies = (await db.query(`
         SELECT id, nome, cnpj FROM client_companies ORDER BY nome
-    `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   } else if (session.role === 'operator') {
-    companies = await db.prepare(`
+    companies = (await db.query(`
         SELECT id, nome, cnpj 
         FROM client_companies 
-        WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+        WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
         ORDER BY nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   } else {
     // Should not happen for admin routes if properly guarded, but safe fallback
-    companies = await db.prepare(`
+    companies = (await db.query(`
         SELECT c.id, c.nome, cnpj 
         FROM client_companies c 
         JOIN user_companies uc ON c.id = uc.company_id 
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = $1
         ORDER BY c.nome
-    `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+    `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
   }
 
   return (

@@ -16,12 +16,12 @@ export default async function ClientDashboard() {
   }
 
   // Get User Companies to check access
-  const companies = await db.prepare(`
+  const companies = (await db.query(`
     SELECT 1
     FROM user_companies uc
-    WHERE uc.user_id = ?
+    WHERE uc.user_id = $1
     LIMIT 1
-  `).get(session.user_id);
+  `, [session.user_id])).rows[0];
 
   if (!companies) {
       return (

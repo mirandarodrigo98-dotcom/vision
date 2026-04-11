@@ -49,7 +49,7 @@ export async function getCategories(
   try {
     let query = `
       SELECT * FROM eklesia_categories 
-      WHERE company_id = ?
+      WHERE company_id = $1
     `;
     const params: any[] = [targetCompanyId];
 
@@ -74,7 +74,7 @@ export async function getCategories(
 
     query += ` ORDER BY code ASC`;
 
-    const categories = await db.prepare(query).all(...params) as any[];
+    const categories = (await db.query(query, [...params])).rows as any[];
 
     return categories.map(cat => ({
       ...cat,
@@ -110,11 +110,11 @@ export async function getNextCode(nature: 'Saída' | 'Entrada' | 'Transferência
       maxCode = 799999;
     }
 
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM eklesia_categories 
-      WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
-    `).get(targetCompanyId, minCode, maxCode) as { max_code: number | null };
+      WHERE company_id = $1 AND CAST(code AS INTEGER) >= $2 AND CAST(code AS INTEGER) <= $3
+    `, [targetCompanyId, minCode, maxCode])).rows[0] as { max_code: number | null };
 
     let nextCode = minCode;
     if (result && result.max_code) {
@@ -164,11 +164,11 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
       maxCode = 799999;
     }
 
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM eklesia_categories 
-      WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
-    `).get(targetCompanyId, minCode, maxCode) as { max_code: number | null };
+      WHERE company_id = $1 AND CAST(code AS INTEGER) >= $2 AND CAST(code AS INTEGER) <= $3
+    `, [targetCompanyId, minCode, maxCode])).rows[0] as { max_code: number | null };
 
     let nextCode = minCode;
     if (result && result.max_code) {
@@ -182,17 +182,10 @@ export async function createCategory(data: z.infer<typeof categorySchema>, compa
     const generatedCode = String(nextCode);
 
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      targetCompanyId,
-      generatedCode,
-      data.description,
-      data.integration_code || null,
-      data.nature
-    );
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [id, targetCompanyId, generatedCode, data.description, data.integration_code || null, data.nature]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -219,16 +212,11 @@ export async function updateCategory(data: z.infer<typeof updateCategorySchema>,
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE eklesia_categories 
-      SET description = ?, integration_code = ?
-      WHERE id = ? AND company_id = ?
-    `).run(
-      data.description,
-      data.integration_code || null,
-      data.id,
-      targetCompanyId
-    );
+      SET description = $1, integration_code = $2
+      WHERE id = $3 AND company_id = $4
+    `, [data.description, data.integration_code || null, data.id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -246,7 +234,7 @@ export async function deleteCategory(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM eklesia_categories WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    await db.query(`DELETE FROM eklesia_categories WHERE id = $1 AND company_id = $2`, [id, targetCompanyId]);
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
@@ -263,11 +251,11 @@ export async function toggleCategoryStatus(id: string, isActive: boolean, compan
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE eklesia_categories 
-      SET is_active = ? 
-      WHERE id = ? AND company_id = ?
-    `).run(isActive ? 1 : 0, id, targetCompanyId);
+      SET is_active = $1 
+      WHERE id = $2 AND company_id = $3
+    `, [isActive ? 1 : 0, id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -313,28 +301,28 @@ export async function seedDefaultCategories(companyId: string, nature: 'Entrada'
     const minCode = nature === 'Entrada' ? 800000 : 900000;
     
     // Check existing
-    const existing = await db.prepare('SELECT description FROM eklesia_categories WHERE company_id = ?').all(targetCompanyId) as { description: string }[];
+    const existing = (await db.query(`SELECT description FROM eklesia_categories WHERE company_id = $1`, [targetCompanyId])).rows as { description: string }[];
     const existingSet = new Set(existing.map(e => e.description));
 
     let count = 0;
     
     // Need to find the next available code
     // Optimization: fetch max code once
-    const result = await db.prepare(`
+    const result = (await db.query(`
         SELECT MAX(CAST(code AS INTEGER)) as max_code 
         FROM eklesia_categories 
-        WHERE company_id = ? AND CAST(code AS INTEGER) >= ? AND CAST(code AS INTEGER) <= ?
-    `).get(targetCompanyId, minCode, minCode + 99999) as { max_code: number | null };
+        WHERE company_id = $1 AND CAST(code AS INTEGER) >= $2 AND CAST(code AS INTEGER) <= $3
+    `, [targetCompanyId, minCode, minCode + 99999])).rows[0] as { max_code: number | null };
 
     let nextCode = (result && result.max_code) ? result.max_code + 1 : minCode;
 
     for (const desc of listToUse) {
       if (!existingSet.has(desc)) {
         const id = uuidv4();
-        await db.prepare(`
+        await db.query(`
           INSERT INTO eklesia_categories (id, company_id, code, description, nature)
-          VALUES (?, ?, ?, ?, ?)
-        `).run(id, targetCompanyId, String(nextCode), desc, nature);
+          VALUES ($1, $2, $3, $4, $5)
+        `, [id, targetCompanyId, String(nextCode), desc, nature]);
         nextCode++;
         count++;
       }
@@ -387,7 +375,7 @@ export async function getTransactions(
       FROM eklesia_transactions t
       LEFT JOIN eklesia_categories c ON t.category_id = c.id
       LEFT JOIN eklesia_accounts a ON t.account_id = a.id
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
 
     const params: any[] = [targetCompanyId];
@@ -425,7 +413,7 @@ export async function getTransactions(
 
     query += ` ORDER BY t.date DESC`;
 
-    const transactions = await db.prepare(query).all(...params) as Transaction[];
+    const transactions = (await db.query(query, [...params])).rows as Transaction[];
     
     return transactions;
   } catch (error) {
@@ -457,19 +445,11 @@ export async function updateTransaction(data: z.infer<typeof updateTransactionSc
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE eklesia_transactions
-      SET date = ?, category_id = ?, account_id = ?, description = ?, value = ?
-      WHERE id = ? AND company_id = ?
-    `).run(
-      data.date,
-      data.categoryId,
-      data.accountId || null,
-      data.description,
-      data.value,
-      data.id,
-      targetCompanyId
-    );
+      SET date = $1, category_id = $2, account_id = $3, description = $4, value = $5
+      WHERE id = $6 AND company_id = $7
+    `, [data.date, data.categoryId, data.accountId || null, data.description, data.value, data.id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -487,7 +467,7 @@ export async function deleteTransaction(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM eklesia_transactions WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    await db.query(`DELETE FROM eklesia_transactions WHERE id = $1 AND company_id = $2`, [id, targetCompanyId]);
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
@@ -510,7 +490,7 @@ export async function deleteTransactionsBatch(ids: string[], companyId: string) 
     const placeholders = ids.map(() => '?').join(',');
     const query = `DELETE FROM eklesia_transactions WHERE id IN (${placeholders}) AND company_id = ?`;
     
-    await db.prepare(query).run(...ids, targetCompanyId);
+    await db.query(query, [...ids, targetCompanyId]);
     
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -560,7 +540,7 @@ export async function getAccounts(
   try {
     let query = `
       SELECT * FROM eklesia_accounts 
-      WHERE company_id = ?
+      WHERE company_id = $1
     `;
     const params: any[] = [targetCompanyId];
 
@@ -581,7 +561,7 @@ export async function getAccounts(
 
     query += ` ORDER BY CAST(code AS INTEGER) ASC`;
 
-    const accounts = await db.prepare(query).all(...params) as any[];
+    const accounts = (await db.query(query, [...params])).rows as any[];
     
     return accounts.map(account => ({
       ...account,
@@ -602,11 +582,11 @@ export async function getNextAccountCode(companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM eklesia_accounts 
-      WHERE company_id = ?
-    `).get(targetCompanyId) as { max_code: number | null };
+      WHERE company_id = $1
+    `, [targetCompanyId])).rows[0] as { max_code: number | null };
 
     let nextCode = 1;
     if (result && result.max_code) {
@@ -635,11 +615,11 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
 
   try {
     // Generate automatic code
-    const result = await db.prepare(`
+    const result = (await db.query(`
       SELECT MAX(CAST(code AS INTEGER)) as max_code 
       FROM eklesia_accounts 
-      WHERE company_id = ?
-    `).get(targetCompanyId) as { max_code: number | null };
+      WHERE company_id = $1
+    `, [targetCompanyId])).rows[0] as { max_code: number | null };
 
     let nextCode = 1;
     if (result && result.max_code) {
@@ -647,16 +627,10 @@ export async function createAccount(data: z.infer<typeof accountSchema>, company
     }
 
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(
-      id,
-      targetCompanyId,
-      String(nextCode),
-      data.description,
-      data.integration_code || null
-    );
+      VALUES ($1, $2, $3, $4, $5)
+    `, [id, targetCompanyId, String(nextCode), data.description, data.integration_code || null]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -680,16 +654,11 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>, c
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE eklesia_accounts 
-      SET description = ?, integration_code = ?
-      WHERE id = ? AND company_id = ?
-    `).run(
-      data.description,
-      data.integration_code || null,
-      data.id,
-      targetCompanyId
-    );
+      SET description = $1, integration_code = $2
+      WHERE id = $3 AND company_id = $4
+    `, [data.description, data.integration_code || null, data.id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -707,7 +676,7 @@ export async function deleteAccount(id: string, companyId: string) {
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare('DELETE FROM eklesia_accounts WHERE id = ? AND company_id = ?').run(id, targetCompanyId);
+    await db.query(`DELETE FROM eklesia_accounts WHERE id = $1 AND company_id = $2`, [id, targetCompanyId]);
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
   } catch (error) {
@@ -724,11 +693,11 @@ export async function toggleAccountStatus(id: string, isActive: boolean, company
   if (!targetCompanyId) return { error: 'Empresa não selecionada' };
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE eklesia_accounts 
-      SET is_active = ? 
-      WHERE id = ? AND company_id = ?
-    `).run(isActive ? 1 : 0, id, targetCompanyId);
+      SET is_active = $1 
+      WHERE id = $2 AND company_id = $3
+    `, [isActive ? 1 : 0, id, targetCompanyId]);
 
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -876,36 +845,36 @@ export async function saveCategoriesBatch(categories: any[], companyId: string) 
 
             // Check existence by Description + Nature (Primary Key for User Intent)
             // We ignore integration_code for matching because Eklesia report may duplicate it for different categories
-            let existing = await db.prepare(`
+            let existing = (await db.query(`
                 SELECT id FROM eklesia_categories 
-                WHERE company_id = ? AND description = ? AND nature = ?
-            `).get(targetCompanyId, safeDescription, cat.nature);
+                WHERE company_id = $1 AND description = $2 AND nature = $3
+            `, [targetCompanyId, safeDescription, cat.nature])).rows[0];
 
             if (existing) {
                 // Update existing category (update integration_code)
-                await db.prepare(`
+                await db.query(`
                     UPDATE eklesia_categories 
-                    SET integration_code = ?
-                    WHERE id = ?
-                `).run(safeIntegrationCode, existing.id);
+                    SET integration_code = $1
+                    WHERE id = $2
+                `, [safeIntegrationCode, existing.id]);
             } else {
                 // Generate Vision internal code
                 const startCode = cat.nature === 'Entrada' ? 800000 : 900000;
                 const endCode = cat.nature === 'Entrada' ? 899999 : 999999;
                 
-                const result = await db.prepare(`
+                const result = (await db.query(`
                   SELECT MAX(CAST(code AS INTEGER)) as max_code 
                   FROM eklesia_categories 
-                  WHERE company_id = ? AND CAST(code AS INTEGER) BETWEEN ? AND ?
-                `).get(targetCompanyId, startCode, endCode) as { max_code: number | null };
+                  WHERE company_id = $1 AND CAST(code AS INTEGER) BETWEEN $2 AND $3
+                `, [targetCompanyId, startCode, endCode])).rows[0] as { max_code: number | null };
 
                 let nextCode = (result && result.max_code) ? result.max_code + 1 : startCode;
 
                 const id = uuidv4();
-                await db.prepare(`
+                await db.query(`
                     INSERT INTO eklesia_categories (id, company_id, code, description, integration_code, nature)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `).run(id, targetCompanyId, String(nextCode), safeDescription, safeIntegrationCode, cat.nature);
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [id, targetCompanyId, String(nextCode), safeDescription, safeIntegrationCode, cat.nature]);
                 
                 count++;
             }
@@ -1058,23 +1027,23 @@ export async function saveAccountsBatch(accounts: any[], companyId: string) {
         for (const acc of accounts) {
             const safeIntegrationCode = acc.integration_code ? acc.integration_code.substring(0, 20) : null;
 
-            const existing = await db.prepare(`
+            const existing = (await db.query(`
                 SELECT id FROM eklesia_accounts 
-                WHERE company_id = ? AND code = ?
-            `).get(targetCompanyId, acc.code);
+                WHERE company_id = $1 AND code = $2
+            `, [targetCompanyId, acc.code])).rows[0];
 
             if (existing) {
-                await db.prepare(`
+                await db.query(`
                     UPDATE eklesia_accounts 
-                    SET description = ?, integration_code = ?
-                    WHERE id = ?
-                `).run(acc.description, safeIntegrationCode, existing.id);
+                    SET description = $1, integration_code = $2
+                    WHERE id = $3
+                `, [acc.description, safeIntegrationCode, existing.id]);
             } else {
                 const id = uuidv4();
-                await db.prepare(`
+                await db.query(`
                     INSERT INTO eklesia_accounts (id, company_id, code, description, integration_code)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(id, targetCompanyId, acc.code, acc.description, safeIntegrationCode);
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [id, targetCompanyId, acc.code, acc.description, safeIntegrationCode]);
                 
                 count++;
             }
@@ -1440,19 +1409,17 @@ export async function saveTransactionsBatch(transactions: any[], companyId: stri
     let count = 0;
 
     try {
-        const stmt = db.prepare(`
-            INSERT INTO eklesia_transactions (id, company_id, category_id, account_id, date, description, value)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const insertTransaction = db.transaction((txs) => {
+        const insertTransaction = db.transaction(async (txs) => {
             for (const t of txs) {
-                stmt.run(uuidv4(), targetCompanyId, t.category_id, t.account_id, t.date, t.description, t.value);
+                await db.query(`
+                    INSERT INTO eklesia_transactions (id, company_id, category_id, account_id, date, description, value)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [uuidv4(), targetCompanyId, t.category_id, t.account_id, t.date, t.description, t.value]);
                 count++;
             }
         });
 
-        insertTransaction(transactions);
+        await insertTransaction(transactions);
         revalidatePath('/admin/integrations/eklesia');
         return { success: true, count };
     } catch (error: any) {
@@ -1474,7 +1441,7 @@ export async function deleteCategoriesBatch(ids: string[], companyId: string) {
     const placeholders = ids.map(() => '?').join(',');
     const query = `DELETE FROM eklesia_categories WHERE id IN (${placeholders}) AND company_id = ?`;
     
-    await db.prepare(query).run(...ids, targetCompanyId);
+    await db.query(query, [...ids, targetCompanyId]);
     
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -1497,7 +1464,7 @@ export async function deleteAccountsBatch(ids: string[], companyId: string) {
     const placeholders = ids.map(() => '?').join(',');
     const query = `DELETE FROM eklesia_accounts WHERE id IN (${placeholders}) AND company_id = ?`;
     
-    await db.prepare(query).run(...ids, targetCompanyId);
+    await db.query(query, [...ids, targetCompanyId]);
     
     revalidatePath('/admin/integrations/eklesia');
     return { success: true };
@@ -1536,7 +1503,7 @@ export async function exportTransactionsCsv(
             FROM eklesia_transactions t
             LEFT JOIN eklesia_categories c ON t.category_id = c.id
             LEFT JOIN eklesia_accounts a ON t.account_id = a.id
-            WHERE t.company_id = ?
+            WHERE t.company_id = $1
         `;
         
         const params: any[] = [targetCompanyId];
@@ -1566,7 +1533,7 @@ export async function exportTransactionsCsv(
 
         query += ` ORDER BY t.date DESC`;
 
-        const transactions = await db.prepare(query).all(...params) as any[];
+        const transactions = (await db.query(query, [...params])).rows as any[];
 
         // Generate CSV
         const header = ['Data', 'Categoria', 'Natureza', 'Histórico', 'Valor', 'Conta', 'Cód. Conta'];

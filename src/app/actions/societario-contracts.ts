@@ -14,10 +14,10 @@ export async function createContract(formData: FormData) {
   if (!title || !content) return { error: 'Título e conteúdo são obrigatórios' };
 
   const id = randomUUID();
-  await db.prepare(`
+  await db.query(`
     INSERT INTO societario_contracts (id, title, content, created_by_user_id)
-    VALUES (?, ?, ?, ?)
-  `).run(id, title, content, session.user_id);
+    VALUES ($1, $2, $3, $4)
+  `, [id, title, content, session.user_id]);
 
   revalidatePath('/admin/societario/contratos');
   return { success: true, id };
@@ -26,10 +26,10 @@ export async function createContract(formData: FormData) {
 export async function getContracts() {
   const session = await getSession();
   if (!session) return [];
-  return await db.prepare(`
+  return (await db.query(`
     SELECT sc.*, u.name as author_name
     FROM societario_contracts sc
     LEFT JOIN users u ON u.id = sc.created_by_user_id
     ORDER BY sc.updated_at DESC
-  `).all();
+  `, [])).rows;
 }

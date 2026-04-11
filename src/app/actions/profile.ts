@@ -27,8 +27,8 @@ export async function updateProfile(formData: FormData) {
     }
 
     try {
-        const getUser = db.prepare('SELECT password_hash, avatar_path FROM users WHERE id = ?');
-        const user = await getUser.get(session.user_id) as { password_hash: string, avatar_path: string | null };
+        
+        const user = (await db.query(`SELECT password_hash, avatar_path FROM users WHERE id = $1`, [session.user_id])).rows[0] as { password_hash: string, avatar_path: string | null };
 
         if (!user) {
             return { error: 'Usuário não encontrado.' };
@@ -68,19 +68,19 @@ export async function updateProfile(formData: FormData) {
 
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             
-            await db.prepare(`
+            await db.query(`
                 UPDATE users 
-                SET name = ?, email = ?, phone = ?, avatar_path = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE id = ?
-            `).run(name, email, phone, avatarPath, hashedPassword, session.user_id);
+                SET name = $1, email = $2, phone = $3, avatar_path = $4, password_hash = $5, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $6
+            `, [name, email, phone, avatarPath, hashedPassword, session.user_id]);
 
         } else {
             // Updating info only
-            await db.prepare(`
+            await db.query(`
                 UPDATE users 
-                SET name = ?, email = ?, phone = ?, avatar_path = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE id = ?
-            `).run(name, email, phone, avatarPath, session.user_id);
+                SET name = $1, email = $2, phone = $3, avatar_path = $4, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $5
+            `, [name, email, phone, avatarPath, session.user_id]);
         }
 
         revalidatePath('/admin', 'layout');

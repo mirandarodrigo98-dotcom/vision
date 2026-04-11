@@ -30,10 +30,10 @@ async function main() {
         MIN(date) as min_date,
         MAX(date) as max_date
       FROM eklesia_transactions t
-      WHERE t.company_id = ?
+      WHERE t.company_id = $1
     `;
     const params: any[] = ['1']; // dummy company_id
-    const result = await db.prepare(query).get(...params);
+    const result = (await db.query(query, [...params])).rows[0];
     console.log('Result:', result);
   } catch (e) {
     console.error(e);

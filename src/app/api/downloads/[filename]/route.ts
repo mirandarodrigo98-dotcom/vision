@@ -28,17 +28,17 @@ export async function GET(
 
   // 2. Is Client Owner?
   if (!isAllowed && session.role === 'client_user') {
-      const admission = await db.prepare(`
+      const admission = (await db.query(`
           SELECT ar.company_id 
           FROM admission_attachments aa
           JOIN admission_requests ar ON aa.admission_id = ar.id
-          WHERE aa.storage_path = ?
-      `).get(filename) as { company_id: string } | undefined;
+          WHERE aa.storage_path = $1
+      `, [filename])).rows[0] as { company_id: string } | undefined;
 
       if (admission) {
-          const userCompany = await db.prepare(`
-              SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-          `).get(session.user_id, admission.company_id);
+          const userCompany = (await db.query(`
+              SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+          `, [session.user_id, admission.company_id])).rows[0];
           
           if (userCompany) {
               isAllowed = true;

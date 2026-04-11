@@ -16,16 +16,16 @@ export default async function AdminViewDismissalPage({ params }: { params: Promi
         FROM dismissals d
         LEFT JOIN client_companies cc ON d.company_id = cc.id
         LEFT JOIN employees e ON d.employee_id = e.id
-        WHERE d.id = ?
+        WHERE d.id = $1
     `;
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        dismissalQuery += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        dismissalQuery += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
         queryParams.push(session.user_id);
     }
 
-    const dismissal = await db.prepare(dismissalQuery).get(...queryParams) as any;
+    const dismissal = (await db.query(dismissalQuery, [...queryParams])).rows[0] as any;
 
     if (!dismissal) {
         redirect('/admin/dismissals');
@@ -33,18 +33,18 @@ export default async function AdminViewDismissalPage({ params }: { params: Promi
 
     let companies = [];
     if (session.role === 'operator') {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
-            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)
+            WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
-        `).all(session.user_id) as Array<{ id: string; nome: string; cnpj: string }>;
+        `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     } else {
-        companies = await db.prepare(`
+        companies = (await db.query(`
             SELECT id, nome, cnpj 
             FROM client_companies 
             ORDER BY nome
-          `).all() as Array<{ id: string; nome: string; cnpj: string }>;
+          `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     }
 
     return (

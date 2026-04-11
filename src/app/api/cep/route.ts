@@ -29,8 +29,8 @@ export async function GET(req: Request) {
       return new Response(JSON.stringify({ error: 'CEP inválido' }), { status: 400 });
     }
 
-    const baseSetting = await db.prepare("SELECT value FROM settings WHERE key = 'CORREIOS_CEP_BASE_URL'").get() as { value?: string } | undefined;
-    const tokenSetting = await db.prepare("SELECT value FROM settings WHERE key = 'CORREIOS_CEP_TOKEN'").get() as { value?: string } | undefined;
+    const baseSetting = (await db.query("SELECT value FROM settings WHERE key = 'CORREIOS_CEP_BASE_URL'", [])).rows[0] as { value?: string } | undefined;
+    const tokenSetting = (await db.query("SELECT value FROM settings WHERE key = 'CORREIOS_CEP_TOKEN'", [])).rows[0] as { value?: string } | undefined;
 
     const baseUrl = baseSetting?.value?.trim();
     const token = tokenSetting?.value?.trim();

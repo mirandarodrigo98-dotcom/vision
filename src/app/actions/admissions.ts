@@ -109,41 +109,41 @@ export async function createAdmission(formData: FormData) {
 
         let userCompanyData;
         if (session.role === 'client_user') {
-            userCompanyData = await db.prepare(`
+            userCompanyData = (await db.query(`
                 SELECT cc.id, cc.nome, cc.cnpj 
                 FROM client_companies cc
                 JOIN user_companies uc ON uc.company_id = cc.id
-                WHERE uc.user_id = ? AND cc.id = ?
-            `).get(session.user_id, companyId) as { id: string, nome: string, cnpj: string };
+                WHERE uc.user_id = $1 AND cc.id = $2
+            `, [session.user_id, companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, companyId);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, companyId])).rows[0];
             
             if (!isRestricted) {
-                userCompanyData = await db.prepare(`
-                    SELECT id, nome, cnpj FROM client_companies WHERE id = ?
-                `).get(companyId) as { id: string, nome: string, cnpj: string };
+                userCompanyData = (await db.query(`
+                    SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+                `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
             }
         } else if (session.role === 'admin') {
-            userCompanyData = await db.prepare(`
-                SELECT id, nome, cnpj FROM client_companies WHERE id = ?
-            `).get(companyId) as { id: string, nome: string, cnpj: string };
+            userCompanyData = (await db.query(`
+                SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+            `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         }
 
         if (!userCompanyData) return { error: 'Você não tem permissão para esta empresa' };
 
         // Get User Info
-        const userData = await db.prepare('SELECT name, email FROM users WHERE id = ?').get(session.user_id) as { name: string, email: string };
+        const userData = (await db.query(`SELECT name, email FROM users WHERE id = $1`, [session.user_id])).rows[0] as { name: string, email: string };
         
         // Get Settings
-        const destEmail = (await db.prepare("SELECT value FROM settings WHERE key = 'NZD_DEST_EMAIL'").get() as { value: string })?.value;
-        const emailSubject = (await db.prepare("SELECT value FROM settings WHERE key = 'EMAIL_SUBJECT'").get() as { value: string })?.value;
-        const emailBody = (await db.prepare("SELECT value FROM settings WHERE key = 'EMAIL_BODY'").get() as { value: string })?.value;
+        const destEmail = ((await db.query("SELECT value FROM settings WHERE key = 'NZD_DEST_EMAIL'", [])).rows[0] as { value: string })?.value;
+        const emailSubject = ((await db.query("SELECT value FROM settings WHERE key = 'EMAIL_SUBJECT'", [])).rows[0] as { value: string })?.value;
+        const emailBody = ((await db.query("SELECT value FROM settings WHERE key = 'EMAIL_BODY'", [])).rows[0] as { value: string })?.value;
 
         // Save Admission to DB
         const admissionId = randomUUID();
-        await db.prepare(`
+        await db.query(`
             INSERT INTO admission_requests (
                 id, company_id, created_by_user_id, employee_full_name, education_level, 
                 admission_date, job_role, salary_cents, work_schedule, has_vt, 
@@ -153,18 +153,10 @@ export async function createAdmission(formData: FormData) {
                 zip_code, address_street, address_number, address_complement, address_neighborhood,
                 address_city, address_state, cbo, contract_type,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', ?, 
-                      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, 'SUBMITTED', $20, 
+                      $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37,
                       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).run(
-            admissionId, userCompanyData.id, session.user_id, employeeFullName, educationLevel,
-            admissionDate, jobRole, salaryCents, workSchedule, hasVt,
-            vtTarifaCents, vtLinha, vtQtdPorDia, hasAdv, advDay,
-            advPeriodicity, trial1Days, trial2Days, generalObservations, protocolNumber,
-            cpf, birthDate, motherName, email, phone, maritalStatus, gender, raceColor,
-            zipCode, addressStreet, addressNumber, addressComplement, addressNeighborhood,
-            addressCity, addressState, cbo, contractType
-        );
+        `, [admissionId, userCompanyData.id, session.user_id, employeeFullName, educationLevel, admissionDate, jobRole, salaryCents, workSchedule, hasVt, vtTarifaCents, vtLinha, vtQtdPorDia, hasAdv, advDay, advPeriodicity, trial1Days, trial2Days, generalObservations, protocolNumber, cpf, birthDate, motherName, email, phone, maritalStatus, gender, raceColor, zipCode, addressStreet, addressNumber, addressComplement, addressNeighborhood, addressCity, addressState, cbo, contractType]);
 
         // Prepare File Handling
         const uploadDir = path.join(process.cwd(), 'public', 'uploads');
@@ -175,13 +167,11 @@ export async function createAdmission(formData: FormData) {
         if (uploadedFiles.length > 0) {
             for (const fileData of uploadedFiles) {
                 // Save Attachment Metadata
-                await db.prepare(`
+                await db.query(`
                     INSERT INTO admission_attachments (
                         id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                `).run(
-                    randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey
-                );
+                    ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+                `, [randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey]);
 
                 // Get download link for the first file to include in email, or handle all?
                 // The email can just link to the admission details page.
@@ -204,13 +194,11 @@ export async function createAdmission(formData: FormData) {
                 
                 try {
                     await uploadToR2(fileBuffer, fileName, fileType);
-                    await db.prepare(`
+                    await db.query(`
                         INSERT INTO admission_attachments (
                             id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    `).run(
-                        randomUUID(), admissionId, file.name, fileType, fileSize, fileName
-                    );
+                        ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+                    `, [randomUUID(), admissionId, file.name, fileType, fileSize, fileName]);
                     finalDownloadLink = await getR2DownloadLink(fileName);
                 } catch (e) {
                     console.error('R2 Upload Failed:', e);
@@ -247,7 +235,7 @@ export async function createAdmission(formData: FormData) {
         const pdfBuffer = await pdfPromise;
 
         // Send Email
-        const user = await db.prepare(`SELECT name, email FROM users WHERE id = ?`).get(session.user_id) as any;
+        const user = (await db.query(`SELECT name, email FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
         
         let emailSuccess = false;
         if (pdfBuffer) {
@@ -315,7 +303,7 @@ export async function cancelAdmission(admissionId: string) {
     }
 
     try {
-        const admission = await db.prepare('SELECT * FROM admission_requests WHERE id = ?').get(admissionId) as any;
+        const admission = (await db.query(`SELECT * FROM admission_requests WHERE id = $1`, [admissionId])).rows[0] as any;
         
         if (!admission) {
             return { error: 'Admissão não encontrada.' };
@@ -323,17 +311,17 @@ export async function cancelAdmission(admissionId: string) {
 
         if (session.role === 'client_user') {
             // Check company access
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, admission.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, admission.company_id])).rows[0];
             
             if (!hasAccess && admission.created_by_user_id !== session.user_id) {
                 return { error: 'Você não tem permissão para cancelar esta admissão.' };
             }
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, admission.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, admission.company_id])).rows[0];
             
             if (isRestricted) {
                 return { error: 'Você não tem permissão para cancelar esta admissão.' };
@@ -356,11 +344,11 @@ export async function cancelAdmission(admissionId: string) {
         //    return { error: 'O prazo para cancelamento expirou (até 1 dia antes da admissão).' };
         // }
 
-        await db.prepare("UPDATE admission_requests SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(admissionId);
+        await db.query(`UPDATE admission_requests SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [admissionId]);
 
         // Send Email (Cancellation)
-        const userCompany = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(admission.company_id) as any;
-        const user = await db.prepare('SELECT name FROM users WHERE id = ?').get(session.user_id) as any;
+        const userCompany = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [admission.company_id])).rows[0] as any;
+        const user = (await db.query(`SELECT name FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
         const userName = user?.name || session.name || 'Usuário';
 
         let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
@@ -368,7 +356,7 @@ export async function cancelAdmission(admissionId: string) {
 
         if (session.role === 'admin' || session.role === 'operator') {
             notifType = 'CANCEL_BY_ADMIN';
-            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(admission.created_by_user_id) as { email: string };
+            const creator = (await db.query(`SELECT email FROM users WHERE id = $1`, [admission.created_by_user_id])).rows[0] as { email: string };
             recipientEmail = creator?.email;
         }
 
@@ -411,22 +399,22 @@ export async function updateAdmission(formData: FormData) {
         const admissionId = formData.get('admission_id') as string;
         if (!admissionId) return { error: 'ID da admissão obrigatório.' };
 
-        const existingAdmission = await db.prepare('SELECT * FROM admission_requests WHERE id = ?').get(admissionId) as any;
+        const existingAdmission = (await db.query(`SELECT * FROM admission_requests WHERE id = $1`, [admissionId])).rows[0] as any;
         if (!existingAdmission) return { error: 'Admissão não encontrada.' };
 
         if (session.role === 'client_user') {
             // Check company access
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, existingAdmission.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, existingAdmission.company_id])).rows[0];
 
             if (!hasAccess && existingAdmission.created_by_user_id !== session.user_id) {
                  return { error: 'Você não tem permissão para editar esta admissão.' };
             }
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, existingAdmission.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, existingAdmission.company_id])).rows[0];
             
             if (isRestricted) {
                 return { error: 'Você não tem permissão para editar esta admissão.' };
@@ -534,13 +522,11 @@ export async function updateAdmission(formData: FormData) {
         if (uploadedFiles.length > 0) {
             for (const fileData of uploadedFiles) {
                 try {
-                    await db.prepare(`
+                    await db.query(`
                         INSERT INTO admission_attachments (
                             id, admission_id, original_name, mime_type, size_bytes, storage_path, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    `).run(
-                        randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey
-                    );
+                        ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+                    `, [randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey]);
                     changes.push('file_attachment');
                 } catch (e) {
                     console.error('Failed to insert attachment metadata:', e);
@@ -606,26 +592,18 @@ export async function updateAdmission(formData: FormData) {
         
         if (normalize(existingAdmission.contract_type) !== normalize(contractType)) changes.push('contract_type');
 
-        await db.prepare(`
+        await db.query(`
             UPDATE admission_requests SET
-                education_level = ?, admission_date = ?, job_role = ?, salary_cents = ?, work_schedule = ?,
-                has_vt = ?, vt_tarifa_cents = ?, vt_linha = ?, vt_qtd_por_dia = ?,
-                has_adv = ?, adv_day = ?, adv_periodicity = ?,
-                trial1_days = ?, trial2_days = ?, general_observations = ?,
-                cpf = ?, birth_date = ?, email = ?, phone = ?, marital_status = ?, gender = ?, race_color = ?,
-                contract_type = ?,
+                education_level = $1, admission_date = $2, job_role = $3, salary_cents = $4, work_schedule = $5,
+                has_vt = $6, vt_tarifa_cents = $7, vt_linha = $8, vt_qtd_por_dia = $9,
+                has_adv = $10, adv_day = $11, adv_periodicity = $12,
+                trial1_days = $13, trial2_days = $14, general_observations = $15,
+                cpf = $16, birth_date = $17, email = $18, phone = $19, marital_status = $20, gender = $21, race_color = $22,
+                contract_type = $23,
                 status = 'RECTIFIED',
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `).run(
-            educationLevel, admissionDate, jobRole, salaryCents, workSchedule,
-            hasVt, vtTarifaCents, vtLinha, vtQtdPorDia,
-            hasAdv, advDay, advPeriodicity,
-            trial1Days, trial2Days, generalObservations,
-            cpf, birthDate, email, phone, maritalStatus, gender, raceColor,
-            contractType,
-            admissionId
-        );
+            WHERE id = $24
+        `, [educationLevel, admissionDate, jobRole, salaryCents, workSchedule, hasVt, vtTarifaCents, vtLinha, vtQtdPorDia, hasAdv, advDay, advPeriodicity, trial1Days, trial2Days, generalObservations, cpf, birthDate, email, phone, maritalStatus, gender, raceColor, contractType, admissionId]);
 
         logAudit({
             action: 'UPDATE_ADMISSION',
@@ -639,8 +617,8 @@ export async function updateAdmission(formData: FormData) {
         });
 
         // Send Email (Rectification)
-        const userCompany = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(existingAdmission.company_id) as any;
-        const user = await db.prepare('SELECT name FROM users WHERE id = ?').get(session.user_id) as any;
+        const userCompany = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [existingAdmission.company_id])).rows[0] as any;
+        const user = (await db.query(`SELECT name FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
         
         // Generate Updated PDF
         const pdfData = {
@@ -701,7 +679,7 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
     }
 
     try {
-        const admission = await db.prepare('SELECT * FROM admission_requests WHERE id = ?').get(admissionId) as any;
+        const admission = (await db.query(`SELECT * FROM admission_requests WHERE id = $1`, [admissionId])).rows[0] as any;
         
         if (!admission) {
             return { error: 'Admissão não encontrada.' };
@@ -712,11 +690,11 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
         }
 
         // Check for duplicates (Employee Code and eSocial Registration) within the same company
-        const duplicateCheck = await db.prepare(`
+        const duplicateCheck = (await db.query(`
             SELECT code, esocial_registration 
             FROM employees 
-            WHERE company_id = ? AND (code = ? OR esocial_registration = ?)
-        `).get(admission.company_id, data.employeeCode, data.esocialRegistration) as { code: string; esocial_registration: string } | undefined;
+            WHERE company_id = $1 AND (code = $2 OR esocial_registration = $3)
+        `, [admission.company_id, data.employeeCode, data.esocialRegistration])).rows[0] as { code: string; esocial_registration: string } | undefined;
 
         if (duplicateCheck) {
             if (duplicateCheck.code === data.employeeCode) {
@@ -728,7 +706,7 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
         }
 
         // Get creator info for email
-        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(admission.created_by_user_id) as { email: string, name: string };
+        const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [admission.created_by_user_id])).rows[0] as { email: string, name: string };
         
         // Transaction to create employee and update admission
         const txn = db.transaction(async () => {
@@ -736,31 +714,22 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
             // Note: Mapping limited fields available in admission_requests to employees table
             const employeeId = randomUUID();
             // Check if status column exists or if we should use default
-            await db.prepare(`
+            await db.query(`
                 INSERT INTO employees (
                     id, company_id, name, admission_date, birth_date, cpf, 
                     code, esocial_registration,
                     is_active, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'Admitido', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            `).run(
-                employeeId, 
-                admission.company_id, 
-                admission.employee_full_name, 
-                admission.admission_date, 
-                admission.birth_date, 
-                admission.cpf,
-                data.employeeCode,
-                data.esocialRegistration
-            );
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1, 'Admitido', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `, [employeeId, admission.company_id, admission.employee_full_name, admission.admission_date, admission.birth_date, admission.cpf, data.employeeCode, data.esocialRegistration]);
 
             // 2. Update Admission Status
-            await db.prepare("UPDATE admission_requests SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(admissionId);
+            await db.query(`UPDATE admission_requests SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [admissionId]);
         });
         
         await txn();
 
         // 3. Send Email to Client
-        const userCompany = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(admission.company_id) as any;
+        const userCompany = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [admission.company_id])).rows[0] as any;
         
         await sendAdmissionNotification('COMPLETED', {
             companyName: userCompany.nome,

@@ -20,7 +20,7 @@ export async function getDepartments() {
             return { error: 'Unauthorized' };
         }
 
-        const result = await db.prepare('SELECT * FROM departments ORDER BY name ASC').all();
+        const result = (await db.query('SELECT * FROM departments ORDER BY name ASC', [])).rows;
         return { data: result as Department[] };
     } catch (error) {
         console.error('Error fetching departments:', error);
@@ -35,7 +35,7 @@ export async function getDepartment(id: string) {
             return { error: 'Unauthorized' };
         }
 
-        const result = await db.prepare('SELECT * FROM departments WHERE id = ?').get(id);
+        const result = (await db.query(`SELECT * FROM departments WHERE id = $1`, [id])).rows[0];
         return { data: result as Department };
     } catch (error) {
         console.error('Error fetching department:', error);
@@ -52,7 +52,7 @@ export async function createDepartment(data: { name: string; description?: strin
 
         const { name, description } = data;
 
-        await db.prepare('INSERT INTO departments (name, description) VALUES (?, ?)').run(name, description || null);
+        await db.query(`INSERT INTO departments (name, description) VALUES ($1, $2)`, [name, description || null]);
 
         revalidatePath('/admin/registrations/departments');
         return { success: true };
@@ -71,7 +71,7 @@ export async function updateDepartment(id: string, data: { name: string; descrip
 
         const { name, description } = data;
 
-        await db.prepare('UPDATE departments SET name = ?, description = ?, updated_at = NOW() WHERE id = ?').run(name, description || null, id);
+        await db.query(`UPDATE departments SET name = $1, description = $2, updated_at = NOW() WHERE id = $3`, [name, description || null, id]);
 
         revalidatePath('/admin/registrations/departments');
         return { success: true };
@@ -89,12 +89,12 @@ export async function deleteDepartment(id: string) {
         }
 
         // Check if department has users
-        const usersCount = await db.prepare('SELECT COUNT(*) as count FROM users WHERE department_id = ?').get(id) as { count: number };
+        const usersCount = (await db.query(`SELECT COUNT(*) as count FROM users WHERE department_id = $1`, [id])).rows[0] as { count: number };
         if (usersCount.count > 0) {
             return { error: 'Não é possível excluir um departamento que possui usuários vinculados.' };
         }
 
-        await db.prepare('DELETE FROM departments WHERE id = ?').run(id);
+        await db.query(`DELETE FROM departments WHERE id = $1`, [id]);
 
         revalidatePath('/admin/registrations/departments');
         return { success: true };
@@ -111,7 +111,7 @@ export async function getDepartmentPermissions(departmentId: string) {
             return { error: 'Unauthorized' };
         }
 
-        const result = await db.prepare('SELECT permission_code FROM department_permissions WHERE department_id = ?').all(departmentId) as { permission_code: string }[];
+        const result = (await db.query(`SELECT permission_code FROM department_permissions WHERE department_id = $1`, [departmentId])).rows as { permission_code: string }[];
         return { data: result.map(r => r.permission_code) };
     } catch (error) {
         console.error('Error fetching department permissions:', error);
@@ -128,12 +128,12 @@ export async function updateDepartmentPermissions(departmentId: string, permissi
 
         const updateTransaction = await db.transaction(async () => {
             // Remove all existing permissions for the department
-            await db.prepare('DELETE FROM department_permissions WHERE department_id = ?').run(departmentId);
+            await db.query(`DELETE FROM department_permissions WHERE department_id = $1`, [departmentId]);
             
             // Insert new permissions
-            const insert = db.prepare('INSERT INTO department_permissions (department_id, permission_code) VALUES (?, ?)');
+            
             for (const perm of permissions) {
-                await insert.run(departmentId, perm);
+                await db.query(`INSERT INTO department_permissions (department_id, permission_code) VALUES ($1, $2)`, [departmentId, perm]);
             }
         });
 

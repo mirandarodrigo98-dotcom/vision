@@ -11,11 +11,11 @@ export default async function ProfilePage() {
         redirect('/login');
     }
 
-    const user = await db.prepare(`
+    const user = (await db.query(`
         SELECT id, name, email, phone, avatar_path
         FROM users 
-        WHERE id = ?
-    `).get(session.user_id) as { id: string, name: string, email: string, phone: string | null, avatar_path: string | null };
+        WHERE id = $1
+    `, [session.user_id])).rows[0] as { id: string, name: string, email: string, phone: string | null, avatar_path: string | null };
 
     if (!user) {
         // Fallback if user session exists but DB record not found

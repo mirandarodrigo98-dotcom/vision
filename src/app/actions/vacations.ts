@@ -51,10 +51,10 @@ export async function getVacations(
         // Filter by company permission (if not admin)
         // Admin sees all, Operator sees all (usually), Client sees only their companies
         if (session.role === 'client_user') {
-            query += ` AND v.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+            query += ` AND v.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
             params.push(session.user_id);
         } else if (session.role === 'operator') {
-            query += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+            query += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
             params.push(session.user_id);
         }
 
@@ -74,12 +74,12 @@ export async function getVacations(
         }
 
         const countQuery = `SELECT COUNT(*) as total FROM (${query})`;
-        const totalResult = await db.prepare(countQuery).get(...params) as { total: number };
+        const totalResult = (await db.query(countQuery, [...params])).rows[0] as { total: number };
         
-        query += ` ORDER BY v.created_at DESC LIMIT ? OFFSET ?`;
+        query += ` ORDER BY v.created_at DESC LIMIT $1 OFFSET $2`;
         params.push(limit, offset);
 
-        const vacations = await db.prepare(query).all(...params);
+        const vacations = (await db.query(query, [...params])).rows;
 
         return {
             vacations,
@@ -108,23 +108,23 @@ export async function getVacation(id: string) {
             FROM vacations v
             JOIN client_companies cc ON v.company_id = cc.id
             JOIN employees e ON v.employee_id = e.id
-            WHERE v.id = ?
+            WHERE v.id = $1
         `;
 
-        const vacation = await db.prepare(query).get(id) as any;
+        const vacation = (await db.query(query, [id])).rows[0] as any;
 
         if (!vacation) return null;
 
         // Check permission
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, vacation.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, vacation.company_id])).rows[0];
             if (!hasAccess) return null;
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, vacation.company_id);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, vacation.company_id])).rows[0];
             if (isRestricted) return null;
         }
 
@@ -173,14 +173,14 @@ export async function createVacation(formData: FormData) {
 
         // Validate company access for client_user and operator
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, companyId);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, companyId])).rows[0];
             if (!hasAccess) return { error: 'Sem permissão para esta empresa.' };
         } else if (session.role === 'operator') {
-            const isRestricted = await db.prepare(`
-                SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, companyId);
+            const isRestricted = (await db.query(`
+                SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, companyId])).rows[0];
             if (isRestricted) return { error: 'Sem permissão para esta empresa.' };
         }
 
@@ -192,16 +192,13 @@ export async function createVacation(formData: FormData) {
         const protocolNumber = generateProtocolNumber();
         const vacationId = randomUUID();
 
-        await db.prepare(`
+        await db.query(`
             INSERT INTO vacations (
                 id, company_id, employee_id, start_date, days_quantity, allowance_days,
                 return_date, observations, status, protocol_number,
                 created_by_user_id, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', ?, ?, datetime('now', '-03:00'), datetime('now', '-03:00'))
-        `).run(
-            vacationId, companyId, employeeId, startDate, daysQuantity, allowanceDays,
-            returnDateStr, observations, protocolNumber, session.user_id
-        );
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'SUBMITTED', $9, $10, (NOW() - INTERVAL '3 hours'), (NOW() - INTERVAL '3 hours'))
+        `, [vacationId, companyId, employeeId, startDate, daysQuantity, allowanceDays, returnDateStr, observations, protocolNumber, session.user_id]);
 
         logAudit({
             actor_user_id: session.user_id,
@@ -214,8 +211,8 @@ export async function createVacation(formData: FormData) {
         });
 
         // Generate PDF and Send Email
-        const companyName = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(companyId) as any;
-        const employeeName = await db.prepare('SELECT name FROM employees WHERE id = ?').get(employeeId) as any;
+        const companyName = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0] as any;
+        const employeeName = (await db.query(`SELECT name FROM employees WHERE id = $1`, [employeeId])).rows[0] as any;
         
         const pdfData = {
             company_name: companyName.nome,
@@ -266,14 +263,14 @@ export async function updateVacation(id: string, formData: FormData) {
     if (!hasPermission) return { error: 'Sem permissão.' };
 
     try {
-        const existingVacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
+        const existingVacation = (await db.query(`SELECT * FROM vacations WHERE id = $1`, [id])).rows[0] as any;
         if (!existingVacation) return { error: 'Férias não encontradas.' };
 
         // Validate company access for client_user
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, existingVacation.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, existingVacation.company_id])).rows[0];
             
             if (!hasAccess && existingVacation.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão para editar estas férias.' };
@@ -323,12 +320,12 @@ export async function updateVacation(id: string, formData: FormData) {
         if (existingVacation.allowance_days !== allowanceDays) changes.push('allowance_days');
         if (normalize(existingVacation.observations) !== normalize(observations)) changes.push('observations');
 
-        await db.prepare(`
+        await db.query(`
             UPDATE vacations 
-            SET start_date = ?, days_quantity = ?, allowance_days = ?, return_date = ?, 
-                observations = ?, status = 'RECTIFIED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(startDate, daysQuantity, allowanceDays, returnDateStr, observations, id);
+            SET start_date = $1, days_quantity = $2, allowance_days = $3, return_date = $4, 
+                observations = $5, status = 'RECTIFIED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $6
+        `, [startDate, daysQuantity, allowanceDays, returnDateStr, observations, id]);
 
         logAudit({
             actor_user_id: session.user_id,
@@ -341,8 +338,8 @@ export async function updateVacation(id: string, formData: FormData) {
         });
 
         // Generate PDF and Send Email
-        const companyName = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(existingVacation.company_id) as any;
-        const employeeName = await db.prepare('SELECT name FROM employees WHERE id = ?').get(existingVacation.employee_id) as any;
+        const companyName = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [existingVacation.company_id])).rows[0] as any;
+        const employeeName = (await db.query(`SELECT name FROM employees WHERE id = $1`, [existingVacation.employee_id])).rows[0] as any;
         
         const pdfData = {
             company_name: companyName.nome,
@@ -391,14 +388,14 @@ export async function cancelVacation(id: string) {
     if (!hasPermission) return { error: 'Sem permissão para cancelar.' };
 
     try {
-        const vacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
+        const vacation = (await db.query(`SELECT * FROM vacations WHERE id = $1`, [id])).rows[0] as any;
         if (!vacation) return { error: 'Férias não encontradas.' };
 
         // Validate company access for client_user
         if (session.role === 'client_user') {
-            const hasAccess = await db.prepare(`
-                SELECT 1 FROM user_companies WHERE user_id = ? AND company_id = ?
-            `).get(session.user_id, vacation.company_id);
+            const hasAccess = (await db.query(`
+                SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+            `, [session.user_id, vacation.company_id])).rows[0];
             
             if (!hasAccess && vacation.created_by_user_id !== session.user_id) {
                 return { error: 'Sem permissão para cancelar estas férias.' };
@@ -421,11 +418,11 @@ export async function cancelVacation(id: string) {
         }
         */
 
-        await db.prepare(`
+        await db.query(`
             UPDATE vacations 
-            SET status = 'CANCELLED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(id);
+            SET status = 'CANCELLED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $1
+        `, [id]);
 
         logAudit({
             actor_user_id: session.user_id,
@@ -438,15 +435,15 @@ export async function cancelVacation(id: string) {
         });
 
         // Send Email
-        const companyName = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(vacation.company_id) as any;
-        const employeeName = await db.prepare('SELECT name FROM employees WHERE id = ?').get(vacation.employee_id) as any;
+        const companyName = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [vacation.company_id])).rows[0] as any;
+        const employeeName = (await db.query(`SELECT name FROM employees WHERE id = $1`, [vacation.employee_id])).rows[0] as any;
 
         let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
         let recipientEmail: string | undefined = undefined;
 
         if (session.role === 'admin' || session.role === 'operator') {
             notifType = 'CANCEL_BY_ADMIN';
-            const creator = await db.prepare('SELECT email FROM users WHERE id = ?').get(vacation.created_by_user_id) as { email: string };
+            const creator = (await db.query(`SELECT email FROM users WHERE id = $1`, [vacation.created_by_user_id])).rows[0] as { email: string };
             recipientEmail = creator?.email;
         }
 
@@ -485,7 +482,7 @@ export async function approveVacation(id: string) {
     if (!hasPermission) return { error: 'Sem permissão para aprovar.' };
 
     try {
-        const vacation = await db.prepare('SELECT * FROM vacations WHERE id = ?').get(id) as any;
+        const vacation = (await db.query(`SELECT * FROM vacations WHERE id = $1`, [id])).rows[0] as any;
         if (!vacation) return { error: 'Férias não encontradas.' };
 
         if (vacation.status !== 'SUBMITTED' && vacation.status !== 'RECTIFIED') {
@@ -493,15 +490,15 @@ export async function approveVacation(id: string) {
         }
 
         // Get creator info
-        const creator = await db.prepare('SELECT email, name FROM users WHERE id = ?').get(vacation.created_by_user_id) as { email: string, name: string };
-        const company = await db.prepare('SELECT nome, cnpj FROM client_companies WHERE id = ?').get(vacation.company_id) as { nome: string, cnpj: string };
-        const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(vacation.employee_id) as { name: string };
+        const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [vacation.created_by_user_id])).rows[0] as { email: string, name: string };
+        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [vacation.company_id])).rows[0] as { nome: string, cnpj: string };
+        const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [vacation.employee_id])).rows[0] as { name: string };
 
-        await db.prepare(`
+        await db.query(`
             UPDATE vacations 
-            SET status = 'COMPLETED', updated_at = datetime('now', '-03:00')
-            WHERE id = ?
-        `).run(id);
+            SET status = 'COMPLETED', updated_at = (NOW() - INTERVAL '3 hours')
+            WHERE id = $1
+        `, [id]);
 
         logAudit({
             actor_user_id: session.user_id,

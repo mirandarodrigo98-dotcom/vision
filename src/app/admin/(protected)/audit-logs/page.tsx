@@ -33,7 +33,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
 
   query += ` ORDER BY ${safeSort} ${safeOrder} LIMIT 200`;
 
-  const logs = await db.prepare(query).all(...params) as any[];
+  const logs = (await db.query(query, [...params])).rows as any[];
 
   return (
     <div className="space-y-6">

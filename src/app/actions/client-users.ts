@@ -8,12 +8,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 async function checkOperatorAccessToUser(operatorId: string, targetUserId: string) {
     // Check if target user has any company that is restricted for the operator
-    const conflict = await db.prepare(`
+    const conflict = (await db.query(`
         SELECT 1 
         FROM user_companies uc
         JOIN user_restricted_companies urc ON urc.company_id = uc.company_id
-        WHERE uc.user_id = ? AND urc.user_id = ?
-    `).get(targetUserId, operatorId);
+        WHERE uc.user_id = $1 AND urc.user_id = $2
+    `, [targetUserId, operatorId])).rows[0];
     
     return !conflict;
 }
@@ -23,30 +23,30 @@ export async function getUserCompanies() {
   if (!session) return [];
 
   if (session.role === 'client_user') {
-      const companies = await db.prepare(`
+      const companies = (await db.query(`
         SELECT c.id, c.razao_social, c.cnpj
         FROM client_companies c
         JOIN user_companies uc ON c.id = uc.company_id
-        WHERE uc.user_id = ? AND c.is_active = 1
+        WHERE uc.user_id = $1 AND c.is_active = 1
         ORDER BY c.razao_social
-      `).all(session.user_id) as any[];
+      `, [session.user_id])).rows as any[];
       return companies;
   } else if (session.role === 'operator') {
-      const companies = await db.prepare(`
+      const companies = (await db.query(`
         SELECT c.id, c.razao_social, c.cnpj
         FROM client_companies c
         WHERE c.is_active = 1 
-        AND (c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))
+        AND (c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))
         ORDER BY c.razao_social
-      `).all(session.user_id) as any[];
+      `, [session.user_id])).rows as any[];
       return companies;
   } else if (session.role === 'admin') {
-      const companies = await db.prepare(`
+      const companies = (await db.query(`
         SELECT c.id, c.razao_social, c.cnpj
         FROM client_companies c
         WHERE c.is_active = 1
         ORDER BY c.razao_social
-      `).all() as any[];
+      `, [])).rows as any[];
       return companies;
   }
   return [];
@@ -60,17 +60,17 @@ export async function switchCompany(companyId: string) {
   let hasAccess = false;
 
   if (session.role === 'client_user') {
-    const link = await db.prepare(`
+    const link = (await db.query(`
       SELECT 1 FROM user_companies 
-      WHERE user_id = ? AND company_id = ?
-    `).get(session.user_id, companyId);
+      WHERE user_id = $1 AND company_id = $2
+    `, [session.user_id, companyId])).rows[0];
     hasAccess = !!link;
   } else if (session.role === 'operator') {
     // Operators have access to all EXCEPT restricted ones
-    const restricted = await db.prepare(`
+    const restricted = (await db.query(`
       SELECT 1 FROM user_restricted_companies 
-      WHERE user_id = ? AND company_id = ?
-    `).get(session.user_id, companyId);
+      WHERE user_id = $1 AND company_id = $2
+    `, [session.user_id, companyId])).rows[0];
     hasAccess = !restricted;
   } else if (session.role === 'admin') {
     hasAccess = true;
@@ -81,9 +81,9 @@ export async function switchCompany(companyId: string) {
   }
 
   // Update active company
-  await db.prepare(`
-    UPDATE users SET active_company_id = ? WHERE id = ?
-  `).run(companyId, session.user_id);
+  await db.query(`
+    UPDATE users SET active_company_id = $1 WHERE id = $2
+  `, [companyId, session.user_id]);
 
   revalidatePath('/app');
   return { success: true };
@@ -100,7 +100,7 @@ export async function validateUserEmail(email: string, currentUserId?: string) {
         return { error: 'Email inválido.' };
     }
 
-    let query = 'SELECT id, name FROM users WHERE email = ?';
+    let query = `SELECT id, name FROM users WHERE email = $1`;
     const params = [email];
 
     if (currentUserId) {
@@ -108,7 +108,7 @@ export async function validateUserEmail(email: string, currentUserId?: string) {
         params.push(currentUserId);
     }
 
-    const existing = await db.prepare(query).get(...params) as { id: string, name: string } | undefined;
+    const existing = (await db.query(query, [...params])).rows[0] as { id: string, name: string } | undefined;
 
     if (existing) {
         return { error: 'Email já está em uso.', existingUser: existing };
@@ -135,7 +135,7 @@ export async function getClientUserPermissions(userId: string) {
     }
 
     try {
-        const permissions = await db.prepare('SELECT permission_code FROM user_permissions WHERE user_id = ?').all(userId) as { permission_code: string }[];
+        const permissions = (await db.query(`SELECT permission_code FROM user_permissions WHERE user_id = $1`, [userId])).rows as { permission_code: string }[];
         return permissions.map(p => p.permission_code);
     } catch (error) {
         console.error('Error fetching client user permissions:', error);
@@ -163,10 +163,10 @@ export async function saveClientUser(data: SaveClientUserPayload) {
 
   if (session.role === 'operator' && company_ids.length > 0) {
       const placeholders = company_ids.map(() => '?').join(',');
-      const restricted = await db.prepare(`
+      const restricted = (await db.query(`
           SELECT company_id FROM user_restricted_companies 
-          WHERE user_id = ? AND company_id IN (${placeholders})
-      `).all(session.user_id, ...company_ids) as { company_id: string }[];
+          WHERE user_id = $1 AND company_id IN (${placeholders})
+      `, [session.user_id, ...company_ids])).rows as { company_id: string }[];
       
       if (restricted.length > 0) {
           return { error: 'Você não tem permissão para conceder acesso a uma ou mais empresas selecionadas.' };
@@ -186,15 +186,15 @@ export async function saveClientUser(data: SaveClientUserPayload) {
 
         if (userId) {
             // Update
-            await db.prepare(`
+            await db.query(`
                 UPDATE users 
-                SET name = ?, email = ?, cell_phone = ?, notification_email = ?, notification_whatsapp = ?, updated_at = NOW()
-                WHERE id = ?
-            `).run(name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, userId);
+                SET name = $1, email = $2, cell_phone = $3, notification_email = $4, notification_whatsapp = $5, updated_at = NOW()
+                WHERE id = $6
+            `, [name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, userId]);
 
             // Clear existing relations
-            await db.prepare('DELETE FROM user_companies WHERE user_id = ?').run(userId);
-            await db.prepare('DELETE FROM user_permissions WHERE user_id = ?').run(userId);
+            await db.query(`DELETE FROM user_companies WHERE user_id = $1`, [userId]);
+            await db.query(`DELETE FROM user_permissions WHERE user_id = $1`, [userId]);
 
         } else {
             // Create
@@ -202,10 +202,10 @@ export async function saveClientUser(data: SaveClientUserPayload) {
             const tempPassword = Math.random().toString(36).slice(-8);
             const hashedPassword = await hashPassword(tempPassword);
 
-            await db.prepare(`
+            await db.query(`
                 INSERT INTO users (id, name, email, cell_phone, notification_email, notification_whatsapp, role, is_active, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'client_user', 1, ?, NOW())
-            `).run(userId, name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, hashedPassword);
+                VALUES ($1, $2, $3, $4, $5, $6, 'client_user', 1, $7, NOW())
+            `, [userId, name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, hashedPassword]);
 
             // Send welcome email
              await sendEmail({
@@ -231,24 +231,24 @@ export async function saveClientUser(data: SaveClientUserPayload) {
         }
 
         // Insert Companies
-        const insertCompany = db.prepare('INSERT INTO user_companies (user_id, company_id) VALUES (?, ?)');
+        
         for (const companyId of company_ids) {
-            await insertCompany.run(userId, companyId);
+            await db.query(`INSERT INTO user_companies (user_id, company_id) VALUES ($1, $2)`, [userId, companyId]);
         }
 
         // Set active company if needed (for new users or if active company was removed)
         if (company_ids.length > 0) {
             // Check if current active company is still valid
-            const currentActive = await db.prepare('SELECT active_company_id FROM users WHERE id = ?').get(userId) as { active_company_id: string };
+            const currentActive = (await db.query(`SELECT active_company_id FROM users WHERE id = $1`, [userId])).rows[0] as { active_company_id: string };
             if (!currentActive?.active_company_id || !company_ids.includes(currentActive.active_company_id)) {
-                 await db.prepare('UPDATE users SET active_company_id = ? WHERE id = ?').run(company_ids[0], userId);
+                 await db.query(`UPDATE users SET active_company_id = $1 WHERE id = $2`, [company_ids[0], userId]);
             }
         }
 
         // Insert Permissions
-        const insertPermission = db.prepare('INSERT INTO user_permissions (user_id, permission_code) VALUES (?, ?)');
+        
         for (const perm of permissions) {
-            await insertPermission.run(userId, perm);
+            await db.query(`INSERT INTO user_permissions (user_id, permission_code) VALUES ($1, $2)`, [userId, perm]);
         }
     });
 
@@ -276,7 +276,7 @@ export async function toggleUserStatus(userId: string, currentStatus: number) {
   }
 
   try {
-    await db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(currentStatus === 1 ? 0 : 1, userId);
+    await db.query(`UPDATE users SET is_active = $1 WHERE id = $2`, [currentStatus === 1 ? 0 : 1, userId]);
     revalidatePath('/admin/client-users');
     return { success: true };
   } catch (e) {
@@ -298,13 +298,13 @@ export async function sendPassword(userId: string) {
     }
 
     try {
-        const user = await db.prepare('SELECT name, email FROM users WHERE id = ?').get(userId) as { name: string, email: string };
+        const user = (await db.query(`SELECT name, email FROM users WHERE id = $1`, [userId])).rows[0] as { name: string, email: string };
         if (!user) return { error: 'Usuário não encontrado.' };
 
         const tempPassword = Math.random().toString(36).slice(-8);
         const hashedPassword = await hashPassword(tempPassword);
 
-        await db.prepare('UPDATE users SET password_hash = ?, password_temporary = 1 WHERE id = ?').run(hashedPassword, userId);
+        await db.query(`UPDATE users SET password_hash = $1, password_temporary = 1 WHERE id = $2`, [hashedPassword, userId]);
 
         await sendEmail({
             to: user.email,
@@ -347,7 +347,7 @@ export async function generateTempPassword(userId: string) {
         const tempPassword = Math.random().toString(36).slice(-8);
         const hashedPassword = await hashPassword(tempPassword);
 
-        await db.prepare('UPDATE users SET password_hash = ?, password_temporary = 1 WHERE id = ?').run(hashedPassword, userId);
+        await db.query(`UPDATE users SET password_hash = $1, password_temporary = 1 WHERE id = $2`, [hashedPassword, userId]);
 
         return { success: true, password: tempPassword };
     } catch (e) {

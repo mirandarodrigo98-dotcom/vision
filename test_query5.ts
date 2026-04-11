@@ -22,7 +22,7 @@ const db = require('./src/lib/db').default;
 
 async function main() {
   try {
-    const res = await db.prepare("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'user_companies';").all();
+    const res = (await db.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'user_companies';", [])).rows;
     console.log("user_companies columns:", res);
   } catch (e) {
     console.error("Error:", e);

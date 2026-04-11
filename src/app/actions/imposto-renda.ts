@@ -66,7 +66,7 @@ export async function getIRDeclarations(): Promise<IRDeclaration[]> {
     ORDER BY ir.created_at DESC
   `;
 
-  const rows = await db.prepare(sql).all();
+  const rows = (await db.query(sql, [])).rows;
   return JSON.parse(JSON.stringify(rows));
 }
 
@@ -113,23 +113,23 @@ export async function deleteIRDeclaration(id: string) {
 
     await db.transaction(async () => {
       // Deletar anexos de interações desta declaração
-      await db.prepare(`
+      await db.query(`
         DELETE FROM ir_attachments 
         WHERE interaction_id IN (
           SELECT id FROM ir_interactions WHERE declaration_id = $1
         )
-      `).run(id);
+      `, [id]);
 
       // Tentar deletar de outras tabelas relacionadas, se existirem
       try {
-        await db.prepare('DELETE FROM ir_receipts WHERE declaration_id = $1').run(id);
+        await db.query('DELETE FROM ir_receipts WHERE declaration_id = $1', [id]);
       } catch(e) { /* ignore if table doesn't exist */ }
 
       // Deletar interações
-      await db.prepare('DELETE FROM ir_interactions WHERE declaration_id = $1').run(id);
+      await db.query('DELETE FROM ir_interactions WHERE declaration_id = $1', [id]);
 
       // Finalmente, deletar a declaração
-      await db.prepare('DELETE FROM ir_declarations WHERE id = $1').run(id);
+      await db.query('DELETE FROM ir_declarations WHERE id = $1', [id]);
     })();
     
     // NOTA: A revalidação pode falhar se a página atual (/.../[id]) não existir mais
@@ -159,16 +159,16 @@ export async function updateIRContributor(
     if (!session) throw new Error('Unauthorized');
 
     await db.transaction(async () => {
-      await db.prepare(`
+      await db.query(`
         UPDATE ir_declarations 
         SET name = $1, cpf = $2, phone = $3, email = $4, type = $5, company_id = $6, updated_at = NOW()
         WHERE id = $7
-      `).run(data.name, data.cpf, data.phone || null, data.email || null, data.type, data.company_id || null, id);
+      `, [data.name, data.cpf, data.phone || null, data.email || null, data.type, data.company_id || null, id]);
 
-      await db.prepare(`
+      await db.query(`
         INSERT INTO ir_interactions (declaration_id, user_id, type, content)
         VALUES ($1, $2, 'comment', $3)
-      `).run(id, session.user_id, 'Dados do contribuinte atualizados');
+      `, [id, session.user_id, 'Dados do contribuinte atualizados']);
     })();
 
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -206,27 +206,12 @@ export async function createIRDeclaration(data: {
     RETURNING id
   `;
 
-  const result = await db.prepare(sql).get(
-    data.name,
-    data.year,
-    data.phone || null,
-    data.email || null,
-    data.type,
-    data.company_id || null,
-    data.send_whatsapp ? true : false,
-    data.send_email ? true : false,
-    session.user_id,
-    data.indicated_by_user_id || null,
-    data.indicated_by_partner_id || null,
-    data.service_value || null,
-    data.cpf || null,
-    data.priority || 'Média'
-  ) as { id: string };
+  const result = (await db.query(sql, [data.name, data.year, data.phone || null, data.email || null, data.type, data.company_id || null, data.send_whatsapp ? true : false, data.send_email ? true : false, session.user_id, data.indicated_by_user_id || null, data.indicated_by_partner_id || null, data.service_value || null, data.cpf || null, data.priority || 'Média'])).rows[0] as { id: string };
 
-  await db.prepare(`
+  await db.query(`
     INSERT INTO ir_interactions (declaration_id, user_id, type, content)
     VALUES ($1, $2, 'creation', 'Declaração Criada')
-  `).run(result.id, session.user_id);
+  `, [result.id, session.user_id]);
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   return result;
@@ -252,7 +237,7 @@ export async function getIRDeclarationById(id: string): Promise<IRDeclaration | 
     WHERE ir.id = $1
   `;
 
-  const row = await db.prepare(sql).get(id);
+  const row = (await db.query(sql, [id])).rows[0];
   if (!row) return undefined;
   
   const declaration = JSON.parse(JSON.stringify(row));
@@ -277,11 +262,11 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
   if (!session) throw new Error('Unauthorized');
   const prev = await getIRDeclarationById(id);
   await db.transaction(async () => {
-    await db.prepare(`
+    await db.query(`
       UPDATE ir_declarations 
       SET indicated_by_user_id = $1, indicated_by_partner_id = $2, service_value = $3, updated_at = NOW() 
       WHERE id = $4
-    `).run(data.indicated_by_user_id || null, data.indicated_by_partner_id || null, data.service_value || null, id);
+    `, [data.indicated_by_user_id || null, data.indicated_by_partner_id || null, data.service_value || null, id]);
     const fmtMoney = (n?: number | null) => {
       if (n === null || n === undefined) return '—';
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
@@ -289,10 +274,10 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
     const prevType = prev?.indicated_by_user_id ? 'Usuário Interno' : (prev?.indicated_by_partner_id ? 'Parceiro Externo' : 'Nenhuma');
     const newType = data.indicated_by_user_id ? 'Usuário Interno' : (data.indicated_by_partner_id ? 'Parceiro Externo' : 'Nenhuma');
     const content = `Indicação atualizada: Tipo ${prevType} → ${newType}; Valor ${fmtMoney(prev?.service_value)} → ${fmtMoney(data.service_value ?? null)}`;
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', $3)
-    `).run(id, session.user_id, content);
+    `, [id, session.user_id, content]);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -305,13 +290,13 @@ export async function updateIRPriority(id: string, priority: 'Baixa' | 'Média' 
   const decl = await getIRDeclarationById(id);
   const oldPriority = decl?.priority || null;
   await db.transaction(async () => {
-    await db.prepare(`
+    await db.query(`
       UPDATE ir_declarations SET priority = $1, updated_at = NOW() WHERE id = $2
-    `).run(priority, id);
-    await db.prepare(`
+    `, [priority, id]);
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'priority_change', $3)
-    `).run(id, session.user_id, `Prioridade alterada de ${oldPriority ?? '—'} para ${priority}`);
+    `, [id, session.user_id, `Prioridade alterada de ${oldPriority ?? '—'} para ${priority}`]);
   })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
@@ -328,7 +313,7 @@ export async function updateIRStatus(id: string, newStatus: IRStatus, justificat
 
   await db.transaction(async () => {
     if (newStatus === 'Processada' && processadaData) {
-      await db.prepare(`
+      await db.query(`
         UPDATE ir_declarations 
         SET status = $1, 
             updated_at = NOW(),
@@ -338,23 +323,15 @@ export async function updateIRStatus(id: string, newStatus: IRStatus, justificat
             installments_count = $5,
             installment_value = $6
         WHERE id = $7
-      `).run(
-        newStatus, 
-        processadaData.outcome_type, 
-        processadaData.outcome_value, 
-        processadaData.payment_method || null, 
-        processadaData.installments_count || null, 
-        processadaData.installment_value || null, 
-        id
-      );
+      `, [newStatus, processadaData.outcome_type, processadaData.outcome_value, processadaData.payment_method || null, processadaData.installments_count || null, processadaData.installment_value || null, id]);
     } else {
-      await db.prepare('UPDATE ir_declarations SET status = $1, updated_at = NOW() WHERE id = $2').run(newStatus, id);
+      await db.query('UPDATE ir_declarations SET status = $1, updated_at = NOW() WHERE id = $2', [newStatus, id]);
     }
 
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content, old_status, new_status)
       VALUES ($1, $2, 'status_change', $3, $4, $5)
-    `).run(id, session.user_id, justification || null, oldStatus, newStatus);
+    `, [id, session.user_id, justification || null, oldStatus, newStatus]);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -370,10 +347,10 @@ export async function addIRComment(id: string, formData: FormData) {
 
   const result = await db.transaction(async () => {
     const interactionId = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (id, declaration_id, user_id, type, content)
       VALUES ($1, $2, $3, 'comment', $4)
-    `).run(interactionId, id, session.user_id, content);
+    `, [interactionId, id, session.user_id, content]);
 
     for (const file of files) {
       if (file.size > 2 * 1024 * 1024) continue; // 2MB limit
@@ -385,10 +362,10 @@ export async function addIRComment(id: string, formData: FormData) {
       const uploadResult = await uploadToR2(buffer, fileName, file.type);
       
       if (uploadResult) {
-        await db.prepare(`
+        await db.query(`
           INSERT INTO ir_attachments (interaction_id, original_name, size_bytes, url)
           VALUES ($1, $2, $3, $4)
-        `).run(interactionId, file.name, file.size, uploadResult.fileKey);
+        `, [interactionId, file.name, file.size, uploadResult.fileKey]);
       }
     }
   })();
@@ -399,13 +376,13 @@ export async function addIRComment(id: string, formData: FormData) {
 
 export async function getIRFiles(declarationId: string): Promise<IRFile[]> {
   try {
-    const res = await db.prepare(`
+    const res = (await db.query(`
       SELECT f.*, u.name as uploaded_by_name
       FROM ir_files f
       LEFT JOIN users u ON f.uploaded_by = u.id
       WHERE f.declaration_id = $1
       ORDER BY f.created_at DESC
-    `).all(declarationId);
+    `, [declarationId])).rows;
     return res as IRFile[];
   } catch (error) {
     console.error('Error fetching IR files:', error);
@@ -417,12 +394,12 @@ export async function deleteIRFile(fileId: string, declarationId: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   
-  await db.prepare(`DELETE FROM ir_files WHERE id = $1`).run(fileId);
+  await db.query(`DELETE FROM ir_files WHERE id = $1`, [fileId]);
   
-  await db.prepare(`
+  await db.query(`
     INSERT INTO ir_interactions (declaration_id, user_id, type, content)
     VALUES ($1, $2, 'comment', 'Arquivo removido')
-  `).run(declarationId, session.user_id);
+  `, [declarationId, session.user_id]);
   
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
 }
@@ -462,10 +439,10 @@ export async function transmitIRDeclaration(
       const uploadResult = await uploadToR2(buffer, fileKey, file.type);
       
       if (uploadResult) {
-        await db.prepare(`
+        await db.query(`
           INSERT INTO ir_files (declaration_id, file_name, file_key, file_url, uploaded_by)
           VALUES ($1, $2, $3, $4, $5)
-        `).run(declarationId, file.name, uploadResult.fileKey, uploadResult.downloadLink, session.user_id);
+        `, [declarationId, file.name, uploadResult.fileKey, uploadResult.downloadLink, session.user_id]);
         
         uploadedFiles.push({
           fileName: file.name,
@@ -477,14 +454,14 @@ export async function transmitIRDeclaration(
     }
 
     // Change status
-    await db.prepare(`
+    await db.query(`
       UPDATE ir_declarations SET status = 'Transmitida', updated_at = NOW() WHERE id = $1
-    `).run(declarationId);
+    `, [declarationId]);
 
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, old_status, new_status, content)
       VALUES ($1, $2, 'status_change', $3, 'Transmitida', 'Motivo: Status alterado para Transmitida')
-    `).run(declarationId, session.user_id, declaration.status);
+    `, [declarationId, session.user_id, declaration.status]);
   })();
 
   // Send messages if requested
@@ -613,7 +590,7 @@ export async function getIRInteractions(id: string) {
     ORDER BY i.created_at ASC
   `;
 
-  const rows = await db.prepare(sql).all(id);
+  const rows = (await db.query(sql, [id])).rows;
   
   // Transform attachments to include download links
   const formattedRows = await Promise.all(rows.map(async (row: any) => {
@@ -675,7 +652,7 @@ export async function registerIRReceipt(id: string, formData: FormData) {
   }
 
   await db.transaction(async () => {
-    await db.prepare(`
+    await db.query(`
       UPDATE ir_declarations 
       SET 
         is_received = true, 
@@ -686,20 +663,13 @@ export async function registerIRReceipt(id: string, formData: FormData) {
         receipt_value = $5,
         updated_at = NOW() 
       WHERE id = $6
-    `).run(
-      receipt_date,
-      receipt_method,
-      receipt_account,
-      attachment_url,
-      receipt_value,
-      id
-    );
+    `, [receipt_date, receipt_method, receipt_account, attachment_url, receipt_value, id]);
 
     const formattedVal = receipt_value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(receipt_value) : '';
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', $3)
-    `).run(id, session.user_id, `Pagamento ${formattedVal ? `de ${formattedVal} ` : ''}recebido via ${receipt_method} na conta ${receipt_account}`);
+    `, [id, session.user_id, `Pagamento ${formattedVal ? `de ${formattedVal} ` : ''}recebido via ${receipt_method} na conta ${receipt_account}`]);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -711,12 +681,12 @@ export async function markIRAsReceived(id: string) {
   if (!session) throw new Error('Unauthorized');
 
   await db.transaction(async () => {
-    await db.prepare('UPDATE ir_declarations SET is_received = true, updated_at = NOW() WHERE id = $1').run(id);
+    await db.query('UPDATE ir_declarations SET is_received = true, updated_at = NOW() WHERE id = $1', [id]);
 
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', 'Pagamento recebido (Quitação)')
-    `).run(id, session.user_id);
+    `, [id, session.user_id]);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -727,7 +697,7 @@ export async function deleteIRReceipt(id: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   await db.transaction(async () => {
-    await db.prepare(`
+    await db.query(`
       UPDATE ir_declarations 
       SET 
         is_received = false, 
@@ -738,11 +708,11 @@ export async function deleteIRReceipt(id: string) {
         receipt_value = NULL,
         updated_at = NOW()
       WHERE id = $1
-    `).run(id);
-    await db.prepare(`
+    `, [id]);
+    await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', 'Recebimento excluído')
-    `).run(id, session.user_id);
+    `, [id, session.user_id]);
   })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
@@ -753,14 +723,14 @@ export async function getCompanyForReceipt(companyName: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   
-  const company = await db.prepare(`
+  const company = (await db.query(`
     SELECT id, razao_social, nome, cnpj, telefone, email_contato, 
            address_type, address_street, address_number, address_complement, 
            address_neighborhood, address_zip_code, municipio, uf
     FROM client_companies
     WHERE UPPER(razao_social) LIKE UPPER($1) || '%' OR UPPER(nome) LIKE UPPER($1) || '%'
     LIMIT 1
-  `).get(companyName);
+  `, [companyName])).rows[0];
   
   return company ? JSON.parse(JSON.stringify(company)) : null;
 }
@@ -793,15 +763,15 @@ export async function saveIRReceiptPDF(id: string, base64Pdf: string, companyNam
   
   await db.transaction(async () => {
     const interactionId = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_interactions (id, declaration_id, user_id, type, content)
       VALUES ($1, $2, $3, 'document', $4)
-    `).run(interactionId, id, session.user_id, `Recibo gerado (${companyName})`);
+    `, [interactionId, id, session.user_id, `Recibo gerado (${companyName})`]);
     
-    await db.prepare(`
+    await db.query(`
       INSERT INTO ir_attachments (interaction_id, original_name, size_bytes, url)
       VALUES ($1, $2, $3, $4)
-    `).run(interactionId, fileName, buffer.length, upload?.fileKey || publicUrl);
+    `, [interactionId, fileName, buffer.length, upload?.fileKey || publicUrl]);
   })();
   
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);

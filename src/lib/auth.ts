@@ -10,10 +10,10 @@ export async function createSession(userId: string, role: string) {
   const sessionId = uuidv4();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS).toISOString();
 
-  await db.prepare(`
+  await db.query(`
     INSERT INTO sessions (id, user_id, role, expires_at)
-    VALUES (?, ?, ?, ?)
-  `).run(sessionId, userId, role, expiresAt);
+    VALUES ($1, $2, $3, $4)
+  `, [sessionId, userId, role, expiresAt]);
 
   const cookieStore = await cookies();
   cookieStore.set('session_id', sessionId, {
@@ -33,7 +33,7 @@ export async function getSession(updateLastSeen = true) {
 
   if (!sessionId) return null;
 
-  const session = await db.prepare(`
+  const session = (await db.query(`
     SELECT 
       s.*, 
       u.email, 
@@ -46,8 +46,8 @@ export async function getSession(updateLastSeen = true) {
     FROM sessions s
     JOIN users u ON s.user_id = u.id
     LEFT JOIN client_companies c ON u.active_company_id = c.id
-    WHERE s.id = ? AND s.expires_at > datetime('now')
-  `).get(sessionId) as any;
+    WHERE s.id = $1 AND s.expires_at > NOW()
+  `, [sessionId])).rows[0] as any;
 
   if (!session) return null;
 
@@ -56,13 +56,13 @@ export async function getSession(updateLastSeen = true) {
   const now = Date.now();
   
   if (now - lastSeen > INACTIVITY_TIMEOUT_MS) {
-    await db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+    await db.query(`DELETE FROM sessions WHERE id = $1`, [sessionId]);
     return null;
   }
 
   // Atualizar last_seen apenas se solicitado (padrão true)
   if (updateLastSeen) {
-    await db.prepare("UPDATE sessions SET last_seen_at = datetime('now') WHERE id = ?").run(sessionId);
+    await db.query(`UPDATE sessions SET last_seen_at = NOW() WHERE id = $1`, [sessionId]);
   }
 
   return session;
@@ -73,7 +73,7 @@ export async function logout() {
   const sessionId = cookieStore.get('session_id')?.value;
   
   if (sessionId) {
-    await db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+    await db.query(`DELETE FROM sessions WHERE id = $1`, [sessionId]);
   }
   
   cookieStore.delete('session_id');

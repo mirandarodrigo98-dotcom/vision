@@ -60,28 +60,17 @@ export async function createEmployee(formData: FormData) {
 
   // Check operator access
   if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
   try {
     const id = uuidv4();
-    await db.prepare(`
+    await db.query(`
       INSERT INTO employees (
         id, company_id, code, name, admission_date, birth_date, gender, pis, cpf, esocial_registration, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).run(
-      id,
-      company_id,
-      code || null,
-      name,
-      admission_date || null,
-      birth_date || null,
-      gender || null,
-      pis || null,
-      cpf || null,
-      esocial_registration || null
-    );
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `, [id, company_id, code || null, name, admission_date || null, birth_date || null, gender || null, pis || null, cpf || null, esocial_registration || null]);
 
     revalidatePath('/admin/employees');
     return { success: true, employeeId: id };
@@ -129,36 +118,25 @@ export async function updateEmployee(id: string, formData: FormData) {
 
   // Check operator access
   if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company_id);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company_id])).rows[0];
     if (restricted) return { error: 'Sem permissão para esta empresa.' };
   }
 
   try {
-    await db.prepare(`
+    await db.query(`
       UPDATE employees SET
-        company_id = ?,
-        code = ?,
-        name = ?,
-        admission_date = ?,
-        birth_date = ?,
-        gender = ?,
-        pis = ?,
-        cpf = ?,
-        esocial_registration = ?,
+        company_id = $1,
+        code = $2,
+        name = $3,
+        admission_date = $4,
+        birth_date = $5,
+        gender = $6,
+        pis = $7,
+        cpf = $8,
+        esocial_registration = $9,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(
-      company_id,
-      code || null,
-      name,
-      admission_date || null,
-      birth_date || null,
-      gender || null,
-      pis || null,
-      cpf || null,
-      esocial_registration || null,
-      id
-    );
+      WHERE id = $10
+    `, [company_id, code || null, name, admission_date || null, birth_date || null, gender || null, pis || null, cpf || null, esocial_registration || null, id]);
 
     revalidatePath('/admin/employees');
     revalidatePath(`/admin/employees/${id}`);
@@ -218,10 +196,10 @@ export async function getEmployees(optionsOrCompanyId?: string | { companyId?: s
 
     // Filter by company permission (if not admin)
     if (session.role === 'client_user') {
-      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     } else if (session.role === 'operator') {
-      query += ` AND e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+      query += ` AND e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     }
 
@@ -232,7 +210,7 @@ export async function getEmployees(optionsOrCompanyId?: string | { companyId?: s
 
     query += ` ORDER BY e.name ASC`; // Sort by name
 
-    const employees = await db.prepare(query).all(...params);
+    const employees = (await db.query(query, [...params])).rows;
     return employees;
   } catch (error) {
     console.error('Failed to fetch employees:', error);
@@ -247,29 +225,29 @@ export async function getEmployeesByCompany(companyId: string) {
 export async function checkPendingRequests(employeeId: string) {
   try {
     // Check pending dismissals
-    const pendingDismissal = await db.prepare(`
+    const pendingDismissal = (await db.query(`
         SELECT id, 'Demissão' as type, created_at FROM dismissals 
-        WHERE employee_id = ? AND status NOT IN ('COMPLETED', 'CANCELLED')
-    `).get(employeeId) as any;
+        WHERE employee_id = $1 AND status NOT IN ('COMPLETED', 'CANCELLED')
+    `, [employeeId])).rows[0] as any;
 
     if (pendingDismissal) return pendingDismissal;
 
     // Check pending vacations
-    const pendingVacation = await db.prepare(`
+    const pendingVacation = (await db.query(`
         SELECT id, 'Férias' as type, created_at FROM vacations 
-        WHERE employee_id = ? AND status NOT IN ('COMPLETED', 'CANCELLED')
-    `).get(employeeId) as any;
+        WHERE employee_id = $1 AND status NOT IN ('COMPLETED', 'CANCELLED')
+    `, [employeeId])).rows[0] as any;
 
     if (pendingVacation) return pendingVacation;
 
     // Check pending transfers
     // Fetch employee name first
-    const employee = await db.prepare('SELECT name FROM employees WHERE id = ?').get(employeeId) as any;
+    const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [employeeId])).rows[0] as any;
     if (employee) {
-        const pendingTransfer = await db.prepare(`
+        const pendingTransfer = (await db.query(`
             SELECT id, 'Transferência' as type, created_at FROM transfer_requests 
-            WHERE employee_name = ? AND status NOT IN ('COMPLETED', 'CANCELLED')
-        `).get(employee.name) as any;
+            WHERE employee_name = $1 AND status NOT IN ('COMPLETED', 'CANCELLED')
+        `, [employee.name])).rows[0] as any;
         if (pendingTransfer) return pendingTransfer;
     }
 
@@ -288,19 +266,19 @@ export async function toggleEmployeeStatus(employeeId: string, isActive: boolean
 
   try {
     if (session.role === 'operator') {
-      const employee = await db.prepare('SELECT company_id FROM employees WHERE id = ?').get(employeeId) as { company_id: string } | undefined;
+      const employee = (await db.query(`SELECT company_id FROM employees WHERE id = $1`, [employeeId])).rows[0] as { company_id: string } | undefined;
       if (employee) {
-        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, employee.company_id);
+        const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, employee.company_id])).rows[0];
         if (restricted) return { error: 'Sem permissão para esta empresa.' };
       }
     }
 
     const status = isActive ? 1 : 0;
-    await db.prepare(`
+    await db.query(`
       UPDATE employees 
-      SET is_active = ?, updated_at = datetime('now') 
-      WHERE id = ?
-    `).run(status, employeeId);
+      SET is_active = $1, updated_at = NOW() 
+      WHERE id = $2
+    `, [status, employeeId]);
 
     revalidatePath('/admin/employees');
     return { success: true };
@@ -322,14 +300,14 @@ export async function fetchQuestorEmployees(questorCompanyCode: string) {
     return { success: false, error: 'Não autorizado' };
   }
 
-  const company = await db.prepare('SELECT id, nome FROM client_companies WHERE code = ?').get(questorCompanyCode) as { id: string, nome: string } | undefined;
+  const company = (await db.query(`SELECT id, nome FROM client_companies WHERE code = $1`, [questorCompanyCode])).rows[0] as { id: string, nome: string } | undefined;
 
   if (!company) {
     return { success: false, error: 'Empresa não encontrada para este código.' };
   }
 
   if (session.role === 'operator') {
-    const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, company.id);
+    const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, company.id])).rows[0];
     if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
   }
 
@@ -365,31 +343,31 @@ export async function deleteEmployee(id: string) {
 
   try {
     if (session.role === 'operator') {
-      const employee = await db.prepare('SELECT company_id FROM employees WHERE id = ?').get(id) as { company_id: string } | undefined;
+      const employee = (await db.query(`SELECT company_id FROM employees WHERE id = $1`, [id])).rows[0] as { company_id: string } | undefined;
       if (employee) {
-        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, employee.company_id);
+        const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, employee.company_id])).rows[0];
         if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
       }
     }
 
     // Check for movements
-    const hasMovements = await db.prepare(`
+    const hasMovements = (await db.query(`
       SELECT 1 FROM (
-        SELECT employee_id FROM dismissals WHERE employee_id = ?
+        SELECT employee_id FROM dismissals WHERE employee_id = $1
         UNION ALL
-        SELECT employee_id FROM vacations WHERE employee_id = ?
+        SELECT employee_id FROM vacations WHERE employee_id = $2
         UNION ALL
-        SELECT employee_id FROM leaves WHERE employee_id = ?
+        SELECT employee_id FROM leaves WHERE employee_id = $3
         UNION ALL
-        SELECT id FROM transfer_requests WHERE employee_name = (SELECT name FROM employees WHERE id = ?)
+        SELECT id FROM transfer_requests WHERE employee_name = (SELECT name FROM employees WHERE id = $4)
       ) LIMIT 1
-    `).get(id, id, id, id);
+    `, [id, id, id, id])).rows[0];
 
     if (hasMovements) {
       return { success: false, error: 'Não é possível excluir funcionário com movimentações.' };
     }
 
-    await db.prepare('DELETE FROM employees WHERE id = ?').run(id);
+    await db.query(`DELETE FROM employees WHERE id = $1`, [id]);
     revalidatePath('/admin/employees');
     return { success: true };
   } catch (error) {
@@ -408,40 +386,34 @@ export async function deleteEmployeesBatch(ids: string[]) {
     if (session.role === 'operator') {
       // Check all employees
       for (const id of ids) {
-        const employee = await db.prepare('SELECT company_id FROM employees WHERE id = ?').get(id) as { company_id: string } | undefined;
+        const employee = (await db.query(`SELECT company_id FROM employees WHERE id = $1`, [id])).rows[0] as { company_id: string } | undefined;
         if (employee) {
-            const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, employee.company_id);
+            const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, employee.company_id])).rows[0];
             if (restricted) return { success: false, error: `Sem permissão para excluir funcionário (ID: ${id}) de empresa restrita.` };
         }
       }
     }
 
     // Helper to check one employee
-    const checkEmployee = db.prepare(`
+    
+
+    for (const id of ids) {
+      const hasMovements = (await db.query(`
       SELECT 1 FROM (
-        SELECT employee_id FROM dismissals WHERE employee_id = ?
+        SELECT employee_id FROM dismissals WHERE employee_id = $1
         UNION ALL
-        SELECT employee_id FROM vacations WHERE employee_id = ?
+        SELECT employee_id FROM vacations WHERE employee_id = $2
         UNION ALL
-        SELECT employee_id FROM leaves WHERE employee_id = ?
+        SELECT employee_id FROM leaves WHERE employee_id = $3
         UNION ALL
-        SELECT id FROM transfer_requests WHERE employee_name = (SELECT name FROM employees WHERE id = ?)
+        SELECT id FROM transfer_requests WHERE employee_name = (SELECT name FROM employees WHERE id = $4)
       ) LIMIT 1
-    `);
-
-    const deleteStmt = db.prepare('DELETE FROM employees WHERE id = ?');
-
-    const transaction = db.transaction(async (employeeIds: string[]) => {
-      for (const id of employeeIds) {
-        const hasMovements = await checkEmployee.get(id, id, id, id) as any;
-        if (hasMovements) {
-          throw new Error(`Funcionário com ID ${id} possui movimentações.`);
-        }
-        await deleteStmt.run(id);
+    `, [id, id, id, id])).rows[0] as any;
+      if (hasMovements) {
+        throw new Error(`Funcionário com ID ${id} possui movimentações.`);
       }
-    });
-
-    await transaction(ids);
+      await db.query(`DELETE FROM employees WHERE id = $1`, [id]);
+    }
     revalidatePath('/admin/employees');
     return { success: true, message: `${ids.length} funcionários excluídos com sucesso.` };
   } catch (error: any) {
@@ -457,30 +429,27 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
     }
 
     if (session.role === 'operator') {
-        const restricted = await db.prepare('SELECT 1 FROM user_restricted_companies WHERE user_id = ? AND company_id = ?').get(session.user_id, companyId);
+        const restricted = (await db.query(`SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2`, [session.user_id, companyId])).rows[0];
         if (restricted) return { success: false, error: 'Sem permissão para esta empresa.' };
     }
 
     try {
-        const checkStmt = db.prepare('SELECT id FROM employees WHERE company_id = ? AND cpf = ?');
-        const insertStmt = db.prepare(`
-            INSERT INTO employees (
-                id, company_id, code, name, admission_date, birth_date, gender, pis, cpf, esocial_registration, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `);
-        
         let importedCount = 0;
         let ignoredCount = 0;
 
         const transaction = db.transaction(async (emps: any[]) => {
             for (const emp of emps) {
-                const existing = await checkStmt.get(companyId, emp.cpf) as any;
+                const existing = (await db.query(`SELECT id FROM employees WHERE company_id = $1 AND cpf = $2`, [companyId, emp.cpf])).rows[0] as any;
                 if (existing) {
                     ignoredCount++;
                     continue;
                 }
                 
-                await insertStmt.run(
+                await db.query(`
+                    INSERT INTO employees (
+                        id, company_id, code, name, admission_date, birth_date, gender, pis, cpf, esocial_registration, created_at, updated_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                `, [
                     uuidv4(),
                     companyId,
                     emp.code,
@@ -491,7 +460,7 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
                     emp.pis,
                     emp.cpf,
                     emp.esocial_registration
-                );
+                ]);
                 importedCount++;
             }
         });

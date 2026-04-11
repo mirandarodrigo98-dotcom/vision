@@ -19,21 +19,21 @@ export async function searchCompanies(query: string) {
       SELECT id, razao_social 
       FROM client_companies 
       WHERE is_active = 1 
-      AND (razao_social ILIKE ? OR nome ILIKE ?)
+      AND (razao_social ILIKE $1 OR nome ILIKE $2)
     `;
     const params: any[] = [`%${query}%`, `%${query}%`];
 
     if (session.role === 'operator') {
-      sql += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?)`;
+      sql += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     } else if (session.role === 'client_user') {
-      sql += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+      sql += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
       params.push(session.user_id);
     }
 
     sql += ` ORDER BY razao_social ASC LIMIT 10`;
 
-    const companies = await db.prepare(sql).all(...params);
+    const companies = (await db.query(sql, [...params])).rows;
     
     console.log('searchCompanies: Found', companies.length, 'companies');
     return companies as { id: string; razao_social: string }[];

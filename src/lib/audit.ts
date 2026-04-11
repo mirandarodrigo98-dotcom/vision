@@ -70,19 +70,17 @@ interface AuditLogParams {
 
 export async function logAudit(params: AuditLogParams) {
   try {
-    const stmt = db.prepare(`
+    await db.query(`
       INSERT INTO audit_logs (
         id, actor_user_id, actor_email, role, action, 
         entity_type, entity_id, ip, user_agent, 
         metadata, success, error_message, timestamp
       ) VALUES (
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, datetime('now', '-03:00')
+        $1, $2, $3, $4, $5, 
+        $6, $7, $8, $9, 
+        $10, $11, $12, (NOW() - INTERVAL '3 hours')
       )
-    `);
-
-    await stmt.run(
+    `, [
       uuidv4(),
       params.actor_user_id || null,
       params.actor_email || null,
@@ -95,7 +93,7 @@ export async function logAudit(params: AuditLogParams) {
       params.metadata ? JSON.stringify(params.metadata) : null,
       params.success ? 1 : 0,
       params.error_message || null
-    );
+    ]);
   } catch (error) {
     console.error('Failed to write audit log:', error);
     // Não lançar erro para não quebrar o fluxo principal

@@ -22,7 +22,7 @@ export default async function TransfersListPage() {
   }
 
   // Get User Companies
-  const userCompanies = await db.prepare('SELECT company_id FROM user_companies WHERE user_id = ?').all(session.user_id) as Array<{ company_id: string }>;
+  const userCompanies = (await db.query(`SELECT company_id FROM user_companies WHERE user_id = $1`, [session.user_id])).rows as Array<{ company_id: string }>;
 
   if (userCompanies.length === 0) {
       return <div>Você não está vinculado a nenhuma empresa. Contate o suporte.</div>;
@@ -35,7 +35,7 @@ export default async function TransfersListPage() {
   const hasMultipleCompanies = userCompanies.length > 1;
   const canCreate = hasCreatePermission && hasMultipleCompanies;
 
-  const transfers = await db.prepare(`
+  const transfers = (await db.query(`
     SELECT t.id, t.employee_name, t.status, t.protocol_number, t.created_at,
            c.nome as source_company_name,
            tc.nome as target_company_name,
@@ -43,9 +43,9 @@ export default async function TransfersListPage() {
     FROM transfer_requests t
     JOIN client_companies c ON t.source_company_id = c.id
     LEFT JOIN client_companies tc ON t.target_company_id = tc.id
-    WHERE t.source_company_id = ?
+    WHERE t.source_company_id = $1
     ORDER BY t.created_at DESC
-  `).all(activeCompanyId) as Array<{
+  `, [activeCompanyId])).rows as Array<{
     id: string;
     source_company_name: string;
     target_company_name: string;
