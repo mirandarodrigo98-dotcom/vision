@@ -98,11 +98,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     // 2. RECEITAS TOTAIS RECEBIDAS (REGIME DE CAIXA) -> via ListarExtrato
     let todasReceitas: any[] = [];
-    const extratoPromises: Promise<any[]>[] = [];
+    const extratoPromises: (() => Promise<any[]>)[] = [];
 
     for (const nCodCC of contasAtivasIds) {
       for (const periodo of periodosExtrato) {
-        extratoPromises.push((async () => {
+        extratoPromises.push(async () => {
           const localReceitas: any[] = [];
           let nPaginaExtrato = 1;
           let totalPaginasExtrato = 1;
@@ -158,10 +158,16 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
             nPaginaExtrato++;
           } while (nPaginaExtrato <= totalPaginasExtrato);
           return localReceitas;
-        })());
+        });
       }
     }
-    const extratoResults = await Promise.all(extratoPromises);
+    const extratoResults = [];
+    const batchSize = 3;
+    for (let i = 0; i < extratoPromises.length; i += batchSize) {
+      const batch = extratoPromises.slice(i, i + batchSize);
+      const res = await Promise.all(batch.map(fn => fn()));
+      extratoResults.push(...res);
+    }
     extratoResults.forEach(arr => todasReceitas.push(...arr));
 
     // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
@@ -184,9 +190,9 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       const resContasBase = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadContasBase);
       const totalPaginasFaturamento = resContasBase.data.total_de_paginas || 1;
       
-      const contasPromises: Promise<any[]>[] = [];
+      const contasPromises: (() => Promise<any[]>)[] = [];
       for (let p = 1; p <= totalPaginasFaturamento; p++) {
-        contasPromises.push((async () => {
+        contasPromises.push(async () => {
           const payload = {
             call: "ListarContasReceber",
             app_key: appKey,
@@ -213,10 +219,15 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
           } catch (e) {
             return [];
           }
-        })());
+        });
       }
       
-      const faturamentoResults = await Promise.all(contasPromises);
+      const faturamentoResults = [];
+      for (let i = 0; i < contasPromises.length; i += batchSize) {
+        const batch = contasPromises.slice(i, i + batchSize);
+        const res = await Promise.all(batch.map(fn => fn()));
+        faturamentoResults.push(...res);
+      }
       faturamentoResults.forEach(arr => todosFaturamentos.push(...arr));
     } catch (e) {}
 
@@ -232,9 +243,9 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       const resContratosBase = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratosBase);
       const totalPaginasContratos = resContratosBase.data.total_de_paginas || 1;
       
-      const contratosPromises: Promise<any[]>[] = [];
+      const contratosPromises: (() => Promise<any[]>)[] = [];
       for (let p = 1; p <= totalPaginasContratos; p++) {
-        contratosPromises.push((async () => {
+        contratosPromises.push(async () => {
           const payload = {
             call: "ListarContratos",
             app_key: appKey,
@@ -247,9 +258,15 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
           } catch (e) {
             return [];
           }
-        })());
+        });
       }
-      const contratosResults = await Promise.all(contratosPromises);
+      
+      const contratosResults = [];
+      for (let i = 0; i < contratosPromises.length; i += batchSize) {
+        const batch = contratosPromises.slice(i, i + batchSize);
+        const res = await Promise.all(batch.map(fn => fn()));
+        contratosResults.push(...res);
+      }
       contratosResults.forEach(arr => todosContratos.push(...arr));
     } catch (e) {}
 
