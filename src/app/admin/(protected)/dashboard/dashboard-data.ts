@@ -63,11 +63,11 @@ export async function getDashboardData(): Promise<DashboardStats> {
     const getCount = async (start: Date, end: Date) => {
       let total = 0;
       for (const table of tables) {
-        const count = (await db.query(`
-          SELECT COUNT(*) FROM ${table} 
-          WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?
-        `).pluck(, [start.toISOString(])).rows[0], end.toISOString()) as number;
-        total += Number(count);
+        const row = (await db.query(`
+          SELECT COUNT(*) as count FROM ${table} 
+          WHERE status = 'COMPLETED' AND created_at >= $1 AND created_at < $2
+        `, [start.toISOString(), end.toISOString()])).rows[0] as any;
+        total += Number(row?.count || 0);
       }
       return total;
     };
@@ -167,21 +167,21 @@ export async function getDashboardData(): Promise<DashboardStats> {
     }
 
     // Counts
-    const prevMonthCount = (await db.query(`
-        SELECT COUNT(*) FROM ${table} ${whereClause} AND created_at >= ? AND created_at < ?
-    `).pluck(, [...queryParams, prevMonthStart.toISOString(])).rows[0], currMonthStart.toISOString());
-    const prevMonth = Number(prevMonthCount);
+    const prevRow = (await db.query(`
+        SELECT COUNT(*) as count FROM ${table} ${whereClause} AND created_at >= $${queryParams.length + 1} AND created_at < $${queryParams.length + 2}
+    `, [...queryParams, prevMonthStart.toISOString(), currMonthStart.toISOString()])).rows[0] as any;
+    const prevMonth = Number(prevRow?.count || 0);
 
-    const currMonthCount = (await db.query(`
-        SELECT COUNT(*) FROM ${table} ${whereClause} AND created_at >= ? AND created_at < ?
-    `).pluck(, [...queryParams, currMonthStart.toISOString(])).rows[0], nextMonthStart.toISOString());
-    const currMonth = Number(currMonthCount);
+    const currRow = (await db.query(`
+        SELECT COUNT(*) as count FROM ${table} ${whereClause} AND created_at >= $${queryParams.length + 1} AND created_at < $${queryParams.length + 2}
+    `, [...queryParams, currMonthStart.toISOString(), nextMonthStart.toISOString()])).rows[0] as any;
+    const currMonth = Number(currRow?.count || 0);
 
     // Chart (Last 6 Months)
     const chartData = (await db.query(`
         SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count 
         FROM ${table} 
-        ${whereClause} AND created_at >= $1
+        ${whereClause} AND created_at >= $${queryParams.length + 1}
         GROUP BY month
         ORDER BY month
     `, [...queryParams, sixMonthsAgo.toISOString()])).rows as { month: string, count: number }[];
@@ -221,7 +221,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
         SELECT cc.nome, COUNT(*) as count 
         FROM ${table} t
         JOIN client_companies cc ON t.${companyCol} = cc.id
-        ${rankingWhere} AND t.created_at >= $1
+        ${rankingWhere} AND t.created_at >= $${rankingParams.length + 1}
         GROUP BY cc.nome
         ORDER BY count DESC
         LIMIT 5
