@@ -212,7 +212,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-slate-700">
-                    {receiptsTotal} decl.
+                    {receiptsTotal || 0} decl.
                   </div>
                   <div className="text-xl font-black text-slate-800">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
