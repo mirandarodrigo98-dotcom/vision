@@ -25,6 +25,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
   const donutReceipts = receiptsStats || [];
+  const receiptsTotal = donutReceipts.reduce((sum, item) => sum + item.value, 0);
 
   const RADIAN = Math.PI / 180;
   const renderPercentLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
