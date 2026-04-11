@@ -71,6 +71,48 @@ export function DashboardFinanceiro() {
     return null;
   };
 
+  const CustomLabelVertical = (props: any) => {
+    const { x, y, width, height, value } = props;
+    if (x === undefined || y === undefined || width === undefined || height === undefined) return null;
+    if (!value || value <= 0) return null;
+    
+    const cx = x + width / 2;
+    const cy = y + height - 10;
+    
+    if (isNaN(cx) || isNaN(cy)) return null;
+
+    return (
+      <text 
+        x={cx} 
+        y={cy} 
+        fill="#ffffff" 
+        fontSize={12} 
+        fontWeight="bold" 
+        textAnchor="start"
+        transform={`rotate(-90, ${cx}, ${cy})`}
+      >
+        {formatShortBRL(value).replace('R$ ', '')}
+      </text>
+    );
+  };
+
+  const CustomLabelTop = (props: any) => {
+    const { x, y, width, value } = props;
+    if (x === undefined || y === undefined || width === undefined) return null;
+    if (!value || value <= 0) return null;
+    
+    const cx = x + width / 2;
+    const cy = y - 8;
+    
+    if (isNaN(cx) || isNaN(cy)) return null;
+
+    return (
+      <text x={cx} y={cy} fill="#64748b" fontSize={11} fontWeight="bold" textAnchor="middle">
+        {formatShortBRL(value)}
+      </text>
+    );
+  };
+
   const ChartRow = ({ title, dataBloco }: { title: string, dataBloco: any }) => {
     if (!dataBloco || !dataBloco.mesAtual || !dataBloco.mesAnterior || !dataBloco.ultimos12Meses) {
       return (
@@ -103,27 +145,23 @@ export function DashboardFinanceiro() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Últimos 12 Meses</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 min-h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} interval={0} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80}>
-                  <LabelList 
-                    dataKey="value" 
-                    position="top" 
-                    offset={10} 
-                    formatter={(val: number) => val > 0 ? formatShortBRL(val).replace('R$ ', '') : ''} 
-                    style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} 
-                  />
-                  {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#94a3b8'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="flex-1">
+            <div style={{ width: '100%', height: 350 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} interval={0} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80} isAnimationActive={false}>
+                    <LabelList dataKey="value" content={<CustomLabelVertical />} />
+                    {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#94a3b8'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -134,20 +172,23 @@ export function DashboardFinanceiro() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Mês Atual vs Ano Anterior</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dataMesAtual} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                    <Cell fill="#94a3b8" />
-                    <Cell fill="#10b981" />
-                    <LabelList dataKey="value" position="top" offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="flex-1">
+              <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dataMesAtual} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60} isAnimationActive={false}>
+                      <LabelList dataKey="value" content={<CustomLabelTop />} />
+                      {dataMesAtual.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#94a3b8' : '#10b981'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
 
@@ -156,20 +197,23 @@ export function DashboardFinanceiro() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Mês Anterior vs Ano Anterior</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dataMesAnterior} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                    <Cell fill="#94a3b8" />
-                    <Cell fill="#3b82f6" />
-                    <LabelList dataKey="value" position="top" offset={10} formatter={(val: number) => val > 0 ? formatShortBRL(val) : ''} style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="flex-1">
+              <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dataMesAnterior} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60} isAnimationActive={false}>
+                      <LabelList dataKey="value" content={<CustomLabelTop />} />
+                      {dataMesAnterior.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#94a3b8' : '#3b82f6'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
 
