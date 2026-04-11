@@ -86,31 +86,69 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     // 2. RECEITAS TOTAIS RECEBIDAS (REGIME DE CAIXA) -> via ListarExtrato
     let todasReceitas: any[] = [];
     for (const nCodCC of contasAtivasIds) {
-      const payloadExtrato = {
-        call: "ListarExtrato",
-        app_key: appKey,
-        app_secret: appSecret,
-        param: [{
-          nCodCC,
-          dPeriodoInicial: dataDe,
-          dPeriodoFinal: dataAteStr
-        }]
-      };
-      try {
-        const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
-        const extrato = resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
-        
-        const receitas = extrato.filter((item: any) => {
-          if (item.cNatureza !== 'R') return false;
-          if (item.nValorDocumento <= 0) return false;
-          const categoria = item.cDesCategoria || '';
-          return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
-        });
-        
-        todasReceitas = [...todasReceitas, ...receitas];
-      } catch (err: any) {
-        console.warn(`Erro CC ${nCodCC}:`, err.response?.data?.faultstring || err.message);
-      }
+      let nPaginaExtrato = 1;
+      let totalPaginasExtrato = 1;
+      
+      do {
+        const payloadExtrato = {
+          call: "ListarExtrato",
+          app_key: appKey,
+          app_secret: appSecret,
+          param: [{
+            nCodCC,
+            dPeriodoInicial: dataDe,
+            dPeriodoFinal: dataAteStr,
+            nPagina: nPaginaExtrato,
+            nRegPorPagina: 500
+          }]
+        };
+        try {
+          const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
+          const extrato = resExtrato.data.listaMovimentos || resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
+          totalPaginasExtrato = resExtrato.data.nTotPaginas || 1;
+          
+          const receitas = extrato.filter((item: any) => {
+            // O saldo anterior/atual não tem categoria
+            if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+            
+            // Verificar se é uma entrada (receita)
+            const valor = item.nValorDocumento || 0;
+            if (valor <= 0) return false; // Despesas podem vir negativas ou com cNatureza = 'D', aqui garantimos que tem valor
+            
+            const categoria = item.cDesCategoria || '';
+            return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
+          });
+          
+          todasReceitas = [...todasReceitas, ...receitas];
+        } catch (err: any) {
+          // console.warn(`Erro CC ${nCodCC} Pag ${nPaginaExtrato}:`, err.response?.data?.faultstring || err.message);
+          // O Omie retorna erro se usar paginação no extrato em algumas versões de API, se falhar, tenta sem paginação e quebra o loop
+          try {
+            const payloadExtratoSemPagina = {
+              call: "ListarExtrato",
+              app_key: appKey,
+              app_secret: appSecret,
+              param: [{
+                nCodCC,
+                dPeriodoInicial: dataDe,
+                dPeriodoFinal: dataAteStr
+              }]
+            };
+            const resExtrato2 = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtratoSemPagina);
+            const extrato2 = resExtrato2.data.listaMovimentos || resExtrato2.data.listaExtrato || resExtrato2.data.extrato || [];
+            const receitas2 = extrato2.filter((item: any) => {
+              if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+              const valor = item.nValorDocumento || 0;
+              if (valor <= 0) return false;
+              const categoria = item.cDesCategoria || '';
+              return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
+            });
+            todasReceitas = [...todasReceitas, ...receitas2];
+          } catch (e2) {}
+          break;
+        }
+        nPaginaExtrato++;
+      } while (nPaginaExtrato <= totalPaginasExtrato);
     }
 
     // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
@@ -205,7 +243,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       for (let i = 11; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '').toUpperCase();
+        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
         ultimos12Meses.push({ month: key, label, value: mapData.get(key) || 0 });
       }
 
