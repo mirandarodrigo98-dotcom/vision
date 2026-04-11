@@ -107,21 +107,21 @@ export async function getDashboardFinanceiroData() {
 
     // 3. Buscar Contratos (para Receita Recorrente e Clientes Ativos)
     let todosContratos: any[] = [];
-    let pagina = 1;
-    let totalPaginas = 1;
+    let paginaContratos = 1;
+    let totalPaginasContratos = 1;
     do {
       const payloadContratos = {
         call: "ListarContratos",
         app_key: appKey,
         app_secret: appSecret,
-        param: [{ pagina, registros_por_pagina: 100 }]
+        param: [{ pagina: paginaContratos, registros_por_pagina: 100 }]
       };
       const resContratos = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratos);
       const contratos = resContratos.data.contratoCadastro || [];
       todosContratos = [...todosContratos, ...contratos];
-      totalPaginas = resContratos.data.total_de_paginas || 1;
-      pagina++;
-    } while (pagina <= totalPaginas);
+      totalPaginasContratos = resContratos.data.total_de_paginas || 1;
+      paginaContratos++;
+    } while (paginaContratos <= totalPaginasContratos);
 
     // Processamento dos Dados
     
