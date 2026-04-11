@@ -49,6 +49,7 @@ export interface IRDeclaration {
   receipt_method?: string | null;
   receipt_account?: string | null;
   receipt_attachment_url?: string | null;
+  receipt_value?: number | null;
 }
 
 export async function getIRDeclarations(): Promise<IRDeclaration[]> {
@@ -91,7 +92,10 @@ export async function getIRReceiptStats() {
   const receivedCount = receivedDecls.length;
   const notReceivedCount = notReceivedDecls.length;
   
-  const receivedValue = receivedDecls.reduce((sum, d) => sum + (d.service_value || 0), 0);
+  // Received value uses the actual receipt value (or fallback to service value if missing)
+  const receivedValue = receivedDecls.reduce((sum, d) => sum + (d.receipt_value || d.service_value || 0), 0);
+  
+  // Not received value uses the service value
   const notReceivedValue = notReceivedDecls.reduce((sum, d) => sum + (d.service_value || 0), 0);
 
   return [
@@ -650,6 +654,8 @@ export async function registerIRReceipt(id: string, formData: FormData) {
   const receipt_date = formData.get('receipt_date') as string;
   const receipt_method = formData.get('receipt_method') as string;
   const receipt_account = formData.get('receipt_account') as string;
+  const receipt_value_str = formData.get('receipt_value') as string;
+  const receipt_value = receipt_value_str ? parseFloat(receipt_value_str.replace(/\./g, '').replace(',', '.')) : null;
   const file = formData.get('attachment') as File | null;
 
   let attachment_url: string | null = null;
@@ -677,20 +683,23 @@ export async function registerIRReceipt(id: string, formData: FormData) {
         receipt_method = $2, 
         receipt_account = $3, 
         receipt_attachment_url = $4,
+        receipt_value = $5,
         updated_at = NOW() 
-      WHERE id = $5
+      WHERE id = $6
     `).run(
       receipt_date,
       receipt_method,
       receipt_account,
       attachment_url,
+      receipt_value,
       id
     );
 
+    const formattedVal = receipt_value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(receipt_value) : '';
     await db.prepare(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', $3)
-    `).run(id, session.user_id, `Pagamento recebido via ${receipt_method} na conta ${receipt_account}`);
+    `).run(id, session.user_id, `Pagamento ${formattedVal ? `de ${formattedVal} ` : ''}recebido via ${receipt_method} na conta ${receipt_account}`);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -726,6 +735,7 @@ export async function deleteIRReceipt(id: string) {
         receipt_method = NULL, 
         receipt_account = NULL, 
         receipt_attachment_url = NULL,
+        receipt_value = NULL,
         updated_at = NOW()
       WHERE id = $1
     `).run(id);

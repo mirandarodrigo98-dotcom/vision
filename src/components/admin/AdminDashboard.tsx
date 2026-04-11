@@ -70,6 +70,7 @@ const navigation: NavigationItem[] = [
 
 const userNavigation = [
   { name: 'Meu Perfil', href: '/admin/profile' },
+  { name: 'Alterar Senha', href: '/admin/profile?tab=password' },
   { name: 'Sair', href: '#', action: 'logout' },
 ]
 

@@ -799,6 +799,11 @@ export default function CobrancaPage() {
               '--ag-row-hover-color': '#fff7ed'
             } as React.CSSProperties}
           >
+            <style>{`
+              .ag-theme-alpine .ag-row-selected {
+                background-color: #ffedd5 !important;
+              }
+            `}</style>
             <AgGridReact
               rowData={contas}
               columnDefs={columnDefs as any}
@@ -947,15 +952,15 @@ export default function CobrancaPage() {
       </Dialog>
 
       <Dialog open={isDetalharOpen} onOpenChange={setIsDetalharOpen}>
-        <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-[95vw] max-w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[95vw] lg:max-w-[1200px] max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-xl">Detalhes da Conta</DialogTitle>
           </DialogHeader>
           
           {isCarregandoDetalhes ? (
             <div className="py-12 text-center text-muted-foreground">Buscando informações detalhadas no Omie...</div>
           ) : detalheConta ? (
-            <div className="space-y-6">
+            <div className="space-y-6 flex-1 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4 border p-4 rounded-md bg-slate-50">
                 <div>
                   <p className="text-xs text-muted-foreground">Cliente</p>
@@ -976,23 +981,23 @@ export default function CobrancaPage() {
               </div>
 
               <div className="flex gap-4 flex-col lg:flex-row">
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="border border-gray-300 rounded bg-white flex flex-col">
                     <div className="bg-gray-100 text-gray-500 text-xs text-center py-1.5 border-b border-gray-300">
                       Arraste uma ou mais colunas aqui para agrupar
                     </div>
-                    <div className="overflow-x-auto max-w-full">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-white text-gray-600 border-b border-gray-300">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[250px] w-full">
+                      <table className="w-full text-xs text-left min-w-[800px]">
+                        <thead className="bg-white text-gray-600 border-b border-gray-300 sticky top-0 z-10 shadow-sm">
                           <tr>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Data do Recebi... <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Valor Recebido <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Desconto <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Juros <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Multas <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Banco <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200">Data de Crédito <span className="text-gray-400 text-[10px]">«</span></th>
-                            <th className="px-3 py-2 font-normal whitespace-nowrap">Observação</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '120px' }}>Data do Recebimento</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '100px' }}>Valor Recebido</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '100px' }}>Desconto</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '100px' }}>Juros</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '100px' }}>Multas</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '150px' }}>Banco</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap border-r border-gray-200 resize-x overflow-hidden" style={{ minWidth: '120px' }}>Data de Crédito</th>
+                            <th className="px-3 py-2 font-normal whitespace-nowrap resize-x overflow-hidden" style={{ minWidth: '200px' }}>Observação</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -1014,7 +1019,9 @@ export default function CobrancaPage() {
                               );
                             })
                           ) : detalheConta.recebimentos && detalheConta.recebimentos.length > 0 ? (
-                            detalheConta.recebimentos.map((rec: any, idx: number) => (
+                            detalheConta.recebimentos.map((rec: any, idx: number) => {
+                              const obs = rec.observacao || rec.cObs || detalheConta.observacao || '-';
+                              return (
                               <tr key={idx} className={idx % 2 === 0 ? "bg-[#eaf4e5]" : "bg-white"}>
                                 <td className="px-3 py-2 whitespace-nowrap">{rec.data || rec.dData}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(rec.valor || rec.nValor || 0)}</td>
@@ -1023,9 +1030,10 @@ export default function CobrancaPage() {
                                 <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(rec.multa || rec.nMulta || 0)}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.nome_conta_corrente || '-'}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">{rec.data || rec.dData}</td>
-                                <td className="px-3 py-2 truncate max-w-[200px]" title={detalheConta.observacao || '-'}>{detalheConta.observacao || '-'}</td>
+                                <td className="px-3 py-2 truncate max-w-[200px]" title={obs}>{obs}</td>
                               </tr>
-                            ))
+                              );
+                            })
                           ) : detalheConta.recebimento ? (
                             <tr className="bg-[#eaf4e5]">
                               <td className="px-3 py-2 whitespace-nowrap">{detalheConta.recebimento.dData || detalheConta.recebimento.data || '-'}</td>
@@ -1035,7 +1043,7 @@ export default function CobrancaPage() {
                               <td className="px-3 py-2 whitespace-nowrap">R$ {formatNumber(detalheConta.recebimento.nMulta || detalheConta.recebimento.multa || 0)}</td>
                               <td className="px-3 py-2 whitespace-nowrap">{selectedRows[0]?.nome_conta_corrente || '-'}</td>
                               <td className="px-3 py-2 whitespace-nowrap">{detalheConta.recebimento.dData || detalheConta.recebimento.data || '-'}</td>
-                              <td className="px-3 py-2 truncate max-w-[200px]" title={detalheConta.observacao || '-'}>{detalheConta.observacao || '-'}</td>
+                              <td className="px-3 py-2 truncate max-w-[200px]" title={detalheConta.recebimento.observacao || detalheConta.recebimento.cObs || detalheConta.observacao || '-'}>{detalheConta.recebimento.observacao || detalheConta.recebimento.cObs || detalheConta.observacao || '-'}</td>
                             </tr>
                           ) : (
                             <tr className="bg-[#eaf4e5]">
@@ -1097,20 +1105,38 @@ export default function CobrancaPage() {
             <div className="py-12 text-center text-muted-foreground">Não foi possível carregar os detalhes.</div>
           )}
           
-          <DialogFooter className="mt-6 flex justify-between items-center border-t pt-4">
+          <DialogFooter className="mt-6 flex justify-between items-center border-t pt-4 flex-shrink-0">
             <Button variant="outline" onClick={() => setIsDetalharOpen(false)}>Fechar</Button>
             <div className="flex gap-2">
               <Button 
-                className="bg-[#8cc63f] hover:bg-green-600 text-white" 
+                className="bg-[#8cc63f] hover:bg-green-600 text-white disabled:opacity-50" 
                 disabled={
                   (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber.cancelar')) || 
                   isCarregandoDetalhes || 
                   !detalheConta ||
-                  detalheConta.observacao?.includes('importação do extrato') ||
+                  (() => {
+                    const hasExtrato = (obs: string) => obs && obs.toLowerCase().includes('extrato');
+                    if (hasExtrato(detalheConta.observacao)) return true;
+                    if (detalheConta.recebimentos) {
+                      return detalheConta.recebimentos.some((r: any) => hasExtrato(r.observacao) || hasExtrato(r.cObs));
+                    }
+                    if (detalheConta.recebimento) {
+                      return hasExtrato(detalheConta.recebimento.observacao) || hasExtrato(detalheConta.recebimento.cObs);
+                    }
+                    return false;
+                  })() ||
                   !(
                     (detalheConta.local_recebimentos && detalheConta.local_recebimentos.length > 0) ||
                     (detalheConta.recebimentos && detalheConta.recebimentos.length > 0) ||
-                    detalheConta.recebimento
+                    detalheConta.recebimento ||
+                    (selectedRows[0]?.valor_pago_calculado > 0)
+                  ) ||
+                  !(
+                    detalheConta.local_recebimentos?.[0]?.codigo_baixa || 
+                    detalheConta.recebimentos?.[0]?.codigo_baixa || 
+                    detalheConta.recebimentos?.[0]?.nCodBaixa || 
+                    detalheConta.recebimento?.codigo_baixa || 
+                    detalheConta.recebimento?.nCodBaixa
                   )
                 }
                 onClick={() => {
@@ -1121,6 +1147,8 @@ export default function CobrancaPage() {
                                       detalheConta.recebimento?.nCodBaixa;
                   if (codigoBaixa) {
                     handleCancelarRecebimento(codigoBaixa);
+                  } else {
+                    toast.error('Não foi possível identificar o código do recebimento para cancelamento.');
                   }
                 }}
               >
@@ -1128,12 +1156,12 @@ export default function CobrancaPage() {
                 Cancelar Recebimento
               </Button>
               <Button 
-                className="bg-[#d2e4b5] hover:bg-[#b3d482] text-gray-700" 
+                className="bg-[#d2e4b5] hover:bg-[#b3d482] text-gray-700 disabled:opacity-50" 
                 disabled={
                   (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber')) || 
                   isCarregandoDetalhes || 
                   !detalheConta || 
-                  (detalheConta.valor_documento || 0) - (detalheConta.resumo?.valor_pago || detalheConta.valor_pago || 0) <= 0
+                  ((detalheConta.valor_documento || 0) - (detalheConta.resumo?.valor_pago || detalheConta.valor_pago || selectedRows[0]?.valor_pago_calculado || 0) <= 0.01)
                 }
                 onClick={() => {
                   setIsDetalharOpen(false);

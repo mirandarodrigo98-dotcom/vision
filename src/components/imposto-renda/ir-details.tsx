@@ -59,7 +59,8 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
     method: '',
     account: '',
     attachment: null as File | null,
-    attachmentName: ''
+    attachmentName: '',
+    value: declaration.service_value ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(declaration.service_value) : ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -354,6 +355,9 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
       formData.append('receipt_date', receiptData.date);
       formData.append('receipt_method', receiptData.method);
       formData.append('receipt_account', receiptData.account);
+      if (receiptData.value) {
+        formData.append('receipt_value', receiptData.value);
+      }
       if (receiptData.attachment) {
         formData.append('attachment', receiptData.attachment);
       }
@@ -824,6 +828,27 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="receipt_value">Valor Recebido (R$)</Label>
+              <Input 
+                id="receipt_value" 
+                type="text" 
+                inputMode="numeric"
+                placeholder="0,00"
+                value={receiptData.value || ''}
+                onChange={e => {
+                  let val = e.target.value.replace(/\D/g, '');
+                  if (!val) {
+                    setReceiptData(prev => ({ ...prev, value: '' }));
+                    return;
+                  }
+                  val = (parseInt(val, 10) / 100).toFixed(2);
+                  val = val.replace('.', ',');
+                  val = val.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                  setReceiptData(prev => ({ ...prev, value: val }));
+                }}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="receipt_date">Data do Recebimento</Label>
               <Input 

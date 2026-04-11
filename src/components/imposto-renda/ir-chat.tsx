@@ -153,6 +153,7 @@ export function IRChat({ declarationId, interactions, currentUserEmail, status }
                     </div>
                     <div 
                       className="bg-muted p-3 rounded-lg text-sm w-full max-w-full break-words whitespace-pre-wrap overflow-hidden [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>img]:max-w-full [&>img]:rounded-md [&>div]:break-words [&>div]:whitespace-pre-wrap [&>span]:break-words [&>span]:whitespace-pre-wrap"
+                      style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
                       dangerouslySetInnerHTML={{ __html: interaction.content }} 
                     />
                     
