@@ -25,6 +25,11 @@ async function testExtrato() {
 
     if (contasAtivasIds.length === 0) return;
 
+    const todasCategorias = new Set<string>();
+    let maxDate = '';
+    let maxDateVal = 0;
+    const anos = new Set<string>();
+
     for (const nCodCC of contasAtivasIds) {
         const payload = {
             call: "ListarExtrato",
@@ -32,23 +37,42 @@ async function testExtrato() {
             app_secret: config.app_secret,
             param: [{
                 nCodCC: nCodCC,
-                dPeriodoInicial: "01/01/2024",
-                dPeriodoFinal: "31/12/2024"
+                dPeriodoInicial: "01/01/2025",
+                dPeriodoFinal: "31/12/2025"
             }]
         };
         try {
             const res = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payload);
             const movimentos = res.data.listaMovimentos || [];
             console.log(`CC ${nCodCC} - Movimentos count: ${movimentos.length}`);
-            const real = movimentos.find(m => m.cDesCliente !== 'SALDO' && m.cDesCliente !== 'SALDO ANTERIOR');
-            if (real) {
-                console.log(`Real item CC ${nCodCC}:`, real);
-                break;
+            
+            for (const m of movimentos) {
+                if (m.cDesCliente !== 'SALDO' && m.cDesCliente !== 'SALDO ANTERIOR') {
+                    if (m.nValorDocumento > 0) {
+                        todasCategorias.add(m.cDesCategoria);
+                    }
+                    if (m.dDataLancamento) {
+                        const parts = m.dDataLancamento.split('/');
+                        if (parts.length === 3) {
+                            anos.add(parts[2]);
+                            const val = parseInt(parts[2] + parts[1] + parts[0]);
+                            if (val > maxDateVal) {
+                                maxDateVal = val;
+                                maxDate = m.dDataLancamento;
+                            }
+                        }
+                    }
+                }
             }
         } catch (e: any) {
             console.error(`Erro CC ${nCodCC}:`, e.response?.data?.faultstring || e.message);
         }
     }
+    
+    console.log("Categorias com valores > 0:");
+    console.log(Array.from(todasCategorias));
+    console.log("Anos encontrados:", Array.from(anos));
+    console.log("Maior data encontrada:", maxDate);
 }
 
 testExtrato();
