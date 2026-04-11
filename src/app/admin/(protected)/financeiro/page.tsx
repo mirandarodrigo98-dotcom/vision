@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function FinanceiroPage() {
@@ -30,6 +30,23 @@ export default async function FinanceiroPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ChartBarIcon className="h-5 w-5" />
+              Dashboard Financeiro
+            </CardTitle>
+            <CardDescription>
+              Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/financeiro/dashboard">
+              <Button className="w-full bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white">Acessar Dashboard</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
