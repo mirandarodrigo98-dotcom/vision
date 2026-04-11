@@ -100,11 +100,10 @@ export function DashboardFinanceiro() {
                 <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80}>
                   <LabelList 
                     dataKey="value" 
-                    position="insideBottom" 
-                    angle={-90}
-                    offset={20} 
+                    position="top" 
+                    offset={10} 
                     formatter={(val: number) => val > 0 ? formatShortBRL(val).replace('R$ ', '') : ''} 
-                    style={{ fontSize: '12px', fontWeight: '900', fill: '#ffffff', textAnchor: 'middle' }} 
+                    style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} 
                   />
                   {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#94a3b8'} />
