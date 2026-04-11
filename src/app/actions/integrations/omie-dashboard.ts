@@ -98,134 +98,160 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     // 2. RECEITAS TOTAIS RECEBIDAS (REGIME DE CAIXA) -> via ListarExtrato
     let todasReceitas: any[] = [];
+    const extratoPromises: Promise<any[]>[] = [];
+
     for (const nCodCC of contasAtivasIds) {
       for (const periodo of periodosExtrato) {
-        let nPaginaExtrato = 1;
-        let totalPaginasExtrato = 1;
-        
-        do {
-          const payloadExtrato = {
-            call: "ListarExtrato",
-            app_key: appKey,
-            app_secret: appSecret,
-            param: [{
-              nCodCC,
-              dPeriodoInicial: periodo.de,
-              dPeriodoFinal: periodo.ate,
-              nPagina: nPaginaExtrato,
-              nRegPorPagina: 500
-            }]
-          };
-          try {
-            const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
-            const extrato = resExtrato.data.listaMovimentos || resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
-            totalPaginasExtrato = resExtrato.data.nTotPaginas || 1;
-            
-            const receitas = extrato.filter((item: any) => {
-              if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
-              if (item.cNatureza && item.cNatureza !== 'R') return false; // GARANTIR QUE É RECEITA
-              const valor = item.nValorDocumento || 0;
-              if (valor <= 0) return false; 
-              
-              const categoria = item.cDesCategoria || '';
-              return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
-            });
-            
-            todasReceitas = [...todasReceitas, ...receitas];
-          } catch (err: any) {
-            // Fallback sem paginação para APIs legadas
+        extratoPromises.push((async () => {
+          const localReceitas: any[] = [];
+          let nPaginaExtrato = 1;
+          let totalPaginasExtrato = 1;
+          do {
+            const payloadExtrato = {
+              call: "ListarExtrato",
+              app_key: appKey,
+              app_secret: appSecret,
+              param: [{
+                nCodCC,
+                dPeriodoInicial: periodo.de,
+                dPeriodoFinal: periodo.ate,
+                nPagina: nPaginaExtrato,
+                nRegPorPagina: 500
+              }]
+            };
             try {
-              const payloadExtratoSemPagina = {
-                call: "ListarExtrato",
-                app_key: appKey,
-                app_secret: appSecret,
-                param: [{
-                  nCodCC,
-                  dPeriodoInicial: periodo.de,
-                  dPeriodoFinal: periodo.ate
-                }]
-              };
-              const resExtrato2 = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtratoSemPagina);
-              const extrato2 = resExtrato2.data.listaMovimentos || resExtrato2.data.listaExtrato || resExtrato2.data.extrato || [];
-              const receitas2 = extrato2.filter((item: any) => {
+              const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
+              const extrato = resExtrato.data.listaMovimentos || resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
+              totalPaginasExtrato = resExtrato.data.nTotPaginas || 1;
+              
+              const receitas = extrato.filter((item: any) => {
                 if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
-                if (item.cNatureza && item.cNatureza !== 'R') return false; // GARANTIR QUE É RECEITA
+                if (item.cNatureza && item.cNatureza !== 'R') return false; 
                 const valor = item.nValorDocumento || 0;
-                if (valor <= 0) return false;
+                if (valor <= 0) return false; 
                 const categoria = item.cDesCategoria || '';
                 return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
               });
-              todasReceitas = [...todasReceitas, ...receitas2];
-            } catch (e2) {}
-            break;
-          }
-          nPaginaExtrato++;
-        } while (nPaginaExtrato <= totalPaginasExtrato);
+              localReceitas.push(...receitas);
+            } catch (err: any) {
+              try {
+                const payloadExtratoSemPagina = {
+                  call: "ListarExtrato",
+                  app_key: appKey,
+                  app_secret: appSecret,
+                  param: [{ nCodCC, dPeriodoInicial: periodo.de, dPeriodoFinal: periodo.ate }]
+                };
+                const resExtrato2 = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtratoSemPagina);
+                const extrato2 = resExtrato2.data.listaMovimentos || resExtrato2.data.listaExtrato || resExtrato2.data.extrato || [];
+                const receitas2 = extrato2.filter((item: any) => {
+                  if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+                  if (item.cNatureza && item.cNatureza !== 'R') return false; 
+                  const valor = item.nValorDocumento || 0;
+                  if (valor <= 0) return false;
+                  const categoria = item.cDesCategoria || '';
+                  return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
+                });
+                localReceitas.push(...receitas2);
+              } catch (e2) {}
+              break;
+            }
+            nPaginaExtrato++;
+          } while (nPaginaExtrato <= totalPaginasExtrato);
+          return localReceitas;
+        })());
       }
     }
+    const extratoResults = await Promise.all(extratoPromises);
+    extratoResults.forEach(arr => todasReceitas.push(...arr));
 
     // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
     let todosFaturamentos: any[] = [];
-    let paginaFaturamento = 1;
-    let totalPaginasFaturamento = 1;
-    do {
-      const payloadContas = {
-        call: "ListarContasReceber",
-        app_key: appKey,
-        app_secret: appSecret,
-        param: [{
-          pagina: paginaFaturamento,
-          registros_por_pagina: 500,
-          filtrar_por_data_de: dataDeStr,
-          filtrar_por_data_ate: dataAteStr
-        }]
-      };
-      try {
-        const resContas = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadContas);
-        const contas = resContas.data.conta_receber_cadastro || [];
-        totalPaginasFaturamento = resContas.data.total_de_paginas || 1;
-        
-        const fatFiltrados = contas.filter((item: any) => {
-          if (item.valor_documento <= 0) return false;
-          const nomeCategoria = categoriasMap.get(item.codigo_categoria) || '';
-          return CATEGORIAS_RECEITAS_TOTAIS.some(c => nomeCategoria.toLowerCase().includes(c.toLowerCase()));
-        });
-        
-        const faturamentosMapeados = fatFiltrados.map((c: any) => ({
-          data: c.data_emissao || c.data_previsao,
-          valor: c.valor_documento
-        }));
-
-        todosFaturamentos = [...todosFaturamentos, ...faturamentosMapeados];
-      } catch (err: any) {
-        console.warn(`Erro Faturamento pág ${paginaFaturamento}:`, err.response?.data?.faultstring || err.message);
-        break;
+    
+    // First request to get total pages
+    const payloadContasBase = {
+      call: "ListarContasReceber",
+      app_key: appKey,
+      app_secret: appSecret,
+      param: [{
+        pagina: 1,
+        registros_por_pagina: 500,
+        filtrar_por_data_de: dataDeStr,
+        filtrar_por_data_ate: dataAteStr
+      }]
+    };
+    
+    try {
+      const resContasBase = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadContasBase);
+      const totalPaginasFaturamento = resContasBase.data.total_de_paginas || 1;
+      
+      const contasPromises: Promise<any[]>[] = [];
+      for (let p = 1; p <= totalPaginasFaturamento; p++) {
+        contasPromises.push((async () => {
+          const payload = {
+            call: "ListarContasReceber",
+            app_key: appKey,
+            app_secret: appSecret,
+            param: [{
+              pagina: p,
+              registros_por_pagina: 500,
+              filtrar_por_data_de: dataDeStr,
+              filtrar_por_data_ate: dataAteStr
+            }]
+          };
+          try {
+            const res = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
+            const contas = res.data.conta_receber_cadastro || [];
+            const fatFiltrados = contas.filter((item: any) => {
+              if (item.valor_documento <= 0) return false;
+              const nomeCategoria = categoriasMap.get(item.codigo_categoria) || '';
+              return CATEGORIAS_RECEITAS_TOTAIS.some(c => nomeCategoria.toLowerCase().includes(c.toLowerCase()));
+            });
+            return fatFiltrados.map((c: any) => ({
+              data: c.data_emissao || c.data_previsao,
+              valor: c.valor_documento
+            }));
+          } catch (e) {
+            return [];
+          }
+        })());
       }
-      paginaFaturamento++;
-    } while (paginaFaturamento <= totalPaginasFaturamento);
+      
+      const faturamentoResults = await Promise.all(contasPromises);
+      faturamentoResults.forEach(arr => todosFaturamentos.push(...arr));
+    } catch (e) {}
 
     // 4. CONTRATOS E TICKET MÉDIO (HONORÁRIOS CONTÁBEIS)
     let todosContratos: any[] = [];
-    let paginaContratos = 1;
-    let totalPaginasContratos = 1;
-    do {
-      const payloadContratos = {
+    try {
+      const payloadContratosBase = {
         call: "ListarContratos",
         app_key: appKey,
         app_secret: appSecret,
-        param: [{ pagina: paginaContratos, registros_por_pagina: 100 }]
+        param: [{ pagina: 1, registros_por_pagina: 100 }]
       };
-      try {
-        const resContratos = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratos);
-        const contratos = resContratos.data.contratoCadastro || [];
-        todosContratos = [...todosContratos, ...contratos];
-        totalPaginasContratos = resContratos.data.total_de_paginas || 1;
-      } catch (err: any) {
-        console.warn(`Erro Contratos pág ${paginaContratos}:`, err.response?.data?.faultstring || err.message);
-        break;
+      const resContratosBase = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratosBase);
+      const totalPaginasContratos = resContratosBase.data.total_de_paginas || 1;
+      
+      const contratosPromises: Promise<any[]>[] = [];
+      for (let p = 1; p <= totalPaginasContratos; p++) {
+        contratosPromises.push((async () => {
+          const payload = {
+            call: "ListarContratos",
+            app_key: appKey,
+            app_secret: appSecret,
+            param: [{ pagina: p, registros_por_pagina: 100 }]
+          };
+          try {
+            const res = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payload);
+            return res.data.contratoCadastro || [];
+          } catch (e) {
+            return [];
+          }
+        })());
       }
-      paginaContratos++;
-    } while (paginaContratos <= totalPaginasContratos);
+      const contratosResults = await Promise.all(contratosPromises);
+      contratosResults.forEach(arr => todosContratos.push(...arr));
+    } catch (e) {}
 
     // Processamento
     const processarMeses = (dados: any[], dataKey: string, valKey: string) => {
