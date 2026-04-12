@@ -80,11 +80,13 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     const dataAte = new Date(today.getFullYear(), today.getMonth() + 1, 0); // fim do mês atual
     const dataAteStr = formatOmieDate(dataAte);
 
-    // Como o Omie tem limite de 300 registros no extrato, vamos quebrar por MÊS para não truncar os dados
+    // O Omie limita o ListarExtrato a um período máximo de cerca de 90 dias (3 meses) por requisição.
+    // Vamos quebrar em trimestres para minimizar o número de requisições (cerca de 5 trimestres para 14 meses)
+    // Isso evita o erro de Rate Limit (REDUNDANT) que ocorria ao fazer requisições mensais (84 requisições)
     const periodosExtrato: { de: string, ate: string }[] = [];
     let curDate = new Date(thirteenMonthsAgo.getTime());
     while (curDate <= dataAte) {
-      const nextDate = new Date(curDate.getFullYear(), curDate.getMonth() + 1, 0); // avança 1 mês (fim do mês)
+      const nextDate = new Date(curDate.getFullYear(), curDate.getMonth() + 3, 0); // avança 3 meses (fim do mês)
       const actualNext = nextDate > dataAte ? dataAte : nextDate;
       periodosExtrato.push({
         de: formatOmieDate(curDate),
@@ -96,7 +98,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     // 2. RECEITAS TOTAIS RECEBIDAS (REGIME DE CAIXA) -> via ListarExtrato
     let todasReceitas: any[] = [];
     const extratoPromises: (() => Promise<any[]>)[] = [];
-
+    
     for (const nCodCC of contasAtivasIds) {
       for (const periodo of periodosExtrato) {
         extratoPromises.push(async () => {
@@ -137,9 +139,6 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
                 success = true;
               } catch (err: any) {
                 const errMsg = err.response?.data?.faultstring || '';
-                // Omie throws an error if nPagina is passed but not supported? Wait, nPagina IS supported for ListarExtrato IF there's more data?
-                // Wait, no, Omie's ListarExtrato DOES support pagination if passed as `nPagina` and `nRegPorPagina`.
-                // If it fails with "Tag [NPAGINA] não faz parte", it means we must NOT use pagination.
                 if (errMsg.includes('NPAGINA')) {
                   try {
                     const payloadSemPagina = { ...payloadExtrato, param: [{ nCodCC, dPeriodoInicial: periodo.de, dPeriodoFinal: periodo.ate }] };
@@ -158,12 +157,12 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
                     success = true;
                   } catch (e2) {
                      retryCount++;
-                     await new Promise(r => setTimeout(r, 2000));
+                     await new Promise(r => setTimeout(r, 1000));
                   }
                 } else {
                   retryCount++;
                   if (retryCount >= 3) break;
-                  await new Promise(r => setTimeout(r, 2000));
+                  await new Promise(r => setTimeout(r, 1000));
                 }
               }
             }
@@ -174,14 +173,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       }
     }
     const extratoResults = [];
-    const batchSize = 2; // Reduce batch size to avoid Omie parallel limits
     console.log(`Starting extrato requests... Total promises: ${extratoPromises.length}`);
-    for (let i = 0; i < extratoPromises.length; i += batchSize) {
-      console.log(`Processing extrato batch ${i / batchSize + 1} of ${Math.ceil(extratoPromises.length / batchSize)}`);
-      const batch = extratoPromises.slice(i, i + batchSize);
-      const res = await Promise.all(batch.map(fn => fn()));
-      extratoResults.push(...res);
-      // Small delay between batches to avoid rate limits
+    for (let i = 0; i < extratoPromises.length; i++) {
+      console.log(`Processing extrato ${i + 1} of ${extratoPromises.length}`);
+      const res = await extratoPromises[i]();
+      extratoResults.push(res);
       await new Promise(r => setTimeout(r, 200));
     }
     console.log('Finished extrato requests');
@@ -240,10 +236,9 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       }
       
       const faturamentoResults = [];
-      for (let i = 0; i < contasPromises.length; i += batchSize) {
-        const batch = contasPromises.slice(i, i + batchSize);
-        const res = await Promise.all(batch.map(fn => fn()));
-        faturamentoResults.push(...res);
+      for (let i = 0; i < contasPromises.length; i++) {
+        const res = await contasPromises[i]();
+        faturamentoResults.push(res);
         await new Promise(r => setTimeout(r, 200));
       }
       faturamentoResults.forEach(arr => todosFaturamentos.push(...arr));
@@ -280,10 +275,9 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       }
       
       const contratosResults = [];
-      for (let i = 0; i < contratosPromises.length; i += batchSize) {
-        const batch = contratosPromises.slice(i, i + batchSize);
-        const res = await Promise.all(batch.map(fn => fn()));
-        contratosResults.push(...res);
+      for (let i = 0; i < contratosPromises.length; i++) {
+        const res = await contratosPromises[i]();
+        contratosResults.push(res);
         await new Promise(r => setTimeout(r, 200));
       }
       contratosResults.forEach(arr => todosContratos.push(...arr));
