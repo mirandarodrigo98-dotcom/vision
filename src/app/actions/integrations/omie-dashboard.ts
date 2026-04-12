@@ -70,7 +70,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     ccList.forEach((cc: any) => {
       const nome = cc.descricao || cc.cDescricao || '';
       if (CONTAS_ATIVAS.some(c => nome.toLowerCase().includes(c.toLowerCase()))) {
-        contasAtivasIds.push(cc.nIdCC || cc.nCodCC);
+        contasAtivasIds.push(cc.nCodCC || cc.nIdCC);
       }
     });
 
@@ -273,6 +273,8 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       return mapObj;
     };
 
+    // Para regime de caixa (extrato), a data é cDataInclusao ou dDataLancamento?
+    // Vamos garantir que pegamos a dDataLancamento.
     const receitasCaixaPorMes = processarMeses(todasReceitas, 'dDataLancamento', 'nValorDocumento');
     const faturamentoPorMes = processarMeses(todosFaturamentos, 'data', 'valor');
 

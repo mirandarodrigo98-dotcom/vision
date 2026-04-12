@@ -58,6 +58,11 @@ export function DashboardFinanceiro() {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   };
 
+  const formatCompactBRL = (val: any) => {
+    const num = Number(val) || 0;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact', compactDisplay: 'short' }).format(num);
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -81,14 +86,14 @@ export function DashboardFinanceiro() {
 
     return (
       <text 
-        x={cx} 
-        y={cy} 
-        fill="#ffffff" 
-        fontSize={12} 
-        fontWeight="bold" 
-        textAnchor="start"
-        transform={`rotate(-90, ${cx}, ${cy})`}
-      >
+          x={cx} 
+          y={cy} 
+          fill="#ffffff" 
+          fontSize={11} 
+          fontWeight="bold" 
+          textAnchor="start"
+          transform={`rotate(-90, ${cx}, ${cy})`}
+        >
         {formatShortBRL(value).replace('R$ ', '')}
       </text>
     );
@@ -149,7 +154,7 @@ export function DashboardFinanceiro() {
                 <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} interval={0} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatCompactBRL} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80} isAnimationActive={false}>
                     <LabelList dataKey="value" content={<CustomLabelVertical />} />
@@ -176,7 +181,7 @@ export function DashboardFinanceiro() {
                   <BarChart data={dataMesAtual} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatCompactBRL} />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                     <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60} isAnimationActive={false}>
                       <LabelList dataKey="value" content={<CustomLabelTop />} />
@@ -201,7 +206,7 @@ export function DashboardFinanceiro() {
                   <BarChart data={dataMesAnterior} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatShortBRL} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatCompactBRL} />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                     <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60} isAnimationActive={false}>
                       <LabelList dataKey="value" content={<CustomLabelTop />} />
