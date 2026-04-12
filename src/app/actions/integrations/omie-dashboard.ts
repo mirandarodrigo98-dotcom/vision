@@ -102,13 +102,14 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
 
     const formatOmieDate = (date: Date) => `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
     const today = new Date();
-    const thirteenMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 12, 1);
+    // Precisamos de dados desde 01/01 do ano anterior para compor o "Faturamento Total (Ano Anterior)" corretamente,
+    // e também garantir os meses comparativos (ex: 03/2025).
+    const dataInicialAnoAnterior = new Date(today.getFullYear() - 1, 0, 1); // 01/01/AnoAnterior
     
-    // Se tivermos cache válido, só precisamos buscar os últimos 3 meses (mês atual, mês anterior e retrasado)
-    // Isso reduz de 14 meses (5 requisições por conta) para 3 meses (1 requisição por conta)
-    const dataDeBusca = (cachedDataRaw && cachedDataRaw.blocoCaixa && cachedDataRaw.blocoCompetencia)
+    // Se tivermos cache válido e os dados históricos já existirem, só precisamos buscar os últimos 3 meses (mês atual, mês anterior e retrasado)
+    const dataDeBusca = (cachedDataRaw && cachedDataRaw.blocoCaixa && cachedDataRaw.blocoCompetencia && cachedDataRaw.receitasCaixaPorMes)
       ? new Date(today.getFullYear(), today.getMonth() - 2, 1) 
-      : thirteenMonthsAgo;
+      : dataInicialAnoAnterior;
     
     const dataDeStr = formatOmieDate(dataDeBusca);
     const dataAte = new Date(today.getFullYear(), today.getMonth() + 1, 0); // fim do mês atual
@@ -162,6 +163,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
                 const receitas = extrato.filter((item: any) => {
                   if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
                   if (item.cNatureza && item.cNatureza !== 'R') return false; 
+                  if (item.cSituacao && item.cSituacao.toLowerCase() === 'previsto') return false;
                   const valor = item.nValorDocumento || 0;
                   if (valor <= 0) return false; 
                   const categoria = item.cDesCategoria || '';
@@ -179,6 +181,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
                     const receitas = extrato.filter((item: any) => {
                       if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
                       if (item.cNatureza && item.cNatureza !== 'R') return false; 
+                      if (item.cSituacao && item.cSituacao.toLowerCase() === 'previsto') return false;
                       const valor = item.nValorDocumento || 0;
                       if (valor <= 0) return false; 
                       const categoria = item.cDesCategoria || '';
@@ -245,7 +248,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
                 payloadFaturamento.param[0].pagina = nPaginaFat;
                 const resFaturamento = await axios.post('https://app.omie.com.br/api/v1/servicos/os/', payloadFaturamento);
                 
-                const oss = resFaturamento.data.osCadastro || [];
+                const oss = resFaturamento.data.osCadastro?.filter((item: any) => item.InfoCadastro?.cCancelada !== 'S') || [];
                 totalPaginasFat = resFaturamento.data.total_de_paginas || 1;
 
                 localFaturamentos.push(...oss.map((item: any) => ({
@@ -341,25 +344,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
     const mapCaixaInicial: Record<string, number> = {};
     const mapFaturamentoInicial: Record<string, number> = {};
     if (cachedDataRaw) {
-      // Reconstroi os mapas baseando-se no ultimos12Meses
-      const currentMonthLastYearKey = `${today.getFullYear() - 1}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-      const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
-
-      if (cachedDataRaw.blocoCaixa?.ultimos12Meses) {
-        cachedDataRaw.blocoCaixa.ultimos12Meses.forEach((m: any) => {
-          mapCaixaInicial[m.month] = m.value;
-        });
-        mapCaixaInicial[currentMonthLastYearKey] = cachedDataRaw.blocoCaixa.mesAtual?.anoAnterior || 0;
-        mapCaixaInicial[previousMonthLastYearKey] = cachedDataRaw.blocoCaixa.mesAnterior?.anoAnterior || 0;
+      if (cachedDataRaw.receitasCaixaPorMes) {
+        Object.assign(mapCaixaInicial, cachedDataRaw.receitasCaixaPorMes);
       }
-      
-      if (cachedDataRaw.blocoCompetencia?.ultimos12Meses) {
-        cachedDataRaw.blocoCompetencia.ultimos12Meses.forEach((m: any) => {
-          mapFaturamentoInicial[m.month] = m.value;
-        });
-        mapFaturamentoInicial[currentMonthLastYearKey] = cachedDataRaw.blocoCompetencia.mesAtual?.anoAnterior || 0;
-        mapFaturamentoInicial[previousMonthLastYearKey] = cachedDataRaw.blocoCompetencia.mesAnterior?.anoAnterior || 0;
+      if (cachedDataRaw.faturamentoPorMes) {
+        Object.assign(mapFaturamentoInicial, cachedDataRaw.faturamentoPorMes);
       }
       
       // Zerar os últimos 3 meses no map inicial para serem sobrescritos pelas novas buscas
@@ -475,7 +464,9 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         anoCorrente: today.getFullYear(),
         mesAnteriorNome: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear()}`,
         mesAnteriorNomeAnoAnterior: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear() - 1}`
-      }
+      },
+      receitasCaixaPorMes,
+      faturamentoPorMes
     };
 
     // Salvar no Cache
