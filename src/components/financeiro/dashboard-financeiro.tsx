@@ -379,23 +379,23 @@ export function DashboardFinanceiro() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="shadow-sm border-l-4 border-l-slate-400">
               <CardContent className="p-6 flex flex-col gap-1">
-                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total ({blocoCaptacao.anoAnterior.label})</span>
+                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total ({blocoCaptacao.anoAnterior?.label})</span>
                 <div className="flex items-center gap-4 mt-2">
                   <div>
                     <span className="text-xs text-slate-400 uppercase font-semibold">Entradas</span>
                     <div className="flex items-center gap-1">
-                      <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.anoAnterior.entradas}</p>
-                      <span className={`text-xs font-bold ${blocoCaptacao.anoAnterior.variacaoEntradas >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {blocoCaptacao.anoAnterior.variacaoEntradas >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoAnterior.variacaoEntradas).toFixed(1)}%
+                      <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.anoAnterior?.entradas || 0}</p>
+                      <span className={`text-xs font-bold ${(blocoCaptacao.anoAnterior?.variacaoEntradas || 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {(blocoCaptacao.anoAnterior?.variacaoEntradas || 0) >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoAnterior?.variacaoEntradas || 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
                   <div>
                     <span className="text-xs text-slate-400 uppercase font-semibold">Saídas</span>
                     <div className="flex items-center gap-1">
-                      <p className="text-2xl font-black text-rose-500">{blocoCaptacao.anoAnterior.saidas}</p>
-                      <span className={`text-xs font-bold ${blocoCaptacao.anoAnterior.variacaoSaidas <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {blocoCaptacao.anoAnterior.variacaoSaidas >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoAnterior.variacaoSaidas).toFixed(1)}%
+                      <p className="text-2xl font-black text-rose-500">{blocoCaptacao.anoAnterior?.saidas || 0}</p>
+                      <span className={`text-xs font-bold ${(blocoCaptacao.anoAnterior?.variacaoSaidas || 0) <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {(blocoCaptacao.anoAnterior?.variacaoSaidas || 0) >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoAnterior?.variacaoSaidas || 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
@@ -405,23 +405,23 @@ export function DashboardFinanceiro() {
 
             <Card className="shadow-sm border-l-4 border-l-indigo-500">
               <CardContent className="p-6 flex flex-col gap-1">
-                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total ({blocoCaptacao.anoCorrente.label})</span>
+                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total ({blocoCaptacao.anoCorrente?.label})</span>
                 <div className="flex items-center gap-4 mt-2">
                   <div>
                     <span className="text-xs text-slate-400 uppercase font-semibold">Entradas</span>
                     <div className="flex items-center gap-1">
-                      <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.anoCorrente.entradas}</p>
-                      <span className={`text-xs font-bold ${blocoCaptacao.anoCorrente.variacaoEntradas >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {blocoCaptacao.anoCorrente.variacaoEntradas >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoCorrente.variacaoEntradas).toFixed(1)}%
+                      <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.anoCorrente?.entradas || 0}</p>
+                      <span className={`text-xs font-bold ${(blocoCaptacao.anoCorrente?.variacaoEntradas || 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {(blocoCaptacao.anoCorrente?.variacaoEntradas || 0) >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoCorrente?.variacaoEntradas || 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
                   <div>
                     <span className="text-xs text-slate-400 uppercase font-semibold">Saídas</span>
                     <div className="flex items-center gap-1">
-                      <p className="text-2xl font-black text-rose-500">{blocoCaptacao.anoCorrente.saidas}</p>
-                      <span className={`text-xs font-bold ${blocoCaptacao.anoCorrente.variacaoSaidas <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {blocoCaptacao.anoCorrente.variacaoSaidas >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoCorrente.variacaoSaidas).toFixed(1)}%
+                      <p className="text-2xl font-black text-rose-500">{blocoCaptacao.anoCorrente?.saidas || 0}</p>
+                      <span className={`text-xs font-bold ${(blocoCaptacao.anoCorrente?.variacaoSaidas || 0) <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {(blocoCaptacao.anoCorrente?.variacaoSaidas || 0) >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.anoCorrente?.variacaoSaidas || 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
@@ -429,32 +429,34 @@ export function DashboardFinanceiro() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-l-4 border-l-emerald-500">
-              <CardContent className="p-6 flex flex-col gap-1">
-                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{blocoCaptacao.trimestre.label}</span>
-                <p className="text-[10px] text-slate-400 mt-0.5 mb-2 leading-tight">vs mesmo período do ano anterior</p>
-                <div className="flex items-center gap-4 mt-1">
-                  <div>
-                    <span className="text-xs text-slate-400 uppercase font-semibold">Entradas</span>
-                    <div className="flex items-center gap-1">
-                      <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.trimestre.entradas}</p>
-                      <span className={`text-xs font-bold ${blocoCaptacao.trimestre.variacaoEntradas >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {blocoCaptacao.trimestre.variacaoEntradas >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.trimestre.variacaoEntradas).toFixed(1)}%
-                      </span>
+            {blocoCaptacao.trimestre && (
+              <Card className="shadow-sm border-l-4 border-l-emerald-500">
+                <CardContent className="p-6 flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{blocoCaptacao.trimestre?.label}</span>
+                  <p className="text-[10px] text-slate-400 mt-0.5 mb-2 leading-tight">vs mesmo período do ano anterior</p>
+                  <div className="flex items-center gap-4 mt-1">
+                    <div>
+                      <span className="text-xs text-slate-400 uppercase font-semibold">Entradas</span>
+                      <div className="flex items-center gap-1">
+                        <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.trimestre?.entradas || 0}</p>
+                        <span className={`text-xs font-bold ${(blocoCaptacao.trimestre?.variacaoEntradas || 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {(blocoCaptacao.trimestre?.variacaoEntradas || 0) >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.trimestre?.variacaoEntradas || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-400 uppercase font-semibold">Saídas</span>
+                      <div className="flex items-center gap-1">
+                        <p className="text-2xl font-black text-rose-500">{blocoCaptacao.trimestre?.saidas || 0}</p>
+                        <span className={`text-xs font-bold ${(blocoCaptacao.trimestre?.variacaoSaidas || 0) <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {(blocoCaptacao.trimestre?.variacaoSaidas || 0) >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.trimestre?.variacaoSaidas || 0).toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <span className="text-xs text-slate-400 uppercase font-semibold">Saídas</span>
-                    <div className="flex items-center gap-1">
-                      <p className="text-2xl font-black text-rose-500">{blocoCaptacao.trimestre.saidas}</p>
-                      <span className={`text-xs font-bold ${blocoCaptacao.trimestre.variacaoSaidas <= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {blocoCaptacao.trimestre.variacaoSaidas >= 0 ? '↑' : '↓'}{Math.abs(blocoCaptacao.trimestre.variacaoSaidas).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       )}
