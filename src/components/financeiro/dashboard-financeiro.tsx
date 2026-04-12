@@ -229,7 +229,6 @@ export function DashboardFinanceiro() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard Financeiro</h1>
           {data?.updated_at && (
             <p className="text-sm text-muted-foreground mt-1">
               Última Atualização em {new Date(data.updated_at).toLocaleDateString('pt-BR')} às {new Date(data.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -284,7 +283,7 @@ export function DashboardFinanceiro() {
           <Card className="shadow-sm border-l-4 border-l-orange-500">
             <CardContent className="p-6 flex flex-col gap-1">
               <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Faturamento Total ({blocoHonorarios.anoAnterior})</span>
-              <span className="text-2xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoTotalAnoAnterior || 0)}</span>
+              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoTotalAnoAnterior || 0)}</span>
               <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
                 <span className="text-sm font-bold text-slate-600">Média: {formatBRL(blocoHonorarios.mediaMensalAnoAnterior || 0)}/mês</span>
               </div>

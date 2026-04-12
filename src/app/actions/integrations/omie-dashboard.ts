@@ -205,11 +205,14 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
       }
     }
     const extratoResults = [];
+    console.log(`Starting extrato requests... Total promises: ${extratoPromises.length}`);
     for (let i = 0; i < extratoPromises.length; i++) {
+      console.log(`Processing extrato ${i + 1} of ${extratoPromises.length}`);
       const res = await extratoPromises[i]();
       extratoResults.push(res);
       await new Promise(r => setTimeout(r, 200));
     }
+    console.log('Finished extrato requests');
     extratoResults.forEach(arr => todasReceitas.push(...arr));
 
     // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarFaturamento
@@ -229,31 +232,43 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
               dPeriodoFinal: periodo.ate
             }]
           };
-          let nfsePagina = 1;
-          let nfseTotalPaginas = 1;
+          let nPaginaFat = 1;
+          let totalPaginasFat = 1;
 
-          while (nfsePagina <= nfseTotalPaginas) {
+          while (nPaginaFat <= totalPaginasFat) {
             let retryFat = 0;
             let fatSuccess = false;
             while (retryFat < 3 && !fatSuccess) {
               try {
-                const resNfse = await axios.post('https://app.omie.com.br/api/v1/servicos/nfse/', {
-                   call: "ListarNfse",
-                   app_key: appKey,
-                   app_secret: appSecret,
-                   param: [{
-                     pagina: nfsePagina,
-                     registros_por_pagina: 500,
-                     dDtEmisDe: periodo.de,
-                     dDtEmisAte: periodo.ate
-                   }]
+                // Voltar para Contas a Receber, pois NFSe nem sempre é emitida.
+                // O faturamento do contrato gera uma Conta a Receber (status_titulo pode ser RECEBIDO, EM ABERTO, etc).
+                const resFaturamento = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', {
+                  call: "ListarContasReceber",
+                  app_key: appKey,
+                  app_secret: appSecret,
+                  param: [{
+                    pagina: nPaginaFat,
+                    registros_por_pagina: 500,
+                    filtrar_por_data_de: periodo.de,
+                    filtrar_por_data_ate: periodo.ate
+                  }]
                 });
-                const nfseList = resNfse.data.nfse || [];
-                nfseTotalPaginas = resNfse.data.nTotPaginas || 1;
+                
+                const contasReceber = resFaturamento.data.conta_receber_cadastro || [];
+                totalPaginasFat = resFaturamento.data.total_de_paginas || 1;
 
-                localFaturamentos.push(...nfseList.map((item: any) => ({
-                  data: item.cabecalho?.dDtEmis,
-                  valor: item.valores?.nValLiq || item.valores?.nValServicos || 0
+                const filtrados = contasReceber.filter((item: any) => {
+                  const valor = item.valor_documento || 0;
+                  if (valor <= 0) return false;
+                  // Filtrar apenas categorias de Faturamento
+                  return item.categorias?.some((cat: any) => {
+                    return CATEGORIAS_FATURAMENTO.some(c => cat.descricao?.toLowerCase().includes(c.toLowerCase()));
+                  });
+                });
+
+                localFaturamentos.push(...filtrados.map((item: any) => ({
+                  data: item.data_previsao || item.data_vencimento, 
+                  valor: item.valor_documento
                 })));
                 fatSuccess = true;
               } catch (e: any) {
@@ -262,18 +277,21 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
                 await new Promise(r => setTimeout(r, 1000));
               }
             }
-            nfsePagina++;
+            nPaginaFat++;
           }
           return localFaturamentos;
         });
       }
       
       const faturamentoResults = [];
+      console.log(`Starting faturamento requests... Total promises: ${faturamentoPromises.length}`);
       for (let i = 0; i < faturamentoPromises.length; i++) {
+        console.log(`Processing faturamento ${i + 1} of ${faturamentoPromises.length}`);
         const res = await faturamentoPromises[i]();
         faturamentoResults.push(res);
         await new Promise(r => setTimeout(r, 200));
       }
+      console.log('Finished faturamento requests');
       faturamentoResults.forEach(arr => todosFaturamentos.push(...arr));
     } catch (e) {}
 
@@ -394,14 +412,14 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         mesAtual: {
           atual: mapData[currentMonthKey] || 0,
           anoAnterior: mapData[currentMonthLastYearKey] || 0,
-          labelAtual: today.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
-          labelAnoAnterior: new Date(today.getFullYear() - 1, today.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${today.getFullYear() - 1}`
+          labelAtual: `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`,
+          labelAnoAnterior: `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear() - 1}`
         },
         mesAnterior: {
           atual: mapData[previousMonthKey] || 0,
           anoAnterior: mapData[previousMonthLastYearKey] || 0,
-          labelAtual: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase(),
-          labelAnoAnterior: new Date(previousMonthDate.getFullYear() - 1, previousMonthDate.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + ` ${previousMonthDate.getFullYear() - 1}`
+          labelAtual: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear()}`,
+          labelAnoAnterior: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear() - 1}`
         }
       };
     };
@@ -434,11 +452,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
     // Crescimento Mês Anterior (RRM e Ticket)
     const variacaoRRM = faturamentoMesAnteriorAnoAnterior > 0 
       ? ((faturamentoMesAnterior - faturamentoMesAnteriorAnoAnterior) / faturamentoMesAnteriorAnoAnterior) * 100 
-      : 0;
+      : (faturamentoMesAnterior > 0 ? 100 : 0);
     
     const variacaoTicket = ticketMedioMesAnteriorAnoAnterior > 0 
       ? ((ticketMedioMesAnterior - ticketMedioMesAnteriorAnoAnterior) / ticketMedioMesAnteriorAnoAnterior) * 100 
-      : 0;
+      : (ticketMedioMesAnterior > 0 ? 100 : 0);
 
     // Faturamento Total do Ano Anterior
     let faturamentoTotalAnoAnterior = 0;
@@ -473,8 +491,8 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         faturamentoAcumuladoAnoCorrente,
         anoAnterior: today.getFullYear() - 1,
         anoCorrente: today.getFullYear(),
-        mesAnteriorNome: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + '/' + previousMonthDate.getFullYear(),
-        mesAnteriorNomeAnoAnterior: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + '/' + (previousMonthDate.getFullYear() - 1)
+        mesAnteriorNome: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear()}`,
+        mesAnteriorNomeAnoAnterior: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear() - 1}`
       }
     };
 

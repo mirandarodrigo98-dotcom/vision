@@ -1,3 +1,8 @@
 {
-  "installCommand": "npm install --legacy-peer-deps"
+  "crons": [
+    {
+      "path": "/api/cron/omie-dashboard",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }
