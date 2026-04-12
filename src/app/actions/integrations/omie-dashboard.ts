@@ -18,6 +18,7 @@ const CATEGORIAS_HONORARIOS = [
 const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha'];
 
 export async function getDashboardFinanceiroData(forceRefresh = false) {
+  let cachedDataRaw: any = null;
   if (!forceRefresh) {
     try {
       const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
@@ -30,6 +31,14 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     } catch (e) {
       console.warn("Aviso: tabela de cache não encontrada ou erro de leitura.");
     }
+  } else {
+    // Se for atualização forçada, carregamos o cache para fazer atualização INCREMENTAL rápida
+    try {
+      const cached = (await db.query('SELECT data FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
+      if (cached && cached.data) {
+        cachedDataRaw = cached.data;
+      }
+    } catch (e) {}
   }
 
   const config = await getOmieConfig();
@@ -49,7 +58,13 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       app_secret: appSecret,
       param: [{ pagina: 1, registros_por_pagina: 500 }]
     };
-    const resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
+    let resCat: any;
+    try {
+      resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
+    } catch (e: any) {
+      console.log('Error Categ:', e.response?.data);
+      resCat = { data: { categoria_cadastro: [] } };
+    }
     const catList = resCat.data.categoria_cadastro || [];
     const categoriasMap = new Map();
     catList.forEach((cat: any) => categoriasMap.set(cat.codigo, cat.descricao));
@@ -60,7 +75,10 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       app_secret: appSecret,
       param: [{ pagina: 1, registros_por_pagina: 500 }]
     };
-    const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
+    const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc).catch(e => {
+      console.log('Error CC:', e.response?.data);
+      return { data: { ListarContasCorrentes: [] } };
+    });
     const ccList = resCc.data.ListarContasCorrentes || [];
     
     const contasAtivasIds: number[] = [];
@@ -70,21 +88,25 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
         contasAtivasIds.push(cc.nCodCC || cc.nIdCC);
       }
     });
+    console.log('Contas ativas:', contasAtivasIds);
 
     const formatOmieDate = (date: Date) => `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
     const today = new Date();
-    // 12 meses para trás a partir do início do mês atual (ex: se estamos em Abr 26, pega desde Mai 25)
-    // Para ter o ano anterior completo para comparação do Mês Anterior (ex: Março 25), precisamos voltar 13 meses.
     const thirteenMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 13, 1);
-    const dataDeStr = formatOmieDate(thirteenMonthsAgo);
+    
+    // Se tivermos cache válido, só precisamos buscar os últimos 3 meses (mês atual, mês anterior e retrasado)
+    // Isso reduz de 14 meses (5 requisições por conta) para 3 meses (1 requisição por conta)
+    const dataDeBusca = (cachedDataRaw && cachedDataRaw.blocoCaixa && cachedDataRaw.blocoCompetencia)
+      ? new Date(today.getFullYear(), today.getMonth() - 2, 1) 
+      : thirteenMonthsAgo;
+    
+    const dataDeStr = formatOmieDate(dataDeBusca);
     const dataAte = new Date(today.getFullYear(), today.getMonth() + 1, 0); // fim do mês atual
     const dataAteStr = formatOmieDate(dataAte);
 
     // O Omie limita o ListarExtrato a um período máximo de cerca de 90 dias (3 meses) por requisição.
-    // Vamos quebrar em trimestres para minimizar o número de requisições (cerca de 5 trimestres para 14 meses)
-    // Isso evita o erro de Rate Limit (REDUNDANT) que ocorria ao fazer requisições mensais (84 requisições)
     const periodosExtrato: { de: string, ate: string }[] = [];
-    let curDate = new Date(thirteenMonthsAgo.getTime());
+    let curDate = new Date(dataDeBusca.getTime());
     while (curDate <= dataAte) {
       const nextDate = new Date(curDate.getFullYear(), curDate.getMonth() + 3, 0); // avança 3 meses (fim do mês)
       const actualNext = nextDate > dataAte ? dataAte : nextDate;
@@ -173,14 +195,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       }
     }
     const extratoResults = [];
-    console.log(`Starting extrato requests... Total promises: ${extratoPromises.length}`);
     for (let i = 0; i < extratoPromises.length; i++) {
-      console.log(`Processing extrato ${i + 1} of ${extratoPromises.length}`);
       const res = await extratoPromises[i]();
       extratoResults.push(res);
       await new Promise(r => setTimeout(r, 200));
     }
-    console.log('Finished extrato requests');
     extratoResults.forEach(arr => todasReceitas.push(...arr));
 
     // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
@@ -217,21 +236,31 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
               filtrar_por_data_ate: dataAteStr
             }]
           };
-          try {
-            const res = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
-            const contas = res.data.conta_receber_cadastro || [];
-            const fatFiltrados = contas.filter((item: any) => {
-              if (item.valor_documento <= 0) return false;
-              const nomeCategoria = categoriasMap.get(item.codigo_categoria) || '';
-              return CATEGORIAS_RECEITAS_TOTAIS.some(c => nomeCategoria.toLowerCase().includes(c.toLowerCase()));
-            });
-            return fatFiltrados.map((c: any) => ({
-              data: c.data_emissao || c.data_previsao,
-              valor: c.valor_documento
-            }));
-          } catch (e) {
-            return [];
+          let retryFat = 0;
+          let fatSuccess = false;
+          while (retryFat < 3 && !fatSuccess) {
+            try {
+              const res = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
+              const contas = res.data.conta_receber_cadastro || [];
+              const fatFiltrados = contas.filter((item: any) => {
+                if (item.valor_documento <= 0) return false;
+                const nomeCategoria = categoriasMap.get(item.codigo_categoria) || '';
+                return CATEGORIAS_RECEITAS_TOTAIS.some(c => nomeCategoria.toLowerCase().includes(c.toLowerCase()));
+              });
+              fatSuccess = true;
+              return fatFiltrados.map((c: any) => ({
+                data: c.data_emissao || c.data_previsao,
+                valor: c.valor_documento
+              }));
+            } catch (e: any) {
+              retryFat++;
+              if (retryFat >= 3) {
+                return [];
+              }
+              await new Promise(r => setTimeout(r, 1000));
+            }
           }
+          return [];
         });
       }
       
@@ -265,12 +294,18 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
             app_secret: appSecret,
             param: [{ pagina: p, registros_por_pagina: 100 }]
           };
-          try {
-            const res = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payload);
-            return res.data.contratoCadastro || [];
-          } catch (e) {
-            return [];
+          let retryCount = 0;
+          while (retryCount < 3) {
+            try {
+              const res = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payload);
+              return res.data.contratoCadastro || [];
+            } catch (e: any) {
+              retryCount++;
+              if (retryCount >= 3) return [];
+              await new Promise(r => setTimeout(r, 1000));
+            }
           }
+          return [];
         });
       }
       
@@ -284,8 +319,8 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     } catch (e) {}
 
     // Processamento
-    const processarMeses = (dados: any[], dataKey: string, valKey: string) => {
-      const mapObj: Record<string, number> = {};
+    const processarMeses = (dados: any[], dataKey: string, valKey: string, mapInicial: Record<string, number> = {}) => {
+      const mapObj: Record<string, number> = { ...mapInicial };
       dados.forEach(r => {
         const d = r[dataKey];
         if (!d) return;
@@ -298,10 +333,42 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       return mapObj;
     };
 
-    // Para regime de caixa (extrato), a data é cDataInclusao ou dDataLancamento?
-    // Vamos garantir que pegamos a dDataLancamento.
-    const receitasCaixaPorMes = processarMeses(todasReceitas, 'dDataLancamento', 'nValorDocumento');
-    const faturamentoPorMes = processarMeses(todosFaturamentos, 'data', 'valor');
+    // Carregar dados antigos do cache se for atualização incremental
+    const mapCaixaInicial: Record<string, number> = {};
+    const mapFaturamentoInicial: Record<string, number> = {};
+    if (cachedDataRaw) {
+      // Reconstroi os mapas baseando-se no ultimos12Meses
+      const currentMonthLastYearKey = `${today.getFullYear() - 1}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+      if (cachedDataRaw.blocoCaixa?.ultimos12Meses) {
+        cachedDataRaw.blocoCaixa.ultimos12Meses.forEach((m: any) => {
+          mapCaixaInicial[m.month] = m.value;
+        });
+        mapCaixaInicial[currentMonthLastYearKey] = cachedDataRaw.blocoCaixa.mesAtual?.anoAnterior || 0;
+        mapCaixaInicial[previousMonthLastYearKey] = cachedDataRaw.blocoCaixa.mesAnterior?.anoAnterior || 0;
+      }
+      
+      if (cachedDataRaw.blocoCompetencia?.ultimos12Meses) {
+        cachedDataRaw.blocoCompetencia.ultimos12Meses.forEach((m: any) => {
+          mapFaturamentoInicial[m.month] = m.value;
+        });
+        mapFaturamentoInicial[currentMonthLastYearKey] = cachedDataRaw.blocoCompetencia.mesAtual?.anoAnterior || 0;
+        mapFaturamentoInicial[previousMonthLastYearKey] = cachedDataRaw.blocoCompetencia.mesAnterior?.anoAnterior || 0;
+      }
+      
+      // Zerar os últimos 3 meses no map inicial para serem sobrescritos pelas novas buscas
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        mapCaixaInicial[k] = 0;
+        mapFaturamentoInicial[k] = 0;
+      }
+    }
+
+    const receitasCaixaPorMes = processarMeses(todasReceitas, 'dDataLancamento', 'nValorDocumento', mapCaixaInicial);
+    const faturamentoPorMes = processarMeses(todosFaturamentos, 'data', 'valor', mapFaturamentoInicial);
 
     const buildCharts = (mapData: Record<string, number>) => {
       const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
