@@ -17,21 +17,31 @@ const CATEGORIAS_HONORARIOS = [
 
 const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha'];
 
-export async function getDashboardFinanceiroData(forceRefresh = false) {
+export async function getDashboardFinanceiroData(forceRefresh = false, fullRefresh = false) {
   let cachedDataRaw: any = null;
+  const now = new Date();
+  
   if (!forceRefresh) {
     try {
       const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
       if (cached && cached.data) {
         const lastUpdate = new Date(cached.updated_at);
-        // O usuário pediu: "só será executado ao clicar no botão Atualizar Dados. não execute mais ao entrar no modulo"
-        // Ou seja, se não for forceRefresh, SEMPRE devolve o cache se ele existir, ignorando as 12 horas.
-        return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
+        // Regra de recarga automática às 6h da manhã
+        // Se a hora atual for >= 6 e a última atualização for de antes das 6h de hoje, força recarga completa
+        const today6AM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0, 0);
+        if (now >= today6AM && lastUpdate < today6AM) {
+          fullRefresh = true;
+          forceRefresh = true;
+        } else {
+          return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
+        }
       }
     } catch (e) {
       console.warn("Aviso: tabela de cache não encontrada ou erro de leitura.");
     }
-  } else {
+  }
+  
+  if (forceRefresh && !fullRefresh) {
     // Se for atualização forçada, carregamos o cache para fazer atualização INCREMENTAL rápida
     try {
       const cached = (await db.query('SELECT data FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
@@ -92,7 +102,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     const formatOmieDate = (date: Date) => `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
     const today = new Date();
-    const thirteenMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 13, 1);
+    const thirteenMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 12, 1);
     
     // Se tivermos cache válido, só precisamos buscar os últimos 3 meses (mês atual, mês anterior e retrasado)
     // Isso reduz de 14 meses (5 requisições por conta) para 3 meses (1 requisição por conta)
@@ -202,71 +212,65 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     }
     extratoResults.forEach(arr => todasReceitas.push(...arr));
 
-    // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarContasReceber (data de emissão)
+    // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarFaturamento
     let todosFaturamentos: any[] = [];
-    
-    // First request to get total pages
-    const payloadContasBase = {
-      call: "ListarContasReceber",
-      app_key: appKey,
-      app_secret: appSecret,
-      param: [{
-        pagina: 1,
-        registros_por_pagina: 500,
-        filtrar_por_data_de: dataDeStr,
-        filtrar_por_data_ate: dataAteStr
-      }]
-    };
-    
     try {
-      const resContasBase = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadContasBase);
-      const totalPaginasFaturamento = resContasBase.data.total_de_paginas || 1;
-      
-      const contasPromises: (() => Promise<any[]>)[] = [];
-      for (let p = 1; p <= totalPaginasFaturamento; p++) {
-        contasPromises.push(async () => {
-          const payload = {
-            call: "ListarContasReceber",
+      const faturamentoPromises: (() => Promise<any[]>)[] = [];
+      for (const periodo of periodosExtrato) {
+        faturamentoPromises.push(async () => {
+          const payloadFaturamento = {
+            call: "ListarFaturamento",
             app_key: appKey,
             app_secret: appSecret,
             param: [{
-              pagina: p,
+              pagina: 1,
               registros_por_pagina: 500,
-              filtrar_por_data_de: dataDeStr,
-              filtrar_por_data_ate: dataAteStr
+              dPeriodoInicial: periodo.de,
+              dPeriodoFinal: periodo.ate
             }]
           };
-          let retryFat = 0;
-          let fatSuccess = false;
-          while (retryFat < 3 && !fatSuccess) {
-            try {
-              const res = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
-              const contas = res.data.conta_receber_cadastro || [];
-              const fatFiltrados = contas.filter((item: any) => {
-                if (item.valor_documento <= 0) return false;
-                const nomeCategoria = categoriasMap.get(item.codigo_categoria) || '';
-                return CATEGORIAS_RECEITAS_TOTAIS.some(c => nomeCategoria.toLowerCase().includes(c.toLowerCase()));
-              });
-              fatSuccess = true;
-              return fatFiltrados.map((c: any) => ({
-                data: c.data_emissao || c.data_previsao,
-                valor: c.valor_documento
-              }));
-            } catch (e: any) {
-              retryFat++;
-              if (retryFat >= 3) {
-                return [];
+          let nfsePagina = 1;
+          let nfseTotalPaginas = 1;
+
+          while (nfsePagina <= nfseTotalPaginas) {
+            let retryFat = 0;
+            let fatSuccess = false;
+            while (retryFat < 3 && !fatSuccess) {
+              try {
+                const resNfse = await axios.post('https://app.omie.com.br/api/v1/servicos/nfse/', {
+                   call: "ListarNfse",
+                   app_key: appKey,
+                   app_secret: appSecret,
+                   param: [{
+                     pagina: nfsePagina,
+                     registros_por_pagina: 500,
+                     dDtEmisDe: periodo.de,
+                     dDtEmisAte: periodo.ate
+                   }]
+                });
+                const nfseList = resNfse.data.nfse || [];
+                nfseTotalPaginas = resNfse.data.nTotPaginas || 1;
+
+                localFaturamentos.push(...nfseList.map((item: any) => ({
+                  data: item.cabecalho?.dDtEmis,
+                  valor: item.valores?.nValLiq || item.valores?.nValServicos || 0
+                })));
+                fatSuccess = true;
+              } catch (e: any) {
+                retryFat++;
+                if (retryFat >= 3) break;
+                await new Promise(r => setTimeout(r, 1000));
               }
-              await new Promise(r => setTimeout(r, 1000));
             }
+            nfsePagina++;
           }
-          return [];
+          return localFaturamentos;
         });
       }
       
       const faturamentoResults = [];
-      for (let i = 0; i < contasPromises.length; i++) {
-        const res = await contasPromises[i]();
+      for (let i = 0; i < faturamentoPromises.length; i++) {
+        const res = await faturamentoPromises[i]();
         faturamentoResults.push(res);
         await new Promise(r => setTimeout(r, 200));
       }
@@ -277,11 +281,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
     let todosContratos: any[] = [];
     try {
       const payloadContratosBase = {
-        call: "ListarContratos",
-        app_key: appKey,
-        app_secret: appSecret,
-        param: [{ pagina: 1, registros_por_pagina: 100 }]
-      };
+            call: "ListarContratos",
+            app_key: appKey,
+            app_secret: appSecret,
+            param: [{ pagina: 1, registros_por_pagina: 100 }]
+          };
       const resContratosBase = await axios.post('https://app.omie.com.br/api/v1/servicos/contrato/', payloadContratosBase);
       const totalPaginasContratos = resContratosBase.data.total_de_paginas || 1;
       
@@ -378,10 +382,10 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       const previousMonthLastYearKey = `${previousMonthDate.getFullYear() - 1}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
       const ultimos12Meses = [];
-      for (let i = 11; i >= 0; i--) {
+      for (let i = 12; i >= 1; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
+        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear())}`;
         ultimos12Meses.push({ month: key, label, value: mapData[key] || 0 });
       }
 
@@ -423,38 +427,54 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
 
     // Faturamento e ticket médio do mês anterior vs ano anterior
     const faturamentoMesAnterior = faturamentoPorMes[previousMonthKey] || 0;
-    const ticketMedioMesAnterior = faturamentoMesAnterior / numClientesAtivos;
+    const ticketMedioMesAnterior = numClientesAtivos > 0 ? faturamentoMesAnterior / numClientesAtivos : 0;
     const faturamentoMesAnteriorAnoAnterior = faturamentoPorMes[previousMonthLastYearKey] || 0;
-    const ticketMedioMesAnteriorAnoAnterior = faturamentoMesAnteriorAnoAnterior / numClientesAtivos;
+    const ticketMedioMesAnteriorAnoAnterior = numClientesAtivos > 0 ? faturamentoMesAnteriorAnoAnterior / numClientesAtivos : 0;
 
-    // Acumulados do ano corrente
+    // Crescimento Mês Anterior (RRM e Ticket)
+    const variacaoRRM = faturamentoMesAnteriorAnoAnterior > 0 
+      ? ((faturamentoMesAnterior - faturamentoMesAnteriorAnoAnterior) / faturamentoMesAnteriorAnoAnterior) * 100 
+      : 0;
+    
+    const variacaoTicket = ticketMedioMesAnteriorAnoAnterior > 0 
+      ? ((ticketMedioMesAnterior - ticketMedioMesAnteriorAnoAnterior) / ticketMedioMesAnteriorAnoAnterior) * 100 
+      : 0;
+
+    // Faturamento Total do Ano Anterior
+    let faturamentoTotalAnoAnterior = 0;
+    for (let m = 1; m <= 12; m++) {
+      const k = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
+      faturamentoTotalAnoAnterior += (faturamentoPorMes[k] || 0);
+    }
+    const mediaMensalAnoAnterior = faturamentoTotalAnoAnterior / 12;
+    const ticketMedioAnoAnterior = numClientesAtivos > 0 ? mediaMensalAnoAnterior / numClientesAtivos : 0;
+
+    // Faturamento Total Ano Corrente (até mês anterior)
     let faturamentoAcumuladoAnoCorrente = 0;
-    for (let m = 1; m <= today.getMonth() + 1; m++) {
+    const mesAnteriorIndex = today.getMonth(); // 0-based, se estamos em Abril (3), soma Jan(1), Fev(2), Mar(3)
+    for (let m = 1; m <= mesAnteriorIndex; m++) {
       const k = `${today.getFullYear()}-${String(m).padStart(2, '0')}`;
       faturamentoAcumuladoAnoCorrente += (faturamentoPorMes[k] || 0);
     }
-    const ticketMedioAcumuladoAnoCorrente = faturamentoAcumuladoAnoCorrente / numClientesAtivos / (today.getMonth() + 1);
-
-    // Acumulados do ano anterior
-    let faturamentoAcumuladoAnoAnterior = 0;
-    for (let m = 1; m <= 12; m++) {
-      const k = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
-      faturamentoAcumuladoAnoAnterior += (faturamentoPorMes[k] || 0);
-    }
-    const ticketMedioAcumuladoAnoAnterior = faturamentoAcumuladoAnoAnterior / numClientesAtivos / 12;
 
     const finalData = {
       blocoCaixa,
       blocoCompetencia,
       blocoHonorarios: {
-        ticketMedioMesAnterior,
         faturamentoMesAnterior,
-        receitaRecorrente,
-        numClientesAtivos,
         faturamentoMesAnteriorAnoAnterior,
+        variacaoRRM,
+        ticketMedioMesAnterior,
         ticketMedioMesAnteriorAnoAnterior,
-        ticketMedioAcumuladoAnoCorrente,
-        ticketMedioAcumuladoAnoAnterior
+        variacaoTicket,
+        faturamentoTotalAnoAnterior,
+        mediaMensalAnoAnterior,
+        ticketMedioAnoAnterior,
+        faturamentoAcumuladoAnoCorrente,
+        anoAnterior: today.getFullYear() - 1,
+        anoCorrente: today.getFullYear(),
+        mesAnteriorNome: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + '/' + previousMonthDate.getFullYear(),
+        mesAnteriorNomeAnoAnterior: previousMonthDate.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() + '/' + (previousMonthDate.getFullYear() - 1)
       }
     };
 

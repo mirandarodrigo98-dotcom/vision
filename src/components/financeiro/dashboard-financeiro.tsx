@@ -13,12 +13,12 @@ export function DashboardFinanceiro() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchData = async (forceRefresh = false) => {
+  const fetchData = async (forceRefresh = false, fullRefresh = false) => {
     if (forceRefresh) setRefreshing(true);
     else setLoading(true);
     
     setError('');
-    const res = await getDashboardFinanceiroData(forceRefresh);
+    const res = await getDashboardFinanceiroData(forceRefresh, fullRefresh);
     if (res.error) {
       setError(res.error);
     } else {
@@ -228,9 +228,16 @@ export function DashboardFinanceiro() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard Financeiro</h1>
+        <div>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard Financeiro</h1>
+          {data?.updated_at && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Última Atualização em {new Date(data.updated_at).toLocaleDateString('pt-BR')} às {new Date(data.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
         <Button 
-          onClick={() => fetchData(true)} 
+          onClick={(e) => fetchData(true, e.shiftKey || e.ctrlKey)} 
           disabled={refreshing}
           variant="outline"
           className="gap-2"
@@ -243,52 +250,55 @@ export function DashboardFinanceiro() {
       <ChartRow title="RECEITAS TOTAIS RECEBIDAS (Regime de Caixa)" dataBloco={blocoCaixa} />
       <ChartRow title="FATURAMENTO TOTAL (Regime de Competência)" dataBloco={blocoCompetencia} />
 
-      {/* BLOCO 3 - HONORÁRIOS CONTÁBEIS */}
+      {/* BLOCO 3 - INDICADORES FINANCEIROS */}
       <div className="space-y-4 pt-4 border-t border-slate-200">
-        <h2 className="text-xl font-bold text-slate-800 tracking-tight">HONORÁRIOS CONTÁBEIS</h2>
+        <h2 className="text-xl font-bold text-slate-800 tracking-tight">INDICADORES FINANCEIROS</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           <Card className="shadow-sm border-l-4 border-l-blue-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio (Mês Anterior)</span>
-              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioMesAnterior || 0)}</span>
-              <span className="text-xs text-slate-400 mt-2 font-medium">Faturamento M.A. / {blocoHonorarios.numClientesAtivos} clientes ativos</span>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Receita Recorrente Mensal</span>
+              <div className="flex items-center gap-2">
+                <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoMesAnterior || 0)}</span>
+                <span className={`text-sm font-bold flex items-center ${blocoHonorarios.variacaoRRM >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {blocoHonorarios.variacaoRRM >= 0 ? '↑' : '↓'} {Math.abs(blocoHonorarios.variacaoRRM).toFixed(1)}%
+                </span>
+              </div>
+              <span className="text-xs text-slate-400 mt-2 font-medium">Ano anterior: {formatBRL(blocoHonorarios.faturamentoMesAnteriorAnoAnterior || 0)} ({blocoHonorarios.mesAnteriorNomeAnoAnterior})</span>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border-l-4 border-l-emerald-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Receita Recorrente Mensal</span>
-              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.receitaRecorrente || 0)}</span>
-              <span className="text-xs text-slate-400 mt-2 font-medium">Soma de contratos fixos ativos</span>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio ({blocoHonorarios.mesAnteriorNome})</span>
+              <div className="flex items-center gap-2">
+                <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioMesAnterior || 0)}</span>
+                <span className={`text-sm font-bold flex items-center ${blocoHonorarios.variacaoTicket >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {blocoHonorarios.variacaoTicket >= 0 ? '↑' : '↓'} {Math.abs(blocoHonorarios.variacaoTicket).toFixed(1)}%
+                </span>
+              </div>
+              <span className="text-xs text-slate-400 mt-2 font-medium">Ano anterior: {formatBRL(blocoHonorarios.ticketMedioMesAnteriorAnoAnterior || 0)} ({blocoHonorarios.mesAnteriorNomeAnoAnterior})</span>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border-l-4 border-l-orange-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio Acumulado</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioAcumuladoAnoCorrente || 0)}</span>
-                <span className="text-xs text-slate-500 font-medium">Ano Atual</span>
-              </div>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Faturamento Total ({blocoHonorarios.anoAnterior})</span>
+              <span className="text-2xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoTotalAnoAnterior || 0)}</span>
               <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
-                <span className="text-lg font-bold text-slate-600">{formatBRL(blocoHonorarios.ticketMedioAcumuladoAnoAnterior || 0)}</span>
-                <span className="text-xs text-slate-400 font-medium">Ano Anterior</span>
+                <span className="text-sm font-bold text-slate-600">Média: {formatBRL(blocoHonorarios.mediaMensalAnoAnterior || 0)}/mês</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-xs font-medium text-slate-500">Ticket aprox.: {formatBRL(blocoHonorarios.ticketMedioAnoAnterior || 0)}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border-l-4 border-l-purple-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ticket / Faturam. (M.A. Ano Ant.)</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black text-slate-800">{formatBRL(blocoHonorarios.ticketMedioMesAnteriorAnoAnterior || 0)}</span>
-                <span className="text-xs text-slate-500 font-medium">Ticket M.A. (Ano Ant.)</span>
-              </div>
-              <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
-                <span className="text-lg font-bold text-slate-600">{formatBRL(blocoHonorarios.faturamentoMesAnteriorAnoAnterior || 0)}</span>
-                <span className="text-xs text-slate-400 font-medium">Faturam. M.A. (Ano Ant.)</span>
-              </div>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Faturamento Total (Até {blocoHonorarios.mesAnteriorNome})</span>
+              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoAcumuladoAnoCorrente || 0)}</span>
+              <span className="text-xs text-slate-400 mt-2 font-medium">Acumulado do ano corrente</span>
             </CardContent>
           </Card>
 
