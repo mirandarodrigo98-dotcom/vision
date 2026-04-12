@@ -21,14 +21,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
   if (!forceRefresh) {
     try {
       const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
-      if (cached) {
+      if (cached && cached.data) {
         const lastUpdate = new Date(cached.updated_at);
-        const now = new Date();
-        const diffHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
-        // Usa o cache se for menor que 12 horas, a não ser que o usuário force
-        if (diffHours < 12 && cached.data) {
-          return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
-        }
+        // O usuário pediu: "só será executado ao clicar no botão Atualizar Dados. não execute mais ao entrar no modulo"
+        // Ou seja, se não for forceRefresh, SEMPRE devolve o cache se ele existir, ignorando as 12 horas.
+        return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
       }
     } catch (e) {
       console.warn("Aviso: tabela de cache não encontrada ou erro de leitura.");
@@ -104,39 +101,73 @@ export async function getDashboardFinanceiroData(forceRefresh = false) {
       for (const periodo of periodosExtrato) {
         extratoPromises.push(async () => {
           const localReceitas: any[] = [];
-          const payloadExtrato = {
-            call: "ListarExtrato",
-            app_key: appKey,
-            app_secret: appSecret,
-            param: [{
-              nCodCC,
-              dPeriodoInicial: periodo.de,
-              dPeriodoFinal: periodo.ate
-            }]
-          };
-          let retryCount = 0;
-          let success = false;
-          while (retryCount < 3 && !success) {
-            try {
-              const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
-              const extrato = resExtrato.data.listaMovimentos || resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
-              
-              const receitas = extrato.filter((item: any) => {
-                if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
-                if (item.cNatureza && item.cNatureza !== 'R') return false; 
-                const valor = item.nValorDocumento || 0;
-                if (valor <= 0) return false; 
-                const categoria = item.cDesCategoria || '';
-                return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
-              });
-              localReceitas.push(...receitas);
-              success = true;
-            } catch (err: any) {
-              retryCount++;
-              if (retryCount >= 3) break;
-              // Wait 2 seconds before retrying to avoid REDUNDANT limit
-              await new Promise(r => setTimeout(r, 2000));
+          let nPaginaExtrato = 1;
+          let totalPaginasExtrato = 1;
+          
+          while (nPaginaExtrato <= totalPaginasExtrato) {
+            const payloadExtrato = {
+              call: "ListarExtrato",
+              app_key: appKey,
+              app_secret: appSecret,
+              param: [{
+                nCodCC,
+                dPeriodoInicial: periodo.de,
+                dPeriodoFinal: periodo.ate,
+                nPagina: nPaginaExtrato,
+                nRegPorPagina: 500
+              }]
+            };
+            let retryCount = 0;
+            let success = false;
+            while (retryCount < 3 && !success) {
+              try {
+                const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadExtrato);
+                const extrato = resExtrato.data.listaMovimentos || resExtrato.data.listaExtrato || resExtrato.data.extrato || [];
+                totalPaginasExtrato = resExtrato.data.nTotPaginas || 1;
+                
+                const receitas = extrato.filter((item: any) => {
+                  if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+                  if (item.cNatureza && item.cNatureza !== 'R') return false; 
+                  const valor = item.nValorDocumento || 0;
+                  if (valor <= 0) return false; 
+                  const categoria = item.cDesCategoria || '';
+                  return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
+                });
+                localReceitas.push(...receitas);
+                success = true;
+              } catch (err: any) {
+                const errMsg = err.response?.data?.faultstring || '';
+                // Omie throws an error if nPagina is passed but not supported? Wait, nPagina IS supported for ListarExtrato IF there's more data?
+                // Wait, no, Omie's ListarExtrato DOES support pagination if passed as `nPagina` and `nRegPorPagina`.
+                // If it fails with "Tag [NPAGINA] não faz parte", it means we must NOT use pagination.
+                if (errMsg.includes('NPAGINA')) {
+                  try {
+                    const payloadSemPagina = { ...payloadExtrato, param: [{ nCodCC, dPeriodoInicial: periodo.de, dPeriodoFinal: periodo.ate }] };
+                    const resExtrato = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payloadSemPagina);
+                    const extrato = resExtrato.data.listaMovimentos || [];
+                    const receitas = extrato.filter((item: any) => {
+                      if (item.cDesCliente === 'SALDO' || item.cDesCliente === 'SALDO ANTERIOR' || !item.cDesCategoria) return false;
+                      if (item.cNatureza && item.cNatureza !== 'R') return false; 
+                      const valor = item.nValorDocumento || 0;
+                      if (valor <= 0) return false; 
+                      const categoria = item.cDesCategoria || '';
+                      return CATEGORIAS_RECEITAS_TOTAIS.some(c => categoria.toLowerCase().includes(c.toLowerCase()));
+                    });
+                    localReceitas.push(...receitas);
+                    totalPaginasExtrato = 1; // force exit
+                    success = true;
+                  } catch (e2) {
+                     retryCount++;
+                     await new Promise(r => setTimeout(r, 2000));
+                  }
+                } else {
+                  retryCount++;
+                  if (retryCount >= 3) break;
+                  await new Promise(r => setTimeout(r, 2000));
+                }
+              }
             }
+            nPaginaExtrato++;
           }
           return localReceitas;
         });
