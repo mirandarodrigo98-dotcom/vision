@@ -411,6 +411,15 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
       const saldoPeriodo = totalEntradasPeriodo - totalSaidasPeriodo;
       const percentualSaldo = totalEntradasPeriodo > 0 ? (saldoPeriodo / totalEntradasPeriodo) * 100 : 0;
 
+      // Cards Ano Retrasado
+      let entradasAnoRetrasado = 0;
+      let saidasAnoRetrasado = 0;
+      for (let m = 1; m <= 12; m++) {
+        const k = `${today.getFullYear() - 2}-${String(m).padStart(2, '0')}`;
+        entradasAnoRetrasado += (entradasPorMes[k] || 0);
+        saidasAnoRetrasado += (saidasPorMes[k] || 0);
+      }
+
       // Cards Ano Anterior
       let entradasAnoAnterior = 0;
       let saidasAnoAnterior = 0;
@@ -419,23 +428,53 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         entradasAnoAnterior += (entradasPorMes[k] || 0);
         saidasAnoAnterior += (saidasPorMes[k] || 0);
       }
+      
+      const variacaoEntradasAnoAnterior = entradasAnoRetrasado > 0 ? ((entradasAnoAnterior - entradasAnoRetrasado) / entradasAnoRetrasado) * 100 : (entradasAnoAnterior > 0 ? 100 : 0);
+      const variacaoSaidasAnoAnterior = saidasAnoRetrasado > 0 ? ((saidasAnoAnterior - saidasAnoRetrasado) / saidasAnoRetrasado) * 100 : (saidasAnoAnterior > 0 ? 100 : 0);
 
       // Cards Ano Corrente
       let entradasAnoCorrente = 0;
       let saidasAnoCorrente = 0;
       let entradasAnoAnteriorMesmoPeriodo = 0;
-      const mesAnteriorIndex = today.getMonth();
+      let saidasAnoAnteriorMesmoPeriodo = 0;
+      const mesAnteriorIndex = today.getMonth(); // 0-based
       for (let m = 1; m <= mesAnteriorIndex; m++) {
         const k = `${today.getFullYear()}-${String(m).padStart(2, '0')}`;
         const kAnterior = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
         entradasAnoCorrente += (entradasPorMes[k] || 0);
         saidasAnoCorrente += (saidasPorMes[k] || 0);
         entradasAnoAnteriorMesmoPeriodo += (entradasPorMes[kAnterior] || 0);
+        saidasAnoAnteriorMesmoPeriodo += (saidasPorMes[kAnterior] || 0);
       }
 
-      const variacaoEntradas = entradasAnoAnteriorMesmoPeriodo > 0
+      const variacaoEntradasAnoCorrente = entradasAnoAnteriorMesmoPeriodo > 0
         ? ((entradasAnoCorrente - entradasAnoAnteriorMesmoPeriodo) / entradasAnoAnteriorMesmoPeriodo) * 100
         : (entradasAnoCorrente > 0 ? 100 : 0);
+      const variacaoSaidasAnoCorrente = saidasAnoAnteriorMesmoPeriodo > 0
+        ? ((saidasAnoCorrente - saidasAnoAnteriorMesmoPeriodo) / saidasAnoAnteriorMesmoPeriodo) * 100
+        : (saidasAnoCorrente > 0 ? 100 : 0);
+
+      // Trimestre (3 meses anteriores ao atual)
+      let entradasTrimestre = 0;
+      let saidasTrimestre = 0;
+      let entradasTrimestreAnterior = 0;
+      let saidasTrimestreAnterior = 0;
+
+      for (let i = 1; i <= 3; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        
+        const dAnt = new Date(today.getFullYear() - 1, today.getMonth() - i, 1);
+        const kAnt = `${dAnt.getFullYear()}-${String(dAnt.getMonth() + 1).padStart(2, '0')}`;
+        
+        entradasTrimestre += (entradasPorMes[k] || 0);
+        saidasTrimestre += (saidasPorMes[k] || 0);
+        entradasTrimestreAnterior += (entradasPorMes[kAnt] || 0);
+        saidasTrimestreAnterior += (saidasPorMes[kAnt] || 0);
+      }
+      
+      const variacaoEntradasTrimestre = entradasTrimestreAnterior > 0 ? ((entradasTrimestre - entradasTrimestreAnterior) / entradasTrimestreAnterior) * 100 : (entradasTrimestre > 0 ? 100 : 0);
+      const variacaoSaidasTrimestre = saidasTrimestreAnterior > 0 ? ((saidasTrimestre - saidasTrimestreAnterior) / saidasTrimestreAnterior) * 100 : (saidasTrimestre > 0 ? 100 : 0);
 
       return {
         ultimos12Meses,
@@ -444,16 +483,23 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         anoAnterior: {
           entradas: entradasAnoAnterior,
           saidas: saidasAnoAnterior,
+          variacaoEntradas: variacaoEntradasAnoAnterior,
+          variacaoSaidas: variacaoSaidasAnoAnterior,
           label: (today.getFullYear() - 1).toString()
         },
         anoCorrente: {
           entradas: entradasAnoCorrente,
           saidas: saidasAnoCorrente,
+          variacaoEntradas: variacaoEntradasAnoCorrente,
+          variacaoSaidas: variacaoSaidasAnoCorrente,
           label: today.getFullYear().toString()
         },
-        comparativo: {
-          variacaoEntradas,
-          label: `Até ${String(mesAnteriorIndex).padStart(2, '0')}/${today.getFullYear()}`
+        trimestre: {
+          entradas: entradasTrimestre,
+          saidas: saidasTrimestre,
+          variacaoEntradas: variacaoEntradasTrimestre,
+          variacaoSaidas: variacaoSaidasTrimestre,
+          label: "Últimos 3 Meses"
         }
       };
     };
