@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell, ComposedChart, Line } from 'recharts';
 import { getDashboardFinanceiroData } from '@/app/actions/integrations/omie-dashboard';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -151,18 +151,19 @@ export function DashboardFinanceiro() {
           <CardContent className="flex-1">
             <div style={{ width: '100%', height: 350 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <ComposedChart data={dataBloco.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} interval={0} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatCompactBRL} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80} isAnimationActive={false}>
-                    <LabelList dataKey="value" content={<CustomLabelVertical />} />
+                    <LabelList dataKey="value" content={<CustomLabelTop />} />
                     {dataBloco.ultimos12Meses.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={index === dataBloco.ultimos12Meses.length - 1 ? '#f97316' : '#94a3b8'} />
                     ))}
                   </Bar>
-                </BarChart>
+                  <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} isAnimationActive={false} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -300,8 +301,20 @@ export function DashboardFinanceiro() {
           <Card className="shadow-sm border-l-4 border-l-purple-500">
             <CardContent className="p-6 flex flex-col gap-1">
               <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Faturamento Total (Até {blocoHonorarios.mesAnteriorNome})</span>
-              <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoAcumuladoAnoCorrente || 0)}</span>
-              <span className="text-xs text-slate-400 mt-2 font-medium">Acumulado do ano corrente</span>
+              <div className="flex items-center gap-2">
+                <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoAcumuladoAnoCorrente || 0)}</span>
+                <span className={`text-sm font-bold flex items-center ${blocoHonorarios.variacaoAcumulado >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {blocoHonorarios.variacaoAcumulado >= 0 ? '↑' : '↓'} {Math.abs(blocoHonorarios.variacaoAcumulado).toFixed(1)}%
+                </span>
+              </div>
+              <span className="text-xs text-slate-400 mt-2 font-medium">Ano anterior: {formatBRL(blocoHonorarios.faturamentoAcumuladoAnoAnteriorMesmoPeriodo || 0)} (Até {blocoHonorarios.mesAnteriorNomeAnoAnterior})</span>
+              
+              <div className="flex items-baseline gap-2 mt-1 border-t pt-2">
+                <span className="text-xs font-medium text-slate-500">Ticket médio: {formatBRL(blocoHonorarios.ticketMedioAcumuladoAnoCorrente || 0)}</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-xs font-medium text-slate-400">Ticket anterior: {formatBRL(blocoHonorarios.ticketMedioAcumuladoAnoAnterior || 0)}</span>
+              </div>
             </CardContent>
           </Card>
 

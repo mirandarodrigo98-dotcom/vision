@@ -440,11 +440,21 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
 
     // Faturamento Total Ano Corrente (até mês anterior)
     let faturamentoAcumuladoAnoCorrente = 0;
+    let faturamentoAcumuladoAnoAnteriorMesmoPeriodo = 0;
     const mesAnteriorIndex = today.getMonth(); // 0-based, se estamos em Abril (3), soma Jan(1), Fev(2), Mar(3)
     for (let m = 1; m <= mesAnteriorIndex; m++) {
       const k = `${today.getFullYear()}-${String(m).padStart(2, '0')}`;
+      const kAnterior = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
       faturamentoAcumuladoAnoCorrente += (faturamentoPorMes[k] || 0);
+      faturamentoAcumuladoAnoAnteriorMesmoPeriodo += (faturamentoPorMes[kAnterior] || 0);
     }
+
+    const variacaoAcumulado = faturamentoAcumuladoAnoAnteriorMesmoPeriodo > 0
+      ? ((faturamentoAcumuladoAnoCorrente - faturamentoAcumuladoAnoAnteriorMesmoPeriodo) / faturamentoAcumuladoAnoAnteriorMesmoPeriodo) * 100
+      : (faturamentoAcumuladoAnoCorrente > 0 ? 100 : 0);
+      
+    const ticketMedioAcumuladoAnoCorrente = (mesAnteriorIndex > 0 && numClientesAtivos > 0) ? (faturamentoAcumuladoAnoCorrente / mesAnteriorIndex) / numClientesAtivos : 0;
+    const ticketMedioAcumuladoAnoAnterior = (mesAnteriorIndex > 0 && numClientesAtivos > 0) ? (faturamentoAcumuladoAnoAnteriorMesmoPeriodo / mesAnteriorIndex) / numClientesAtivos : 0;
 
     const finalData = {
       blocoCaixa,
@@ -460,6 +470,10 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         mediaMensalAnoAnterior,
         ticketMedioAnoAnterior,
         faturamentoAcumuladoAnoCorrente,
+        faturamentoAcumuladoAnoAnteriorMesmoPeriodo,
+        variacaoAcumulado,
+        ticketMedioAcumuladoAnoCorrente,
+        ticketMedioAcumuladoAnoAnterior,
         anoAnterior: today.getFullYear() - 1,
         anoCorrente: today.getFullYear(),
         mesAnteriorNome: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear()}`,
