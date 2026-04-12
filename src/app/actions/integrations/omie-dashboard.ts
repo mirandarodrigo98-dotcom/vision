@@ -215,21 +215,23 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
     console.log('Finished extrato requests');
     extratoResults.forEach(arr => todasReceitas.push(...arr));
 
-    // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarFaturamento
+    // 3. FATURAMENTO TOTAL (REGIME DE COMPETÊNCIA) -> via ListarOS (Status 60 - Faturado/Gerado)
     let todosFaturamentos: any[] = [];
     try {
       const faturamentoPromises: (() => Promise<any[]>)[] = [];
       for (const periodo of periodosExtrato) {
         faturamentoPromises.push(async () => {
+          const localFaturamentos: any[] = [];
           const payloadFaturamento = {
-            call: "ListarFaturamento",
+            call: "ListarOS",
             app_key: appKey,
             app_secret: appSecret,
             param: [{
               pagina: 1,
               registros_por_pagina: 500,
-              dPeriodoInicial: periodo.de,
-              dPeriodoFinal: periodo.ate
+              filtrar_por_data_faturamento_de: periodo.de,
+              filtrar_por_data_faturamento_ate: periodo.ate,
+              filtrar_por_status: "F"
             }]
           };
           let nPaginaFat = 1;
@@ -240,35 +242,15 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
             let fatSuccess = false;
             while (retryFat < 3 && !fatSuccess) {
               try {
-                // Voltar para Contas a Receber, pois NFSe nem sempre é emitida.
-                // O faturamento do contrato gera uma Conta a Receber (status_titulo pode ser RECEBIDO, EM ABERTO, etc).
-                const resFaturamento = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', {
-                  call: "ListarContasReceber",
-                  app_key: appKey,
-                  app_secret: appSecret,
-                  param: [{
-                    pagina: nPaginaFat,
-                    registros_por_pagina: 500,
-                    filtrar_por_data_de: periodo.de,
-                    filtrar_por_data_ate: periodo.ate
-                  }]
-                });
+                payloadFaturamento.param[0].pagina = nPaginaFat;
+                const resFaturamento = await axios.post('https://app.omie.com.br/api/v1/servicos/os/', payloadFaturamento);
                 
-                const contasReceber = resFaturamento.data.conta_receber_cadastro || [];
+                const oss = resFaturamento.data.osCadastro || [];
                 totalPaginasFat = resFaturamento.data.total_de_paginas || 1;
 
-                const filtrados = contasReceber.filter((item: any) => {
-                  const valor = item.valor_documento || 0;
-                  if (valor <= 0) return false;
-                  // Filtrar apenas categorias de Faturamento
-                  return item.categorias?.some((cat: any) => {
-                    return CATEGORIAS_FATURAMENTO.some(c => cat.descricao?.toLowerCase().includes(c.toLowerCase()));
-                  });
-                });
-
-                localFaturamentos.push(...filtrados.map((item: any) => ({
-                  data: item.data_previsao || item.data_vencimento, 
-                  valor: item.valor_documento
+                localFaturamentos.push(...oss.map((item: any) => ({
+                  data: item.Cabecalho?.dDtPrevisao || item.Cabecalho?.dDtFaturamento, 
+                  valor: item.Cabecalho?.nValorTotal || 0
                 })));
                 fatSuccess = true;
               } catch (e: any) {

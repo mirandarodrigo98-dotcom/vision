@@ -22,7 +22,7 @@ export function DashboardFinanceiro() {
     if (res.error) {
       setError(res.error);
     } else {
-      setData(res.data);
+      setData({ ...res.data, updated_at: res.updated_at });
     }
     
     setLoading(false);
@@ -229,9 +229,13 @@ export function DashboardFinanceiro() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          {data?.updated_at && (
-            <p className="text-sm text-muted-foreground mt-1">
+          {data?.updated_at ? (
+            <p className="text-sm text-muted-foreground mt-1 font-medium">
               Última Atualização em {new Date(data.updated_at).toLocaleDateString('pt-BR')} às {new Date(data.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1 font-medium">
+              Dados atualizados recentemente.
             </p>
           )}
         </div>
@@ -256,7 +260,7 @@ export function DashboardFinanceiro() {
           
           <Card className="shadow-sm border-l-4 border-l-blue-500">
             <CardContent className="p-6 flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Receita Recorrente Mensal</span>
+              <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Receita Recorrente Mensal ({blocoHonorarios.mesAnteriorNome})</span>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-black text-slate-800">{formatBRL(blocoHonorarios.faturamentoMesAnterior || 0)}</span>
                 <span className={`text-sm font-bold flex items-center ${blocoHonorarios.variacaoRRM >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
