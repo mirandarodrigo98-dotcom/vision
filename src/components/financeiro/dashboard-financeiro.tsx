@@ -50,7 +50,7 @@ export function DashboardFinanceiro() {
     );
   }
 
-  const { blocoCaixa, blocoCompetencia, blocoHonorarios } = data;
+  const { blocoCaixa, blocoCompetencia, blocoCaptacao, blocoHonorarios } = data;
 
   const formatBRL = (val: any) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0);
   const formatShortBRL = (val: any) => {
@@ -320,6 +320,97 @@ export function DashboardFinanceiro() {
 
         </div>
       </div>
+
+      {/* BLOCO 4 - CAPTAÇÃO DE CLIENTES */}
+      {blocoCaptacao && (
+        <div className="space-y-4 pt-4 border-t border-slate-200">
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">CAPTAÇÃO DE CLIENTES</h2>
+          
+          <Card className="w-full flex flex-col shadow-sm">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Últimos 12 Meses (Até {blocoHonorarios.mesAnteriorNome})</CardTitle>
+              <div className="flex items-center gap-4 text-sm font-medium">
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div>Entradas</div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div>Saídas</div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <div style={{ width: '100%', height: 350 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={blocoCaptacao.ultimos12Meses} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} interval={0} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="entradas" name="Entradas" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                      <LabelList dataKey="entradas" position="top" fill="#64748b" fontSize={11} fontWeight="bold" formatter={(val: number) => val > 0 ? val : ''} />
+                    </Bar>
+                    <Bar dataKey="saidas" name="Saídas" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                      <LabelList dataKey="saidas" position="top" fill="#64748b" fontSize={11} fontWeight="bold" formatter={(val: number) => val > 0 ? val : ''} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t">
+                <span className="text-sm font-semibold text-slate-500">Resultado do Período:</span>
+                <span className="text-2xl font-black text-slate-800">{blocoCaptacao.saldoPeriodo > 0 ? '+' : ''}{blocoCaptacao.saldoPeriodo}</span>
+                <span className={`text-sm font-bold flex items-center ${blocoCaptacao.saldoPeriodo >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {blocoCaptacao.saldoPeriodo >= 0 ? '↑' : '↓'} {Math.abs(blocoCaptacao.percentualSaldo).toFixed(1)}%
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="shadow-sm border-l-4 border-l-slate-400">
+              <CardContent className="p-6 flex flex-col gap-1">
+                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total ({blocoCaptacao.anoAnterior.label})</span>
+                <div className="flex items-center gap-4 mt-2">
+                  <div>
+                    <span className="text-xs text-slate-400 uppercase font-semibold">Entradas</span>
+                    <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.anoAnterior.entradas}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 uppercase font-semibold">Saídas</span>
+                    <p className="text-2xl font-black text-rose-500">{blocoCaptacao.anoAnterior.saidas}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-l-4 border-l-indigo-500">
+              <CardContent className="p-6 flex flex-col gap-1">
+                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total ({blocoCaptacao.anoCorrente.label})</span>
+                <div className="flex items-center gap-4 mt-2">
+                  <div>
+                    <span className="text-xs text-slate-400 uppercase font-semibold">Entradas</span>
+                    <p className="text-2xl font-black text-emerald-500">{blocoCaptacao.anoCorrente.entradas}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-400 uppercase font-semibold">Saídas</span>
+                    <p className="text-2xl font-black text-rose-500">{blocoCaptacao.anoCorrente.saidas}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-l-4 border-l-emerald-500">
+              <CardContent className="p-6 flex flex-col gap-1">
+                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Crescimento ({blocoCaptacao.comparativo.label})</span>
+                <p className="text-xs text-slate-400 mt-1 mb-2">Entradas em relação ao ano anterior</p>
+                <div className="flex items-center gap-2">
+                  <span className={`text-3xl font-black ${blocoCaptacao.comparativo.variacaoEntradas >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {blocoCaptacao.comparativo.variacaoEntradas >= 0 ? '+' : ''}{blocoCaptacao.comparativo.variacaoEntradas.toFixed(1)}%
+                  </span>
+                  <span className={`text-xl ${blocoCaptacao.comparativo.variacaoEntradas >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {blocoCaptacao.comparativo.variacaoEntradas >= 0 ? '↑' : '↓'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
     </div>
   );

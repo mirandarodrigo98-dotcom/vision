@@ -253,7 +253,8 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
 
                 localFaturamentos.push(...oss.map((item: any) => ({
                   data: item.Cabecalho?.dDtPrevisao || item.Cabecalho?.dDtFaturamento, 
-                  valor: item.Cabecalho?.nValorTotal || 0
+                  valor: item.Cabecalho?.nValorTotal || 0,
+                  clienteId: item.Cabecalho?.nCodCli
                 })));
                 fatSuccess = true;
               } catch (e: any) {
@@ -325,7 +326,140 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
       contratosResults.forEach(arr => todosContratos.push(...arr));
     } catch (e) {}
 
-    // Processamento
+    // 5. CAPTAÇÃO DE CLIENTES
+    const entradasPorMes: Record<string, number> = {};
+    const saidasPorMes: Record<string, number> = {};
+    
+    if (cachedDataRaw && cachedDataRaw.entradasPorMes) Object.assign(entradasPorMes, cachedDataRaw.entradasPorMes);
+    if (cachedDataRaw && cachedDataRaw.saidasPorMes) Object.assign(saidasPorMes, cachedDataRaw.saidasPorMes);
+
+    // Zerar os últimos 3 meses no map inicial para serem sobrescritos
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      entradasPorMes[k] = 0;
+      saidasPorMes[k] = 0;
+    }
+
+    const clientesCaptacao: Record<number, { entrada: string | null, saida: string | null, isActive: boolean }> = {};
+    
+    // Identificar Entradas (dVigInicial mais antigo) e Status Ativo
+    todosContratos.forEach(c => {
+      const cliId = c.cabecalho?.nCodCli;
+      if (!cliId) return;
+      if (!clientesCaptacao[cliId]) clientesCaptacao[cliId] = { entrada: null, saida: null, isActive: false };
+      
+      const status = c.cabecalho.cCodSit;
+      if (status === '10' || status === '20') clientesCaptacao[cliId].isActive = true;
+      
+      const dInc = c.cabecalho.dVigInicial;
+      if (dInc) {
+        const parts = dInc.split('/');
+        if (parts.length === 3) {
+          const key = `${parts[2]}-${parts[1]}`;
+          if (!clientesCaptacao[cliId].entrada || key < clientesCaptacao[cliId].entrada!) {
+            clientesCaptacao[cliId].entrada = key;
+          }
+        }
+      }
+    });
+
+    // Identificar Saídas (último faturamento gerado para clientes inativos)
+    const lastFatCli: Record<number, string> = {};
+    todosFaturamentos.forEach(f => {
+      if (!f.clienteId || !f.data) return;
+      const parts = String(f.data).split('/');
+      if (parts.length === 3) {
+        const key = `${parts[2]}-${parts[1]}`;
+        if (!lastFatCli[f.clienteId] || key > lastFatCli[f.clienteId]) {
+          lastFatCli[f.clienteId] = key;
+        }
+      }
+    });
+
+    Object.keys(clientesCaptacao).forEach(k => {
+      const cliId = Number(k);
+      const c = clientesCaptacao[cliId];
+      if (!c.isActive && lastFatCli[cliId]) {
+        c.saida = lastFatCli[cliId];
+      }
+    });
+
+    // Contabilizar
+    Object.values(clientesCaptacao).forEach(c => {
+      if (c.entrada) entradasPorMes[c.entrada] = (entradasPorMes[c.entrada] || 0) + 1;
+      if (c.saida) saidasPorMes[c.saida] = (saidasPorMes[c.saida] || 0) + 1;
+    });
+
+    // Build Chart para Captação
+    const buildCaptacao = () => {
+      const ultimos12Meses = [];
+      let totalEntradasPeriodo = 0;
+      let totalSaidasPeriodo = 0;
+      
+      for (let i = 12; i >= 1; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear())}`;
+        const entradas = entradasPorMes[key] || 0;
+        const saidas = saidasPorMes[key] || 0;
+        ultimos12Meses.push({ month: key, label, entradas, saidas });
+        totalEntradasPeriodo += entradas;
+        totalSaidasPeriodo += saidas;
+      }
+      
+      const saldoPeriodo = totalEntradasPeriodo - totalSaidasPeriodo;
+      const percentualSaldo = totalEntradasPeriodo > 0 ? (saldoPeriodo / totalEntradasPeriodo) * 100 : 0;
+
+      // Cards Ano Anterior
+      let entradasAnoAnterior = 0;
+      let saidasAnoAnterior = 0;
+      for (let m = 1; m <= 12; m++) {
+        const k = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
+        entradasAnoAnterior += (entradasPorMes[k] || 0);
+        saidasAnoAnterior += (saidasPorMes[k] || 0);
+      }
+
+      // Cards Ano Corrente
+      let entradasAnoCorrente = 0;
+      let saidasAnoCorrente = 0;
+      let entradasAnoAnteriorMesmoPeriodo = 0;
+      const mesAnteriorIndex = today.getMonth();
+      for (let m = 1; m <= mesAnteriorIndex; m++) {
+        const k = `${today.getFullYear()}-${String(m).padStart(2, '0')}`;
+        const kAnterior = `${today.getFullYear() - 1}-${String(m).padStart(2, '0')}`;
+        entradasAnoCorrente += (entradasPorMes[k] || 0);
+        saidasAnoCorrente += (saidasPorMes[k] || 0);
+        entradasAnoAnteriorMesmoPeriodo += (entradasPorMes[kAnterior] || 0);
+      }
+
+      const variacaoEntradas = entradasAnoAnteriorMesmoPeriodo > 0
+        ? ((entradasAnoCorrente - entradasAnoAnteriorMesmoPeriodo) / entradasAnoAnteriorMesmoPeriodo) * 100
+        : (entradasAnoCorrente > 0 ? 100 : 0);
+
+      return {
+        ultimos12Meses,
+        saldoPeriodo,
+        percentualSaldo,
+        anoAnterior: {
+          entradas: entradasAnoAnterior,
+          saidas: saidasAnoAnterior,
+          label: (today.getFullYear() - 1).toString()
+        },
+        anoCorrente: {
+          entradas: entradasAnoCorrente,
+          saidas: saidasAnoCorrente,
+          label: today.getFullYear().toString()
+        },
+        comparativo: {
+          variacaoEntradas,
+          label: `Até ${String(mesAnteriorIndex).padStart(2, '0')}/${today.getFullYear()}`
+        }
+      };
+    };
+
+    const blocoCaptacao = buildCaptacao();
+
     const processarMeses = (dados: any[], dataKey: string, valKey: string, mapInicial: Record<string, number> = {}) => {
       const mapObj: Record<string, number> = { ...mapInicial };
       dados.forEach(r => {
@@ -459,6 +593,7 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
     const finalData = {
       blocoCaixa,
       blocoCompetencia,
+      blocoCaptacao,
       blocoHonorarios: {
         faturamentoMesAnterior,
         faturamentoMesAnteriorAnoAnterior,
@@ -480,7 +615,9 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
         mesAnteriorNomeAnoAnterior: `${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}/${previousMonthDate.getFullYear() - 1}`
       },
       receitasCaixaPorMes,
-      faturamentoPorMes
+      faturamentoPorMes,
+      entradasPorMes,
+      saidasPorMes
     };
 
     // Salvar no Cache
