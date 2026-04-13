@@ -9,13 +9,12 @@ import { toast } from 'sonner';
 import { validarArquivosST } from '@/app/actions/fiscal/conferencia-st';
 import { listarHistoricoSt } from '@/app/actions/fiscal/historico-st';
 import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getCompanies } from '@/app/actions/companies';
+import { CompanySelector } from '@/components/shared/company-selector';
 
 export function ConferenciaStManager() {
   const [loading, setLoading] = useState(false);
-  const [empresas, setEmpresas] = useState<any[]>([]);
   const [empresaId, setEmpresaId] = useState<string>('');
+  const [empresaNome, setEmpresaNome] = useState<string>('');
   const [arquivos, setArquivos] = useState<{ name: string, content: string }[]>([]);
   const [resultado, setResultado] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'nova' | 'historico'>('nova');
@@ -23,16 +22,6 @@ export function ConferenciaStManager() {
   
   // Filtros
   const [buscaNcmCest, setBuscaNcmCest] = useState('');
-
-  useEffect(() => {
-    const loadEmpresas = async () => {
-      const res = await getCompanies();
-      if (res.success && res.data) {
-        setEmpresas(res.data);
-      }
-    };
-    loadEmpresas();
-  }, []);
 
   const loadHistorico = async () => {
     setLoading(true);
@@ -94,7 +83,7 @@ export function ConferenciaStManager() {
     setLoading(true);
     try {
       const xmls = arquivos.map(a => a.content);
-      const res = await validarArquivosST(xmls, parseInt(empresaId));
+      const res = await validarArquivosST(xmls, parseInt(empresaId), empresaNome || 'Empresa');
       if (res.success) {
         setResultado(res.data);
         toast.success('Arquivos processados com sucesso!');
@@ -117,8 +106,6 @@ export function ConferenciaStManager() {
       if (!buscaNcmCest) return true;
       return item.ncm.includes(buscaNcmCest) || item.cest.includes(buscaNcmCest);
     });
-
-    const empresaNome = empresas.find(e => e.id.toString() === empresaId)?.company_name || 'Empresa';
 
     return (
       <div className="space-y-6">
@@ -320,16 +307,10 @@ export function ConferenciaStManager() {
             <>
               <div className="max-w-xl mb-8 relative z-50">
                 <Label className="text-sm font-semibold mb-2 block text-slate-700">Selecione a Empresa</Label>
-                <Select value={empresaId} onValueChange={setEmpresaId}>
-                  <SelectTrigger className="h-12 bg-white border-slate-200 shadow-sm text-slate-600 font-medium w-full relative z-50 hover:bg-slate-50 cursor-pointer">
-                    <SelectValue placeholder="Selecione a Empresa" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100] bg-white border shadow-lg max-h-[300px]">
-                    {empresas.map(e => (
-                      <SelectItem key={e.id} value={e.id.toString()} className="cursor-pointer">{e.company_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CompanySelector 
+                  value={empresaId} 
+                  onChange={(val, name) => { setEmpresaId(val); setEmpresaNome(name); }} 
+                />
               </div>
 
           {arquivos.length === 0 ? (
@@ -437,7 +418,7 @@ export function ConferenciaStManager() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                        {historico.map(h => (
-                          <tr key={h.consulta_id} onClick={() => { setEmpresaId(h.empresa_id?.toString() || ''); setResultado(h.resultado_json); }} className="hover:bg-slate-50 cursor-pointer transition-colors group">
+                          <tr key={h.consulta_id} onClick={() => { setEmpresaId(h.empresa_id?.toString() || ''); setEmpresaNome(h.empresa); setResultado(h.resultado_json); }} className="hover:bg-slate-50 cursor-pointer transition-colors group">
                              <td className="p-4 font-medium text-slate-600 flex items-center gap-2">
                                {h.consulta_id} 
                                <Eye className="h-4 w-4 text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />

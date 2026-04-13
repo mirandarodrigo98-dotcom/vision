@@ -11,9 +11,9 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: number
     if (!session) return { success: false, error: 'Usuário não autenticado.' };
 
     // 1. Buscar a UF da empresa destinatária
-    const { rows: empresas } = await db.query('SELECT address_state FROM companies WHERE id = $1', [empresaId]);
+    const { rows: empresas } = await db.query('SELECT uf FROM client_companies WHERE id = $1', [empresaId]);
     if (empresas.length === 0) return { success: false, error: 'Empresa não encontrada.' };
-    const ufDestino = empresas[0].address_state;
+    const ufDestino = empresas[0].uf;
 
     // 2. Carregar todas as regras de ST para a UF da empresa (cache em memória)
     const { rows: regrasSt } = await db.query('SELECT * FROM fiscal_regras_st WHERE uf = $1', [ufDestino]);
