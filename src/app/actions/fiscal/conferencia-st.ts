@@ -114,8 +114,11 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: number
              // Base ST Calculada = (Valor Total do Item) * (1 + MVA/100)
              bcStCalculado = valorTotalItem * (1 + (mva / 100));
              
-             // Aliquota interna padrão de PE/SP (apenas simulação)
+             // Aliquota interna padrão de PE/SP/RJ (apenas simulação)
              aliquotaInterna = 18; // 18% + 2% FECOEP = 20%
+             
+             // Se houver notas ou âmbito na regra, repassamos para a view
+             let alerta = regra.notas || regra.ambito_aplicacao ? (regra.notas || '') : '';
              
              // Valor ST Calculado = (Base ST Calculada * Aliquota Interna) - ICMS Próprio
              const valorAntesAbatimento = bcStCalculado * (aliquotaInterna / 100);
@@ -166,7 +169,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: number
              aliInternaFecoep: aliquotaInterna,
              valorSt: valorStCalculado,
              difRecolher: diferenca,
-             status
+             status,
+             alerta: regra ? regra.notas || regra.ambito_aplicacao : ''
           });
         }
       } catch (err) {

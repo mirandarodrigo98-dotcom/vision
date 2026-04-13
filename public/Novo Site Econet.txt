@@ -1,0 +1,4787 @@
+ANEXO I
+LIST A DAS MERCADORIAS SUJEIT      AS  AO REGIME DE SUBSTITUIÇÃO TRIBUTÁRIA           E SEUS RESPECTIVOS
+PERCENTUAIS DE MARGEM DE V        ALOR  AGREGADO (MV    A) OPERAÇÕES INTERNAS E INTEREST         ADUAIS DESTINADAS
+AO EST  ADO DO RIO DE JANEIRO.
+Alterado pelo  Decreto n° 45.612/2016 (DOE de 23.03.2016)       , efeitos a partir de 28.03.2016    Redação   Anterior
+Nota  ECONET   1: ainda  que  a  alíquota  interna  tenha  sido  majorada,  de  18%  para  20%,  até  a  prese nte  data  os
+percentuais   de MV A não  foram  alterados  no Anexo  I do Livro  II do RICMS/RJ.   Para  recalcular  o  percentual  da MV A,
+acesse a ferramenta    Cálculo da MV  A-ST  Ajustada .
+Nota  ECONET   2: a Lei  n° 9.428/2021   suspende  a aplicação  do regime  de substituição  tributária nas  operações   internas
+e  interestaduais   com  água  mineral  ou  potável  envasada,   leite, laticínios  e  correla tos, vinhos,  vinhos  espumosos
+nacionais,  espumantes,   filtrados  doces,  sangria,  sidras,  cavas,  champagnes,   proseccos,  cachaça,  aguardente   e outras
+bebidas destiladas ou fermentadas, e sorvete de qualquer espécie, inclusive sanduíche de sorvete e acessórios.
+ 
+ 1. CER VEJAS,  CHOPES,   REFRIGERANTES,     ÁGUAS   E  OUTRAS   BEBIDAS   
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE  de 10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+Fundamento normativo:    Protocolo ICMS 1   1/91
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Protocolo  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+A base  de cálculo  do imposto  para  fins de substituição  tributária nas  operações   com  as mercadorias   constantes  desse  item é o
+preço  a  consumidor   final usualmente   praticado  no mercado   do Estado  do Rio  de Janeiro  (PMPF),   com  base  no  §10  do  artigo
+24  da  Lei 2.657/96  .
+Nota  ECONET  : o  valor  do  Preço  Médio   Ponderado   Final  (PMPF)   foi  estabelecido   através  da  Resolução   SEF AZ  n°
+358/2018   c/c  Portaria SSER n° 347/2023    .
+As MV As listadas serão utilizadas subsidiariamente quando não houver PMPF ou preço sugerido aplicáveis.
+Subitem  CEST   NCM/SH         Descrição
+Embalagem
+com
+capacidade
+de
+MV A Original
+Industrial,
+importador  ,
+arrematador ou
+engarrafador
+Demais substitutos
+(tais como,
+atacadistas,
+distribuidores)
+1.1
+03.003.00 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,  naturais,  em  embalagem
+de vidro descartável
+0 a 300ml     140%        100%
+301 a 500ml     250%        170%
+        
+501 a 5000ml      140%        70%
+                     superior a
+5000ml
+100%        70%
+1.2
+03.003.01 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,  naturais,  adicionadas   de
+sais,  em  embalagem    de  vidro
+descartável
+0 a 300ml     140%        100%
+301 a 500ml     250%        170%
+        
+501 a 5000ml      140%        70%
+                     superior a
+5000ml
+100%        70%
+1.3
+03.005.00 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,  naturais,  em  copo  plástico
+descartável
+0 a 500ml     140%        100%
+501 a 5000ml      140%        70%
+                     superior a
+5000ml
+100%        70%
+1.4
+03.005.01 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,  naturais,  adicionadas   de
+sais, em copo plástico descartável
+0 a 500ml     140%        100%
+501 a 5000ml      140%        70%
+                     superior a
+5000ml
+100%        70%
+1.5 03.005.02 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,   naturais,   em   jarra
+descartável
+0 a 5000ml      140%        70%
+superior a
+5000ml
+100%        70%
+1.6 03.005.03 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,  naturais,  adicionadas   de
+sais, em jarra descartável
+0 a 5000ml      140%        70%
+superior a
+5000ml
+100%        70%
+1.7
+03.005.04 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,   naturais,   em  demais
+embalagens descartáveis
+0 a 5000ml,
+exceto de
+1500ml
+140%        70%
+1500ml      120%        70%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              1/43
+----------------Page (0) Break----------------
+                     superior a
+5000ml
+100%        70%
+1.8
+03.005.05 2201.10.00
+Água  mineral,  gasosa  ou  não,  ou
+potável,  naturais,  adicionadas   de
+sais,  em  demais   embalagens
+descartáveis
+0 a 5000ml,
+exceto de
+1500ml
+140%        70%
+1500ml      120%        70%
+                     superior a
+5000ml
+100%        70%
+1.9 03.006.00   2201
+Outras  águas  minerais,  gasosa  ou
+não, ou potável,  naturais;  exceto  as
+classificadas   no  CEST  03.003.00,
+03.003.01,  03.005.00,  03.005.01   a
+03.005.05, 03.024.00 e 03.025.00
+0 a 5000ml      140%        70%
+superior a
+5000ml
+100%        70%
+1.10  03.007.00 2202.10.00
+Água  aromatizada   artificialmente,
+exceto os refrescos e refrigerantes
+-      140%        70%
+1.11 03.008.00 2202.99.00
+Outras  águas  minerais,  gasosa  ou
+não,  ou potável,  naturais,  inclusive
+gaseificadas    ou  aromatizadas
+artificialmente,  exceto  os refrescos
+e refrigerantes
+-      140%        70%
+1.12  03.010.00
+2202.10.00
+2202.99.00
+Refrigerante em vidro descartável
+inferior a
+600ml
+140%        70%
+igual ou
+superior a
+600ml
+140%        40%
+1.13  03.010.01
+2202.10.00
+2202.99.00
+Refrigerante em embalagem pet
+inferior a
+600ml
+140%        70%
+igual ou
+superior a
+600ml
+140%        40%
+1.14  03.010.02
+2202.10.00
+2202.99.00
+Refrigerante em lata             -      140%        70%
+1.15  03.01 1.00
+2202.10.00
+2202.99.00
+Demais   refrigerantes,  exceto  os
+classificados   no  CEST  03.010.00,
+03.010.01, 03.010.02 e 03.01    1.01
+-      140%        70%
+1.16  03.01 1.01  2202   Espumantes sem álcool             -      140%        40%
+1.17  03.012.00 2106.90.10
+Xarope   ou  extrato  concentrado
+destinados    ao   preparo    de
+refrigerante  em  máquina   "pré-  mix"
+ou "post-mix",  exceto  o classificado
+no CEST  03.012.01
+-      140%        100%
+1.18  03.012.01 2106.90.10  Cápsula de refrigerante            -      140%        70%
+1.19  03.013.00
+2106.90
+2202.99.00
+Bebidas energéticas em lata
+inferior a
+600ml
+140%        70%
+igual ou
+superior a
+600ml
+140%        40%
+1.20  03.013.01
+2106.90
+2202.99.00
+Bebidas     energéticas     em
+embalagem PET
+inferior a
+600ml
+140%        70%
+igual ou
+superior a
+600ml
+140%        40%
+1.21  03.013.02
+2106.90
+2202.99.00
+Bebidas energéticas em vidro
+inferior a
+600ml
+140%        70%
+igual ou
+superior a
+600ml
+140%        40%
+1.22  03.015.00
+2106.90
+2202.99.00
+Bebidas hidroeletrolíticas
+inferior a
+600ml
+140%        70%
+igual ou
+superior a
+600ml
+140%        40%
+1.23  03.021.00 2203.00.00
+Cerveja   em  garrafa   de  vidro
+retornável
+-      140%        70%
+1.24  03.021.01 2203.00.00
+Cerveja   em  garrafa   de  vidro
+descartável
+-      140%        70%
+1.25  03.021.02 2203.00.00  Cerveja em garrafa de alumínio          -      140%        70%
+1.26  03.021.03 2203.00.00  Cerveja em lata               -      140%        70%
+1.27  03.021.04 2203.00.00  Cerveja em barril              -      140%        70%
+1.28  03.021.05 2203.00.00  Cerveja em embalagem PET            -      140%        70%
+1.29  03.021.06 2203.00.00  Cerveja em outras embalagens           -      140%        70%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              2/43
+----------------Page (1) Break----------------
+1.30  03.022.00 2202.91.00
+Cerveja  sem  álcool  em  garrafa  de
+vidro retornável
+-      140%        70%
+1.31  03.022.01 2202.91.00
+Cerveja  sem  álcool  em  garrafa  de
+vidro descartável
+-      140%        70%
+1.32  03.022.02 2202.91.00
+Cerveja  sem  álcool  em  garrafa  de
+alumínio
+-      140%        70%
+1.33  03.022.03 2202.91.00  Cerveja sem álcool em lata           -      140%        70%
+1.34  03.022.04 2202.91.00  Cerveja sem álcool em barril           -      140%        70%
+1.35  03.022.05 2202.91.00
+Cerveja  sem  álcool em  embalagem
+PET
+-      140%        70%
+1.36  03.022.06 2202.91.00
+Cerveja   sem   álcool  em  outras
+embalagens
+-      140%        70%
+1.37  03.023.00 2203.00.00  Chope                  -      140%        115%
+1.38  03.024.00 2201.10.00
+Água   mineral   em  embalagens
+retornáveis   com  capacidade   igual
+ou superior  a  10 (dez)  e  inferior a
+20 (vinte) litros
+-      100%        70%
+1.39  03.025.00 2201.10.00
+Água   mineral   em  embalagens
+retornáveis   com  capacidade   igual
+ou superior a 20 (vinte) litros
+-      100%        70%
+2. CIGARROS E OUTROS PRODUT       OS DERIV  ADOS DO FUMO
+Fundame  nto  normativo:  Convênio   ICMS  111/17 ; 
+Alterado  pelo  Decreto   n°  47.864/2021    (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação     Anterior
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Convênio  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+A base  de cálculo  do imposto  para  fins de substituição  tributária coma  as mercadorias   listadas  nesse  item é o preço  máximo  de
+venda a consumidor fixado pelo fabricante, quando houver esse preço.
+Subitem   CEST    NCM/SH                   Descrição
+MV A
+Original
+2.1  04.001.00   2402   Charutos, cigarrilhas e cigarros, de tabaco ou dos seus sucedâneos                50%
+2.2  04.002.00   2403.1
+Tabaco  para  fumar , mesmo   contendo  sucedâneos   de  tabaco  em  qualquer
+proporção
+50%
+3. CIMENT  OS
+Fundamento normativo:    Protocolo ICM 1  1/85
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Protocolo  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem  CEST  NCM/SH  Descrição  MV A Original
+MV A Ajustada 
+Alíquota interestadual de 12%      Alíquota interestadual de 4%
+3.1 05.001.00  2523   Cimento    20%          32,00%              44,00%
+4. ENERGIA   ELÉTRICA   NÃO DESTINADA     À COMERCIALIZAÇÃO OU À INDUSTRIALIZAÇÃO
+Fund amento   normativo:  Convênio   ICMS  77/1 1 
+Alterado  pelo  Decreto   n°  47.864/2021    (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação     Anterior
+Âmbito de aplicação: Operações interestaduais envolvendo as unidades federadas signatárias do Convênio supracitado.
+Subitem  CEST   NCM/SH     Descrição          Base de cálculo em operações interestaduais
+4.1 07.001.00 2716.00.00   Energia elétrica   Valor da operação de que decorrer a entrada da mercadoria
+5. AP ARELHOS DE BARBEAR; LÂMINAS DE         BARBEAR Fundamento normativo:       Protocolo ICM 16/85
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Protocolo  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem  CEST   NCM/SH      Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota interestadual de
+12%
+Alíquota interestadual
+de 4%
+5.1 20.064.00
+8212.10.20
+8212.20.10
+Aparelhos e lâminas
+de  barbear
+30%       43,00%           56,00%
+6. LÂMP ADAS, REA  TORES E "ST  AR TER"
+Fundamento normativo:    Protocolo ICM 17/85
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              3/43
+----------------Page (2) Break----------------
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Protocolo  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem   CEST    NCM/SH
+Descrição
+Alterado pelo  Decreto n° 46.595/2019
+(DOE de 13.03.2019)   , efeitos a partir de
+01.07.2019   Redação     Anterior
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual de
+12%
+Alíquota
+interestadual
+de 4%
+6.1  09.001.00    8539   Lâmpadas elétricas            60,03%     76,03%       92,04%
+6.2  09.002.00    8540   Lâmpadas eletrônicas           102,31%    122,54%      142,77%
+6.3  09.003.00  8504.10.00
+Reatores  para  lâmpadas   ou  tubos
+de descargas
+53,13%     68,44%       83,76%
+6.4  09.004.00   8536.50   “Starter”              102,31%    122,54%      142,77%
+6.5  09.005.00  8539.50.00
+Lâmpadas    de  LED   (Diodos
+Emissores de Luz)
+63,67%     80,04%       96,40%
+7.PEÇAS, P  AR TES E  ACESSÓRIOS P    ARA  VEÍCULOS   AUT OMOT  ORES
+Fundamento normativo:            Protocolos ICMS 41/08    e 97/10
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+ 
+Natureza  da  operação   realizada  com  as mercadorias    relacionadas
+neste  item,  observado   ainda  o disposto  no § 4° da cláusula  primeira
+do Protocolo ICMS 41/08
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+I
+a) Saída  de estabelecimento   de fabricante  de veículos  automotores,   para
+atender  índice  de fidelidade  de compra  de que  trata  o art. 8°  da  Lei
+Federal n° 6.729, de 28 de novembro de 1979
+b) Saída  de  estabelecimento    de  fabricante  de  veículos,  máquinas   e
+equipamentos   agrícolas  ou rodoviários,  cuja distribuição  seja efetuada  de
+forma  exclusiva,  mediante   contrato  de  fidelidade,  desde   que  seja
+autorizado pelo fisco de localização do estabelecimento destinatário.
+36,56%    50,22%    63,87%
+II  Demais casos                               71,78%    88,96%    106,14%
+Mercadorias:
+Subitem    CEST    NCM/SH                     Descrição
+7.1   01.001.00
+3815.12.10
+3815.12.90
+Catalisadores   em  colmeia  cerâmica  ou metálica  para  conversão   catalítica  de gases
+de escape de veículos e outros catalisadores
+7.2   01.002.00   3917
+Tubos  e  seus  acessórios  (por  exemplo,  juntas,  cotovelos,  flanges,  uniões),  de
+plásticos
+7.3   01.003.00  3918.10.00  Protetores de caçamba
+7.4   01.004.00  3923.30.00  Reservatórios de óleo
+7.5   01.005.00  3926.30.00  Frisos, decalques, molduras e acabamentos
+7.6   01.006.00
+4010.3
+5910.00.00
+Correias  de  transmissão   de  borracha  vulcan izada,  de  matérias  têxteis,  mesmo
+impregnadas,   revestidas  ou recobertas,  de plástico, ou estratificadas  com  plástico  ou
+reforçadas com metal ou com outras matérias
+7.7   01.007.00
+4016.93.00
+4823.90.9
+Juntas, gaxetas e outros elementos com função semelhante de vedação
+7.8   01.008.00  4016.10.10  Partes de veículos automóveis, tratores e máquinas autopropulsadas
+7.9   01.009.00
+4016.99.90
+5705.00.00
+Tapetes, revestimentos, mesmo confeccionados, batentes, buchas e coxins
+7.10   01.010.00  5903.90.00  Tecidos impregnados, revestidos, recobertos ou estratificados, com plástico
+7.11  01.01 1.00  5909.00.00
+Mangueiras   e  tubos  semelhantes,   de  matérias  têxteis,  mesmo   com  reforço  ou
+acessórios de outras matérias
+7.12   01.012.00   6306.1   Encerados e toldos
+7.13   01.013.00  6506.10.00
+Capacetes   e  artefatos  de uso  semelhante,   de proteção,  para  uso  em  motocicletas,
+incluídos ciclomotores
+7.14   01.014.00   6813
+Guarnições   de fricção  (por exemplo,  placas,  rolos, tiras, segmentos,   discos,  anéis,
+pastilhas),  não  montadas,   para  freios,  embreage  ns ou qualquer  outro  mecanismo   de
+fricção, à base  de amianto,  de outras  substâncias   minerais  ou de celulose,  mesmo
+combinadas com têxteis ou outras matérias
+7.15   01.015.00
+7007.1 1.00
+7007.21.00
+Vidros de dimensões e formatos que permitam aplicação automotiva
+7.16   01.016.00  7009.10.00  Espelhos retrovisores
+7.17   01.017.00  7014.00.00  Lentes de faróis, lanternas e outros utensílios
+7.18   01.018.00  7311.00.00 Cilindro de aço para GNV (gás natural veicular)
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              4/43
+----------------Page (3) Break----------------
+7.19   01.019.00  7311.00.00
+Recipientes   para  gases  comprimidos   ou liquefeitos, de ferro  fundido,  ferro  ou aço,
+exceto o descrito no item 7.18
+7.20   01.020.00   7320   Molas e folhas de molas, de ferro ou aço
+7.21   01.021.00   7325   Obras moldadas, de ferro fundido, ferro ou aço, exceto as do código 7325.91.00
+7.22   01.022.00   7806.00  Peso de chumbo para balanceamento de roda
+7.23   01.023.00  8007.00.90  Peso para balanceamento de roda e outros utensílios de estanho
+7.24   01.024.00
+8301.20
+8301.60
+Fechaduras e partes de fechaduras
+7.25   01.025.00   8301.70  Chaves apresentadas isoladamente
+7.26   01.026.00
+8302.10.00
+8302.30.00
+Dobradiças, guarnições, ferragens e artigos semelhantes de metais comuns
+7.27   01.027.00   8310.00  Triângulo de segurança
+7.28   01.028.00   8407.3
+Motores   de  pistão  alternativo  dos  tipos  utilizados  para  propulsão   de  veículos  do
+Capítulo 87
+7.29   01.029.00   8408.20  Motores dos tipos utilizados para propulsão de veículos automotores
+7.30   01.030.00   8409.9
+Partes  reconhecíveis   como  exclusiva  ou principalmente  destinadas  aos  motores  das
+posições 8407 ou 8408
+7.31   01.031.00   8412.2   Motores hidráulicos
+7.32   01.032.00   8413.30
+Bombas  para  combustíveis,   lubrificantes  ou líquidos  de arrefecimento,  próprias  para
+motores de ignição por centelha ou por compressão
+7.33   01.033.00  8414.10.00  Bombas de vácuo
+7.34   01.034.00
+8414.80.1
+8414.80.2
+Compressores e turbocompressores de ar
+7.35   01.035.00
+8413.91.90
+8414.90.10
+8414.90.3
+8414.90.39
+Partes  das  bombas,   compressores   e  turbocompressores    dos  CEST  01.032.00,
+01.033.00   e  01.034.00  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+7.36   01.036.00   8415.20  Máquinas e aparelhos de ar condicionado
+7.37   01.037.00  8421.23.00
+Aparelhos   para  filtrar óleos  minerais  nos  motores  de ignição  por  centelha  ou por
+compressão
+7.38   01.038.00  8421.29.90  Filtros a vácuo
+7.39   01.039.00   8421.9   Partes dos aparelhos para filtrar ou depurar líquidos ou gases
+7.40   01.040.00  8424.10.00  Extintores, mesmo carregados
+7.41   01.041.00  8421.31.00  Filtros de entrada de ar para motores de ignição por centelha ou por compressão
+7.42   01.042.00  8421.39.20  Depuradores por conversão catalítica de gases de escape
+7.43   01.043.00  8425.42.00  Macacos
+7.44   01.044.00  8431.10.10
+Partes  para  macacos   do CEST  01.043.00  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE  de
+04.10.2016) , efeitos a partir de 01.10.2016    Redação   Anterior
+7.45   01.045.00  8431.49.2
+Partes  reconhecíveis   como  exclusiva  ou  principalmente   destinadas  às máquinas
+agrícolas  ou rodoviárias  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+7.46   01.046.00  8481.10.00  Válvulas redutoras de pressão
+7.47   01.047.00   8481.2   Válvulas para transmissão óleo-hidráulicas ou pneumáticas
+7.48   01.048.00  8481.80.92  Válvulas solenóides
+7.49   01.049.00   8482   Rolamentos
+7.50   01.050.00   8483
+Árvores  de transmissão   (incluídas  as árvores  de "cames"e  virabrequins)  e manivelas;
+mancais  e "bronzes";  engrenagens   e rodas  de fricção; eixos  de esferas  ou de roletes;
+redutores,  multiplicadores,   caixas  de  transmissão   e  variadores  de  velocidade,
+incluídos  os  conversores   de  torque;  volantes  e  polias,  incluídas  as  polias  para
+cadernais;  embreagens   e  dispositivos  de  acoplamento,   incluídas  as  juntas  de
+articulação
+7.51   01.051.00   8484
+Juntas  metaloplásticas;   jogos  ou  sortidos  de  juntas  de  composições    diferentes,
+apresentados   em  bolsas,  envelopes   ou embalag ens  semelhantes;   juntas  de vedação
+mecânicas (selos mecânicos)
+7.52   01.052.00   8505.20  Acoplamentos, embreagens, variadores de velocidade e freios, eletromagnéticos
+7.53    01.053.00    8507.10
+Acumuladores   elétricos  de chumbo,   do tipo utilizado  para  o arranque  dos  motores  de
+pistão,  exceto  os classificados  no CEST  01.053.01  
+Alterado  pelo  Decreto  n° 46.219/2018
+(DOE de 17.01.2018)   , efeitos a partir de 17.01.2018    Redação   Anterior
+7.54   01.054.00    8511
+Aparelhos   e dispositivos  elétricos  de ignição  ou de arranque  para  motores  de ignição
+por  centelha  ou  por  compressão   (por  exemplo,  magnetos,   dínamos-magnetos,
+bobinas  de  ignição,  velas  de  ignição  ou  de  aquecimento,   motores   de  arranque);
+geradores   (dínamos  e alternadores,   por  exemplo)  e conjuntores-disjuntores    utilizados
+com estes motores
+7.55   01.055.00
+8512.20
+8512.40
+8512.90.00
+Aparelhos   elétricos  de iluminação  ou de sinalização  (exceto  os da posição  8539),
+limpadores   de  para-brisas,  degeladores   e  desembaçadores    (desembaciadores)
+elétricos e suas partes
+7.56   01.056.00  8517.12.13  Telefones móveis do tipo dos utilizados em veículos automóveis.
+7.57   01.057.00   8518   Alto-falantes, amplificadores elétricos de audiofrequência e partes
+7.58   01.058.00  8518.50.00  Aparelhos elétricos de amplificação de som para veículos automotores
+7.59   01.059.00   8519.81  Aparelhos de reprodução de som
+7.60   01.060.00
+8525.50.1
+ 8525.60.10
+Aparelhos   transmissores   (emissores)   de  radiotelefonia  ou  radiotelegrafia   (rádio
+receptor/transmissor)
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              5/43
+----------------Page (4) Break----------------
+7.61    01.061.00   8527.21.00
+Aparelhos   receptores  de  radiodifusão  que  só  funcionem   com  fonte  externa  de
+energia  combinados   com  um  aparelho  de gravação  ou de reprodução   de som,  do
+tipo utilizado  em  veículos  automóveis   
+Alterado  pelo  Decreto   n°  46.219/2018   (DOE  de
+17.01.2018) , efeitos a partir de 17.01.2018    Redação   Anterior
+7.62    01.062.00   8527.29.00
+Outros  aparelhos  receptores  de radiodifusão  que  só funcionem   com  fonte  externa  de
+energia,  do tipo utilizado  em  veículos  automóveis   
+Alterado  pelo  Decreto  n° 46.219/2018
+(DOE de 17.01.2018)   , efeitos a partir de 17.01.2018    Redação   Anterior
+7.63   01.063.00  8529.10.90  Antenas
+7.64   01.064.00   8534.00
+Circuitos  impressos  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir
+de 01.10.2016   Redação   Anterior
+7.65   01.065.00
+8535.30
+8536.50
+Interruptores e seccionadores e comutadores
+7.66   01.066.00  8536.10.00  Fusíveis e corta-circuitos de fusíveis
+7.67   01.067.00  8536.20.00  Disjuntores
+7.68   01.068.00   8536.4   Relés
+7.69   01.069.00   8538
+Partes  reconhecíveis   como  exclusivas  ou principalmente   destinados  aos  aparelhos
+dos  CEST  01.065.00,  01.066.00,  01.067.00   e  01.068.00  
+Alterado  pelo  Decreto   n°
+45.768/2016 (DOE de 04.10.2016)     , efeitos a partir de 01.10.2016    Redação   Anterior
+7.70   01.070.00   8539.10  Faróis e projetores, em unidades seladas
+7.71   01.071.00   8539.2   Lâmpadas e tubos de incandescência, exceto de raios ultravioleta ou infravermelhos
+7.72   01.072.00  8544.20.00  Cabos coaxiais e outros condutores elétricos coaxiais
+7.73   01.073.00  8544.30.00  Jogos de fios para velas de ignição e outros jogos de fios
+7.74   01.074.00   8707
+Carroçarias   para  os veículos  automóveis   das  posições  8701  a  8705,  incluídas  as
+cabinas
+7.75   01.075.00   8708   Partes e acessórios dos veículos automóveis das posições 8701 a 8705
+7.76   01.076.00   8714.1   Parte e acessórios de motocicletas (incluídos os ciclomotores)
+7.77   01.077.00  8716.90.90  Engates para reboques e semi-reboques
+7.78   01.078.00   9026.10  Medidores de nível; Medidores de vazão
+7.79   01.079.00   9026.20  Aparelhos para medida ou controle da pressão
+7.80   01.080.00   9029   Contadores, indicadores de velocidade e tacômetros, suas partes e acessórios
+7.81   01.081.00  9030.33.21  Amperímetros
+7.82   01.082.00  9031.80.40
+Aparelhos   digitais,  de  uso  em  veículos  automóveis,   para  medida  e  indicação  de
+múltiplas  grandezas   tais como:  velocidade  média,  consumos   instantâneo   e médio  e
+autonomia (computador de bordo)
+7.83   01.083.00  9032.89.2  Controladores eletrônicos
+7.84   01.084.00  9104.00.00  Relógios para painéis de instrumentos e relógios semelhantes
+7.85   01.085.00
+9401.20.00
+9401.90.90
+Assentos e partes de assentos
+7.86   01.086.00  9613.80.00  Acendedores
+7.87   01.087.00   4009   Tubos de borracha vulcanizada não endurecida, mesmo providos de seus acessórios
+7.88   01.088.00
+4504.90.00
+6812.99.10
+Juntas de vedação de cortiça natural e de amianto
+7.89   01.089.00  4823.40.00  Papel-diagrama para tacógrafo, em disco
+7.90   01.090.00
+3919.10.00
+3919.90.00
+8708.29.99
+Fitas, tiras, adesivos,  auto-colantes,  de plástico , refletores,  mesmo   em  rolos; placas
+metálicas  com  película  de plástico  refletora, próprias  para  colocação   em  carrocerias,
+para-choques   de veículos  de carga,  motocicleta s, ciclomotores,   capacetes,  bonés  de
+agentes  de trânsito e de condutores  de veículos , atuando  como  dispositivos  refletivos
+de segurança rodoviários
+7.91   01.091.00  8412.31.10  Cilindros pneumáticos
+7.92   01.092.00
+8413.19.00
+8413.50.90
+8413.81.00
+Bomba elétrica de lavador de para-brisa
+7.93   01.093.00
+8413.60.19
+8413.70.10
+Bomba de assistência de direção hidráulica
+7.94   01.094.00
+8414.59.10
+8414.59.90
+Motoventiladores
+7.95   01.095.00  8421.39.90  Filtros de pólen do ar-condicionado
+7.96   01.096.00  8501.10.19  "Máquina" de vidro elétrico de porta
+7.97   01.097.00  8501.31.10  Motor de limpador de para-brisa
+7.98   01.098.00  8504.50.00  Bobinas de reatância e de auto-indução
+7.99   01.099.00
+8507.20
+8507.30
+Baterias de chumbo e de níquel-cádmio
+7.100   01.100.00  8512.30.00  Aparelhos de sinalização acústica (buzina)
+7.101   01.101.00
+9032.89.8
+9032.89.9
+Instrumentos para regulação de grandezas não elétricas
+7.102   01.102.00  9027.10.00  Analisadores de gases ou de fumaça (sonda lambda)
+7.103   01.103.00  4008.1 1.00 Perfilados de borracha vulcanizada não endurecida
+7.104   01.104.00  5601.22.19  Artefatos de pasta de fibra de uso automotivo
+7.105   01.105.00  5703.20.00  Tapetes/carpetes - nailón
+7.106   01.106.00  5703.30.00  Tapetes de matérias têxteis sintéticas
+7.107   01.107.00  5911.90.00 Forração interior capacete
+7.108   01.108.00  6903.90.99  Outros para-brisas
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              6/43
+----------------Page (5) Break----------------
+7.109   01.109.00  7007.29.00  Moldura com espelho
+7.110   Revogado pelo   Decreto n° 47.864/2021 (DOE de 10.12.2021)       , efeitos a partir de 10.12.2021    Redação   Anterior
+7.111  01.1 11.00  7315.1 1.00 Corrente transmissão
+7.112   01.1 12.00 7315.12.10  Outras correntes de transmissão
+7.113   01.1 13.00 8418.99.00  Condensador tubular metálico
+7.114   01.1 14.00  8419.50  Trocadores de calor
+7.115   01.1 15.00 8424.90.90  Partes de aparelhos mecânicos de pulverizar ou dispersar
+7.116   01.1 16.00 8425.49.10  Macacos manuais para veículos
+7.117   01.1 17.00 8431.41.00  Caçambas, pás, ganchos e tenazes para máquinas rodoviárias
+7.118   01.1 18.00 8501.61.00  Geradores de corrente alternada de potência não superior a 75 kva
+7.119   01.1 19.00 8531.10.90  Aparelhos elétricos para alarme de uso automotivo
+7.120   01.120.00  9014.10.00  Bússolas
+7.121   01.121.00  9025.19.90  Indicadores de temperatura
+7.122   01.122.00  9025.90.10  Partes de indicadores de temperatura
+7.123   01.123.00   9026.90  Partes de aparelhos de medida ou controle
+7.124   01.124.00  9032.10.10  Termostatos
+7.125   01.125.00  9032.10.90  Instrumentos e aparelhos para regulação
+7.126   01.126.00  9032.20.00  Pressostatos
+7.127   01.127.00   8716.90
+Peças  para  reboques  e  semi-reboques,   exceto  os  itens  classificados   no  CEST
+01.077.00  
+Alterado  pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,  efeitos  a  partir  de
+01.10.2016   Redação   Anterior
+7.128   01.128.00  7322.90.10
+Geradores   de ar quente  a combustível   líquido, com  capacidade   superior  ou igual  a
+1.500  kcal/h,  mas  inferior ou igual  a 10.400  kcal/h,  do tipo dos  utilizados  em  veículos
+automóveis
+7.129   01.045.01  8433.90.90
+Partes  reconhecíveis   como  exclusiva  ou  principalmente   destinadas  às máquinas
+agrícolas  ou rodoviárias  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+7.130   01.062.01  8521.90.90
+Outros  aparelhos  videofônicos  de gravação  ou de reprodução,   mesmo   incorporando
+um  receptor  de sinais videofônicos,   dos  tipos  utilizados  exclusivamente   em  veículos
+automotores   
+Acrescentado   pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016
+7.131   01.999.00
+ 
+Outras  peças,  partes  e acessórios  para  veículos  automotores   não  relacionados  nos
+demais  itens  deste  anexo  
+Acrescentado   pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) ,
+efeitos a partir de 01.10.2016
+7.132   01.053.01  8507.10.10
+Acumuladores   elétricos  de chumbo,   do tipo utilizado  para  o arranque  dos  motores  de
+pistão  e de capacidade  inferior a 20 Ah e tensão  inferior ou igual  a 12 V 
+Acrescentado
+pelo  Decreto n° 46.219/2018 (DOE de 17.01.2018)       , efeitos a partir de 17.01.2018
+- O  disposto  acima  será  estendido,  de modo  a atribuir a responsabilidade   pela retenção  e recolhimento  do imposto  pelas  saídas
+subsequentes   de todas  as peças,  partes,  componentes   e acessórios  conceituados   no  § 1°  da  cláusula  primeira  do  Protocolo  ICMS
+41/08 , ainda  que  não  estejam  listadas  no Anexo  único  do mencionado   protocolo,  na condição  de sujeito  passivo  por  substituição,
+ao estabelecimento de fabricante:
+I - de veículos  automotores   para  estabelecimento   comercial  distribuidor , para  atender  índice  de fidelidade  de compra  de que  trata
+o art. 8° da  Lei Federal  n° 6.729, de 28 de novembro de 1979;
+II - de veículos,  máquinas  e equipamentos   agrí colas  ou rodoviários,  para  estabelecimento   comercial  distribuidor , cuja distribuição
+seja efetuada  de forma  exclusiva,  mediante  contrato  de fidelidade,  desde  que  seja autorizado  mediante  acordo  com  o  fisco  de
+localização do estabelecimento destinatário.
+- A substituição  tributária para  os produtos  discriminados   neste  item aplica-se  às operações   internas  e aquisições  de mercadorias
+procedentes   de outra  unidade  da Federação   por  contribuintes  localizados  no Estado  do Rio  de Janeiro  independentemente    de sua
+destinação.
+- Na hipótese  de a peça,  parte  ou acessório  de uso  diverso  do automotivo  estar  relacionado   em  outro  subitem  deste  Anexo,  aplica-
+se a Margem de V   alor Agregado nele referida.
+8.ACUMULADORES ELÉTRICOS
+Fundamento normativo: Protocolo ICM 18/85
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Protocolo  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro. 
+Subitem  CEST   NCM/SH     Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota interestadual de
+12%
+Alíquota interestadual de
+4%
+8.1 21.039.00 8507.80.00
+Outros
+acumuladores
+40%        54,00%            68,00%
+9.PNEUMÁTICOS, CÂMARAS DE        AR E PROTET   ORES DE BORRACHA
+Fun da mento   normativo:  Convênio   ICMS  102/17  
+Alterado  pelo  Decreto   n°  47.864/2021    (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação     Anterior
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              7/43
+----------------Page (6) Break----------------
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Convênio  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+9.1  16.001.00  4011.10.00
+Pneus   novos,   dos   tipos  utilizados  em
+automóveis   de  passageiros    (incluídos  os
+veículos  de  uso  misto  -  camionetas   e  os
+automóveis de corrida)
+42%    56,20%    70,40%
+9.2  16.002.00    4011
+Pneus   novos,   dos   tipos  utilizados  em
+caminhões   (inclusive  para  os fora-de-estrada),
+ônibus,  aviões,  máquinas  de terraplenagem,   de
+construção   e  conservação    de  estradas,
+máquinas e tratores agrícolas, pá-carregadeira
+32%    45,20%    58,40%
+9.3  16.003.00  4011.40.00 Pneus novos para motocicletas              60%    76,00%    92,00%
+9.4  16.004.00    4011
+Outros  tipos  de pneus  novos,  exceto  os itens
+classificados   no  CEST   16.005.00  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+45%    59,50%    74,00%
+9.5  16.007.00   4012.90
+Protetores   de  borracha,   exceto  os  itens
+classificados   no  CEST   16.007.01  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+45%    59,50%    74,00%
+9.6  16.008.00   4013
+Câmaras   de  ar de  borracha,  exceto  os itens
+classificados   no  CEST   16.009.00  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+45%    59,50%    74,00%
+10.MEDICAMENT    OS DE USO HUMANO E OUTROS PRODUT          OS F ARMACÊUTICOS P    ARA  USO HUMANO OU VETERINÁRIO
+Fun damen to normativo:  Protocolo  ICMS  76/14  e Convênio  ICMS  234/17 ; 
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE  de 10.12.2021) , efeitos  a
+partir de 10.12.2021   Redação     Anterior
+Âmbito  de  aplicação:      Operações   internas,  interestaduais   originadas  no  Estado  de  São  Paulo  e  aquisições  de  mercadorias
+procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+A base de cálculo do imposto para fins de substituição tributária nas operações com as mercadorias constantes desse item é:
+1 - tratando-se  de medicamentos,    conforme  definido  na legislação  federal,  relacionados  na lista de preços  mensalmente   divulgada
+em  revistas  especializadas   de  grande  circulação,   de  acordo  com  Resolução   da  Câmara   de  Regulação   do  Mercado   de
+Medicamentos   - CMED,   o Preço  Máximo  ao Con sumidor  - PMC,  calculado  mediante  a utilização  dos  critérios  para  fixação  e ajuste
+de preços previstos nas resoluções da CMED, aplicando-se sobre esse valor os seguintes percentuais de desconto:
+Percentual (%) de Descontoan>
+Categoria         Referência          Genéricos         Similares       Outros
+Positiva          23,97           50,99          20,01        16,88
+Negativa           16,02           44,12          16,06        12,90
+Neutra           12,79
+ 
+28,13        12,79
+2 - inexistindo  os valores  mencionados   no item 1, a base  de cálculo  a ser  adotada  será o montante  formado  pelo preço  praticado
+pelo  remetente   nas  operações   com  o  comércio  varejista,  neste  preço  incluídos  o  valor  do  IPI, o  frete  e/ou  carreto  até  o
+estabelecimento   varejista  e demais  despesas  co bradas  ou debitadas  ao destinatário,  adicionada   a parcela  resultante  da aplicação,
+sobre o referido montante, do percentual de margem de valor agregado, de acordo com seu enquadramento na tabela abaixo.
+No  que  tange  as operações   internas,  caso  algum  dos  produtos  constantes  da lista negativa  ou da lista positiva  seja excluído  da
+incidência  das  contribuições   previstas  no  inciso I do caput  do  artigo 1°  da  Lei  Federal  n° 10147/00,  de 21 de dezembro  de 2000 , na
+forma do seu § 2°, fica automaticamente incluído na lista neutra.
+Categoria
+MV A Original
+Alterado pelo  Decreto n° 45.947/2017 (DOE de
+16.02.2017),   efeitos a partir de 16.03.2017
+Redação   Anterior
+MV A Ajustada
+Alíquota
+interestadual de
+12%
+Alíquota
+interestadual de
+4%
+Lista negativa                     32,93%            46,22%        59,52%
+Lista positiva                     38,24%            52,06%        65,89%
+Lista neutra                      41,42%            55,56%        69,70%
+Mercadorias   constantes  dos  subitens
+10.16,  10.17,  10.26  e  10.27  deste
+Anexo
+28,82%            41,70%        54,58%
+Para fins do disposto neste item, considera-se:
+1 - referência, genéricos e similar   , os medicamentos assim definidos na legislação federal;
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              8/43
+----------------Page (7) Break----------------
+2 - outros, os demais medicamentos que não se enquadram no item 1;
+3 - positiva, as mercadorias constantes na lista positiva de incidência do PIS/P        ASEP  e COFINS;
+4 - negativa, as mercadorias constantes na lista negativa de incidência do PIS/P         ASEP  e COFINS;
+5 - neutra, as mercadorias constantes na lista neutra de incidência do PIS/P         ASEP  e COFINS.
+Mercadorias:
+Subitem  CEST     NCM/SH    Descrição
+10.1  13.001.00
+3003
+3004
+Medicamentos de referência - positiva, exceto para uso veterinário
+10.2  13.001.01
+3003
+3004
+Medicamentos de referência - negativa, exceto para uso veterinário
+10.3  13.001.02
+3003
+3004
+Medicamentos de referência - neutra, exceto para uso veterinário
+10.4  13.002.00
+3003
+3004
+Medicamentos genérico - positiva, exceto para uso veterinário
+10.5  13.002.01
+3003
+3004
+Medicamentos genérico -  negativa, exceto para uso veterinário
+10.6  13.002.02
+3003
+3004
+Medicamentos genérico - neutra, exceto para uso veterinário
+10.7  13.003.00
+3003
+3004
+Medicamentos similar - positiva, exceto para uso veterinário
+10.8  13.003.01
+3003
+3004
+Medicamentos similar - negativa, exceto para uso veterinário
+10.9  13.003.02
+3003
+3004
+Medicamentos similar - neutra, exceto para uso veterinário
+10.10  13.004.00
+3003
+3004
+Outros tipos de medicamentos - positiva, exceto para uso veterinário
+10.1 1 13.004.01
+3003
+3004
+Outros tipos de medicamentos -  negativa, exceto para uso veterinário
+10.12  13.004.02
+3003
+3004
+Outros tipos de medicamentos - neutra, exceto para uso veterinário
+10.13  13.005.00  3006.60.00
+Preparações   químicas  contraceptivas   de referência,  à  base  de hormônios,  de outros
+produtos  da  posição  29.37  ou  de  espermicidas   -  positiva.  
+Alterado  pelo  Decreto   n°
+47.864/2021 (DOE de 10.12.2021)     , efeitos a partir de 10.12.2021    Redação   Anterior
+10.14  13.005.01  3006.60.00
+Preparações   químicas  contraceptivas   de referência,  à  base  de hormônios,  de outros
+produtos  da  posição  29.37  ou  de  espermicidas   - negativa.  
+Alterado  pelo  Decreto   n°
+47.864/2021 (DOE de 10.12.2021)     , efeitos a partir de 10.12.2021    Redação   Anterior
+10.15  13.006.00    2936
+Provitaminas   e  vitaminas,  naturais  ou  reproduzidas   por  síntese  (incluídos  os
+concentrados   naturais),  bem  como  os seus  derivados  utilizados  principalmente   como
+vitaminas, misturados ou não entre si, mesmo em quaisquer soluções - neutra
+*10.16  13.007.00   3006.30
+Preparações   opacificantes   (contrastantes)   para  exames  radiográficos   e  reagentes   de
+diagnóstico concebidos para serem administrados ao paciente - positiva
+*10.17  13.007.01   3006.30
+Preparações   opacificantes   (contrastantes)   para  exames  radiográficos   e  reagentes   de
+diagnóstico concebidos para serem administrados ao paciente - negativa
+10.18  13.008.00    3002
+Antissoro,  outras  frações  do  sangue,   produtos  imunológicos   modificados,   mesmo
+obtidos por via biotecnológica,  exceto para uso veterinário - positiva
+10.19  13.008.01    3002
+Antissoro,  outras  frações  do  sangue,   produtos  imunológicos   modificados,   mesmo
+obtidos por via biotecnológica, exceto para uso veterinário - negativa
+10.20  13.009.00    3002   Vacinas e produtos semelhantes, exceto para uso veterinário - positiva;
+10.21  13.009.01    3002   Vacinas e produtos semelhantes, exceto para uso veterinário - negativa;
+10.22  13.010.00  3005.10.10
+Curativos  (pensos)  adesivos  e outros  artigos  com  uma  camada  adesiva,  impregnados
+ou  recobertos  de  substâncias   farmacêuticas   - Lista  Positiva  
+Alterado  pelo  Decreto   n°
+45.768/2016 (DOE de 04.10.2016)     , efeitos a partir de 01.10.2016    Redação   Anterior
+10.23  13.010.01  3005.10.10
+Curativos  (pensos)  adesivos  e outros  artigos  com  uma  camada  adesiva,  impregnados
+ou  recobertos  de  substâncias   farmacêuticas   - Lista  Negativa
+ Alterado  pelo  Decreto  n°
+45.768/2016 (DOE de 04.10.2016)     , efeitos a partir de 01.10.2016    Redação   Anterior
+10.24  13.01 1.00   3005
+Algodão,  atadura,  esparadrapo,   gazes,  pensos,  sinapismos,   e  outros,  acondicionados
+para  venda  a  retalho  para  usos  medicinais,  cirúrgicos  ou dentários,  não  impregnados
+ou  recobertos  de  substâncias   farmacêuticas   -  Lista  Neutra  
+Alterado  pelo  Decreto   n°
+45.768/2016 (DOE de 04.10.2016)     , efeitos a partir de 01.10.2016    Redação   Anterior
+10.25  Revogado pelo   Decreto n° 45.768/2016 (DOE de 04.10.2016)       , efeitos a partir de 01.10.2016    Redação   Anterior
+*10.26  13.012.00
+4015.1 1.00
+4015.19.00
+Luvas cirúrgicas e luvas de procedimento - neutra
+*10.27  13.013.00  4014.10.00   Preservativo - neutra
+10.28  13.014.00   9018.31   Seringas, mesmo com agulhas - neutra
+10.29  13.015.00  9018.32.1  Agulhas para seringas - neutra
+10.30  13.016.00
+3926.90.90
+9018.90.99
+Contraceptivos (dispositivos intra-uterinos - DIU) - neutra
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              9/43
+----------------Page (8) Break----------------
+10.31  13.005.02  3006.60.00
+Preparações   químicas  contraceptivas   genérico,   à  base  de  hormônios,   de  outros
+produtos  da posição  29.37  ou de espermicidas   - positiva.  
+Acrescentado   pelo  Decreto  n°
+47.864/2021 (DOE de 10.12.2021)     , efeitos a partir de 10.12.2021
+10.32  13.005.03  3006.60.00
+Preparações   químicas  contraceptivas   genérico,   à  base  de  hormônios,   de  outros
+produtos  da posição  29.37  ou de espermicidas   - negativa.  
+Acrescentado   pelo  Decreto  n°
+47.864/2021 (DOE de 10.12.2021)     , efeitos a partir de 10.12.2021
+10.33  13.005.04  3006.60.00
+Preparações   químicas  contraceptivas  similar, à base  de hormônios,  de outros  produtos
+da posição  29.37  ou de espermicidas   - positiva.  
+Acrescentado   pelo  Decreto  n° 47.864/2021
+(DOE de 10.12.2021)   , efeitos a partir de 10.12.2021
+10.34  13.005.05  3006.60.00
+Preparações   químicas  contraceptivas  similar, à base  de hormônios,  de outros  produtos
+da posição  29.37  ou de espermicidas   - negativa.  
+Acrescentado   pelo  Decreto  n° 47.864/2021
+(DOE de 10.12.2021)   , efeitos a partir de 10.12.2021
+*10.16,  *10.17,  *10.26  e  *10.27  (itens  sujeitos  à  Substituição  Tributária  somente   em  operações   internas  e  aquisições  de
+mercadorias procedentes de outra unidade da federação por contribuintes localizados no Estado do Rio de Janeiro).
+11.RAÇÕES P  ARA  ANIMAIS DOMÉSTICOS
+Fundamento normativo:            Protocolo ICMS 26/04
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Protocolo  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem  CEST  NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+11.1 22.001.00  2309  Ração tipo “pet” para animais domésticos              46%    60,60%    75,20%
+12 .SOR VETES E PREP   ARADOS P   ARA  FABRICAÇÃO DE SOR     VETES EM MÁQUINAS
+Fundamento normativo:            Protocolo ICMS 20/05
+Âmbito de aplicação: Operações internas, interestaduais originadas nas unidades federadas signatárias do Protocolo supracitado e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem  CEST  NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+12.1  23.001.00 2105.00  Sorvetes de qualquer espécie                 70%    87,00%    104,00%
+12.2  23.002.00
+1806
+1901
+2106
+Preparados para fabricação de sorvete em máquina          328%    370,80%    413,60%
+13 .TINT AS E VERNIZES
+Fun dam ento  normativo:  Convênio   ICMS  118/17 : 
+Alterado  pelo  Decreto   n°  47.864/2021    (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação     Anterior
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Convênio  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+13.1   24.001.00
+3208
+3209
+3210.00
+Tintas, vernizes                 35%    48,50%    62,00%
+13.2   24.002.00
+2821
+3204.17.00
+3206
+Xadrez  e pós  assemelhados,   em  embalagem
+de conteúdo  inferior ou igual  a  1  kg,  exceto
+pigmentos   à  base  de  dióxido  de  titânio
+classificados   no  código  3206.1 1.19  
+Alterado
+pelo  Decreto  n° 47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+35%    48,50%    62,00%
+13.3   24.003.00
+3204
+3205.00.00
+3206
+3212
+Corantes  para  aplicação  em  bases,  tintas e
+vernizes  
+Acrescentado   pelo  Decreto  n° 45.768/2016
+(DOE de 04.10.2016)   , efeitos a partir de 01.10.2016
+50%    65,00%    80,00%
+13.4   24.002.01   2821
+3204.17.00
+3206
+Xadrez  e pós  assemelhados,   em  embalagem
+de  conteúdo   superior  a  1  kg,  exceto
+pigmentos   à  base  de  dióxido  de  titânio
+classificados     no    código    NCM
+3206.1 1.19  
+Acrescentado    pelo   Decreto   n°
+35%    48,50%    62,00%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              10/43
+----------------Page (9) Break----------------
+47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021
+14 .VEÍCULOS   AUT OMOT  ORES
+Fund ament o  normativo:  Convênio   ICMS  199/17 ; 
+Alterado  pelo  Decreto   n°  47.864/2021    (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação     Anterior
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Convênio  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+A base de cálculo do imposto para fins de substituição tributária nas operações com as mercadorias constantes desse item é:
+1 - em  relação  aos  veículos  saídos,  real ou simbolicamente   das  montadoras   ou de suas  concessionárias   com  destino  ao Estado  do
+Rio  de Janeiro,  o valor  correspondente   ao preç o de venda  a consumidor   constante  da tabela  estabelecida  por  órgão  competente
+(ou sugerido ao público) ou, na falta desta, a tabela sugerida pelo fabricante, acrescido do valor do frete, do IPI e dos acessórios.
+2  - em  relação  às demais  situações  o  preço  máximo  ou  único  de  venda  utilizado  pelo  contribuinte  substituído,  fixado  pela
+autoridade   competente   ou,  na  falta  desse  preço,  o  valor  da  operação   praticado   pelo  substituto,  incluídos  os  valores
+correspondentes    a frete, carreto,  seguro,  impostos  e outros  encargos  transferíveis  ao varejista,  acrescido  da MV A constante  desse
+item.
+- Em  se tratando  de veículo  importado,  o valor  da operação  praticado  pelo substituto  não  poderá  ser  inferior ao que  serviu  de base
+de cálculo para pagamento do Imposto de Importação e sobre Produtos Industrializados.
+- Nas  operações   internas  e de importação  a base  de cálculo  será  reduzida  de forma  que  a carga  tributária resulte  em  12%  (doze
+por cento).
+Subitem  CEST   NCM/SH
+De scrição  
+Alterado pelo  Decreto n° 47.864/2021 (DOE de
+10.12.2021) , efeitos a partir de 10.12.2021    Redação   Anterior
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+14.1  25.001.00 8702.10.00
+Veículos   automóveis   para  transporte   de  10
+pessoas   ou  mais,   incluindo   o  motorista,
+unicamente   com  motor  de pistão,  de ignição  por
+compressão   (diesel  ou  semidiesel),  com  volume
+interno  de habitáculo,  destinado   a  passageiros  e
+motorista, superior a 6 m³, mas inferior a 9 m³
+30%    43,00%     56,00%
+14.2  25.002.00 8702.40.90
+Veículos   automóveis   para  transporte   de  10
+pessoas   ou  mais,   incluindo   o  motorista,
+unicamente   com  motor  elétrico  para  propulsão,
+com  volume  interno  de  habitáculo,  destinado  a
+passageiros   e  motorista,  superior  a  6  m³,  mas
+inferior a 9 m³
+30%    43,00%     56,00%
+14.3  25.003.00 8703.21.00
+Automóveis   unicamente   com  motor  de  pistão
+alternativo  de  ignição  por  centelha  (faísca*),  de
+cilindrada não superior a 1000 cm³
+30%    43,00%     56,00%
+14.4  25.004.00 8703.22.10
+Automóveis   unicamente   com  motor  de  pistão
+alternativo  de  ignição  por  centelha  (faísca*),  de
+cilindrada  superior  a 1000  cm³,  mas  não  superior
+a  1500  cm³,  com  capacidade   de  transporte  de
+pessoas  sentadas  inferior ou igual  a 6, incluído  o
+condutor , exceto carro celular
+30%    43,00%     56,00%
+14.5  25.005.00 8703.22.90
+Outros  automóveis   unicamente   com  motor  de
+pistão  alternativo  de ignição  por  centelha  (faísca*),
+de  cilindrada  superior  a  1000  cm³,  mas  não
+superior a 1500 cm³, exceto carro celular
+30%    43,00%     56,00%
+14.6  25.006.00 8703.23.10
+Automóveis   unicamente   com  motor  de  pistão
+alternativo  de  ignição  por  centelha  (faísca*),  de
+cilindrada  superior  a 1500  cm³,  mas  não  superior
+a  3000  cm³,  com  capacidade   de  transporte  de
+pessoas  sentadas  inferior ou igual  a 6, incluído  o
+condutor , exceto  carro  celular, carro  funerário  e
+automóveis de corrida
+30%    43,00%     56,00%
+14.7  25.007.00 8703.23.90
+Outros  automóveis   unicamente   com  motor  de
+pistão  alternativo  de ignição  por  centelha  (faísca*),
+de  cilindrada  superior  a  1500  cm³,  mas  não
+superior  a  3000  cm³,  exceto  carro  celular, carro
+funerário e automóveis de corrida
+30%    43,00%     56,00%
+14.8  25.008.00 8703.24.10  Automóveis unicamente
+com  motor  de  pistão  alternativo  de  ignição  por
+centelha  (faísca*),  de cilindrada  superior  a  3000
+cm³, com capacidade de transporte de pessoas
+30%    43,00%     56,00%
+sentadas  inferior ou igual  a 6, incluído  o condutor ,
+exceto  carro  celular, carro  funerário  e automóveis
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              11/43
+----------------Page (10) Break----------------
+de corrida
+14.9  25.009.00 8703.24.90
+Outros  automóveis   unicamente   com  motor  de
+pistão  alternativo  de ignição  por  centelha  (faísca*),
+de  cilindrada  superior  a  3000  cm³,  exceto  carro
+celular, carro funerário e automóveis de corrida
+30%    43,00%     56,00%
+14.10 25.010.00 8703.32.10
+Automóveis   unicamente   com  motor  diesel  ou
+semidiesel,   de  cilindrada  superior  a  1500  cm³,
+mas  não  superior  a 2500  cm³, com  capacidade  de
+transporte  de pessoas  sentadas  inferior ou igual  a
+6, incluído  o  condutor , exceto  ambulância,   carro
+celular e carro funerário
+30%    43,00%     56,00%
+14.1 1 25.01 1.00 8703.32.90
+Outros  automóveis   unicamente   com  motor  diesel
+ou semidiesel,  de cilindrada  superior  a 1500  cm³,
+mas  não  superior  a 2500  cm³, exceto  ambulância,
+carro celular e carro funerário
+30%    43,00%     56,00%
+14.12 25.012.00 8703.33.10
+Automóveis   unicamente   com  motor  diesel  ou
+semidiesel,   de  cilindrada  superior  a  2500  cm³,
+com   capacidade   de  transporte   de  pessoas
+sentadas  inferior ou igual  a 6, incluído  o condutor ,
+exceto carro celular e carro funerário
+30%    43,00%     56,00%
+14.13 25.013.00 8703.33.90
+Outros  automóveis   unicamente   com  motor  diesel
+ou semidiesel,  de cilindrada  superior  a 2500  cm³,
+exceto carro celular e carro funerário
+30%    43,00%     56,00%
+14.14 25.014.00 8704.21.10
+Veículos   automóveis    para   transporte   de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  chassis  com  motor  diesel
+ou semidiesel  e cabina,  exceto  caminhão  de peso
+em carga máxima superior a 3,9 toneladas
+30%    43,00%     56,00%
+14.15 25.015.00 8704.21.20
+Veículos   automóveis    para   transporte   de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  com  motor  diesel  ou
+semidiesel,   com   caixa   basculante,    exceto
+caminhão   de peso  em  carga  máxima  superior  a
+3,9 toneladas
+30%    43,00%     56,00%
+14.16 25.016.00 8704.21.30
+Veículos   automóveis    para   transporte   de
+mercadorias,
+de  peso  em  carga  máxima   não  superior  a  5
+toneladas,  frigoríficos  ou isotérmicos,  com  motor
+diesel  ou  semidiesel,   exceto  caminhão   de  peso
+em carga máxima superior a 3,9 toneladas
+30%    43,00%     56,00%
+14.17 25.017.00 8704.21.90
+Outros  veículos  automóveis   para  transporte  de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  com  motor  diesel  ou
+semidiesel,   exceto  carro-forte  para  transporte  de
+valores  e  caminhão   de  peso  em  carga  máxima
+superior a 3,9 toneladas
+30%    43,00%     56,00%
+14.18 25.018.00 8704.31.10
+Veículos   automóveis    para   transporte   de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  com  motor  a  explosão,
+chassis  e  cabina,  exceto  caminhão   de peso  em
+carga máxima superior a 3,9 toneladas
+30%    43,00%     56,00%
+14.19 25.019.00 8704.31.20
+Veículos   automóveis    para   transporte   de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  com  motor  explosão  com
+caixa  basculante,   exceto  caminhão   de  peso  em
+carga máxima superior a 3,9 toneladas
+30%    43,00%     56,00%
+14.20 25.020.00 8704.31.30
+Veículos   automóveis    para   transporte   de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  frigoríficos  ou isotérmicos
+com  motor  explosão,   exceto  caminhão   de  peso
+em carga máxima superior a 3,9 toneladas
+30%    43,00%     56,00%
+14.21 25.021.00 8704.31.90
+Outros  veículos  automóveis   para  transporte  de
+mercadorias,   de  peso  em  carga  máxima   não
+superior  a  5  toneladas,  com  motor  a  explosão,
+exceto  carro-forte  para  transporte  de  valores  e
+caminhão   de peso  em  carga  máxima  superior  a
+3,9 toneladas
+30%    43,00%     56,00%
+14.22 25.022.00 8702.20.00
+Veículos   automóveis   para  transporte   de  10
+pessoas  ou mais,  incluindo  o motorista,  com  motor
+de pistão,  de ignição  por  compressão   (diesel  ou
+semidiesel)   e  um  motor  elétrico,  com  volume
+interno  de habitáculo,  destinado   a  passageiros  e
+motorista, superior a 6 m³, mas inferior a 9 m³
+30%    43,00%     56,00%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              12/43
+----------------Page (11) Break----------------
+14.23 25.023.00 8702.30.00
+Veículos   automóveis   para  transporte   de  10
+pessoas  ou mais,  incluindo  o motorista,  com  motor
+de  pistão  alternativo,  de  ignição  por  centelha
+(faísca)  e  um  motor  elétrico,  com  volume  interno
+de habitáculo,
+destinado  a passageiros   e motorista,  superior  a 6
+m³, mas inferior a 9 m³
+30%    43,00%     56,00%
+14.24 25.024.00 8702.90.00
+Outros  veículos  automóveis   para  transporte  de 10
+pessoas   ou  mais,  incluindo  o  motorista,  com
+volume   interno   de  habitáculo,   destinado   a
+passageiros   e  motorista,  superior  a  6  m³,  mas
+inferior a 9 m³
+30%    43,00%     56,00%
+14.25 25.025.00 8703.40.00
+Automóveis    equipados    para   propulsão,
+simultaneamente,    com   um  motor   de  pistão
+alternativo  de ignição  por  centelha  (faísca*)  e um
+motor  elétrico,  exceto  os  suscetíveis   de  serem
+carregados   por  conexão   a  uma  fonte  externa  de
+energia elétrica, o carro celular e o carro funerário
+30%    43,00%     56,00%
+14.26 25.026.00 8703.50.00
+Automóveis    equipados    para   propulsão,
+simultaneamente,    com  um  motor  de  pistão  por
+compressão   (diesel  ou  semidiesel)   e  um  motor
+elétrico,  exceto   os  suscetíveis   de  serem
+carregados   por  conexão   a  uma  fonte  externa  de
+energia  elétrica,  exceto  o  carro  celular  e  o  carro
+funerário
+30%    43,00%     56,00%
+14.27 25.027.00 8703.60.00
+Automóveis    equipados    para   propulsão,
+simultaneamente,    com   um  motor   de  pistão
+alternativo  de ignição  por  centelha  (faísca*)  e um
+motor  elétrico,  suscetíveis   de  serem  carregados
+por  conexão   a  uma  fonte  externa  de  energia
+elétrica, exceto o carro celular e o carro funerário
+30%    43,00%     56,00%
+14.28 25.028.00 8703.70.00
+Automóveis    equipados    para   propulsão,
+simultaneamente,    com  um  motor  de  pistão  por
+compressão   (diesel  ou  semidiesel)   e  um  motor
+elétrico,  suscetíveis   de  serem   carregados   por
+conexão   a uma  fonte  externa  de energia  elétrica,
+exceto o carro celular e o carro funerário
+30%    43,00%     56,00%
+14.29 25.029.00 8703.80.00
+Outros  veículos,   equipados   unicamente   com
+motor elétrico para propulsão
+30%    43,00%     56,00%
+15.VEÍCULOS DE DUAS E     TRÊS RODAS MOT    ORIZADOS
+Fund amento   normativo:  Convênio   ICMS  200/17  
+Alterado  pelo  Decreto   n°  47.864/2021    (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação     Anterior
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Convênio  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+A base de cálculo do imposto para fins de substituição tributária nas operações com as mercadorias constantes desse item é:
+1 - em  relação  aos  veículos  nacionais,  o valor  correspondente   ao preço  de venda  a consumidor  , constante  de tabela  estabelecida
+por órgão competente (ou sugerido ao público) ou, na falta desta, pelo fabricante, acrescido do valor do frete e dos acessórios.
+2  - em  relação  aos  veículos  importados,   o  preço  máximo  ou único  de venda  utilizado  pelo  contribuinte  substituído,  fixado  pela
+autoridade competente, acrescido do valor do frete e dos acessórios.
+3 - inexistindo  os valores  mencionados   nos  itens 1 e 2, a base  de cálculo  será  obtida  tomando-se   por  base  o valor  da operação
+praticada  pelo substituto,  incluídos  os valores  correspondentes    a frete, carreto,  seguro,  impostos  e outros  encargos  transferíveis  ao
+varejista, acrescido do valor resultante da aplicação do percentual de margem de valor agregado constante desse item.
+- Nas  operações   internas  e de importação  a base  de cálculo  será  reduzida  de forma  que  a carga  tributária resulte  em  12%  (doze
+por cento).
+Subitem  CEST  NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+15.1  26.001.00  8711
+Motocicletas   (incluídos  os  ciclomotores)   e  outros
+ciclos  equipados   com  motor  auxiliar , mesmo  com
+carro lateral; carros laterais
+34%    47,40%    60,80%
+16.AP ARELHOS CELULARES
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              13/43
+----------------Page (12) Break----------------
+Fun dame nto  normativo:  Convênio  ICMS  213/17  e Protocolo  ICMS  136/13 ; 
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE  de 10.12.2021) , efeitos
+a partir de 10.12.2021    Redação     Anterior
+Âmbito  de aplicação:  Operações   internas,  intere staduais  originadas  nas  unidades  federadas  signatárias  do Convênio  supracitado   e
+aquisições de mercadorias procedentes das demais unidades federadas por contribuintes localizados no Estado do Rio de Janeiro.
+Subitem    CEST    NCM/SH   Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+16.1   21.053.00  8517.12.3
+Telefones  para  redes  celulares,  exceto  por
+satélite,  os  de  uso  automotivo   e  os
+classificados   no  CEST   21.053.01
+Alterado
+pelo  Decreto  n° 45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+9%    11,53%    21,67%
+16.2   21.063.00  8523.52.00
+Cartões  inteligentes  ("smartcards"),   exceto  o
+item classificado  no CEST  21.064.00  
+Alterado
+pelo  Decreto  n° 47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+9%    19,90%    30,80%
+16.3   21.064.00  8523.52.00  Cartões inteligentes ("sim cards")            9%    19,90%    30,80%
+16.4   21.053.01  8517.12.31
+Telefones  para  redes  celulares   portáteis,
+exceto  por  satélite  
+Acrescentado   pelo  Decreto  n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016
+9%    11,53%    21,67%
+17.PNEUS E CÂMARAS DE       AR DOS  TIPOS UTILIZADOS EM BICICLET       AS  
+Fundamento normativo:            Protocolos ICMS 203/09     e 132/13
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem  CEST   NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+17.1  16.005.00 4011.50.00
+Pneus novos de borracha dos tipos utilizados em
+bicicletas
+105,00%   125,50%    146,00%
+17.2  16.009.00 4013.20.00
+Câmaras de ar de borracha dos tipos utilizados em
+bicicletas
+105,00%   125,50%    146,00%
+18.FERRAMENT    AS
+Fundamento normativo:            Protocolos ICMS 193/09     e 77/14
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+18.1  08.001.00  4016.99.90
+Ferramentas    de  borracha   vulcanizada   não
+endurecida
+48,00%    62,80%    77,60%
+18.2  08.002.00
+4417.00.10
+4417.00.90
+Ferramentas,    armações    e   cabos   de
+ferramentas, de madeira
+55,00%    70,50%    86,00%
+18.3  08.003.00   6804
+Mós  e  artefatos  semelhantes,   sem  armação,
+para  moer ,  desfibrar ,  triturar,  amolar ,  polir,
+retificar  ou cortar;  pedras  para  amolar  ou para
+polir, manualmente,   e  suas  partes,  de pedras
+naturais,  de  abrasivos   naturais  ou  artificiais
+aglomerados    ou  de  cerâmica,   mesmo   com
+partes de outras matérias
+53,00%    68,30%    83,60%
+18.4  08.004.00   8201
+Pás,  alviões,  picaretas,  enxadas,   sachos,
+forcados  e  forquilhas,  ancinhos  e  raspadeiras;
+machados,   podões  e ferramentas   semelhantes
+com  gume;  tesouras  de  podar  de  todos  os
+tipos;  foices  e  foicinhas,  facas  para  feno  ou
+para  palha,  tesouras  para  sebes,  cunhas  e
+outras  ferramentas   manuais   para  agricultura,
+horticultura ou silvicultura
+44,00%    58,40%    72,80%
+18.5  08.005.00  8202.20.00   Folhas de serras de fita               49,00%    63,90%    78,80%
+18.6  08.006.00  8202.91.00   Lâminas de serras máquinas               49,00%    63,90%    78,80%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              14/43
+----------------Page (13) Break----------------
+18.7  08.007.00   8202
+Serras  manuais   e  outras  folhas  de  serras
+(incluídas  as  fresas-serras   e  as  folhas  não
+dentadas  para  serrar),  exceto  as classificadas
+nos  CEST  08.005.00   e  08.006.00  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+49,00%    63,90%    78,80%
+18.8  08.008.00   8203
+Limas,  grosas,   alicates  (mesmo   cortantes),
+tenazes,  pinças,  cisalhas  para  metais,  corta-
+tubos,  corta-pinos,  saca-bocados   e ferramentas
+semelhantes,   manuais,  exceto  as pinças  para
+sobrancelhas    classificadas    na   posição
+8203.20.90
+48,00%    62,80%    77,60%
+18.9  08.009.00   8204
+Chaves   de  porcas,   manuais   (incluídas  as
+chaves   dinamométricas);    chaves   de  caixa
+intercambiáveis, mesmo com cabos
+56,00%    71,60%    87,20%
+18.10  08.010.00   8205
+Ferramentas   manuais   (incluídos  os diamantes
+de  vidraceiro)   não   especificadas    nem
+compreendidas    em  outras  posições,  lamparinas
+ou  lâmpadas   de  soldar  (maçaricos)    e
+semelhantes;   tornos  de  apertar , sargentos   e
+semelhantes,   exceto  os acessórios  ou  partes
+de  máquinas-ferramentas;     bigornas;   forjas-
+portáteis;  mós  com  armação,  manuais   ou  de
+pedal
+60,00%    76,00%    92,00%
+18.1 1 08.01 1.00  8206.00.00
+Ferramentas   de pelo menos  duas  das  posições
+8202  a 8205,  acondicionadas   em  sortidos  para
+venda  a retalho  
+Alterado  pelo  Decreto  n° 45.768/2016
+(DOE   de  04.10.2016) ,  efeitos   a   partir  de
+01.10.2016   Redação   Anterior
+52,00%    67,20%    82,40%
+18.12  08.012.00
+8207.40
+8207.60
+8207.70
+Ferramentas     de   roscar   interior   ou
+exteriormente;  de mandrilar  ou de brochar;  e de
+fresar
+55,00%    70,50%    86,00%
+18.13   08.013.00    8207
+Outras   ferramentas    intercambiáveis    para
+ferramentas   manuais,  mesmo   mecânicas,   ou
+para  máquinas-ferramentas    (por  exemplo,  de
+embutir ,  estampar  ,  puncionar ,  furar,  tornear ,
+aparafusar),  incluídas  as fieiras  de  estiragem
+ou de extrusão,  para  metais,  e  as ferramentas
+de perfuração  ou de sondagem,   exceto  forma
+ou  gabarito  de  produtos  em  epoxy   e  as
+classificadas   no  CEST   08.012.00 
+Alterado
+pelo  Decreto   n°  46.219/2018   (DOE  de  17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+ 55,00%     70,50%     86,00%
+18.14  08.014.00   8208
+Facas  e  lâminas  cortantes,  para  máquinas   ou
+para aparelhos mecânicos
+52,00%    67,20%    82,40%
+18.15  08.015.00  8209.00.1 1 Plaquetas ou pastilhas intercambiáveis           67,00%    83,70%    100,40%
+18.16  08.016.00   8209.00
+Outras  plaquetas,  varetas,  pontas  e  objetos
+semelhantes   para  ferramentas,  não  montados,
+de   ceramais    ("cermets"),   exceto   as
+classificadas   no  CEST   08.015.00  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+67,00%    83,70%    100,40%
+18.17  08.017.00    8211
+Facas   de  lâmina  cortante  ou  serrilhada,
+incluídas  as  podadeiras   de  lâmina  móvel,  e
+suas   lâmicas,   exceto   as   de   uso
+doméstico  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE
+de 04.10.2016) , efeitos  a  partir de 01.10.2016   Redação
+Anterior
+49,00%    63,90%    78,80%
+18.18  08.018.00   8213   Tesouras e suas lâminas                54,00%    69,40%    84,80%
+18.19  08.020.00   9015
+Instrumentos   e  aparelhos   de  geodésia,
+topografia,    agrimensura,     nivelamento,
+fotogrametria,    hidrografia,   oceanografia,
+hidrologia,  meteorologia  ou de geofísica,  exceto
+bussolas; telêmetros
+46,00%    60,60%    75,20%
+18.20  08.021.00
+9017.20.00
+9017.30
+9017.80
+9017.90.90
+Instrumentos   de  desenho,  de  traçado  ou  de
+cálculo;  metros,   micrômetros,   paquímetros,
+calibres e semelhantes; partes e acessórios
+56,00%    71,60%    87,20%
+18.21  08.022.00
+9025.1 1.90
+9025.90.10
+Termômetros, suas partes e acessórios           66,00%    82,60%    99,20%
+18.22  08.023.00
+9025.19 
+9025.90.90
+Pirômetros, suas partes e acessórios           67,00%    83,70%    100,40%
+19.PAPELARIA
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              15/43
+----------------Page (14) Break----------------
+Fundamento normativo:            Protocolos ICMS 199/09     e 135/13
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem  CEST   NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+19.1  19.001.00 3213.10.00  Tinta guache                     81,34%    99,47%    117,61%
+19.2  19.002.00 3916.20.00
+Espiral  - perfil para  encadernação,    de  plástico  e
+outros  materiais  classificados  nas  posições  390 1 a
+3914
+82,24%    100,46%    118,69%
+19.3  19.004.00 3926.10.00
+Artigos  de escritório  e artigos  escolares  de plástico
+e outros  materiais  classificados  nas  posições  3901
+a 3914, exceto estojos
+64,12%    80,53%    96,94%
+19.4  19.005.00
+4202.1
+4202.9
+Maletas  e pastas  para  documentos   e de estudante,
+e artefatos semelhantes
+60,91%    77,00%    93,09%
+19.5  19.006.00 3926.90.90  Prancheta de plástico                  82,24%    100,46%    118,69%
+19.6  19.007.00
+4802.20.90
+4811.90.90
+Bobina para fax                    48,79%    63,67%    78,55%
+19.7  19.008.00  4802.54.9  Papel seda                      82,24%    100,46%    118,69%
+19.8  19.009.00
+4802.54.99
+4802.57.99
+4816.20.00
+Bobina  para  máquina   de  calcular ,   PDV   ou
+equipamentos similares
+95,00%    114,50%    134,00%
+19.9  19.010.00
+4802.56.9
+4802.57.9
+4802.58.9
+Cartolina   escolar   e  papel  cartão,  brancos  e
+coloridos,  cortados  em  folhas  em  que  um  lado seja
+inferior ou igual  a  500  mm  e  o  outro  inferior ou
+igual  a  700  mm,  quando  não  dobradas,   e  peso
+igual  ou superior  a 120g/m²;  recados  autoadesivos
+(LP note);  papéis  de presente;  todos  cortados  em
+tamanho    pronto   para   uso   escolar   e
+doméstico  
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE  de
+10.12.2021) , efeitos a partir de 10.12.2021    Redação   Anterior
+73,35%    90,69%    108,02%
+19.10 19.01 1.00
+3703.10.10
+3703.10.29
+3703.20.00
+3703.90.10
+3704.00.00
+4802.20.00
+Papel  fotográfico,  exceto:  (i) os papéis  fotográficos
+emulsionados   com  haleto  de prata  tipo brilhante,
+matte  ou lustre,  em  rolo e, com  largura  igual  ou
+superior  a 102  mm  e comprimento   inferior ou igual
+a  350  m, (ii) os papéis  fotográficos  emulsionados
+com  haleto  de  prata  tipo brilhante  ou  fosco,  em
+folha  e com  largura  igual  ou superior  a 152  mm  e
+comprimento   inferior ou igual  a 307  mm,  (iii) papel
+de qualidade  fotográfica  com  tecnologia  “Thermo-
+autochrome”,   que  submetido   a  um  processo  de
+aquecimento   seja  capaz  de  formar  imagens   por
+reação  química  e combinação   das  camadas   cyan,
+magenta e amarela
+82,24%    100,46%    118,69%
+19.1 1 19.012.00 4810.13.90  Papel almaço                     82,24%    100,46%    118,69%
+19.12 19.013.00 4816.90.10  Papel hectográfico                   82,24%    100,46%    118,69%
+19.13 19.014.00 3920.20.19  Papel celofane e tipo celofane               82,24%    100,46%    118,69%
+19.14 19.015.00 4806.20.00  Papel impermeável                   82,24%    100,46%    118,69%
+19.15 19.016.00 4808.10.00  Papel crepon                     82,24%    100,46%    118,69%
+19.16 19.017.00 4810.22.90  Papel fantasia                    43,03%    57,33%    71,64%
+19.17 19.018.00
+4809
+4816
+Papel-carbono,   papel  autocopiativo   (exceto   os
+vendidos  em  rolos  de diâmetro  igual  ou superior  a
+60 cm  e os vendidos  em  folhas  de formato  igual ou
+superior  a 60 cm  de altura e igual  ou superior  a 90
+cm  de  largura)  e  outros  papéis  para  cópia  ou
+duplicação  (incluídos  os papéis  para  estênceis  ou
+para chapas  ofsete), estênceis  completos   e chapas
+ofsete,   de   papel,   em   folhas,   mesmo
+acondicionados em caixas
+99,44%    119,38%    139,33%
+19.18 19.019.00   4817
+Envelopes,   aerogramas,    bilhetes-postais   não
+ilustrados  e  cartões  para  correspondência,    de
+papel  ou cartão,  caixas,  sacos  e  semelhantes,   de
+papel  ou  cartão,  contendo  um  sortido  de  artigos
+para correspondência
+36,71%    50,38%    64,05%
+19.19 19.020.00 4820.10.00
+Livros  de  registro  e  de  contabilidade,  blocos  de
+notas,de   encomendas,     de   recibos,   de
+apontamentos,    de  papel  para  cartas,  agendas  e
+artigos semelhantes
+86,89%    105,58%    124,27%
+19.20 19.021.00 4820.20.00  Cadernos                       65,93%    82,52%    99,12%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              16/43
+----------------Page (15) Break----------------
+19.21 19.022.00 4820.30.00
+Classificadores,  capas  para  encadernação   (exceto
+as capas para livros) e capas de processos
+73,35%    90,69%    108,02%
+19.22 19.023.00 4820.40.00
+Formulários   em  blocos  tipo "manifold",  mesmo   com
+folhas intercaladas de papel-carbono
+31,06%    44,17%    57,27%
+19.23 19.024.00 4820.50.00  Álbuns para amostras ou para coleções            70,71%    87,78%    104,85%
+19.24 19.025.00 4820.90.00
+Pastas  para  documentos,   outros  artigos  escolares,
+de escritório  ou de papelaria,  de papel  ou cartão  e
+capas para livros, de papel ou cartão
+87,77%    106,55%    125,32%
+19.25 19.026.00 4909.00.00
+Cartões  postais  impressos   ou  ilustrados,  cartões
+impressos   com  votos  ou  mensagens    pessoais,
+mesmo   ilustrados,   com   ou  sem   envelopes,
+guarnições   ou  aplicações   (conhecidos    como
+cartões    de   expressão    social   -   de
+época/sentimento)
+111,25%   132,38%    153,50%
+19.26 19.027.00 9608.10.00  Canetas esferográficas                  64,21%    80,63%    97,05%
+19.27 19.028.00 9608.20.00
+Canetas  e marcadores,   com  ponta  de feltro ou com
+outras pontas porosas
+64,21%    80,63%    97,05%
+19.28 19.029.00 9608.30.00  Canetas tinteiro                    64,21%    80,63%    97,05%
+19.29 19.030.00   9608   Outras canetas; sortidos de canetas             64,21%    80,63%    97,05%
+19.30 19.031.00  4802.56
+Papel  cortado  "cutsize"  (tipo  A3,  A4,  ofício I e  II,
+carta e outros)
+37,75%    51,53%    65,30%
+19.31 19.032.00 5210.59.90  Papel camurça                    82,24%    100,46%    118,69%
+19.32 19.033.00 7607.1 1.90 Papel laminado e papel espelho               82,24%    100,46%    118,69%
+20.PRODUT  OS ELETRÔNICOS, ELETROELETRÔNICOS E ELETRODOMÉSTICOS
+Fundamento normativo:            Protocolos ICMS 192/09     e 136/13
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+20.1   21.001.00
+7321.1 1.00
+7321.81.00
+7321.90.00
+Fogões  de cozinha  de uso  doméstico   e suas
+partes
+56,28%    71,91%    87,54%
+20.2   21.002.00  8418.10.00
+Combinações     de   refrigeradores    e
+congeladores   ("freezers"),  munidos   de portas
+exteriores separadas
+42,06%    56,27%    70,47%
+20.3   21.003.00  8418.21.00
+Refrigeradores    do  tipo  doméstico,   de
+compressão
+38,07%    51,88%    65,68%
+20.4   21.004.00  8418.29.00  Outros refrigeradores do tipo doméstico         51,03%    66,13%    81,24%
+20.5   21.005.00  8418.30.00
+Congeladores    ("freezers")  horizontais   tipo
+arca, de capacidade não superior a 800 litros
+42,13%    56,34%    70,56%
+20.6   21.006.00  8418.40.00
+Congeladores    ("freezers")   verticais   tipo
+armário,  de capacidade   não  superior  a  900
+litros
+43,06%    57,37%    71,67%
+20.7   21.007.00   8418.50
+Outros  móveis  (arcas,  armários,   vitrines,
+balcões   e  móveis  semelhantes)   para  a
+conservação   e  exposição   de  produtos,  que
+incorporem  um  equipamento   para a produção
+de frio
+80,80%    98,88%    116,96%
+20.8   21.008.00  8418.69.9  Mini adega e similares               51,03%    66,13%    81,24%
+20.9   21.009.00  8418.69.99  Máquinas para produção de gelo            51,03%    66,13%    81,24%
+20.10   21.010.00  8418.99.00
+Partes  dos  refrigeradores,   congeladores,   mini
+adegas  e similares,  máquinas  para  produção
+de  gelo  e  bebedouros   descritos  nos  CEST
+21.002.00,  21.003.00,  21.004.00,  21.005.00,
+21.006.00,  21.007.00,  21.008.00,  21.009.00  e
+21.013.00  
+Alterado  pelo  Decreto   n°  45.768/2016
+(DOE   de  04.10.2016) ,  efeitos   a  partir  de
+01.10.2016   Redação   Anterior
+77,04%    94,74%    112,45%
+20.1 1  21.01 1.00  8421.12  Secadoras de roupa de uso doméstico          37,33%    51,06%    64,80%
+20.12   21.012.00  8421.19.90
+Outras  secadoras   de roupas  e centrífugas  de
+uso doméstico
+71,17%    88,29%    105,40%
+20.13   21.013.00  8418.69.31  Bebedouros refrigerados para água           41,34%    55,47%    69,61%
+20.14   21.014.00   8421.9   Partes   das   secadoras    de  roupas   e
+centrífugas   de  uso   doméstico    e  dos
+aparelhos   para  filtrar  ou  depurar   água,
+descritos  nos  CEST  21.01 1.00,  21.012.00   e
+55,99%    71,59%    87,19%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              17/43
+----------------Page (16) Break----------------
+21.098.00  
+Alterado  pelo  Decreto   n°  45.768/2016
+(DOE   de  04.10.2016) ,  efeitos   a  partir  de
+01.10.2016   Redação   Anterior
+20.15   21.015.00
+8422.1 1.00
+8422.90.10
+Máquinas  de lavar  louça  do tipo doméstico   e
+suas partes
+42,14%    56,35%    70,57%
+20.16   21.016.00   8443.31
+Máquinas   que  executem   pelo  menos   duas
+das  seguintes  funções:  impressão,  cópia  ou
+transmissão   de  telecópia  (fax), capazes   de
+ser  conectadas   a  uma  máquina   automática
+para processamento de dados ou a uma rede
+23,70%    36,07%    48,44%
+20.17   21.017.00   8443.32
+Outras  impressoras,   máquinas   copiadoras  e
+telecopiadores   (fax),  mesmo   combinados
+entre  si, capazes   de ser  conectados   a  uma
+máquina   automática  para  processamento    de
+dados ou a uma rede
+41,05%    55,16%    69,26%
+20.18   21.018.00   8443.9
+Partes  e acessórios  de máquinas  e aparelhos
+de impressão   por  meio  de blocos,  cilindros  e
+outros  elementos   de  impressão   da  posição
+8442;  e  de  outras  impressoras,   máquinas
+copiadoras   e  telecopiadores   (fax),  mesmo
+combinados entre si
+36,75%    50,43%    64,10%
+20.19   21.019.00  8450.1 1.00
+Máquinas   de  lavar  roupa,  mesmo   com
+dispositivos  de secagem,  de uso  doméstico,
+de capacidade  não  superior  a 10 kg, em  peso
+de roupa seca, inteiramente automáticas
+56,76%    72,44%     88,1 1%
+20.20   21.020.00  8450.12.00
+Outras  máquinas  de lavar  roupa,  mesmo   com
+dispositivos  de secagem,  de uso  doméstico,
+com secador centrífugo incorporado
+63,36%    79,70%    96,03%
+20.21   21.021.00  8450.19.00
+Outras  máquinas  de lavar  roupa,  mesmo   com
+dispositivos de secagem, de uso doméstico
+65,84%    82,42%    99,01%
+20.22   21.022.00   8450.20
+Máquinas   de  lavar  roupa,  mesmo   com
+dispositivos  de secagem,  de uso  doméstico,
+de capacidade   superior  a 10 kg,  em  peso  de
+roupa seca
+46,12%    60,73%    75,34%
+20.23   21.023.00   8450.90
+Partes  de máquinas  de lavar  roupa,  mesmo
+com   dispositivos   de  secagem,   de  uso
+doméstico
+61,89%    78,08%    94,27%
+20.24   21.024.00  8451.21.00
+Máquinas   de  secar  de  uso  doméstico   de
+capacidade  não  superior  a 10 kg, em  peso  de
+roupa seca
+42,69%    56,96%    71,23%
+20.25   21.025.00  8451.29.90  Outras máquinas de secar de uso doméstico        88,75%    107,63%    126,50%
+20.26   21.026.00   8451.90
+Partes  de  máquinas   de  secar  de  uso
+doméstico
+75,74%    93,31%    110,89%
+20.27   21.027.00  8452.10.00  Máquinas de costura de uso doméstico          42,53%    56,78%    71,04%
+20.28   21.028.00   8471.30
+Máquinas   automáticas   para  processamento
+de dados,  portáteis,  de peso  não  superior  a
+10  kg,  contendo  pelo  menos   uma  unidade
+central  de processamento,   um  teclado  e uma
+tela
+29,59%    42,55%    55,51%
+20.29   21.029.00   8471.4
+Outras   máquinas    automáticas    para
+processamento de dados
+29,88%    42,87%    55,86%
+20.30   21.030.00  8471.50.10
+Unidades   de  processamento,    de  pequena
+capacidade,   exceto  as  das  subposições
+8471.41   ou  8471.49,  podendo   conter ,  no
+mesmo   corpo,  um  ou  dois  dos  seguintes
+tipos  de  unidades:   unidade   de  memória,
+unidade   de  entrada   e  unidade   de
+saída;baseadas    em  microprocessadores,
+com  capacidade   de  instalação,   dentro  do
+mesmo   gabinete,  de  unidades  de  memória
+da  subposição   8471.70,   podendo   conter
+múltiplos  conectores  de expansão  ("slots"), e
+valor  FOB  inferior ou igual  a US$  12.500,00,
+por unidade
+27,46%    40,21%    52,95%
+20.31   21.031.00  8471.60.5
+Unidades  de entrada,  exceto  as classificadas
+no código 8471.60.54
+33,74%    47,1 1%    60,49%
+20.32   21.032.00  8471.60.90
+Outras  unidades  de  entrada  ou  de  saída,
+podendo   conter , no mesmo   corpo,  unidades
+de memória
+71,26%    88,39%    105,51%
+20.33   21.033.00   8471.70  Unidades de memória                62,14%    78,35%    94,57%
+20.34   21.034.00   8471.90  Outras   máquinas    automáticas    para
+processamento    de  dados  e  suas  unidades;
+leitores  magnéticos   ou  ópticos,  máquinas
+62,33%    78,56%    94,80%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              18/43
+----------------Page (17) Break----------------
+para  registrar  dados  em  suporte  sob  forma
+codificada,  e  máquinas   para  processamento
+desses   dados,   não   especificadas    nem
+compreendidas em outras posições
+20.35   21.035.00   8473.30
+Partes  e  acessórios   das  máquinas   da
+posição 84.71
+52,57%    67,83%    83,08%
+20.36   21.036.00   8504.3
+Outros   transformadores,     exceto   os
+classificados   nos  códigos   8504.33.00   e
+8504.34.00
+45,35%    59,89%    74,42%
+20.37   21.037.00  8504.40.10  Carregadores de acumuladores             29,36%    42,30%    55,23%
+20.38   21.038.00  8504.40.40
+Equipamentos   de alimentação   ininterrupta  de
+energia (UPS ou "no break")
+33,93%    47,32%    60,72%
+20.39   21.040.00   8508   Aspiradores                  37,73%    51,50%    65,28%
+20.40   21.041.00   8509
+Aparelhos   eletromecânicos   de motor  elétrico
+incorporado, de uso doméstico e suas partes
+43,79%    58,17%    72,55%
+20.41   21.042.00  8509.80.10  Enceradeiras                  81,84%    100,02%    118,21%
+20.42   21.043.00  8516.10.00  Chaleiras elétricas                51,30%    66,43%    81,56%
+20.43   21.044.00  8516.40.00  Ferros elétricos de passar              43,62%    57,98%    72,34%
+20.44   21.045.00  8516.50.00  Fornos de microondas                37,35%    51,09%    64,82%
+20.45   21.046.00  8516.60.00
+Outros   fornos;   fogareiros   (incluídas  as
+chapas  de  cocção),  grelhas  e  assadeiras,
+exceto os portáteis
+43,42%    57,76%    72,10%
+20.46   21.047.00  8516.60.00
+Outros   fornos;   fogareiros   (incluídas  as
+chapas  de  cocção),  grelhas  e  assadeiras,
+portáteis
+44,13%    58,54%    72,96%
+20.47   21.048.00  8516.71.00
+Outros  aparelhos   eletrotérmicos   de  uso
+doméstico - Cafeteiras
+52,33%    67,56%    82,80%
+20.48   21.049.00  8516.72.00
+Outros  aparelhos   eletrotérmicos   de  uso
+doméstico -  Torradeiras
+39,09%    53,00%    66,91%
+20.49   21.050.00   8516.79
+Outros  aparelhos   eletrotérmicos   de  uso
+doméstico
+41,36%    55,50%    69,63%
+20.50   21.051.00  8516.90.00
+Partes  das  chaleiras,  ferros,  fornos  e  outros
+aparelhos   eletrotérmicos   da  posição  85.16,
+descritos  nos  CEST  21.043.00,  21.044.00,
+21.045.00,  21.046.00,  21.047.00,  21.048.00,
+21.049.00   e  21.050.00  
+Alterado  pelo  Decreto  n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016   Redação   Anterior
+72,23%    89,45%    106,68%
+20.51   21.052.00  8517.1 1.00
+Aparelhos   telefônicos  por  fio  com  unidade
+auscultador - microfone sem fio
+53,96%    69,36%    84,75%
+20.52   21.054.00   8517.12
+Outros  telefones  para  outras  redes  sem  fio,
+exceto  para  redes  de celulares  e  os de uso
+automotivo
+28,60%    41,46%    54,32%
+ 20.53  21.055.00  8517.18.91
+Outros    aparelhos    telefônicos    não
+combinados   com  outros  aparelhos  
+Alterado
+pelo  Decreto  n° 45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+51,87%    67,06%    82,24%
+20.54   21.056.00  8517.62.59
+Outros  aparelhos   para  transmissão    ou
+recepção  de  voz,  imagem  ou  outros  dados
+em  rede  com  fio. 
+Alterado  pelo  Decreto   n°
+47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021   Redação   Anterior
+43,65%    58,02%    72,38%
+20.55   21.057.00   8518
+Microfones   e  seus  suportes;   altofalantes,
+mesmo   montados   nos  seus  receptáculos,
+fones  de  ouvido  (auscultadores),   mesmo
+combinados   com  microfone   e  conjuntos   ou
+sortidos  constituídos  por  um  microfone  e um
+ou mais  alto-falantes,  amplificadores  elétricos
+de  audiofreqüência,   aparelhos   elétricos  de
+amplificação   de  som;  suas  partes  e
+acessórios; exceto os de uso automotivo
+58,24%    74,06%    89,89%
+20.56   21.058.00
+8519
+8522
+8527.1
+Aparelhos   de  radiodifusão   suscetíveis   de
+funcionarem   sem  fonte  externa  de  energia.
+Aparelhos   de gravação  de som;  aparelhos  de
+reprodução  de som;  aparelhos  de gravação  e
+de reprodução   de som;  partes  e  acessórios;
+exceto os de uso automotivo
+43,74%    58,1 1%    72,49%
+20.57   21.059.00  8519.81.90
+Outros  aparelhos   de  gravação   de  som;
+aparelhos   de reprodução   de som;  aparelhos
+de gravação  e de reprodução  de som;  partes
+e acessórios; exceto os de uso automotivo
+35,92%    49,51%    63,10%
+20.58   21.061.00  8521.90.90  Outros  aparelhos   videofônicos  de  gravação
+ou  reprodução,   mesmo   incorporando   um
+30,17%    43,19%    56,20%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              19/43
+----------------Page (18) Break----------------
+receptor  de sinais videofônicos,   exceto  os de
+uso automotivo
+20.59   21.062.00  8523.51.10  Cartões de memória ("memory cards")          52,65%    67,92%    83,18%
+20.60   21.065.00  8525.80.2
+Câmeras   fotográficas  digitais e  câmeras   de
+vídeo e suas partes
+25,1 1%   37,62%    50,13%
+20.61   21.066.00   8527.9
+Outros   aparelhos    receptores    para
+radiodifusão,   mesmo    combinados    num
+invólucro,  com  um  aparelho  de gravação  ou
+de reprodução   de som,  ou com  um  relógio,
+inclusive  caixa  acústica  para  Home  Theaters
+classificados na posição 8518
+31,27%    44,40%    57,52%
+20.62   21.067.00
+8528.49.29
+8528.59.20
+8528.69
+Monitores   e  projetores  que  não  incorporem
+aparelhos    receptores    de   televisão,
+policromáticos   
+Alterado   pelo   Decreto    n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016   Redação   Anterior
+90,15%    109,17%    128,18%
+20.63   21.068.00  8528.52.20
+Outros   monitores   capazes   de  serem
+conectados   diretamente   a  uma   máquina
+automática  para  processamento    de dados  da
+posição   84.71  e  concebidos   para  serem
+utilizados    com    esta    máquina,
+policromáticos   
+Alterado   pelo   Decreto    n°
+46.219/2018   (DOE  de 17.01.2018) , efeitos  a partir de
+17.01.2018   Redação   Anterior
+32,07%    45,28%    58,48%
+20.64   21.069.00   8528.7
+Aparelhos   receptores  de  televisão,  mesmo
+que  incorporem   um  aparelho  receptor  de
+radiodifusão  ou um  aparelho  de gravação  ou
+reprodução   de  som   ou  de  imagens   -
+Televisores de CR  T (tubo de raios catódicos)
+33,03%    46,33%    59,64%
+20.65   21.070.00   8528.7
+Aparelhos   receptores  de  televisão,  mesmo
+que  incorporem   um  aparelho  receptor  de
+radiodifusão  ou um  aparelho  de gravação  ou
+reprodução   de  som   ou  de  imagens   -
+Televisores  de  LCD   (Display  de  Cristal
+Líquido)
+33,03%    46,33%    59,64%
+20.66   21.071.00   8528.7
+Aparelhos   receptores  de  televisão,  mesmo
+que  incorporem   um  aparelho  receptor  de
+radiodifusão  ou um  aparelho  de gravação  ou
+reprodução   de  som   ou  de  imagens   -
+Televisores de Plasma
+33,03%    46,33%    59,64%
+20.67   21.072.00   8528.7
+Outros  aparelhos  receptores  de televisão  não
+dotados de monitores ou display de vídeo
+33,03%    46,33%    59,64%
+20.68   21.073.00   8528.7
+Outros  aparelhos  receptores  de televisão  não
+relacionados    nos   CEST   21.069.00,
+21.070.00,   21.071.00   e  21.072.00  
+Alterado
+pelo  Decreto  n° 45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+33,03%    46,33%    59,64%
+20.69   21.074.00   9006.59
+Câmeras   fotográficas  dos  tipos  utilizadas
+para  preparação   de clichês  ou cilindros  de
+impressão  
+Alterado  pelo  Decreto  n° 46.219/2018
+(DOE   de  17.01.2018) ,  efeitos   a  partir  de
+17.01.2018   Redação   Anterior
+90,15%    109,17%    128,18%
+20.70   21.075.00  9006.40.00
+Câmeras    fotográficas   para  filmes  de
+revelação e copiagem instantâneas
+90,15%    109,17%    128,18%
+20.71   21.076.00  9018.90.50  Aparelhos de diatermia               71,17%    88,29%    105,40%
+20.72   21.077.00  9019.10.00  Aparelhos de massagem               71,17%    88,29%    105,40%
+20.73   21.078.00  9032.89.1 1 Reguladores de voltagem eletrônicos          55,99%    71,59%    87,19%
+20.74   21.079.00  9504.50.00
+Consoles   e  máquinas   de  jogos  de  vídeo,
+exceto  os  classificados   na  subposição
+9504.30
+33,54%    46,89%    60,25%
+20.75   21.080.00  8517.62.1  Multiplexadores e concentradores            75,52%    93,07%    110,62%
+20.76   21.081.00  8517.62.22
+Centrais   automáticas     privadas,    de
+capacidade inferior ou igual a 25 ramais
+52,79%    68,07%    83,35%
+20.77   21.082.00  8517.62.39  Outros aparelhos para comutação            53,22%    68,54%    83,86%
+20.78   21.083.00  8517.62.4
+Roteadores   digitais,  em  redes  com  ou sem
+fio
+56,72%    72,39%    88,06%
+20.79   21.084.00  8517.62.62
+Aparelhos    emissores    com    receptor
+incorporado    de   sistema    troncalizado
+("trunking"), de tecnologia celular
+67,04%    83,74%    100,45%
+20.80   21.085.00  8517.62.9
+Outros  aparelhos   de recepção,   conversão   e
+transmissão   ou regeneração   de voz, imagens
+ou outros  dados,  incluindo  os aparelhos   de
+comutação e roteamento
+44,40%    58,84%    73,28%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              20/43
+----------------Page (19) Break----------------
+20.81   21.086.00  8517.70.21
+Antenas   próprias  para  telefones   celulares
+portáteis, exceto as telescópicas
+75,52%    93,07%    110,62%
+20.82   21.087.00
+8214.90
+8510
+Aparelhos    ou  máquinas   de  barbear ,
+máquinas  de cortar o cabelo  ou de tosquiar  e
+aparelhos de depilar  , e suas partes
+46,63%    61,29%    75,96%
+20.83   21.088.00   8414.5   Ventiladores, exceto os de uso agrícola         60,42%    76,46%    92,50%
+20.84   21.090.00  8414.60.00
+Coifas  com  dimensão  horizontal  máxima  não
+superior a 120 cm
+52,61%    67,87%    83,13%
+20.85   21.091.00  8414.90.20  Partes de ventiladores ou coifas aspirantes       66,54%    83,19%    99,85%
+20.86   21.092.00
+8415.10
+8415.8
+Máquinas   e  aparelhos   de  ar condicionado
+contendo   um  ventilador   motorizado   e
+dispositivos   próprios   para  modificar   a
+temperatura   e  a  umidade,   incluídos   as
+máquinas   e  aparelhos   em  que  a  umidade
+não seja regulável separadamente
+46,82%    61,50%    76,18%
+20.87   21.093.00  8415.10.1 1
+Aparelhos   de  ar-condicionado    tipo  Split
+System  (sistema  com  elementos   separados)
+com unidade externa e interna
+50,82%    65,90%    80,98%
+20.88   21.094.00  8415.10.19
+Aparelhos    de   ar-condicionado     com
+capacidade   inferior  ou  igual  a  30.000
+frigorias/hora
+46,50%    61,15%    75,80%
+20.89   21.095.00  8415.10.90
+Aparelhos    de   ar-condicionado     com
+capacidade acima de 30.000 frigorias/hora
+43,40%    57,74%    72,08%
+20.90   21.096.00  8415.90.10
+Unidades    evaporadoras    (internas)   de
+aparelho  de  ar-condicionado    do  tipo  Split
+System  (sistema  com  elementos   separados),
+com  capacidade   inferior  ou  igual  a  30.000
+frigorias/hora
+69,14%    86,05%    102,97%
+20.91   21.097.00  8415.90.20
+Unidades   condensadoras     (externas)   de
+aparelho  de  ar-condicionado    do  tipo  Split
+System  (sistema  com  elementos   separados),
+com  capacidade   inferior  ou  igual  a  30.000
+frigorias/hora
+67,95%    84,75%    101,54%
+20.92   21.098.00  8421.21.00
+Aparelhos   elétricos  para  filtrar ou  depurar
+água  (purificadores  de  água  refrigerados),
+exceto  os  itens  classificados   no  CEST
+21.098.01  
+Alterado  pelo  Decreto   n°  45.768/2016
+(DOE   de  04.10.2016) ,  efeitos   a  partir  de
+01.10.2016   Redação   Anterior
+35,97%    49,57%    63,16%
+20.93   21.099.00
+8424.30.10
+8424.30.90
+8424.90.90
+Lavadora de alta pressão e suas partes         39,10%    53,01%    66,92%
+20.94   21.100.00  8467.21.00  Furadeiras elétricas                46,37%    61,01%    75,64%
+20.95   21.101.00   8516.2
+Aparelhos   elétricos  para  aquecimento    de
+ambientes
+33,97%    47,37%    60,76%
+20.96   21.102.00  8516.31.00  Secadores de cabelo                50,53%    65,58%    80,64%
+20.97   21.103.00  8516.32.00  Outros aparelhos para arranjos do cabelo         50,53%    65,58%    80,64%
+20.98   21.104.00   8527
+Aparelhos   receptores   para  radiodifusão,
+mesmo   combinados   num  mesmo   invólucro,
+com   um  aparelho   de  gravação   ou  de
+reprodução   de  som,  ou  com  um  relógio,
+exceto  os classificados   na  posição  8527.1,
+8527.2  e  8527.9     que  sejam   de  uso
+automotivo
+31,27%    44,40%    57,52%
+20.99   21.106.00  8415.90.90
+Outras  partes  para  máquinas  e aparelhos  de
+ar-condicionado     que   contenham    um
+ventilador  motorizado  e  dispositivos  próprios
+para  modificar  a  temperatura   e  a  umidade,
+incluindo  as máquinas  e aparelhos  em  que  a
+umidade não seja regulável separadamente
+46,82%    61,50%    76,18%
+20.100   21.055.01  8517.18.99
+Outros  aparelhos   telefônicos  
+Acrescentado
+pelo  Decreto  n° 45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016
+51,87%    67,06%    82,24%
+20.101   21.067.01  8528.62.00
+Projetores  capazes   de  serem   conectados
+diretamente   a uma  máquina   automática  para
+processamento    de dados  da posição  84.71  e
+concebidos   para  serem  utilizados  com  esta
+máquina  
+Alterado  pelo  Decreto   n°  46.219/2018
+(DOE   de  17.01.2018) ,  efeitos   a  partir  de
+17.01.2018   Redação   Anterior
+90,15%    109,17%    128,18%
+20.102   21.098.01  8421.21.00
+Outros  aparelhos   elétricos  para  filtrar  ou
+depurar   água  
+Acrescentado    pelo   Decreto   n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016
+35,97%    49,57%    63,16%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              21/43
+----------------Page (20) Break----------------
+20.103   21.109.00   8540
+Tubos  e  válvulas,  eletrônicos,  de  cátodo
+quente,   cátodo  frio  ou  fotocátodo   (por
+exemplo,  tubos  e  válvulas,  de  vácuo,  de
+vapor  ou  de  gás,  ampolas   retificadoras  de
+vapor  de mercúrio,  tubos  catódicos,  tubos  e
+válvulas  para  câmeras   de televisão)  
+Alterado
+pelo  Decreto  n° 47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+40%    54,00%    68,00%
+20.104   21.056.01
+8517.62.54
+8517.62.55
+Distribuidores   de  conexões   para  rede
+(“hubs”)   e   moduladores/demoduladores
+(“modens”).  
+Acrescentado    pelo   Decreto   n°
+47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021
+43,65%    58,02%    72,38%
+21. OPERAÇÕES     RELA TIVAS  A VENDAS   POR  SISTEMA  DE  MARKETING    DIRET O  POR TA-A-POR  TA A CONSUMIDOR    FINAL
+Âmbito  de  aplicação:  Operações   internas  e  aquisições  de  mercadorias   procedentes   de  outra  unidade   da  federação   por
+contribuintes   localizados   no  Estado  do  Rio  de  Janeiro.
+ Alterado  pelo  Decreto   n° 45.768/2016   (DOE  de  04.10.2016) , efeitos  a  partir de
+01.10.2016   Redação   Anterior
+21.1 PRODUT   OS COSMÉTICOS E DE HIGIENE PESSOAL
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.1.1   28.001.00  3303.00.10  Perfumes (extratos)                49,65%    53,13%    67,05%
+ 21.1.2   28.002.00  3303.00.20  Águas-de-colônia                 49,31%    52,78%    66,67%
+ 21.1.3   28.003.00  3304.10.00  Produtos de maquiagem para os lábios          46,01%    49,41%    62,99%
+ 21.1.4   28.004.00  3304.20.10
+Sombra,   delineador , lápis  para  sobrancelhas
+e rímel
+58,63%    62,32%    77,08%
+ 21.1.5   28.005.00  3304.20.90
+Outros  produtos  de  maquiagem    para  os
+olhos
+49,39%    52,86%    66,76%
+ 21.1.6   28.006.00  3304.30.00  Preparações para manicuros e pedicuros         57,14%    60,79%    75,41%
+ 21.1.7   28.007.00  3304.91.00
+Pós   para   maquiagem,    incluindo   os
+compactos
+47,24%    50,66%    64,36%
+ 21.1.8   28.008.00  3304.99.10
+Cremes  de beleza,  cremes  nutritivos  e loções
+tônicas
+58,41%    62,09%    76,83%
+ 21.1.9   28.009.00  3304.99.90
+Outros  produtos  de beleza  ou de maquiagem
+preparados  e preparações   para  conservação
+ou cuidados  da pele,  exceto  as preparações
+antisolares e os bronzeadores
+50,32%    53,82%    67,80%
+ 21.1.10  28.01 1.00 3305.10.00  Xampus para o cabelo                47,00%    50,42%    64,09%
+ 21.1.1 1 28.012.00  3305.20.00
+Preparações   para  ondulação   ou alisamento,
+permanentes, dos cabelos
+56,75%    60,40%    74,98%
+ 21.1.12  28.013.00  3305.90.00  Outras preparações capilares             57,87%    61,54%    76,23%
+ 21.1.13  28.014.00  3305.90.00  Tintura para o cabelo               49,39%    52,86%    66,76%
+ 21.1.14  28.015.00  3307.10.00
+Preparações   para  barbear  (antes,  durante  ou
+após)
+47,08%    50,50%    64,18%
+ 21.1.15  28.016.00  3307.20.10
+Desodorantes    (desodorizantes)    corporais
+líquidos,  exceto  os  classificados   no  CEST
+28.016.01  
+Alterado  pelo  Decreto   n°  47.864/2021
+(DOE   de  10.12.2021) ,  efeitos   a  partir  de
+10.12.2021   Redação   Anterior
+46,54%    49,95%    63,58%
+ 21.1.16  28.017.00  3307.20.90
+Outros   desodorantes    (desodorizantes)
+corporais,  exceto  os classificados   no CEST
+28.017.01  
+Alterado  pelo  Decreto   n°  47.864/2021
+(DOE   de  10.12.2021) ,  efeitos   a  partir  de
+10.12.2021   Redação   Anterior
+47,23%    50,65%    64,35%
+ 21.1.17  28.018.00  3307.90.00
+Outros  produtos   de  perfumaria   ou  de
+toucador preparados
+45,60%    48,99%    62,53%
+ 21.1.18  28.019.00  3307.90.00  Outras preparações cosméticas            49,39%    64,33%    79,27%
+ 21.1.19  28.021.00  3401.19.00
+Outros  sabões,   produtos   e  preparações
+orgânicos  tensoativos,  inclusive  papel,  pastas
+(ouates),   feltros   e   falsos   tecidos,
+impregnados,   revestidos  ou  recobertos  de
+sabão ou de detergentes
+49,44%    64,38%    79,33%
+ 21.1.20  28.023.00  3401.30.00
+Produtos    e   preparações     orgânicos
+tensoativos  para  lavagem   da pele,  em  forma
+de líquido  ou de creme,  acondicionados   para
+venda a retalho, mesmo contendo sabão
+49,39%    64,33%    79,27%
+ 21.1.21  28.024.00  4818.20.00  Lenços de papel, incluindo os de desmaquiar       49,39%    64,33%    79,27%
+ 21.1.22  28.024.01  4818.20.00  Toalhas de mão                 49,39%    64,33%    79,27%
+ 21.1.23  28.025.00  8214.10.00  Apontadores de lápis para maquiagem          49,39%    64,33%    79,27%
+ 21.1.24  28.025.01  8214.10.00  Espátulas, abre-cartas e raspadeiras          49,39%    64,33%    79,27%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              22/43
+----------------Page (21) Break----------------
+ 21.1.25  28.025.02  8214.10.00
+Lâminas   de  espátulas,  de  abre-cartas,  de
+raspadeiras e de apontadores de lápis
+49,39%    64,33%    79,27%
+ 21.1.26  28.026.00  8214.20.00
+Utensílios   e  sortidos  de  utensílios  de
+manicuros   ou  de  pedicuros   (incluindo  as
+limas para unhas)
+49,39%    64,33%    79,27%
+ 21.1.27  28.027.00  9603.29.00
+Escovas   e  pincéis  de  barba,  escovas   para
+cabelos,  para  cílios ou para  unhas  e  outras
+escovas de toucador de pessoas
+49,39%    64,33%    79,27%
+ 21.1.28  28.028.00  9603.30.00
+Pincéis   para   aplicação   de  produtos
+cosméticos
+49,39%    64,33%    79,27%
+ 21.1.29  28.029.00  9616.10.00
+Vaporizadores   de toucador , suas  armações  e
+cabeças de armações
+49,39%     64,33%     79,27%
+ 21.1.30  28.030.00  9616.20.00
+Borlas  ou  esponjas   para  pós  ou  para
+aplicação   de  outros  cosméticos   ou  de
+produtos de toucado
+49,39%    64,33%    79,27%
+ 21.1.31  28.031.00   4202.1   Malas e maletas de toucador             49,39%    64,33%    79,27%
+ 21.1.32  28.032.00   9615
+Pentes,   travessas   para  cabelo  e  artigos
+semelhantes;    grampos    (alfinetes)   para
+cabelo;  pinças  (“pinceguiches”),  onduladores,
+bobs  (rolos)  e  artefatos  semelhantes   para
+penteados, e suas partes
+49,39%    64,33%    79,27%
+ 21.1.33  28.033.00
+3923.30.00
+3924.90.00
+3924.10.00
+4014.90.90
+7010.20.00
+Mamadeiras                   49,39%    64,33%    79,27%
+ 21.1.34  28.034.00  4014.90.90
+Chupetas   e  bicos  para  mamadeiras   e  para
+chupetas
+49,39%    64,33%     79,27%
+ 21.1.35  28.035.00  1211.90.90
+Outras  plantas  e  partes,  para  perfumaria,
+medicina e semelhantes
+49,39%    64,33%     79,27%
+ 21.1.36  28.056.00
+Capítulos
+33 e 34
+Outros  produtos  cosméticos   e  de  higiene
+pessoal  não  relacionados   em  outros  itens
+deste anexo
+49,39%    64,33%    79,27%
+21.1.37  28.016.01  3307.20.10
+Loções  e  óleos  desodorantes   hidratantes
+líquidos  
+Acrescentado   pelo  Decreto  n° 47.864/2021
+(DOE de 10.12.2021)   , efeitos a partir de 10.12.2021
+46,54%    49,95%    63,58%
+21.1.38  28.016.02  3307.20.10
+Antiperspirantes     líquidos  
+Acrescentado
+pelo  Decreto  n° 47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021
+46,54%    49,95%    63,58%
+21.1.39  28.017.01  3307.20.90
+Outras   loções   e  óleos   desodorantes
+hidratantes  
+Acrescentado    pelo   Decreto   n°
+47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021
+47,23%    50,65%    64,35%
+21.1.40  28.017.02  3307.20.90
+Outros    antiperspirantes   
+Acrescentado
+pelo  Decreto  n° 47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021
+47,23%    50,65%    64,35%
+21.1.41  28.020.01  3401.1 1.90
+Lenços  umedecidos   
+Acrescentado   pelo  Decreto  n°
+47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021
+49,44%    64,38%    79,33%
+21.2 ACESSÓRIOS
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+21.2.1   28.039.00  4202.22.10  Bolsas de folhas de plástico             30,51%    43,56%    56,61%
+ 21.2.2   28.040.00  4202.22.20  Bolsas de matérias têxteis             30,51%    43,56%    56,61%
+21.2.3   28.041.00  4202.29.00  Bolsas de outras matérias             30,51%    43,56%    56,61%
+ 21.2.4   28.042.00  4202.39.00  Artigos de bolsos/bolsas, de outras matérias       30,51%     43,56%     56,61%
+ 21.2.5   28.043.00  4202.92.00
+Outros  artefatos,  de  folhas  de  plásticos  ou
+matérias têxteis
+30,51%    43,56%    56,61%
+ 21.2.6   28.044.00  4202.99.00  Outros artefatos, de outras matéria          30,51%    43,56%    56,61%
+ 21.2.7   28.050.00  6217.10.00
+Outros   acessórios   confeccionados,    de
+vestuário
+30,51%    43,56%    56,61%
+ 21.2.8   28.053.00  6506.99.00
+Chapéus   e  outros  artefatos   de  outras
+matérias, exceto de malha
+30,51%    43,56%    56,61%
+ 21.2.9   28.058.00
+Capítulos
+39, 42, 48,
+52, 61, 71,
+83, 90 e 91
+Acessórios  (por exemplo,  bijuterias,  relógios,
+óculos  de sol, bolsas,  mochilas,  frasqueiras,
+carteiras,  porta-cartões,   porta-documentos,
+porta-celulares   e  embalagens   presenteáveis
+(por  exemplo,   caixinhas   de  papel),  entre
+outros itens assemelhados)
+30,51%    43,56%    56,61%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              23/43
+----------------Page (22) Break----------------
+21.3  AR TIGOS DE VESTUÁRIO
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.3.1   28.036.00  3926.20.00
+Vestuário  e  seus  acessórios,   de  plásticos,
+inclusive luvas
+43,42%    57,76%    72,10%
+ 21.3.2   28.049.00  61 15.99.00
+Outras  meias  de malha  de outras  matérias
+têxteis
+43,42%    57,76%    72,10%
+ 21.3.3   28.059.00
+Capítulos
+61, 62 e 64
+Vestuário  e  seus  acessórios;   calçados,
+polainas  e  artefatos  semelhantes,   e  suas
+partes
+43,42%    57,76%    72,10%
+ 21.3.4   28.060.00
+Capítulos
+42, 52, 55,
+58, 63 e 65
+Outros  artigos  de vestuário  em  geral, exceto
+os relacionados no item anterior
+43,42%    57,76%    72,10%
+21.4 AR TIGOS P ARA  CASA
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.4.1   28.027.01  9603.29.00
+Vassouras  e  escovas,  mesmo   constituindo
+partes  de  máquinas,   de  aparelhos   ou  de
+veículos,   vassouras   mecânicas    de  uso
+manual   não   motorizadas,    pincéis   e
+espanadores;    cabeças   preparadas   para
+escovas,   pincéis  e  artigos  semelhantes;
+bonecas   e  rolos  para  pintura;  rodos  de
+borracha   ou  de  matérias   flexíveis
+semelhantes, outros
+32,94%    46,23%    59,53%
+ 21.4.2   28.037.00  3926.40.00
+Estatuetas    e   outros   objetos    de
+ornamentação, de plásticos
+32,94%    46,23%    59,53%
+ 21.4.3   28.038.00  3926.90.90  Outras obras de plásticos             32,94%    46,23%    59,53%
+ 21.4.4   28.061.00
+Capítulos
+39, 40, 52,
+56, 62, 63,
+66, 69,
+70,73, 76,
+82, 83, 84,
+91, 94 e 96
+Artigos de casa                 32,94%    46,23%    59,53%
+21.5 AR TIGOS DESTINADOS     A CUIDADOS PESSOAIS
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.5.1   28.057.00
+Capítulos
+14, 39, 40,
+44, 48, 63,
+64, 65, 67,
+70, 82, 90 e
+96
+Outros   artigos   destinados   a  cuidados
+pessoais  não  relacionados   em  outros  itens
+deste anexo
+39,83%    53,81%    67,80%
+21.6 PRODUT   OS P ARA  NUTRIÇÃO
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.6.1   28.062.00
+Capítulos
+13 e 15 a
+23
+Produtos   das  indústrias  alimentares   e
+bebidas
+42,56%    56,82%    71,07%
+21.7 AR TIGOS DESTINADOS À HIGIENE BUCAL
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.7.1   28.055.00  Capítulo 33  Produtos destinados à higiene bucal          45,90%    60,49%    75,08%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              24/43
+----------------Page (23) Break----------------
+21.8 AR TIGOS DE LIMPEZA     E CONSER  VAÇÃO DOMÉSTICA
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.8.1   28.063.00
+Capítulos
+22, 27, 28,
+29, 33, 34,
+35, 38, 39,
+63, 68, 73,
+84, 85 e 96
+Produtos   de  limpeza   e  conservação
+doméstica
+51,29%    66,42%    81,55%
+21.9 OUTROS
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 21.9.1   28.028.01  9603.30.00
+Pincéis  e escovas,  para  artistas e pincéis  de
+escrever
+41,98%    56,18%    70,38%
+ 21.9.2   28.045.00  4819.20.00
+Caixas   e  cartonagens,   dobráveis,   de
+papel/cartão, não ondulados
+41,98%    56,18%    70,38%
+ 21.9.3   28.046.00  4819.40.00
+Outros  sacos,  bolsas  e  cartuchos,  de papel
+ou cartão
+41,98%    56,18%    70,38%
+ 21.9.4   28.047.00  4821.10.00  Etiquetas de papel ou cartão, impressas         41,98%    56,18%    70,38%
+ 21.9.5   28.048.00  4911.10.90
+Outros  impressos   publicitários,  catálogos
+comerciais e semelhantes
+41,98%    56,18%    70,38%
+ 21.9.6   28.051.00  6302.60.00
+Roupas   de  toucador/cozinha,    de  tecidos
+atoalhados de algodão
+41,98%    56,18%    70,38%
+ 21.9.7   28.052.00  6307.90.90  Outros artefatos têxteis confeccionados         41,98%    56,18%    70,38%
+ 21.9.8   28.054.00  9505.90.00
+Artigos  para outras  festas,  carnaval  ou outros
+divertimentos
+41,98%    56,18%    70,38%
+ 21.9.9   28.064.00
+Capítulos
+39, 49, 95,
+96
+Artigos infantis                 41,98%    56,18%    70,38%
+ 21.9.10  28.999.00     
+Outros   produtos   comercializados    pelo
+sistema  de marketing   direto  porta-a-porta   a
+consumidor   final não  relacionados  em  outros
+itens deste anexo
+41,98%    56,18%    70,38%
+22.MA TERIAIS DE LIMPEZA
+Fundamento normativo:            Protocolos ICMS 197/09     e 27/10  e 34/14
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem   CEST    NCM/SH   Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+22.1  11.001.00
+2828.90.1 1
+2828.90.19
+3206.41.00
+3402.20.00
+3808.94.19
+Água   sanitária,   branqueador    e  outros
+alvejantes  
+ Alterado  pelo  Decreto  n° 45.768/2016   (DOE
+de 04.10.2016) , efeitos  a  partir de 01.10.2016   Redação
+Anterior
+57,60%    73,36%    89,12%
+22.2  11.002.00
+3401.20.90
+3808.94.19
+Sabões, desinfetantes e sanitizantes, todos em
+pó, flocos, palhetas, grânulos ou outras formas
+semelhantes, para lavar roupas     
+Alterado
+pelo  Decreto n° 47.864/2021 (DOE de 10.12.2021)       , efeitos
+a partir de 10.12.2021    Redação   Anterior
+20,90%    32,99%    45,08%
+22.3  11.004.00  3402.20.00
+Detergentes em pó, flocos, palhetas, grânulos ou
+outras formas semelhantes, inclusive adicionados
+de propriedades desinfetantes ou
+sanitizantes.  
+Alterado pelo  Decreto n° 47.864/2021 (DOE
+de 10.12.2021)  , efeitos a partir de 10.12.2021    Redação
+Anterior
+20,90%    32,99%    45,08%
+22.4  11.005.00  3402.20.00  Detergentes líquidos, exceto para lavar roupa        27,91%    40,70%    53,49%
+22.5  11.006.00  3402.20.00  Detergente líquido para lavar roupa, inclusive
+adicionados de propriedades desinfetantes ou
+sanitizantes.  
+Alterado pelo  Decreto n° 47.864/2021 (DOE
+28,27%    41,10%    53,92%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              25/43
+----------------Page (24) Break----------------
+de 10.12.2021)  , efeitos a partir de 10.12.2021    Redação
+Anterior
+22.6  11.007.00    3402
+Outros  agentes  orgânicos  de superfície  (exceto
+sabões);  preparações   tensoativas,  preparações
+para  lavagem   (incluídas  as  preparações
+auxiliares  para  lavagem)  e  preparações   para
+limpeza   (inclusive  multiuso  e  limpadores),
+mesmo   contendo  sabão,  exceto  os  produtos
+descritos   nos  CEST  11.001.00,   11.004.00,
+11.005.00  e  11.006.00;   em  embalagem    de
+conteúdo  inferior  ou  igual  a  50  litros ou  50
+kg  
+Alterado  pelo  Decreto   n°  46.219/2018   (DOE  de
+17.01.2018) , efeitos  a  partir de  17.01.2018    Redação
+Anterior
+29,87%    42,86%    55,84%
+22.7  11.008.00  3809.91.90  Amaciante/suavizante                 35,53%    49,08%    62,64%
+22.8  11.009.00
+3924.10.00
+3924.90.00
+6805.30.10
+6805.30.90
+Esponjas para limpeza                 57,41%    73,15%    88,89%
+22.9  11.010.00
+2207
+2208.90.00
+Álcool etílico para limpeza              38,86%    52,75%    66,63%
+22.10  11.01 1.00  7323.10.00
+Esponjas e palhas de aço; esponjas para
+limpeza, polimento ou uso semelhantes; todas de
+uso doméstico
+35,00%    48,50%    62,00%
+ 22.1 1 11.012.00   3923.2
+Sacos  de lixo de conteúdo  igual  ou inferior a
+100  litros 
+ Alterado  pelo  Decreto  n° 45.768/2016   (DOE
+de 04.10.2016) , efeitos  a  partir de 01.10.2016   Redação
+Anterior
+52,97%    68,27%    83,56%
+23.PRODUT  OS  ALIMENTÍCIOS
+Fundamento normativo:            Protocolos ICMS 45/13    e 188/09
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+23.1 - CHOCOLA   TES, BALAS E GULOSEIMAS SEMELHANTES
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 23.1.1   17.001.00  1704.90.10
+Chocolate   branco,   em  embalagens    de
+conteúdo  inferior ou igual  a  1  kg,  excluídos
+os ovos de páscoa de chocolate.
+38,89%    52,78%    66,67%
+ 23.1.2   17.002.00
+1806.31.10
+1806.31.20
+Chocolates  contendo  cacau,  em  embalagens
+de conteúdo inferior ou igual a 1 kg
+40,29%    54,32%    68,35%
+ 23.1.3   17.003.00
+1806.32.10
+1806.32.20
+Chocolate   em  barras,  tabletes  ou blocos  ou
+no estado  líquido, em  pasta,  em  pó,  grânulos
+ou  formas  semelhantes,   em  recipientes  ou
+embalagens   imediatas   de  conteúdo  inferior
+ou igual a 2 kg
+37,95%    51,75%    65,54%
+ 23.1.4   17.004.00  1806.90.00
+Chocolates    e   outras   preparações
+alimentícias    contendo    cacau,    em
+embalagens   de conteúdo  inferior ou igual  a 1
+kg, excluídos  os achocolatados   em  pó e ovos
+de páscoa de chocolate.
+42,65%    56,92%    71,18%
+ 23.1.5   17.006.00  1806.90.00
+Achocolatados    em  pó,  em  embalagens   de
+conteúdo  inferior ou igual  a  1  kg,  exceto  os
+classificados   no  CEST  17.006.02  
+Alterado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+26,78%    39,46%    52,14%
+ 23.1.6   17.007.00  1806.90.00
+Caixas  de  bombons   contendo   cacau,  em
+embalagens   de conteúdo  inferior ou igual  a 1
+kg
+22,16%    34,38%    46,59%
+ 23.1.7   17.008.00  1704.90.90
+Bombons,   inclusive  à  base  de  chocolate
+branco sem cacau
+56,68%    72,35%    88,02%
+ 23.1.8   17.009.00  1806.90.00
+Bombons,    balas,  caramelos,   confeitos,
+pastilhas  e  outros  produtos  de  confeitaria,
+contendo cacau
+29,01%    41,91%    54,81%
+ 23.1.9   17.005.00  1704.90.10
+Ovos   de   páscoa    de   chocolate
+branco  
+Acrescentado   pelo  Decreto  n° 45.768/2016
+(DOE de 04.10.2016)   , efeitos a partir de 01.10.2016
+38,89%    52,78%    66,67%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              26/43
+----------------Page (25) Break----------------
+ 23.1.10  17.005.01  1806.90.00
+Ovos  de  páscoa  de  chocolate  
+Acrescentado
+pelo  Decreto  n° 45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016
+42,65%    56,92%    71,18%
+23.1.1 1  17.006.02  1806.90.00
+Achocolatados      em    pó,    em
+cápsulas  
+Acrescentado    pelo   Decreto    n°
+46.219/2018   (DOE  de 17.01.2018) , efeitos  a partir de
+17.01.2018
+26,78%    39,46%    52,14%
+23.2 - SUCOS E BEBIDAS
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+ 23.2.1   17.1 10.00 2202.10.00
+Refrescos   e  outras  bebidas   prontas  para
+beber ,  à  base  de  chá  e  mate  
+Alterado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+48,97%    63,87%    78,76%
+ 23.2.2   17.1 11.00  2202.10.00
+Refrescos   e  outras  bebidas  não  alcoólicas,
+exceto  os refrigerantes  e as demais  bebidas
+nos  CEST  03.007.00   e  17.1 10.00  
+Alterado
+pelo  Decreto  n° 45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+40,15%    54,17%    68,18%
+23.2.3   17.1 12.00 2202.99.00
+Néctares  de  frutas  e  outras  bebidas   não
+alcoólicas   prontas   para  beber ,  exceto
+bebidas      hidroeletrolíticas      e
+energéticos  
+Alterado  pelo  Decreto  n° 47.864/2021
+(DOE   de  10.12.2021) ,  efeitos   a  partir  de
+10.12.2021   Redação   Anterior
+45,10%    59,61%    74,12%
+ 23.2.4   17.1 13.00
+2101.20
+2202.99.00
+Bebidas   prontas   à  base  de  mate  ou
+chá 
+Alterado  pelo  Decreto  n° 46.219/2018   (DOE  de
+17.01.2018) , efeitos  a  partir de 17.01.2018   Redação
+Anterior
+48,97%    63,87%    78,76%
+ 23.2.5   17.1 14.00 2202.99.00
+Bebidas   prontas  à  base  de  café  
+Alterado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+42,33%    56,56%    70,80%
+23.2.6   17.010.00   2009
+Sucos  de  frutas  ou  de  produtos  hortícolas;
+mistura de sucos
+58,36%    74,20%    90,03%
+23.2.7   17.01 1.00  2009.8   Água de coco                  47,86%    62,65%    77,43%
+ 23.2.8   17.1 15.00 2202.99.00
+Bebidas  alimentares   prontas  à base  de soja,
+leite  ou  cacau,  inclusive   os  produtos
+denominados     bebidas   lácteas  
+Alterado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+31,06%    44,17%    57,27%
+23.3 - LA TICÍNIOS E MA  TINAIS
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.3.1  17.012.00
+0402.1
+0402.2
+0402.9
+Leite  em  pó,  blocos  ou grânulos,  exceto  creme
+de leite
+18,75%    30,63%    42,50%
+23.3.2  17.013.00  1901.10.20   Farinha láctea                   32,64%    45,90%    59,17%
+23.3.3  17.014.00  1901.10.10   Leite modificado para alimentação de crianças        35,81%    49,39%    62,97%
+23.3.4  17.015.00
+1901.10.90
+1901.10.30
+Preparações   para  alimentação   infantil à  base
+de  farinhas,  grumos,   sêmolas   ou  amidos  e
+outros
+37,15%    50,87%    64,58%
+23.3.5  17.016.00
+0401.10.10
+0401.20.10
+Leite  “longa  vida”  (UHT   -  “Ultra  High
+Temperature”),  em  recipiente  de  conteúdo
+inferior ou igual a 2 litros
+13,44%    24,78%    36,13%
+23.3.6  17.019.00
+0401.40.2
+0402.21.30
+0402.29.30
+0402.9
+Creme   de  leite, em  recipiente  de  conteúdo
+inferior ou igual a 1 kg
+33,00%    46,30%    59,60%
+23.3.7  17.020.00   0402.9
+Leite  condensado,   em  recipiente  de conteúdo
+inferior ou igual a 1 kg
+27,81%    40,59%    53,37%
+23.3.8  17.021.00   0403
+Iogurte  e  leite  fermentado   em  recipiente  de
+conteúdo  inferior ou igual  a  2  litros, exceto  o
+item  classificado  no  CEST  17.022.00  
+Alterado
+pelo  Decreto   n°  47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+34,56%    48,02%    61,47%
+23.3.9  17.023.00   0406   Requeijão   e  similares,  em  recipiente  de
+conteúdo  inferior ou  igual  a  1  kg,  exceto  as
+42,17%    56,39%    70,60%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              27/43
+----------------Page (26) Break----------------
+embalagens   individuais  de conteúdo  inferior ou
+igual a 10 g
+23.3.10  17.025.00  0405.10.00
+Manteiga,   em  embalagem   de conteúdo  inferior
+ou  igual  a  1  kg,  exceto  as  embalagens
+individuais de conteúdo inferior ou igual a 10 g
+38,09%    51,90%    65,71%
+ 23.3.1 1 17.027.00  1517.10.00
+Margarina   e  creme  vegetal,  em  recipiente  de
+conteúdo  superior  a 500  g e inferior ou igual  a 1
+kg,  exceto  as  embalagens   individuais   de
+conteúdo   inferior  ou  igual  a  10  g 
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+28,08%    40,89%    53,70%
+23.4 - SNACKS, CEREAIS E CONGÊNERES
+Subitem  CEST   NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.4.1  17.030.00
+1904.10.00
+1904.90.00
+Produtos  à base  de cereais,  obtidos  por  expansão
+ou torrefação
+46,98%    61,68%    76,38%
+23.4.2  17.031.00 1905.90.90
+Salgadinhos   diversos,  exceto  os classificados   no
+CEST  17.031.01   e 17.031.02  
+Alterado  pelo  Decreto  n°
+47.864/2021   (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021   Redação   Anterior
+50,04%    65,04%    80,05%
+23.4.3  17.032.00
+2005.20.00
+2005.9
+Batata frita, inhame e mandioca fritos            50,69%    65,76%    80,83%
+23.4.4  17.033.00  2008.1
+Amendoim    e  castanhas   tipo  aperitivo,  em
+embalagem de conteúdo inferior ou igual a 1 kg
+55,61%    71,17%    86,73%
+23.4.5  17.031.01 1905.90.90
+Salgadinhos   diversos,  derivados   de  farinha  de
+trigo 
+Acrescentado   pelo  Decreto  n° 47.864/2021   (DOE  de
+10.12.2021) , efeitos a partir de 10.12.2021
+50,04%    65,04%    80,05%
+23.4.6  17.031.02 1905.90.90
+Biscoitos  de  polvilho  
+Acrescentado   pelo  Decreto   n°
+47.864/2021   (DOE  de  10.12.2021) ,  efeitos  a  partir  de
+10.12.2021
+50,04%    65,04%    80,05%
+23.5 - MOLHOS,   TEMPEROS e CONDIMENT      OS
+Subitem  CEST   NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.5.1  17.034.00 2103.20.10
+Catchup   em  embalagens   imediatas   de  conteúdo
+inferior ou igual  a  650  g, exceto  as embalagens
+contendo  envelopes   individualizados   (sachês)  de
+conteúdo inferior ou igual a 10 g
+56,04%    71,64%    87,25%
+23.5.2  17.035.00
+2103.90.21
+2103.90.91
+Condimentos    e  temperos   compostos,   incluindo
+molho   de  pimenta   e  outros  molhos,   em
+embalagens   imediatas   de  conteúdo   inferior  ou
+igual  a  1  kg,  exceto  as  embalagens   contendo
+envelopes   individualizados   (sachês)  de  conteúdo
+inferior ou igual a 3 g
+60,61%    76,67%    92,73%
+23.5.3  17.036.00 2103.10.10
+Molhos   de  soja  preparados   em  embalagens
+imediatas  de conteúdo  inferior ou igual  a  650  g,
+exceto   as  embalagens    contendo   envelopes
+individualizados   (sachês)  de conteúdo  inferior ou
+igual a 10 g
+73,16%    90,48%    107,79%
+23.5.4  17.037.00 2103.30.10
+Farinha  de mostarda  em  embalagens   de conteúdo
+inferior ou igual a 1 kg
+42,33%    56,56%    70,80%
+23.5.5  17.038.00 2103.30.21
+Mostarda  preparada   em  embalagens   imediatas  de
+conteúdo   inferior  ou  igual  a  650  g, exceto  as
+embalagens   contendo  envelopes   individualizados
+(sachês) de conteúdo inferior ou igual a 10 g
+66,50%    83,15%    99,80%
+23.5.6  17.039.00 2103.90.1 1
+Maionese  em  embalagens   imediatas  de conteúdo
+inferior ou igual  a  650  g, exceto  as embalagens
+contendo  envelopes   individualizados   (sachês)  de
+conteúdo inferior ou igual a 10 g
+28,74%    41,61%    54,49%
+23.5.7  17.040.00   2002
+Tomates  preparados   ou  conservados,   exceto  em
+vinagre  ou em  ácido  acético,  em  embalagens   de
+conteúdo inferior ou igual a 1 kg
+43,39%    57,73%    72,07%
+23.5.8  17.041.00 2103.20.10
+Molhos  de  tomate  em  embalagens   imediatas   de
+conteúdo inferior ou igual a 1 kg
+59,97%    75,97%    91,96%
+23.6 BARRAS DE CEREAIS
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              28/43
+----------------Page (27) Break----------------
+Subitem  CEST   NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.6.1  17.042.00
+1704.90.90
+1904.20.00
+1904.90.00
+Barra de cereais                    56,06%    71,67%    87,27%
+23.6.2  17.043.00
+1806.31.20
+1806.32.20
+1806.90.00
+Barra de cereais contendo cacau               56,06%    71,67%    87,27%
+23.7 PRODUT   OS À BASE DE    TRIGO E F  ARINHAS
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.7.1  17.047.00  1902.30.00
+Massas  alimentícias  tipo instantânea,  exceto  as
+descritas   no  CEST   17047.01.  
+Alterado
+pelo  Decreto   n°  47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+81,42%    99,56%    117,70%
+ 23.7.2  17.048.00   1902
+Massas  alimentícias,  cozidas  ou recheadas   (de
+carne  ou de outras  substâncias)  ou preparadas
+de outro  modo,  exceto  as descritas  nos  CEST
+17.047.00,   17.048,01   e  17.048.02  
+Alterado
+pelo   Decreto    n°   45.947/2017     (DOE    de
+16.02.2017),   efeitos  a  partir  de  16.03.2017   Redação
+Anterior
+38,85%    52,74%    66,62%
+ 23.7.3  17.050.00   1905.20
+Pães  industrializados,   inclusive  de especiarias,
+exceto panetones e bolo de forma
+56,55%    72,21%    87,86%
+ 23.7.4  17.051.00  1905.20.90   Bolo de forma, inclusive de especiarias          56,55%    72,21%    87,86%
+ 23.7.5  17.053.00  1905.31.00
+Biscoitos  e  bolachas  derivados   de  farinha  de
+trigo; (exceto  dos  tipos  "cream  cracker",  "água
+e sal", "maisena",  "maria"  e outros  de consumo
+popular  que  não  sejam  adicionados   de cacau,
+nem  recheados,   cobertos  ou  amanteigados,
+independentemente     de  sua   denominação
+comercial)  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE
+de 04.10.2016) , efeitos  a  partir de 01.10.2016   Redação
+Anterior
+37,59%    51,35%     65,1 1%
+ 23.7.6  17.054.00  1905.31.00
+Biscoitos  e  bolachas  não  derivados  de farinha
+de  trigo; (exceto  dos  tipos  "cream  cracker",
+"água  e  sal",  "maisena"   e  "maria"  e  outros  de
+consumo   popular  que  não  sejam  adicionados
+de  cacau,  nem   recheados,   cobertos   ou
+amanteigados,    independentemente     de  sua
+denominação    comercial)  
+Alterado  pelo  Decreto  n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a  partir de
+01.10.2016   Redação   Anterior
+37,59%    51,35%     65,1 1%
+ 23.7.7  17.057.00  1905.32.00
+“Waffles” e  “wafers” - sem  cobertura  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+50,51%    65,56%    80,61%
+ 23.7.8  17.058.00  1905.32.00
+“Waffles” e  “wafers”- com  cobertura  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+24,14%    36,55%    48,97%
+ 23.7.9  17.059.00  1905.40.00
+Torradas,  pão  torrado  e  produtos  semelhantes
+torrados  
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE
+de 04.10.2016) , efeitos  a  partir de 01.10.2016   Redação
+Anterior
+34,17%    47,59%    61,00%
+ 23.7.10 17.060.00  1905.90.10   Outros pães de forma                 30,69%    43,76%    56,83%
+ 23.7.1 1 17.056.02  1905.90.20
+Outras  bolachas,   exceto  casquinhas   para
+sorvete  e os biscoitos  e bolachas  relacionados
+nos  CEST  17.056.00   e  17.056.01  
+Alterado
+pelo  Decreto   n°  45.768/2016   (DOE  de  04.10.2016) ,
+efeitos a partir de 01.10.2016    Redação   Anterior
+35,20%    48,72%    62,24%
+23.7.12  17.062.00  1905.90.90
+Outros  pães,  exceto  o  classificado  no  CEST
+17.062.03  
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE
+de 10.12.2021) , efeitos  a  partir de 10.12.2021   Redação
+Anterior
+30,93%    44,02%    57,12%
+ 23.7.13 17.063.00  1905.10.00   Pão denominado knackebrot               30,69%    43,76%    56,83%
+ 23.7.14 17.048.02  1902.20.00
+Massas   alimentícias   recheadas    (mesmo
+cozidas    ou   preparadas    de   outro
+modo)  
+Acrescentado   pelo  Decreto   n°  45.947/2017
+(DOE de 16.02.2017),    efeitos a partir de 16.03.2017
+38,85%    52,74%    66,62%
+23.7.15  17.062.01  1905.90.90   Outros  bolos  industrializados   e  produtos  de
+panificação   não  especificados   anteriormente,
+incluindo  as pizzas;  exceto  os classificados  nos
+30,93%    44,02%    57,12%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              29/43
+----------------Page (28) Break----------------
+CEST  17.062.02  e 17.062.03  
+Alterado  pelo  Decreto
+n° 47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021   Redação   Anterior
+23.7.16  17.047.01  1902.30.00
+Massas  alimentícias  tipo instantânea,  derivadas
+de farinha  de trigo. 
+Acrescentado   pelo  Decreto  n°
+47.864/2021   (DOE  de  10.12.2021) , efeitos  a  partir de
+10.12.2021
+81,42%    99,56%    117,70%
+23.8 ÓLEOS
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.8.1  17.066.00   1508
+Óleo  de  amendoim   refinado,  em  recipientes
+com  capacidade   inferior  ou  igual  a  5  litros,
+exceto  as embalagens   individuais  de conteúdo
+inferior ou igual a 15 mililitros
+42,33%    56,56%    70,80%
+ 23.8.2  17.067.00   1509
+Azeites   de  oliva,  em  recipientes   com
+capacidade   inferior  a  2  litros,  exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual  a  20  mililitros 
+Alterado  pelo  Decreto   n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a  partir de
+01.09.2016   Redação   Anterior
+24,51%    36,96%    49,41%
+23.8.3  17.068.00  1510.00.00
+Outros  óleos  e  respectivas   frações,  obtidos
+exclusivamente   a  partir de  azeitonas,  mesmo
+refinados,  mas  não  quimicamente   modificados,
+e misturas  desses  óleos  ou frações  com  óleos
+ou  frações  da  posição  15.09,  em  recipientes
+com  capacidade   inferior  ou  igual  a  5  litros,
+exceto  as embalagens   individuais  de conteúdo
+inferior ou igual a 15 mililitros
+43,76%    58,14%    72,51%
+23.8.4  17.069.00  1512.19.1 1
+Óleo  de  girassol  em  recipientes   com
+capacidade  inferior ou igual  a 5 litros, exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual  a  15  mililitros 
+Alterado  pelo  Decreto   n°
+46.219/2018   (DOE  de  17.01.2018) , efeitos  a  partir de
+17.01.2018   Redação   Anterior
+18,41%    30,25%    42,09%
+23.8.5  17.070.00   1514.1
+Óleo   de  canola,   em  recipientes   com
+capacidade  inferior ou igual  a 5 litros, exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual a 15 mililitros
+21,73%    33,90%    46,08%
+23.8.6  17.071.00  1515.19.00
+Óleo  de linhaça  refinado,  em  recipientes  com
+capacidade  inferior ou igual  a 5 litros, exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual a 15 mililitros
+42,33%    56,56%    70,80%
+23.8.7  17.072.00  1515.29.10
+Óleo  de  milho  refinado,  em  recipientes   com
+capacidade  inferior ou igual  a 5 litros, exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual a 15 mililitros
+19,59%    31,55%    43,51%
+23.8.8  17.073.00  1512.29.90
+Outros  óleos  refinados,  em  recipientes   com
+capacidade  inferior ou igual  a 5 litros, exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual a 15 mililitros
+42,33%    56,56%    70,80%
+23.8.9  17.074.00  1517.90.10
+Misturas  de  óleos  refinados,  para  consumo
+humano,   em  recipientes   com   capacidade
+inferior  ou  igual  a  5  litros,  exceto  as
+embalagens   individuais  de conteúdo  inferior ou
+igual a 15 mililitros
+35,31%    48,84%    62,37%
+23.8.10  17.069.01  1512.29.10
+Óleo  de algodão  refinado  em  recipientes  com
+capacidade   inferior ou igual  a 5 li- tros,  exceto
+as embalagens   individuais  de conteúdo  inferior
+ou igual  a 15 mililitros 
+Acrescentado   pelo  Decreto  n°
+46.219/2018   (DOE  de  17.01.2018) , efeitos  a  partir de
+17.01.2018
+18,41%    30,25%    42,09%
+23.9  PRODUT  OS À BASE DE CARNE E PEIXE
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.9.1  17.076.00  1601.00.00
+Enchidos  (embutidos)   e produtos  semelhantes,
+de  carne,  miudezas   ou  sangue;   exceto
+salsicha, linguiça e mortadela
+40,83%    54,91%    69,00%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              30/43
+----------------Page (29) Break----------------
+ 23.9.2  17.079.00   16.02
+Outras  preparações   e  conservas   de  carne,
+miudezas   ou  de  sangue,  exceto  as descritas
+nos  CEST  17.079.01,  17.079.02,  17.079.03,
+17.079.04,    17.079.05,    17.079.06    e
+17.079.07  
+Alterado  pelo  Decreto  n° 46.219/2018   (DOE
+de 17.01.2018) , efeitos  a partir de 17.01.2018   Redação
+Anterior
+37,01%    50,71%    64,41%
+ 23.9.3  17.080.00   1604
+Preparações   e  conservas   de peixes;  caviar  e
+seus  sucedâneos   preparados  a 35,87%  49,46%
+63,04%  partir de  ovas  de  peixe;  exceto  os
+descritos    nos   CEST   17.080.01    e
+17.081.00  
+Alterado  pelo  Decreto  n° 45.947/2017   (DOE
+de 16.02.2017),   efeitos  a  partir de 16.03.2017   Redação
+Anterior
+35,87%    49,46%    63,04%
+23.9.4  17.082.00   1605
+Crustáceos,   moluscos   e  outros  invertebrados
+aquáticos, preparados ou em conservas
+47,68%    62,45%    77,22%
+ 23.9.5  17.079.01  1602.31.00
+Outras  preparações   e  conservas   de carne,  de
+miudezas   ou de sangue,  de aves  da posição
+01.05:  de  peruas  e  de  perus.  
+Acrescentado
+pelo   Decreto    n°   45.947/2017     (DOE    de
+16.02.2017),   efeitos a partir de 16.03.2017
+37,01%    50,71%    64,41%
+23.9.6  17.079.02  1602.32.10
+Outras  preparações   e  conservas   de carne,  de
+miudezas   ou de sangue,  de aves  da posição
+01.05:  de galos  e de galinhas,  com  conteúdo  de
+carne  ou de miudezas  superior  ou igual  a 57%,
+em  peso,  não  cozidas  
+Acrescentado   pelo  Decreto  n°
+45.947/2017   (DOE  de  16.02.2017),   efeitos  a  partir de
+16.03.2017
+37,01%    50,71%    64,41%
+23.9.7  17.079.03  1602.32.20
+Outras  preparações   e  conservas   de carne,  de
+miudezas   ou  de  sangue,   todas  de  aves  da
+posição  01.05:  de  galos  e  de  galinhas,  com
+conteúdo  de carne  ou de miudezas  superior  ou
+igual  a  57%,  em  peso,  cozidas  
+Acrescentado
+pelo   Decreto    n°   45.947/2017     (DOE    de
+16.02.2017),   efeitos a partir de 16.03.2017
+37,01%    50,71%    64,41%
+23.9.8  17.079.04  1602.41.00
+Outras  preparações   e  conservas   de carne,  de
+miudezas   ou  de  sangue,   da  espécie   suína:
+pernas  e  respectivos   pedaços  
+Acrescentado
+pelo   Decreto    n°   45.947/2017     (DOE    de
+16.02.2017),   efeitos a partir de 16.03.2017
+37,01%    50,71%    64,41%
+23.9.9  17.079.05  1602.49.00
+Outras  preparações   e  conservas   de carne,  de
+miudezas   ou  de  sangue,   da  espécie   suína:
+outras,  incluindo   as  misturas,   exceto  os
+descritos   no  CEST   17.079.07  
+Alterado
+pelo  Decreto   n°  47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+37,01%    50,71%    64,41%
+23.9.10  17.079.06  1602.50.00
+Outras  preparações   e  conservas   de carne,  de
+miudezas   ou  de  sangue,   da  espécie
+bovina  
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE  de
+10.12.2021) ,  efeitos  a  partir  de  10.12.2021   Redação
+Anterior
+37,01%    50,71%    64,41%
+23.9.1 1 17.080.01  1604.20.10
+Outras   preparações    e   conservas    de
+atuns  
+Acrescentado   pelo  Decreto  n° 45.947/2017   (DOE
+de 16.02.2017),   efeitos a partir de 16.03.2017
+35,87%    49,46%    63,04%
+23.9.12  17.079.07  1602.49.00
+Apresuntado   
+Alterado  pelo  Decreto   n° 47.864/2021
+(DOE   de  10.12.2021) ,  efeitos   a   partir  de
+10.12.2021   Redação   Anterior
+37,01%    50,71%    64,41%
+23.10 PRODUT   OS HOR  TÍCOLAS E FRUT    AS
+Subitem  CEST   NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.10.1 17.088.00   0710
+Produtos  hortícolas,  cozidos  em  água  ou  vapor ,
+congelados,   em  embalagens   de conteúdo  inferior
+ou igual a 1 kg
+42,33%    56,56%    70,80%
+23.10.2 17.089.00   0811
+Frutas,  não  cozidas  ou cozidas  em  água  ou vapor ,
+congeladas,   mesmo   adicionadas   de açúcar  ou de
+outros  edulcorantes,   em  embalagens   de conteúdo
+inferior ou igual a 1 kg
+42,33%    56,56%    70,80%
+23.10.3 17.090.00   2001
+Produtos   hortícolas,   frutas  e  outras  partes
+comestíveis    de   plantas,   preparados    ou
+conservados   em  vinagre  ou em  ácido  acético,  em
+embalagens de conteúdo inferior ou igual a 1 kg
+83,07%    101,38%    119,68%
+23.10.4 17.091.00   2004   Outros   produtos   hortícolas   preparados    ou
+conservados,   exceto  em  vinagre  ou  em  ácido
+48,28%    63,1 1%    77,94%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              31/43
+----------------Page (30) Break----------------
+acético,  congelados,   com  exceção  dos  produtos  da
+posição   20.06,  em  embalagens   de  conteúdo
+inferior ou igual a 1 kg
+23.10.5 17.092.00   2005
+Outros   produtos   hortícolas   preparados    ou
+conservados,   exceto  em  vinagre  ou  em  ácido
+acético,  não  congelados,    com   exceção   dos
+produtos  da  posição   20.06,  excluídos   batata,
+inhame  e  mandioca   fritos,  em  embalagens   de
+conteúdo inferior ou igual a 1 kg
+51,62%    66,78%    81,94%
+23.10.6 17.093.00 2006.00.00
+Produtos  hortícolas,  frutas,  cascas  de  frutas  e
+outras  partes  de plantas,  conservados   com  açúcar
+(passados   por  calda,  glaceados   ou cristalizados),
+em  embalagens   de conteúdo  inferior ou igual  a  1
+kg
+42,33%    56,56%    70,80%
+23.10.7 17.094.00   2007
+Doces,  geléias,  “marmelades”,  purês  e  pastas  de
+frutas,  obtidos  por  cozimento,  com  ou sem  adição
+de  açúcar  ou  de  outros  edulcorantes,   em
+embalagens   de conteúdo  inferior ou igual  a  1  kg,
+exceto  as  embalagens   individuais  de  conteúdo
+inferior ou igual a 10 g
+64,41%    80,85%    97,29%
+23.10.8 17.095.00   2008
+Frutas  e  outras  partes  comestíveis   de  plantas,
+preparadas   ou conservadas   de outro  modo,  com
+ou  sem   adição  de  açúcar  ou  de  outros
+edulcorantes   ou de álcool,  não  especificadas   nem
+compreendidas    em  outras  posições,  excluídos  os
+amendoins   e  castanhas   tipo aperitivo,  da posição
+2008.1,  em  embalagens   de  conteúdo  inferior ou
+igual a 1 kg
+49,58%    64,54%    79,50%
+23.1 1 OUTROS
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+23.1 1.1 17.097.00
+0902
+1211.90.90
+2106.90.90
+Chá, mesmo aromatizado                45,08%    59,59%    74,10%
+23.1 1.2 17.098.00   0903.00  Mate                      59,49%    75,44%    91,39%
+23.1 1.3 17.103.00
+1701.1
+1701.99.00
+Outros  tipos  de  açúcar , em  embalagens   de
+conteúdo  inferior ou  igual  a  2  kg,  exceto  as
+embalagens      contendo      envelopes
+individualizados   (sachês)  de  conteúdo  inferior
+ou igual a 10 g
+19,05%    30,96%    42,86%
+23.1 1.4 17.106.00  2008.19.00  Milho para pipoca (micro-ondas)             46,63%    61,29%    75,96%
+23.1 1.5 17.107.00   2101.1
+Extratos,  essências   e  concentrados   de café  e
+preparações   à base  destes  extratos,  essências
+ou  concentrados   ou  à  base  de  café,  em
+embalagens   de conteúdo  inferior ou igual  a 500
+g,  exceto   os  classificados    no  CEST
+17.107.01  
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE
+de 10.12.2021) , efeitos  a  partir de 10.12.2021   Redação
+Anterior
+52,29%    67,52%    82,75%
+23.1 1.6 17.108.00   2101.20
+Extratos,  essências   e  concentrados   de chá  ou
+de mate  e preparações   à base  destes  extratos,
+essências   ou concentrados   ou à  base  de chá
+ou  de  mate,  em  embalagens   de  conteúdo
+inferior ou  igual  a  500  g, exceto  as bebidas
+prontas  à  base  de  mate  ou  chá  e  os  itens
+classificados   no  CEST   17.108.01  
+Alterado
+pelo  Decreto   n°  47.864/2021   (DOE  de  10.12.2021) ,
+efeitos a partir de 10.12.2021    Redação   Anterior
+51,52%    66,67%    81,82%
+23.1 1.7 17.109.00
+1901.90.90
+2101.1 1.90
+2101.12.00
+Preparações    em  pó  para  cappuccino   e
+similares,  em  embalagens   de conteúdo  inferior
+ou igual a 500 g
+57,49%    73,24%    88,99%
+23.1 1.8 17.107.01   2101.1
+Extratos,  essências   e  concentrados   de café  e
+preparações    à  base  destes  extra-  tos,
+essências   ou concentrados   ou à base  de café,
+em  cápsulas  
+Acrescentado    pelo   Decreto   n°
+46.219/2018   (DOE  de  17.01.2018) , efeitos  a  partir de
+17.01.2018
+52,29%    67,52%    82,75%
+23.1 1.9 17.108.01   2101.20   Extratos,  essências   e concentrados   de chá  ou
+de mate  e preparações   à base  destes  extratos,
+essências   ou concentrados   ou à  base  de chá
+51,52%    66,67%    81,82%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              32/43
+----------------Page (31) Break----------------
+ou  de  mate,   em  cápsulas  
+Acrescentado
+pelo  Decreto   n°  46.219/2018   (DOE  de  17.01.2018) ,
+efeitos a partir de 17.01.2018
+24.MA TERIAIS DE CONSTRUÇÃO E CONGÊNERES
+Fundamento normativo: Protocolos ICMS 196/09, 26/10 e 32/14. 
+Alterado  pelo  Decreto  n° 45.768/2016   (DOE  de 04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+Âmbito de aplicação: Operações internas, interestaduais originadas nas unidades federadas signatárias dos
+Protocolos supracitados e aquisições de mercadorias procedentes das demais unidades federadas por contribuintes
+localizados no Estado do Rio de Janeiro.
+Subitem   CEST     NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+24.1   10.001.00     2522     Cal                   43,00%    57,30%    71,60%
+24.2   10.002.00
+3816.00.1
+3824.50.00
+Argamassas                 41,00%    55,10%    69,20%
+24.3   10.003.00    3214.90.00    Outras argamassas              41,00%    55,10%    69,20%
+24.4   10.004.00    3910.00
+Silicones  em  formas  primárias,  para  uso
+na construção
+57,00%    72,70%    88,40%
+24.5   10.005.00     3916
+Revestimentos    de  PVC   e  outros
+plásticos;  forro, sancas  e afins  de PVC,
+para uso na construção
+57,00%    72,70%    88,40%
+24.6   10.006.00     3917
+Tubos,  e seus  acessórios  (por exemplo,
+juntas,  cotovelos,  flanges,  uniões),  de
+plásticos, para uso na construção
+36,00%    49,60%    63,20%
+24.7   10.007.00     3918
+Revestimento   de pavimento   de PVC  e
+outros plásticos
+56,00%    71,60%    87,20%
+24.8   10.008.00     3919
+Chapas,   folhas,  tiras, fitas, películas  e
+outras  formas  planas,  auto-adesivas,   de
+plásticos,  mesmo   em  rolos, para  uso  na
+construção
+58,00%    73,80%    89,60%
+24.9   10.009.00
+3919
+3920
+3921
+Veda  rosca,  lona  plástica  para  uso  na
+construção, fitas isolantes e afins
+52,00%    67,20%    82,40%
+24.10  10.010.00     3921
+Telha de plástico,  mesmo   reforçada  com
+fibra de vidro
+53,00%    68,30%    83,60%
+24.1 1  10.01 1.00    3921
+Cumeeira  de plástico,  mesmo   reforçada
+com fibra de vidro
+53,00%    68,30%    83,60%
+ 24.12  10.012.00     3921
+Chapas,  laminados   plásticos  em  bobina,
+para  uso  na  construção,   exceto  os
+descritos   nos   CEST   10.010.00   e
+10.01 1.00  
+Alterado   pelo   Decreto   n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+53,00%    68,30%    83,60%
+24.13  10.013.00     3922
+Banheiras,  boxes  para  chuveiros,  pias,
+lavatórios,   bidês,  sanitários  e  seus
+assentos  e tampas,  caixas  de descarga
+e  artigos   semelhantes    para  usos
+sanitários ou higiênicos, de plásticos
+49,00%    63,90%    78,80%
+24.14  10.014.00     3924
+Artefatos   de  higiene/toucador    de
+plástico, para uso na construção
+80,00%    98,00%    116,00%
+24.15  10.015.00    3925.10.00
+Caixa  d’água,  inclusive  sua  tampa,  de
+plástico,  mesmo   reforçadas  com  fibra
+de vidro
+46,00%    60,60%    75,20%
+24.16  10.016.00    3925.90
+Outras  telhas,  cumeeira  e caixa  d’água,
+inclusive  sua  tampa,  de plástico,  mesmo
+reforçadas com fibra de vidro
+46,00%    60,60%    75,20%
+24.17  10.017.00  3925.10.003925.90
+Artefatos   para  apetrechamento    de
+construções,    de   plásticos,   não
+especificados   nem  compreendidos    em
+outras  posições,   incluindo  persianas,
+sancas,  molduras,   apliques  e  rosetas,
+caixilhos   de  polietileno   e  outros
+plásticos,  exceto  os descritos  nos  CEST
+10.015.00    e   10.016.00  
+Alterado
+pelo   Decreto   n°  45.768/2016    (DOE   de
+04.10.2016) ,   efeitos    a   partir   de
+01.10.2016   Redação   Anterior
+46,00%    60,60%    75,20%
+24.18  10.018.00    3925.20.00
+Portas,  janelas  e seus  caixilhos,  alizares
+e soleiras
+43,00%    57,30%    71,60%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              33/43
+----------------Page (32) Break----------------
+24.19  10.019.00    3925.30.00
+Postigos,    estores   (incluídas   as
+venezianas)   e  artefatos  semelhantes   e
+suas partes
+75,00%    92,50%    110,00%
+24.20  10.020.00    3926.90
+Outras  obras  de plástico,  para  uso  na
+construção
+45,00%    59,50%    74,00%
+24.21  10.021.00     4814
+Papel  de  parede  e  revestimentos   de
+parede semelhantes; papel para vitrais
+79,00%    96,90%    114,80%
+24.22  10.022.00    6810.19.00    Telhas de concreto             36,00%    49,60%    63,20%
+24.23  Revogado pelo   Decreto n° 47.864/2021 (DOE de 10.12.2021)       , efeitos a partir de 10.12.2021    Redação   Anterior
+24.24  10.024.00     6811
+Caixas  d'água,  tanques  e reservatórios
+e  suas   tampas,   telhas,   calhas,
+cumeeiras   e  afins,  de  fibrocimento,
+cimento-celulose    ou  semelhantes,
+contendo   ou  não  amianto.  
+Alterado
+pelo   Decreto   n°  47.864/2021    (DOE   de
+10.12.2021) ,   efeitos    a   partir   de
+10.12.2021   Redação   Anterior
+41,00%    55,10%    69,20%
+24.25  10.025.00    6901.00.00
+Tijolos, placas  (lajes), ladrilhos  e outras
+peças  cerâmicas   de  farinhas  siliciosas
+fósseis  ("kieselghur",  tripolita, diatomita,
+por  exemplo)   ou  de  terras  siliciosas
+semelhantes
+101,00%   121,10%    141,20%
+24.26  10.026.00     6902
+Tijolos, placas  (lajes), ladrilhos  e peças
+cerâmicas   semelhantes,   para  uso  na
+construção,   refratários,  que  não  sejam
+de  farinhas  siliciosas  fósseis  nem  de
+terras siliciosas semelhantes
+81,00%    99,10%    117,20%
+24.27  10.027.00     6904
+Tijolos para  construção,   tijoleiras,  tapa-
+vigas  e  produtos   semelhantes,   de
+cerâmica
+40,00%    54,00%    68,00%
+24.28  10.028.00     6905
+Telhas,   elementos    de  chaminés,
+condutores   de  fumaça,   ornamentos
+arquitetônicos,   de  cerâmica,   e  outros
+produtos   cerâmicos    para  uso   na
+construção
+44,00%    58,40%    72,80%
+24.29  10.029.00    6906.00.00
+Tubos,   calhas   ou  algerozes    e
+acessórios   para  canalizações,    de
+cerâmica
+91,00%    110,10%    129,20%
+24.30  10.030.00     6907
+Ladrilhos   e  placas  de  cerâmica,
+exclusivamente   para  pavimentação   ou
+revestimento   
+Alterado   pelo   Decreto   n°
+46.219/2018   (DOE  de  17.01.2018) , efeitos  a
+partir de 17.01.2018   Redação   Anterior
+53,00%    68,30%    83,60%
+24.31  10.031.00     6910
+Pias,  lavatórios,  colunas  para  lavatórios,
+banheiras,  bidês,  sanitários,  caixas  de
+descarga,   mictórios  e  aparelhos   fixos
+semelhantes   para  usos  sanitários,  de
+cerâmica
+40,00%    54,00%    68,00%
+24.32  10.032.00    6912.00.00
+Artefatos   de  higiene/toucador    de
+cerâmica
+83,00%    101,30%    119,60%
+24.33  10.033.00     7003
+Vidro vazado  ou laminado,  em  chapas,
+folhas  ou  perfis,  mesmo   com  camada
+absorvente,   refletora  ou não,  mas  sem
+qualquer outro trabalho
+42,00%    56,20%    70,40%
+24.34  10.034.00     7004
+Vidro estirado  ou  soprado,  em  folhas,
+mesmo    com   camada   absorvente,
+refletora  ou  não,  mas  sem  qualquer
+outro trabalho
+101,00%   121,10%    141,20%
+24.35  10.035.00     7005
+Vidro  flotado  e  vidro  desbastado   ou
+polido  em  uma  ou em  ambas  as faces,
+em  chapas  ou em  folhas,  mesmo   com
+camada   absorvente,   refletora  ou  não,
+mas sem qualquer outro trabalho
+45,00%    59,50%    74,00%
+24.36  10.036.00    7007.19.00    Vidros temperados              44,00%    58,40%    72,80%
+24.37  10.037.00    7007.29.00    Vidros laminados              46,00%    60,60%    75,20%
+24.38  10.038.00     7008     Vidros isolantes de paredes múltiplas       46,00%    60,60%    75,20%
+24.39  10.040.00    7214.20.00
+Barras   próprias   para  construções,
+exceto vergalhões
+39,00%    52,90%    66,80%
+24.40  10.041.00    7308.90.10
+Outras    barras   próprias    para
+construções, exceto vergalhões
+39,00%    52,90%    66,80%
+24.41  10.042.00    7214.20.00    Vergalhões                41,00%    55,10%    69,20%
+24.42  10.043.00     7213
+Outros  vergalhões   
+Alterado  pelo  Decreto  n°
+47.864/2021   (DOE  de  10.12.2021) , efeitos  a
+partir de 10.12.2021   Redação   Anterior
+41,00%    55,10%    69,20%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              34/43
+----------------Page (33) Break----------------
+24.43  10.044.00
+7217.10.90
+7312
+Fios  de ferro  ou aço  não  ligados,  não
+revestidos,   mesmo   polidos;  cordas,
+cabos,  tranças  (entrançados),   lingas  e
+artefatos  semelhantes,   de ferro  ou aço,
+não isolados para usos elétricos
+44,00%    58,40%    72,80%
+ 24.44  10.045.00    7217.20.10
+Outros  fios de ferro  ou aço, não  ligados,
+galvanizados   com  um  teor de carbono
+superior   ou  igual  a  0,6%,   em
+peso  
+Alterado  pelo  Decreto   n° 45.768/2016
+(DOE  de  04.10.2016) ,  efeitos  a  partir  de
+01.10.2016   Redação   Anterior
+42,00%    56,20%    70,40%
+24.45  10.046.00     7307
+Acessórios  para  tubos  (inclusive  uniões,
+cotovelos,  luvas  ou  mangas),  de  ferro
+fundido, ferro ou aço
+37,00%    50,70%    64,40%
+24.46  10.047.00    7308.30.00
+Portas  e  janelas,  e  seus  caixilhos,
+alizares  e soleiras  de ferro  fundido,  ferro
+ou aço
+40,00%    54,00%    68,00%
+24.47  10.048.00
+7308.40.00
+7308.90
+Material  para  andaimes,   para  armações
+(cofragens)   e  para  escoramentos,
+(inclusive  armações   prontas,   para
+estruturas   de  concreto   armado   ou
+argamassa    armada),   eletrocalhas   e
+perfilados  de ferro  fundido,  ferro  ou aço,
+próprios   para  construção,    exceto
+treliças de aço
+65,00%    81,50%    98,00%
+24.48  10.049.00    7308.40.00    Treliças de aço               38,00%    51,80%    65,60%
+24.49  10.051.00     7310
+Caixas  diversas  (tais  como  caixa  de
+correio,  de entrada  de água,  de energia,
+de instalação)  de ferro  fundido,  ferro  ou
+aço; próprias  para  a construção   
+Alterado
+pelo   Decreto   n°  45.768/2016    (DOE   de
+04.10.2016) ,   efeitos    a   partir   de
+01.10.2016   Redação   Anterior
+89,00%    107,90%    126,80%
+24.50  10.052.00    7313.00.00
+Arame  farpado,  de ferro  ou aço, arames
+ou tiras, retorcidos,  mesmo   farpados,  de
+ferro  ou  aço,  dos  tipos  utilizados  em
+cercas
+39,00%    52,90%    66,80%
+24.51  10.053.00     7314
+Telas metálicas,  grades  e redes,  de fios
+de ferro ou aço
+39,00%    52,90%    66,80%
+24.52  10.054.00    7315.1 1.00
+Correntes   de  rolos,  de  ferro  fundido,
+ferro ou aço
+101,00%   121,10%    141,20%
+24.53  10.055.00    7315.12.90
+Outras  correntes  de elos articulados,  de
+ferro fundido, ferro ou aço
+101,00%   121,10%    141,20%
+24.54  10.056.00    7315.82.00
+Correntes   de  elos  soldados,   de  ferro
+fundido, de ferro ou aço
+68,00%    84,80%    101,60%
+24.55  10.057.00    7317.00
+Tachas,  pregos,  percevejos,   escápulas,
+grampos   ondulados   ou  biselados   e
+artefatos  semelhantes,   de ferro  fundido,
+ferro  ou aço,  mesmo   com  a  cabeça  de
+outra matéria, exceto cobre
+44,00%    58,40%    72,80%
+24.56  10.058.00     7318
+Parafusos,  pinos  ou pernos,  roscados,
+porcas,  tira-fundos,  ganchos   roscados,
+rebites,  chavetas,  cavilhas,  contrapinos,
+arruelas  (incluídas  as  de  pressão)  e
+artefatos  semelhantes,   de ferro  fundido,
+ferro ou aço
+51,00%    66,10%    81,20%
+24.57  10.059.00     7323
+Palha  de ferro  ou aço, exceto  os de uso
+doméstico   classificados   na  posição
+NCM  7323.10.00   
+Alterado  pelo  Decreto  n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+101,00%   121,10%    141,20%
+24.58  10.060.00     7324
+Artefatos  de higiene  ou de toucador , e
+suas  partes,  de ferro  fundido,  ferro  ou
+aço,  incluídas   as  pias,  banheiras,
+lavatórios,  cubas,  mictórios,  tanques  e
+afins  de ferro  fundido,  ferro  ou aço, para
+uso na construção
+62,00%    78,20%    94,40%
+24.59  10.061.00     7325
+Outras   obras   moldadas,    de  ferro
+fundido,  ferro  ou  aço,  para  uso  na
+construção
+86,00%    104,60%    123,20%
+24.60  10.062.00     7326     Abraçadeiras                80,00%    98,00%    116,00%
+24.61  10.063.00     7407     Barras de cobre              38,00%    51,80%    65,60%
+24.62  10.064.00    7411.10.10   Tubos  de  cobre  e  suas  ligas,  para
+instalações  de água  quente  e gás, para
+35,00%    48,50%    62,00%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              35/43
+----------------Page (34) Break----------------
+uso na construção
+24.63  10.065.00     7412
+Acessórios   para  tubos  (por  exemplo,
+uniões,  cotovelos,  luvas  ou mangas)   de
+cobre   e  suas  ligas,  para  uso  na
+construção
+33,00%    46,30%    59,60%
+24.64  10.066.00     7415
+Tachas,  pregos,  percevejos,   escápulas
+e  artefatos  semelhantes,   de  cobre,  ou
+de ferro  ou aço  com  cabeça  de cobre,
+parafusos,  pinos  ou  pernos,  roscados,
+porcas,   ganchos   roscados,   rebites,
+chavetas,    cavilhas,    contrapinos,
+arruelas  (incluídas  as  de  pressão),   e
+artefatos semelhantes, de cobre
+62,00%    78,20%    94,40%
+24.65  10.067.00    7418.20.00
+Artefatos  de higiene/toucador   de cobre,
+para uso na construção
+46,00%    60,60%    75,20%
+24.66  10.068.00    7607.19.90    Manta de subcobertura aluminizada        59,00%    74,90%    90,80%
+24.67  10.069.00     7608
+Tubos  de  alumínio  e  suas  ligas, para
+refrigeração  e ar condicionado,   para uso
+na construção
+44,53%    58,98%    73,44%
+24.68  10.070.00    7609.00.00
+Acessórios   para  tubos  (por  exemplo,
+uniões,  cotovelos,  luvas  ou mangas),  de
+alumínio, para uso na construção
+66,00%    82,60%    99,20%
+24.69  10.071.00     7610
+Construções    e  suas  partes  (por
+exemplo,   pontes   e  elementos    de
+pontes,   torres,  pórticos  ou  pilones,
+pilares,  colunas,  armações,   estruturas
+para  telhados,  portas  e  janelas,  e  seus
+caixilhos,   alizares   e   soleiras,
+balaustradas),   de  alumínio,  exceto  as
+construções   pré-fabricadas   da  posição
+9406;  chapas,   barras,  perfis,  tubos  e
+semelhantes,   de alumínio,  próprios  para
+construções
+38,00%    51,80%    65,60%
+24.70  10.072.00    7615.20.00
+Artefatos   de  higiene/toucador    de
+alumínio, para uso na construção
+73,00%    90,30%    107,60%
+24.71  10.073.00     7616
+Outras  obras  de alumínio,  próprias  para
+construções, incluídas as persianas
+45,00%    59,50%    74,00%
+24.72  10.074.00    8302.41.00
+Outras  guarnições,   ferragens  e  artigos
+semelhantes   de  metais  comuns,   para
+construções, inclusive puxadores.
+47,00%    61,70%    76,40%
+24.73  10.075.00     8301
+Fechaduras   e  ferrolhos  (de  chave,  de
+segredo   ou  elétricos),   de  metais
+comuns,   incluídas   as  suas  partes
+fechos  e  armações   com  fecho,  com
+fechadura,  de  metais  comuns   chaves
+para  estes  artigos,  de metais  comuns;
+exceto os de uso automotivo
+54,00%    69,40%    84,80%
+24.74  10.076.00    8302.10.00
+Dobradiças   de  metais  comuns,   de
+qualquer tipo
+58,00%    73,80%    89,60%
+24.75  10.077.00     8307
+Tubos  flexíveis  de  metais  comuns,
+mesmo   com  acessórios,   para  uso  na
+construção
+62,00%    78,20%    94,40%
+24.76  10.078.00     8311
+Fios,  varetas,  tubos,  chapas,  eletrodos
+e  artefatos  semelhantes,   de  metais
+comuns   ou  de  carbonetos   metálicos,
+revestidos  exterior  ou interiormente   de
+decapantes   ou  de  fundentes,   para
+soldagem   (soldadura)   ou  depósito  de
+metal  ou de carbonetos  metálicos  fios e
+varetas   de  pós  de  metais  comuns
+aglomerados,    para  metalização   por
+projeção
+60,00%    76,00%    92,00%
+24.77  10.079.00     8481
+Torneiras,   válvulas   (incluídas   as
+redutoras    de   pressão    e   as
+termostáticas)     e    dispositivos
+semelhantes,    para   canalizações,
+caldeiras,  reservatórios,  cubas  e  outros
+recipientes
+47,00%    61,70%    76,40%
+24.78  10.080.00     7009
+Espelhos    de   vidro,   mesmo
+emoldurados,    exceto   os  de  uso
+automotivo   
+Alterado   pelo   Decreto   n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a
+partir de 01.10.2016   Redação   Anterior
+42,00%    56,20%    70,40%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              36/43
+----------------Page (35) Break----------------
+24.79  10.045.01    7217.20.90
+Outros  fios de ferro  ou aço, não  ligados,
+galvanizados   
+Acrescentado   pelo  Decreto  n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a
+partir de 01.10.2016
+42,00%    56,20%    70,40%
+24.80  10.059.01     7323
+Esponjas,   esfregões,  luvas  e  artefatos
+semelhantes   para  limpeza,  polimento  e
+usos  semelhantes,   de  ferro  ou  aço,
+exceto   os  de   uso   doméstico
+classificados    na   posição    NCM
+7323.10.00   
+Acrescentado   pelo  Decreto   n°
+45.768/2016   (DOE  de  04.10.2016) , efeitos  a
+partir de 01.10.2016
+101,00%   121,10%    141,20%
+24.81  10.041.01    7308.90.10
+Outros    vergalhões   
+Acrescentado
+pelo   Decreto   n°  47.864/2021    (DOE   de
+10.12.2021) , efeitos a partir de 10.12.2021
+41,00%    55,10%    69,20%
+25 .MÁQUINAS E    AP ARELHOS MECÂNICOS, ELÉTRICOS, ELETROMECÂNICOS E               AUT OMÁTICOS
+Fundamento normativo:            Protocolos ICMS 195/09     e 30/14
+Âmbito  de  aplicação     :  Operações   internas,  interestaduais   originadas  nas  unidades  federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem   CEST    NCM/SH            Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+25.1  21.108.00  8423.10.00  Balanças de uso doméstico               60,80%    76,88%    92,96%
+25.2  08.019.00   8467
+Ferramentas   pneumáticas,   hidráulicas  ou com
+motor  (elétrico  ou não  elétrico)  incorporado,  de
+uso  manual,   exceto  o  descrito  no  CEST
+08.019.01  
+Alterado  pelo  Decreto  n° 46.219/2018   (DOE
+de 17.01.2018) , efeitos  a partir de 17.01.2018   Redação
+Anterior
+48,14%    62,95%    77,77%
+25.3  08.019.01  8467.81.00
+Moto-serras   portáteis  de corrente,  com  motor
+incorporado,    não   elétrico,   de   uso
+agrícola  
+Acrescentado   pelo  Decreto   n° 46.219/2018
+(DOE de 17.01.2018)   , efeitos a partir de 17.01.2018
+48,14%    62,95%    77,77%
+26.MA TERIAIS ELÉTRICOS
+Fundamento normativo:             Protocolos ICMS 84/1   1, 198/09  e  33/14
+Âmbito  de  aplicação      : Operações   internas,  interestaduais   originadas  nas  unidades  fede radas  signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+26.1   12.001.00   8504
+Transformadores,   bobinas  de reatância  e de
+auto  indução,  inclusive  os  transformadores
+de potência  superior  a 16 KV A, classificados
+nas  posições   8504.33.00   e  8504.34.00;
+exceto  os  demais   transformadores    da
+subposição   8504.3,   os  reatores   para
+lâmpadas  elétricas  de descarga  classificados
+no  código  8504.10.00,   os carregadores   de
+acumuladores         do  código  8504.40.10,   os
+equipamentos   de alimentação   ininterrupta  de
+energia  (UPS  ou  “no break”),  no  código
+8504.40.40 e os de uso automotivo
+50,00%    65,00%    80,00%
+26.2   12.002.00   8516
+Aquecedores   elétricos  de água,  incluídos  os
+de  imersão,  chuveiros   ou  duchas  elétricos,
+torneiras    elétricas,   resistências    de
+aquecimento,   inclusive  as  de  duchas  e
+chuveiros   elétricos  e  suas  partes;  exceto
+outros  fornos,   fogareiros   (incluídas  as
+chapas  de  cocção),  grelhas  e  assadeiras,
+classificados na posição 8516.60.00
+44,00%    58,40%    72,80%
+26.3   12.003.00   8535   Aparelhos   para  interrupção,  seccionamento,
+proteção,  derivação,  ligação  ou conexão   de
+circuitos    elétricos    (por   exemplo,
+46,00%    60,60%    75,20%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              37/43
+----------------Page (36) Break----------------
+interruptores,  comutadores,   corta-circuitos,
+para-raios,    limitadores    de   tensão,
+eliminadores  de onda,  tomadas   de corrente  e
+outros  conectores,   caixas  de  junção),  para
+tensão  superior  a  1.000V , exceto  os de uso
+automotivo
+26.4   12.004.00   8536
+Aparelhos   para  interrupção,  seccionamento,
+proteção,  derivação,  ligação  ou conexão   de
+circuitos    elétricos    (por   exemplo,
+interruptores,   comutadores,    relés,  corta-
+circuitos,  eliminadores   de  onda,  plugues  e
+tomadas    de  corrente,   suportes   para
+lâmpadas   e  outros  conectores,   caixas  de
+junção),  para  uma  tensão  não  superior  a
+1.000V ; conectores  para fibras ópticas,  feixes
+ou cabos  de fibras ópticas;  exceto  "starter"
+classificado  na subposição   8536.50  e  os de
+uso automotivo
+43,00%    57,30%    71,60%
+26.5   12.005.00   8538
+Partes  reconhecíveis   como  exclusiva   ou
+principalmente   destinadas  aos  aparelhos  das
+posições 8535 e 8536
+40,00%    54,00%    68,00%
+26.6   12.006.00  7413.00.00
+Cabos,  tranças  e semelhantes,   de cobre,  não
+isolados  para  usos  elétricos,  exceto  os de
+uso automotivo
+62,27%    78,50%    94,72%
+26.7   12.007.00
+8544
+7605
+7614
+Fios,  cabos  (incluídos  os cabos  coaxiais)  e
+outros  condutores,   isolados  ou  não,  para
+usos  elétricos  (incluídos  os  de  cobre  ou
+alumínio,    envernizados    ou   oxidados
+anodicamente),    mesmo   com   peças   de
+conexão,  inclusive  fios e  cabos  elétricos,
+para  tensão  não  superior  a 1000V , para  uso
+na  construção;   fios e  cabos  telefônicos  e
+para  transmissão   de dados;  cabos  de fibras
+ópticas,  constituídos  de fibras embainhadas
+individualmente,   mesmo   com   condutores
+elétricos  ou munidos   de peças  de conexão;
+cordas,  cabos,  tranças  e  semelhantes,   de
+alumínio,  não  isolados  para  uso  elétricos;
+exceto os de uso automotivo
+41,00%    55,10%    69,20%
+26.8   12.008.00   8546
+Isoladores  de  qualquer  matéria,  para  usos
+elétricos
+70,45%    87,50%    104,54%
+26.9   12.009.00   8547
+Peças   isolantes  inteiramente   de  matérias
+isolantes,  ou  com  simples  peças  metálicas
+de  montagem    (suportes   roscados,   por
+exemplo)   incorporadas   na  massa,   para
+máquinas,   aparelhos   e  instalações  elétricas;
+tubos  isoladores  e suas  peças  de ligação,  de
+metais comuns, isolados interiormente
+61,1 1%   77,22%    93,33%
+26.10   21.1 10.00   8517
+Aparelhos   elétricos  para  telefonia;  outros
+aparelhos   para  transmissão   ou recepção  de
+voz, imagens   ou outros  dados,  incluídos  os
+aparelhos   para  comunicação    em  redes  por
+fio ou redes  sem  fio (tal como  uma  rede  local
+(LAN)   ou  uma   rede  de  área  estendida
+(W AN),  incluídas  suas  partes,  exceto  os de
+uso  automotivo   e  os  classificados   nos
+códigos       8517.62.51,    8517.62.52    e
+8517.62.53
+49,00%    63,90%    78,80%
+26.1 1  21.1 11.00   8517
+Interfones,   seus  acessórios,   tomadas   e
+"plugs"
+47,00%    61,70%    76,40%
+26.12   21.1 12.00   8529
+Partes  reconhecíveis   como  exclusiva   ou
+principalmente   destinadas  aos  aparelhos  das
+posições  8525  a  8528;  exceto  as  de  uso
+automotivo
+62,27%    78,50%    94,72%
+26.13   21.1 13.00   8531
+Aparelhos   elétricos  de  sinalização   acústica
+ou visual (por exemplo,  campainhas,   sirenes,
+quadros   indicadores,  aparelhos   de  alarme
+para  proteção  contra  roubo  ou  incêndio);
+exceto  os  de  uso  automotivo   e  os
+classificados   nas   posições   8531.10   e
+8531.80.00.
+55,27%    70,80%    86,32%
+26.14   21.1 14.00  8531.10
+Aparelhos   elétricos  de alarme,  para  proteção
+contra  roubo   ou  incêndio  e  aparelhos
+semelhantes, exceto os de uso automotivo
+63,44%    79,78%    96,13%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              38/43
+----------------Page (37) Break----------------
+26.15   21.1 15.00 8531.80.00
+Outros  aparelhos   de sinalização  acústica  ou
+visual, exceto os de uso automotivo
+43,00%    57,30%    71,60%
+26.16   21.1 16.00  8534.00
+Circuitos   impressos,   exceto  os  de  uso
+automotivo
+62,27%    78,50%    94,72%
+26.17   21.1 17.00
+8541.40.1 1
+8541.40.21
+8541.40.22
+Diodos  emissores   de  luz  (LED),  exceto
+diodos "laser"
+51,77%    66,95%    82,12%
+26.18   21.1 18.00 8543.70.92  Eletrificadores de cercas eletrônicos         61,1 1%   77,22%    93,33%
+26.19   21.1 19.00  9030.3
+Aparelhos   e  instrumentos   para  medida  ou
+controle  da  tensão,  intensidade,  resistência
+ou da potência,  sem  dispositivo  registrador;
+exceto os de uso automotivo
+55,27%    70,80%    86,32%
+26.20   21.120.00   9030.89
+Analisadores   lógicos  de circuitos  digitais,  de
+espectro  de  frequência,   frequencímetros,
+fasímetros,   e  outros   instrumentos    e
+aparelhos  de controle  de grandezas   elétricas
+e detecção
+52,93%    68,22%    83,52%
+26.21   21.121.00   9107.00
+Interruptores  horários  e outros  aparelhos  que
+permitam  acionar  um  mecanismo   em  tempo
+determinado,   munidos   de  maquinismo   de
+aparelhos de relojoaria ou de motor síncrono
+48,00%    62,80%    77,60%
+26.22   21.122.00   9405
+Aparelhos   de  iluminação   (incluídos  os
+projetores)  e suas  partes,  não  especificados
+nem  compreendidos    em  outras  posições;
+anúncios,   cartazes  ou  tabuletas  e  placas
+indicadoras    luminosos,    e   artigos
+semelhantes,   contendo  uma  fonte  luminosa
+fixa  permanente,    e  suas  partes  não
+especificadas   nem  compreendidas    em  outras
+posições,    com   exceção    dos   itens
+classificados    nos   CEST   21.123.00,
+21.124,00   e  21.125.00  
+Alterado  pelo  Decreto  n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016   Redação   Anterior
+52,00%    67,20%    82,40%
+26.23   21.123.00
+9405.10
+9405.9
+Lustres   e  outros  aparelhos   elétricos  de
+iluminação,   próprios  para  serem  suspensos
+ou fixados  no teto ou na parede,  exceto  os
+dos  tipos  utilizados  na iluminação  pública,  e
+suas  partes  
+Acrescentado    pelo   Decreto   n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016
+43,00%    57,30%    71,60%
+26.24   21.124.00
+9405.20.00
+9405.9
+Abajures   de  cabeceiras,   de  escritório  e
+lampadários   de  interior ,  elétricos  e  suas
+partes  
+Acrescentado   pelo  Decreto  n° 45.768/2016
+(DOE de 04.10.2016)   , efeitos a partir de 01.10.2016
+50,00%    65,00%    80,00%
+26.25   21.125.00
+9405.40
+9405.9
+Outros  aparelhos   elétricos  de  iluminação  e
+suas  partes  
+Acrescentado    pelo   Decreto   n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016
+52,00%    67,20%    82,40%
+27. AR TEF ATOS DE USO DOMÉSTICO      
+Alterado pelo  Decreto n° 45.768/2016 (DOE de 04.10.2016)       , efeitos a partir de 01.10.2016    Redação   Anterior
+Fundamento normativo:            Protocolos ICMS 189/09     e 131/13
+Âmbito  de  aplicação:  Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Subitem    CEST    NCM/SH           Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+27.1   14.006.00  3924.10.00
+Serviços  de  mesa  e  outros  utensílios  de
+mesa  ou  de  cozinha,  de  plástico,  não
+descartáveis   
+Alterado  pelo  Decreto  n° 46.219/2018
+(DOE   de  17.01.2018) ,  efeitos   a  partir  de
+17.01.2018   Redação   Anterior
+74,56%    92,02%    109,47%
+27.2   14.01 1.00  4823.20.9  Filtros descartáveis para coar café ou chá        87,26%    105,99%    124,71%
+27.3   14.012.00   4823.6
+Bandejas,   travessas,   pratos,  xícaras   ou
+chávenas,    taças,   copos   e   artigos
+semelhantes, de papel ou cartão
+121,70%   143,87%    166,04%
+27.4   14.007.00  6911.10.10
+Artigos  para  serviço  de mesa  ou de cozinha,
+de  porcelana,  inclusive  os  descartáveis   -
+estojos
+61,43%    77,57%    93,72%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              39/43
+----------------Page (38) Break----------------
+27.5   14.008.00  6911.10.90
+Artigos  para  serviço  de mesa  ou de cozinha,
+de  porcelana,  inclusive  os  descartáveis   -
+avulsos
+80,53%    98,58%    116,64%
+27.6   14.009.00  6912.00.00
+Artigos  para  serviço  de mesa  ou de cozinha,
+de cerâmica
+94,03%    113,43%    132,84%
+27.7   14.010.00  6912.00.00  Velas para filtros                86,64%    105,30%    123,97%
+27.8   14.001.00   7013
+Objetos  de vidro  para  serviço  de mesa  ou de
+cozinha
+71,01%    88,1 1%    105,21%
+27.9   14.002.00  7013.37.00  Outros copos, exceto de vitrocerâmica         61,59%    77,75%    93,91%
+27.10   14.003.00  7013.42.90
+Objetos  para  serviço  de mesa  (exceto  copos)
+ou de cozinha, exceto de vitrocerâmica
+90,21%    109,23%    128,25%
+27.1 1  14.006.01  3924.10.00
+Serviços  de  mesa  e  outros  utensílios  de
+mesa   ou  de  cozinha,   de  plástico,
+descartáveis   
+Acrescentado    pelo   Decreto   n°
+46.219/2018   (DOE  de 17.01.2018) , efeitos  a partir de
+17.01.2018
+74,56%    92,02%    109,47%
+28 . COSMÉTICOS, PERFUMARIA,       AR TIGOS DE HIGIENE PESSOAL       E DE  TOUCADOR
+Fu nda mento  normativo:  Protocolos  ICMS  54/17  e 104/12 ; 
+Alterado  pelo  Decreto  n° 47.864/2021   (DOE  de  10.12.2021) , efeitos  a  partir de
+10.12.2021   Redação     Anterior
+Âmbito  de  aplicação:      Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+Nas  operações   interestaduais  realizadas  entre  estabelecimentos   de empresas  interdependentes,   o remetente   deverá  adotar  como
+MV A-original o percentual de 177,19%.
+Subitem    CEST    NCM/SH   Descrição
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual
+de 12%
+Alíquota
+interestadual
+de 4%
+28.1   20.001.00  1211.90.90
+Henna  (embalagens   de conteúdo  inferior ou
+igual a 200 g)
+77,85%    95,64%    113,42%
+28.2   20.002.00  2712.10.00  Vaselina                   49,80%    64,78%    79,76%
+28.3   20.003.00  2814.20.00  Amoníaco em solução aquosa (amônia)          51,73%    66,90%    82,08%
+28.4   20.004.00  2847.00.00
+Peróxido  de hidrogênio,  em  embalagens   de
+conteúdo inferior ou igual a 500 ml
+49,40%    64,34%    79,28%
+28.5   20.005.00  3006.70.00  Lubrificação íntima                61,45%    77,60%    93,74%
+28.6   20.006.00   3301
+Óleos  essenciais  (desterpenados   ou  não),
+incluídos   os  chamados   "concretos"   ou
+"absolutos";   resinóides;   oleorresinas   de
+extração;   soluções  concentradas   de  óleos
+essenciais  em  gorduras,  em  óleos  fixos, em
+ceras  ou  em  matérias  análogas,   obtidas
+portratamento    de  flores  através   de
+substâncias   gordas  ou  por  maceração;
+subprodutos    terpênicos   residuais   da
+desterpenação    dos  óleos  essenciais;  águas
+destiladas  aromáticas  e soluções  aquosas  de
+óleos   essenciais,   em  embalagens    de
+conteúdo inferior ou igual a 500 ml
+55,23%    70,75%    86,28%
+28.7   20.007.00  3303.00.10  Perfumes (extratos)                50,54%    54,04%    68,04%
+28.8   20.008.00  3303.00.20  Águas-de-colônia                 55,36%    58,97%    73,43%
+28.9   20.009.00  3304.10.00  Produtos de maquilagem para os lábios         63,64%    67,45%    82,67%
+28.10   20.010.00  3304.20.10
+Sombra,   delineador , lápis  para  sobrancelhas
+e rímel
+63,64%    67,45%    82,67%
+28.1 1  20.01 1.00 3304.20.90
+Outros  produtos  de  maquilagem   para  os
+olhos
+63,64%    67,45%    82,67%
+28.12   20.012.00  3304.30.00
+Preparações   para  manicuros   e  pedicuros,
+incluindo  removedores   de esmalte  à base  de
+acetona
+63,64%    67,45%    82,67%
+28.13   20.013.00  3304.91.00
+Pós,  incluídos   os  compactos   
+Alterado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+63,64%    67,45%    82,67%
+28.14   20.014.00  3304.99.10
+Cremes  de beleza,  cremes  nutritivos e loções
+tônicas
+57,79%    61,46%    76,14%
+28.15   20.015.00  3304.99.90
+Outros   produtos   de  beleza   ou  de
+maquilagem   preparados   e  preparações   para
+conservação   ou cuidados  da pele,  exceto  as
+preparações solares e antisolares
+30,74%    33,78%    45,94%
+28.16   20.017.00  3305.10.00  Xampus para o cabelo                36,36%    39,53%    52,22%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              40/43
+----------------Page (39) Break----------------
+28.17   20.018.00  3305.20.00
+Preparações   para  ondulação   ou alisamento,
+permanentes, dos cabelos
+47,66%    51,09%    64,83%
+28.18   20.019.00  3305.30.00  Laquês para o cabelo                51,03%    54,54%    68,59%
+28.19   20.020.00  3305.90.00
+Outras   preparações    capilares,  incluindo
+máscaras e finalizadores
+52,18%    55,72%    69,88%
+28.20   20.021.00  3305.90.00  Condicionadores                 52,18%    55,72%    69,88%
+28.21   20.022.00  3305.90.00  Tintura para o cabelo               33,02%    36,1 1%    48,49%
+28.22   20.024.00  3306.20.00
+Fios  utilizados  para  limpar  os  espaços
+interdentais (fios dentais)
+49,05%    63,96%    78,86%
+28.23   20.025.00  3306.90.00
+Outras  preparações   para  higiene  bucal  ou
+dentária
+43,16%    57,48%    71,79%
+28.24   20.026.00  3307.10.00
+Preparações   para  barbear  (antes,  durante  ou
+após)
+65,28%    69,12%    84,50%
+28.25   20.027.00  3307.20.10
+Desodorantes    (desodorizantes)    corporais
+líquidos,  exceto  os  classificados   no  CEST
+20.027.01
+Alterado  pelo  Decreto   n°  46.219/2018
+(DOE   de  17.01.2018) ,  efeitos   a  partir  de
+17.01.2018   Redação   Anterior
+49,16%    52,63%    66,50%
+28.26   20.028.00  3307.20.10  Antiperspirantes líquidos              49,16%    52,63%    66,50%
+28.27   20.029.00  3307.20.90
+Outros   desodorantes    (desodorizantes)
+corporais,  exceto  os classificados   no CEST
+20.029.01  
+Alterado  pelo  Decreto   n° 46.219/2018
+(DOE   de  17.01.2018) ,  efeitos   a  partir  de
+17.01.2018   Redação   Anterior
+50,42%    53,92%    67,91%
+28.28   20.030.00  3307.20.90  Outros antiperspirantes              50,42%    53,92%    67,91%
+28.29   20.031.00  3307.30.00
+Sais  perfumados   e  outras  preparações   para
+banhos
+50,42%    53,92%    67,91%
+28.30   20.032.00  3307.90.00
+Outros    produtos    de   perfumaria
+preparados   
+Alterado  pelo  Decreto  n° 45.768/2016
+(DOE   de  04.10.2016) ,  efeitos   a  partir  de
+01.09.2016   Redação   Anterior
+50,42%    53,92%    67,91%
+28.31   20.033.00  3307.90.00
+Soluções  para  lentes  de  contato  ou  para
+olhos artificiais
+39,17%    42,41%    55,35%
+28.32   20.035.00  3401.19.00
+Outros  sabões,  produtos  e preparações,   em
+barras,  pedaços  ou figuras  moldados   
+Alterado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018    Redação   Anterior
+54,77%    58,37%    72,77%
+28.33   20.038.00  4014.90.10  Bolsa para gelo ou para água quente          64,76%    81,24%    97,71%
+28.34   20.039.00  4014.90.90
+Chupetas   e  bicos  para  mamadeiras   e  para
+chupetas, de borracha
+71,57%    88,73%    105,88%
+28.35   20.041.00   4202.1   Malas e maletas de toucador             56,1 1%   71,72%    87,33%
+28.36   20.044.00  4818.20.00
+Lenços  (incluídos  os  de  maquilagem)    e
+toalhas de mão
+67,26%    83,99%    100,71%
+28.37   20.045.00  4818.20.00
+Papel  toalha  de  uso  institucional  do  tipo
+comercializado   em  rolos  igual  ou superior  a
+80 metros  e do tipo comercializado   em  folhas
+intercaladas
+41,08%    55,19%    69,30%
+28.38   20.046.00  4818.30.00  Toalhas e guardanapos de mesa            57,90%    73,69%    89,48%
+28.39   20.047.00  4818.90.90
+Toalhas  de  cozinha   (papel  toalha  de  uso
+doméstico)
+61,86%    78,05%    94,23%
+28.40   20.048.00  9619.00.00
+Fraldas,  exceto  os  descritos   no  CEST
+20.048.01  
+Alterado  pelo  Decreto   n° 46.219/2018
+(DOE   de  17.01.2018) ,  efeitos   a  partir  de
+17.01.2018   Redação   Anterior
+31,30%    44,43%    57,56%
+28.41   20.049.00  9619.00.00  Tampões higiênicos                47,20%    61,92%    76,64%
+28.42   20.050.00  9619.00.00  Absorventes higiênicos externos           52,22%    67,44%    82,66%
+28.43   20.051.00  5601.21.90  Hastes flexíveis (uso não medicinal)          49,64%    64,60%    79,57%
+28.44   20.052.00  5603.92.90
+Sutiã  descartável,   assemelhados    e  papel
+para depilação
+51,73%    66,90%    82,08%
+28.45   20.053.00  8203.20.90  Pinças para sobrancelhas              57,73%    73,50%    89,28%
+28.46   20.054.00  8214.10.00  Espátulas (artigos de cutelaria)           57,73%    73,50%    89,28%
+28.47   20.055.00  8214.20.00
+Utensílios   e  sortidos  de  utensílios  de
+manicuros   ou  de  pedicuros   (incluídas  as
+limas para unhas)
+57,73%    73,50%    89,28%
+28.48   20.056.00
+9025.1 1.10
+9025.19.90
+Termômetros, inclusive o digital           57,26%    72,99%    88,71%
+28.49   20.057.00   9603.2
+Escovas   e  pincéis  de  barba,  escovas   para
+cabelos,  para  cílios ou para  unhas  e  outras
+escovas   de toucador  de pessoas,  incluídas
+as que  sejam  partes  de  aparelhos,  exceto
+escovas de dentes
+56,1 1%   71,72%    87,33%
+28.50   20.059.00  9603.30.00
+Pincéis   para   aplicação   de  produtos
+cosméticos
+56,1 1%   71,72%    87,33%
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              41/43
+----------------Page (40) Break----------------
+28.51   20.060.00  9605.00.00
+Sortidos  de  viagem,   para  toucador   de
+pessoas   para  costura  ou  para  limpeza  de
+calçado ou de roupas
+56,1 1%   71,72%    87,33%
+28.52   20.061.00   9615
+Pentes,   travessas   para  cabelo  e  artigos
+semelhantes;    grampos    (alfinetes)   para
+cabelo;  pinças  (pinceguiches),   onduladores,
+bobes  (rolos)  e  artefatos  semelhantes   para
+penteados,   e  suas  partes,   exceto  os
+classificados na posição 8516 e suas partes
+56,1 1%   71,72%    87,33%
+28.53   20.062.00  9616.20.00
+Borlas  ou  esponjas   para  pós  ou  para
+aplicação   de  outros  cosméticos   ou  de
+produtos de toucador
+56,1 1%   71,72%    87,33%
+28.54   20.063.00
+3923.30.00
+3924.90.00
+3924.10.00
+4014.90.90
+7010.20.00
+Mamadeiras                   71,57%    88,73%    105,88%
+28.55   20.032.01  3307.90.00
+Outros    produtos    de    toucador
+preparados   
+Acrescentado    pelo   Decreto   n°
+45.768/2016   (DOE  de 04.10.2016) , efeitos  a partir de
+01.10.2016
+50,42%    53,92%    67,91%
+28.56   20.027.01  3307.20.10
+Loções  e  óleos  desodorantes   hidratantes
+líquidos  
+Acrescentado   pelo  Decreto  n° 46.219/2018
+(DOE de 17.01.2018)   , efeitos a partir de 17.01.2018
+49,16%    52,63%    66,50%
+28.57   20.029.01  3307.20.90
+Outras   loções   e  óleos   desodorantes
+hidratantes  
+Acrescentado    pelo   Decreto   n°
+46.219/2018   (DOE  de 17.01.2018) , efeitos  a partir de
+17.01.2018
+50,42%    53,92%    67,91%
+28.58   20.048.01  9619.00.00
+Fraldas   de  fibras  têxteis 
+Acrescentado
+pelo  Decreto  n° 46.219/2018   (DOE  de 17.01.2018) ,
+efeitos a partir de 17.01.2018
+31,30%    44,43%    57,56%
+28.59   20.034.01  3401.1 1.90
+Lenços  umedecidos   
+Alterado  pelo  Decreto   n°
+47.864/2021   (DOE  de 10.12.2021) , efeitos  a partir de
+10.12.2021   Redação   Anterior
+54,77%    58,37%    72,77%
+29. BEBIDAS   ALCOÓLICAS, EXCET    O CER VEJA  E CHOPE
+Fundamento normativo:             Protocolos ICMS 103/12     e  29/14
+Âmbito  de  aplicação:      Operações   internas,  interestaduais   originadas  nas  unidades   federadas   signatárias   dos  Protocolos
+supracitados  e aquisições  de mercadorias   proce dentes  das  demais  unidades  federadas  por  contribuintes  localizados  no Estado  do
+Rio de Janeiro.
+A base  de cálculo  do imposto  para fins de substituição  tributária nas  operações   com  bebidas  alcoólicas,  exceto  cerveja  e chope,  é o
+preço  a consumidor   final usualmente   praticado  no mercado   do Estado  do Rio  de Janeiro  (PMPF ) divulgado  por  meio  de Resolução
+do Secretário  de Estado  de Fazenda,  nos  term os do  § 10  do  artigo 24  da  Lei  2.657/96  e dos  Protocolos  firmados  no âmbito  do
+CONF  AZ, em que o Estado do Rio de Janeiro seja signatário.
+Nota  ECONET  : o  valor  do  Preço  Médio   Ponderado   Final  (PMPF)   foi  estabelecido   através  da  Resolução   SEF AZ  n°
+358/2018   c/c  Portaria SSER n° 357/2024    .
+Na  hipótese  de não  haver  PMPF  ou preço  sugerido  aplicáveis,      o  sujeito  passivo  por  substituição  deverá  adotar  as seguintes
+margens de valor agregado:
+Margen s de valor agregado:
+NCM/SH
+Descrição   
+Alterado pelo  Decreto n° 47.864/2021 (DOE de
+10.12.2021) , efeitos a partir de 10.12.2021    Redação   Anterior
+MV A
+Original
+MV A Ajustada
+Alíquota
+interestadual de 12%
+Alíquota
+interestadual de 4%
+2204.10
+Vinhos  espumantes   e  vinhos  espumosos    nacionais
+classificados na posição 2204.10 da NBM/SH
+50,61%      52,34%        66,19%
+22.04
+22.05
+22.06
+Vinhos,  filtrados  doces,  sangria  e  sidras  nacionais  não
+relacionados anteriormente
+72,25%      74,23%        90,07%
+22.04
+22.05
+22.06
+Vinhos,  cavas,  champagnes,    espumantes,    filtrados
+doces, proseccos, sangria e sidras importados
+62,26%      64,13%        79,05%
+22.04
+22.05
+22.06
+22.07
+22.08
+Demais  bebidas  alcoólicas,  exceto  cerveja  e chope,  não
+relacionadas anteriormente
+61,05%      62,90%        77,71%
+Mercadorias sujeitas ao regime de substituição tributária por força deste subitem:
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              42/43
+----------------Page (41) Break----------------
+Subitem   CEST    NCM/SH                     Descrição
+29.1  02.001.00
+2205
+2208.90.00
+Aperitivos, amargos, bitter e similares
+29.2  02.002.00  2208.90.00   Batida e similares
+29.3  02.003.00  2208.90.00   Bebida ice
+29.4  02.004.00
+2207.20
+2208.40.00
+Cachaça e aguardentes
+29.5  02.005.00
+2205
+2206.00.90
+2208.90.00
+Catuaba e similares
+29.6  02.006.00  2208.20.00   Conhaque, brandy e similares
+29.7  02.007.00
+2206.00.90
+2208.90.00
+Cooler
+29.8  02.008.00  2208.50.00   Gim (gin) e genebra
+29.9  02.009.00
+2205
+2206.00.90
+2208.90.00
+Jurubeba e similares
+29.10  02.010.00  2208.70.00   Licores e similares
+29.1 1 02.01 1.00  2208.20.00   Pisco
+29.12  02.012.00  2208.40.00   Rum
+29.13  02.013.00  2206.00.90   Saque
+29.14  02.014.00  2208.90.00   Steinhaeger
+29.15  02.015.00  2208.90.00   Tequila
+29.16  02.016.00   2208.30   Uísque
+29.17  02.017.00    2205   Vermute e similares
+29.18  02.018.00  2208.60.00   Vodka
+29.19  02.019.00  2208.90.00   Derivados de vodka
+29.20  02.020.00  2208.90.00   Arak
+29.21  02.021.00  2208.20.00   Aguardente vínica / grappa
+29.22  02.022.00  2206.00.10   Sidra e similares
+29.23  02.023.00
+2205
+2206.00.90
+2208.90.00
+Sangrias e coquetéis
+29.24  02.024.00    2204   Vinhos de uvas frescas, incluindo os vinhos enriquecidos com álcool; mostos de uvas.
+29.25  02.999.00
+2205
+2206
+2207
+2208
+Outras  bebidas  alcoólicas  não  especificadas   no s itens  anteriores  
+Alterado  pelo  Decreto  n°
+45.768/2016 (DOE de 04.10.2016)     , efeitos a partir de 01.10.2016    Redação   Anterior
+13/04/2026, 15:26                             Novo Site Econet
+https://www.econeteditora.com.br/novo/index.php                                              43/43
+----------------Page (42) Break----------------
