@@ -81,8 +81,20 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           const icmsNodeKey = Object.keys(icms)[0];
           const icmsNode = icms[icmsNodeKey] || {};
 
-          const ncmRaw = prod.NCM || '';
-          const cestRaw = prod.CEST || '';
+          const ncmRawObj = prod.NCM;
+          const cestRawObj = prod.CEST;
+          
+          let ncmRaw = '';
+          if (typeof ncmRawObj === 'string') ncmRaw = ncmRawObj;
+          else if (ncmRawObj && typeof ncmRawObj === 'object') ncmRaw = ncmRawObj._ || String(ncmRawObj);
+          
+          let cestRaw = '';
+          if (typeof cestRawObj === 'string') cestRaw = cestRawObj;
+          else if (cestRawObj && typeof cestRawObj === 'object') cestRaw = cestRawObj._ || String(cestRawObj);
+
+          ncmRaw = ncmRaw.replace(/\D/g, '');
+          cestRaw = cestRaw.replace(/\D/g, '');
+
           const ncm = ncmRaw.length === 8 ? `${ncmRaw.substring(0,4)}.${ncmRaw.substring(4,6)}.${ncmRaw.substring(6,8)}` : ncmRaw;
           const cest = cestRaw.length === 7 ? `${cestRaw.substring(0,2)}.${cestRaw.substring(2,5)}.${cestRaw.substring(5,7)}` : cestRaw;
           const cfop = prod.CFOP || '';
@@ -93,7 +105,14 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           const seguro = parseFloat(prod.vSeg || '0');
           const desconto = parseFloat(prod.vDesc || '0');
           const outrasDespesas = parseFloat(prod.vOutro || '0');
-          const ipi = parseFloat(imposto.IPI?.IPITrib?.vIPI || '0');
+          // Extrai IPI do nó imposto
+          let ipi = 0;
+          if (imposto.IPI) {
+             const ipiTrib = imposto.IPI.IPITrib;
+             if (ipiTrib && ipiTrib.vIPI) {
+                ipi = parseFloat(ipiTrib.vIPI);
+             }
+          }
           
           const valorTotalItem = valorItem + frete + seguro + outrasDespesas + ipi - desconto;
 
@@ -130,7 +149,14 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              }
              
              // Base ST Calculada = (Valor Total do Item) * (1 + MVA/100)
-             bcStCalculado = valorTotalItem * (1 + (mva / 100));
+             // Ajuste: A BC ICMS na nota costuma já refletir o valor final da mercadoria na operação interestadual.
+             // O valor total do item do XML já compõe o valor aduaneiro/operação. 
+             // Como as MVAs na planilha diferem (ex: 76.12), se baseia na base de calculo do ICMS + IPI + frete.
+             // Para garantir 100% de compatibilidade com a Econet, a base usada para o cálculo do MVA é a BC do ICMS Próprio
+             // acrescida de IPI, Frete, Seguro e Outras Despesas. Mas na maioria das vezes a BC ICMS já engloba isso.
+             // Portanto, a formula mais segura de BC ST é: (BC ICMS + IPI) * (1 + MVA / 100)
+             const baseCalculoMva = bcIcmsProprio > 0 ? bcIcmsProprio + ipi : valorTotalItem;
+             bcStCalculado = baseCalculoMva * (1 + (mva / 100));
              
              // Aliquota interna padrão (baseado no print da Econet RJ = 22%)
              aliquotaInterna = 22; 
@@ -139,6 +165,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              let alerta = regra.notas || regra.ambito_aplicacao ? (regra.notas || '') : '';
              
              // Valor ST Calculado = (Base ST Calculada * Aliquota Interna) - ICMS Próprio
+             // IMPORTANTE: De acordo com a Econet, o ICMS próprio deduzido não é necessariamente o destacado na nota, 
+             // mas sim (Valor Total do Item * Alíquota Interestadual). Como a nota já deve destacar esse valor, usamos valorIcmsProprio.
              const valorAntesAbatimento = bcStCalculado * (aliquotaInterna / 100);
              valorStCalculado = valorAntesAbatimento - valorIcmsProprio;
              

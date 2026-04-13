@@ -175,7 +175,11 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
 
     const itensFiltrados = resultado.itens.filter((item: any) => {
       // Filtro Status
-      if (filtroStatus !== 'Todos' && item.status !== filtroStatus) return false;
+      if (filtroStatus !== 'Todos') {
+        if (filtroStatus === 'Com Valor a Recolher' && item.difRecolher <= 0) return false;
+        if (filtroStatus === 'Sem Valor a Recolher' && item.difRecolher > 0) return false;
+        if (item.status !== filtroStatus && !(filtroStatus === 'Com Valor a Recolher' || filtroStatus === 'Sem Valor a Recolher')) return false;
+      }
       
       // Filtro Notas
       if (filtroNotas.length > 0 && !filtroNotas.includes(item.nota)) return false;
@@ -331,18 +335,18 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                 <th className="p-3 text-right">Seguro</th>
                 <th className="p-3 text-right">Desconto</th>
                 <th className="p-3 text-right">Outras Desp.</th>
-                <th className="p-3 text-right font-bold">Valor Total do Item</th>
+                <th className="p-3 text-right font-bold">Valor Total Item</th>
                 <th className="p-3 text-right">BC ICMS</th>
                 <th className="p-3 text-right">Alíquota ICMS</th>
                 <th className="p-3 text-right">ICMS Próprio</th>
                 <th className="p-3 text-right">BC ST</th>
                 <th className="p-3 text-right">Alíquota ICMS ST</th>
-                <th className="p-3 text-right">ICMS ST</th>
+                <th className="p-3 text-right">ICMS ST Destacado</th>
                 <th className="p-3 text-right font-bold text-indigo-600">MVA</th>
                 <th className="p-3 text-right font-bold text-indigo-600">BC ST Calculado</th>
-                <th className="p-3 text-right font-bold text-indigo-600">Alí.Interna+FECOEP</th>
-                <th className="p-3 text-right font-bold text-indigo-600">Valor ST</th>
-                <th className="p-3 text-right font-black text-rose-600">Dif. Recolher</th>
+                <th className="p-3 text-right font-bold text-indigo-600">Ali.Interna+ FECOEP</th>
+                <th className="p-3 text-right font-bold text-indigo-600">Valor ST Calculado</th>
+                <th className="p-3 text-right font-black text-amber-600">Dif. Recolher</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -391,7 +395,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                     <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.mva > 0 ? formatBRL(item.aliInternaFecoep) : '-'}</td>
                     <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.valorSt > 0 ? formatBRL(item.valorSt) : '-'}</td>
                     
-                    <td className={`p-3 text-right font-bold ${item.difRecolher > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                    <td className={`p-3 text-right font-bold ${item.difRecolher > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
                       {item.difRecolher > 0 ? formatBRL(item.difRecolher) : '-'}
                     </td>
                   </tr>
