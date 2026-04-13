@@ -112,14 +112,20 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           let diferenca = 0;
 
           if (regra) {
-             // Simplificação: usando MVA original
-             mva = parseFloat(regra.mva_original || '0');
+             // Define qual MVA utilizar baseado na aliquota do ICMS Próprio
+             if (aliqIcmsProprio === 4) {
+                 mva = parseFloat(regra.mva_ajustada_int4 || regra.mva_original || '0');
+             } else if (aliqIcmsProprio === 12 || aliqIcmsProprio === 7) {
+                 mva = parseFloat(regra.mva_ajustada_int12 || regra.mva_original || '0');
+             } else {
+                 mva = parseFloat(regra.mva_original || '0');
+             }
              
              // Base ST Calculada = (Valor Total do Item) * (1 + MVA/100)
              bcStCalculado = valorTotalItem * (1 + (mva / 100));
              
-             // Aliquota interna padrão de PE/SP/RJ (apenas simulação)
-             aliquotaInterna = 18; // 18% + 2% FECOEP = 20%
+             // Aliquota interna padrão (baseado no print da Econet RJ = 22%)
+             aliquotaInterna = 22; 
              
              // Se houver notas ou âmbito na regra, repassamos para a view
              let alerta = regra.notas || regra.ambito_aplicacao ? (regra.notas || '') : '';

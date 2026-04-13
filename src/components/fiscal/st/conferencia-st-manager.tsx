@@ -8,9 +8,12 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { validarArquivosST } from '@/app/actions/fiscal/conferencia-st';
 import { listarHistoricoSt } from '@/app/actions/fiscal/historico-st';
-import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search, ChevronDownIcon } from 'lucide-react';
 import { CompanySelector } from '@/components/shared/company-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import * as XLSX from 'xlsx';
 
 export function ConferenciaStManager() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +26,68 @@ export function ConferenciaStManager() {
   
   // Filtros
   const [buscaNcmCest, setBuscaNcmCest] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<string[]>(['Com Valor a Recolher', 'Sem Valor a Recolher', 'Não Calculado']);
+  const [filtroNotas, setFiltroNotas] = useState<string[]>([]);
+
+  const toggleStatusFiltro = (status: string) => {
+    setFiltroStatus(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
+  };
+
+  const handleExportXLSX = () => {
+     if (!resultado) return;
+
+     // Cabeçalho ECONET style
+     const data = [
+        [\`ECONET VALIDADOR NFe ICMS - ST\n\${empresaNome} / Consulta #\${resultado.consultaId || 'N/A'}\nData consulta: \${new Date().toLocaleDateString('pt-BR')}\nData exportação: \${new Date().toLocaleDateString('pt-BR')}\`],
+        [],
+        [],
+        [],
+        [
+          "Nota", "Data", "Descrição", "NCM", "CEST", "CFOP", "CST", 
+          "Valor Item", "IPI", "Frete", "Seguro", "Desconto", "Outras Despesas", 
+          "Valor Total do Item", "BC ICMS", "Alíquota ICMS", "ICMS Próprio", 
+          "BC ST", "Alíquota ICMS ST", "ICMS ST Destacado", "MVA", 
+          "BC ST Calculado", "Alí.Interna + FECOEP", "ICMS ST Calculado", 
+          "Dif. Recolher", "Alerta"
+        ]
+     ];
+
+     itensFiltrados.forEach((item: any) => {
+        data.push([
+           item.nota,
+           item.data.split('-').reverse().join('/'),
+           item.descricao,
+           item.ncm,
+           item.cest || '0',
+           item.cfop,
+           item.cst,
+           item.valorItem,
+           item.ipi || 0,
+           item.frete || 0,
+           item.seguro || 0,
+           item.desconto || 0,
+           item.outrasDespesas || 0,
+           item.valorTotalItem,
+           item.bcIcms || 0,
+           item.aliquotaIcms || null,
+           item.icmsProprio || 0,
+           item.bcSt || 0,
+           item.aliquotaIcmsSt || 0,
+           item.icmsSt || 0,
+           item.mva || null,
+           item.bcStCalculado || null,
+           item.aliInternaFecoep || null,
+           item.valorSt || null,
+           item.difRecolher || null,
+           item.alerta || (item.status === 'Não Calculado' ? 'Produto não sujeito ao regime de substituição tributária na UF de destino informada' : '')
+        ]);
+     });
+
+     const ws = XLSX.utils.aoa_to_sheet(data);
+     const wb = XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(wb, ws, 'Conferência');
+     XLSX.writeFile(wb, \`Conferencia_ST_\${empresaNome.replace(/[^a-z0-9]/gi, '_')}.xlsx\`);
+  };
 
   const loadHistorico = async () => {
     setLoading(true);
@@ -103,9 +168,21 @@ export function ConferenciaStManager() {
 
   // Tela de Resultado
   if (resultado) {
+    const notasUnicas = Array.from(new Set(resultado.itens.map((i: any) => i.nota))) as string[];
+
     const itensFiltrados = resultado.itens.filter((item: any) => {
-      if (!buscaNcmCest) return true;
-      return item.ncm.includes(buscaNcmCest) || item.cest.includes(buscaNcmCest);
+      // Filtro Status
+      if (!filtroStatus.includes(item.status)) return false;
+      
+      // Filtro Notas
+      if (filtroNotas.length > 0 && !filtroNotas.includes(item.nota)) return false;
+
+      // Filtro NCM/CEST
+      if (buscaNcmCest) {
+         if (!item.ncm.includes(buscaNcmCest) && !item.cest.includes(buscaNcmCest)) return false;
+      }
+      
+      return true;
     });
 
     return (
@@ -155,33 +232,75 @@ export function ConferenciaStManager() {
           </div>
         </div>
 
-        {/* Filtros da Tabela */}
-        <div className="flex items-center gap-4 mt-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="NCM/CEST" 
-              className="pl-9"
-              value={buscaNcmCest}
-              onChange={e => setBuscaNcmCest(e.target.value)}
-            />
-          </div>
-          <div className="flex-1 max-w-sm">
-             <Select defaultValue="todas">
-                <SelectTrigger><SelectValue placeholder="NFes" /></SelectTrigger>
-                <SelectContent><SelectItem value="todas">Todas as NFes</SelectItem></SelectContent>
-             </Select>
-          </div>
-          <Button variant="outline" className="ml-auto border-emerald-500 text-emerald-600 hover:bg-emerald-50">
-            <Download className="h-4 w-4 mr-2" /> Exportar
-          </Button>
-        </div>
-
-        {/* Legendas */}
-        <div className="flex items-center gap-4 text-xs font-medium text-slate-600 mt-2">
-           <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-400"></div>Com Valor a Recolher</span>
-           <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-300"></div>Sem Valor a Recolher</span>
-           <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div>Não Calculado</span>
+        {/* Filtros da Tabela e Legendas */}
+        <div className="flex flex-col gap-4 mt-4">
+           <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  placeholder="NCM/CEST" 
+                  className="pl-9"
+                  value={buscaNcmCest}
+                  onChange={e => setBuscaNcmCest(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 max-w-sm">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                       <Button variant="outline" className="w-full justify-between font-normal text-slate-600">
+                          {filtroNotas.length > 0 ? \`\${filtroNotas.length} NFe(s) selecionada(s)\` : 'Todas as NFes'}
+                          <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                       </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="start">
+                       <DropdownMenuCheckboxItem
+                          checked={filtroNotas.length === 0}
+                          onCheckedChange={(checked) => setFiltroNotas(checked ? [] : notasUnicas)}
+                       >
+                          Todas as NFes
+                       </DropdownMenuCheckboxItem>
+                       {notasUnicas.map(nota => (
+                          <DropdownMenuCheckboxItem
+                             key={nota}
+                             checked={filtroNotas.includes(nota)}
+                             onCheckedChange={(checked) => {
+                                setFiltroNotas(prev => 
+                                   checked ? [...prev, nota] : prev.filter(n => n !== nota)
+                                )
+                             }}
+                          >
+                             {nota}
+                          </DropdownMenuCheckboxItem>
+                       ))}
+                    </DropdownMenuContent>
+                 </DropdownMenu>
+              </div>
+              <Button variant="outline" onClick={handleExportXLSX} className="ml-auto border-emerald-500 text-emerald-600 hover:bg-emerald-50">
+                <Download className="h-4 w-4 mr-2" /> Exportar
+              </Button>
+           </div>
+           
+           {/* Legendas Clicáveis */}
+           <div className="flex items-center gap-4 text-xs font-medium mt-2">
+              <button 
+                 onClick={() => toggleStatusFiltro('Com Valor a Recolher')}
+                 className={\`flex items-center gap-1.5 transition-opacity hover:opacity-80 \${!filtroStatus.includes('Com Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}\`}
+              >
+                 <div className="w-3 h-3 rounded-full bg-amber-400"></div>Com Valor a Recolher
+              </button>
+              <button 
+                 onClick={() => toggleStatusFiltro('Sem Valor a Recolher')}
+                 className={\`flex items-center gap-1.5 transition-opacity hover:opacity-80 \${!filtroStatus.includes('Sem Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}\`}
+              >
+                 <div className="w-3 h-3 rounded-full bg-slate-300"></div>Sem Valor a Recolher
+              </button>
+              <button 
+                 onClick={() => toggleStatusFiltro('Não Calculado')}
+                 className={\`flex items-center gap-1.5 transition-opacity hover:opacity-80 \${!filtroStatus.includes('Não Calculado') ? 'opacity-40 grayscale' : 'text-slate-700'}\`}
+              >
+                 <div className="w-3 h-3 rounded-full bg-rose-500"></div>Não Calculado
+              </button>
+           </div>
         </div>
 
         {/* Tabela de Itens */}
