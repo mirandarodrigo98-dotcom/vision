@@ -38,7 +38,10 @@ export function ConferenciaStManager() {
 
      // Cabeçalho ECONET style
      const data = [
-        [\`ECONET VALIDADOR NFe ICMS - ST\n\${empresaNome} / Consulta #\${resultado.consultaId || 'N/A'}\nData consulta: \${new Date().toLocaleDateString('pt-BR')}\nData exportação: \${new Date().toLocaleDateString('pt-BR')}\`],
+        [`ECONET VALIDADOR NFe ICMS - ST
+${empresaNome} / Consulta #${resultado.consulta_id || 'N/A'}
+Data consulta: ${new Date().toLocaleDateString('pt-BR')}
+Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
         [],
         [],
         [],
@@ -86,7 +89,7 @@ export function ConferenciaStManager() {
      const ws = XLSX.utils.aoa_to_sheet(data);
      const wb = XLSX.utils.book_new();
      XLSX.utils.book_append_sheet(wb, ws, 'Conferência');
-     XLSX.writeFile(wb, \`Conferencia_ST_\${empresaNome.replace(/[^a-z0-9]/gi, '_')}.xlsx\`);
+    XLSX.writeFile(wb, `Conferencia_ST_${empresaNome.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
   };
 
   const loadHistorico = async () => {
@@ -248,8 +251,8 @@ export function ConferenciaStManager() {
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                        <Button variant="outline" className="w-full justify-between font-normal text-slate-600">
-                          {filtroNotas.length > 0 ? \`\${filtroNotas.length} NFe(s) selecionada(s)\` : 'Todas as NFes'}
-                          <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                           {filtroNotas.length > 0 ? `${filtroNotas.length} NFe(s) selecionada(s)` : 'Todas as NFes'}
+                           <ChevronDownIcon className="h-4 w-4 opacity-50" />
                        </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="start">
@@ -281,26 +284,26 @@ export function ConferenciaStManager() {
            </div>
            
            {/* Legendas Clicáveis */}
-           <div className="flex items-center gap-4 text-xs font-medium mt-2">
-              <button 
-                 onClick={() => toggleStatusFiltro('Com Valor a Recolher')}
-                 className={\`flex items-center gap-1.5 transition-opacity hover:opacity-80 \${!filtroStatus.includes('Com Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}\`}
-              >
-                 <div className="w-3 h-3 rounded-full bg-amber-400"></div>Com Valor a Recolher
-              </button>
-              <button 
-                 onClick={() => toggleStatusFiltro('Sem Valor a Recolher')}
-                 className={\`flex items-center gap-1.5 transition-opacity hover:opacity-80 \${!filtroStatus.includes('Sem Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}\`}
-              >
-                 <div className="w-3 h-3 rounded-full bg-slate-300"></div>Sem Valor a Recolher
-              </button>
-              <button 
-                 onClick={() => toggleStatusFiltro('Não Calculado')}
-                 className={\`flex items-center gap-1.5 transition-opacity hover:opacity-80 \${!filtroStatus.includes('Não Calculado') ? 'opacity-40 grayscale' : 'text-slate-700'}\`}
-              >
-                 <div className="w-3 h-3 rounded-full bg-rose-500"></div>Não Calculado
-              </button>
-           </div>
+            <div className="flex items-center gap-4 text-xs font-medium mt-2">
+               <button 
+                  onClick={() => toggleStatusFiltro('Com Valor a Recolher')}
+                  className={`flex items-center gap-1.5 transition-opacity hover:opacity-80 ${!filtroStatus.includes('Com Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}`}
+               >
+                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>Com Valor a Recolher
+               </button>
+               <button 
+                  onClick={() => toggleStatusFiltro('Sem Valor a Recolher')}
+                  className={`flex items-center gap-1.5 transition-opacity hover:opacity-80 ${!filtroStatus.includes('Sem Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}`}
+               >
+                  <div className="w-3 h-3 rounded-full bg-slate-300"></div>Sem Valor a Recolher
+               </button>
+               <button 
+                  onClick={() => toggleStatusFiltro('Não Calculado')}
+                  className={`flex items-center gap-1.5 transition-opacity hover:opacity-80 ${!filtroStatus.includes('Não Calculado') ? 'opacity-40 grayscale' : 'text-slate-700'}`}
+               >
+                  <div className="w-3 h-3 rounded-full bg-rose-500"></div>Não Calculado
+               </button>
+            </div>
         </div>
 
         {/* Tabela de Itens */}
