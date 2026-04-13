@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { validarArquivosST } from '@/app/actions/fiscal/conferencia-st';
-import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download } from 'lucide-react';
+import { listarHistoricoSt } from '@/app/actions/fiscal/historico-st';
+import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getCompanies } from '@/app/actions/companies';
 
@@ -17,6 +18,8 @@ export function ConferenciaStManager() {
   const [empresaId, setEmpresaId] = useState<string>('');
   const [arquivos, setArquivos] = useState<{ name: string, content: string }[]>([]);
   const [resultado, setResultado] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'nova' | 'historico'>('nova');
+  const [historico, setHistorico] = useState<any[]>([]);
   
   // Filtros
   const [buscaNcmCest, setBuscaNcmCest] = useState('');
@@ -30,6 +33,21 @@ export function ConferenciaStManager() {
     };
     loadEmpresas();
   }, []);
+
+  const loadHistorico = async () => {
+    setLoading(true);
+    const res = await listarHistoricoSt();
+    if (res.success) {
+      setHistorico(res.data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'historico') {
+      loadHistorico();
+    }
+  }, [activeTab]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -268,7 +286,7 @@ export function ConferenciaStManager() {
     );
   }
 
-  // Tela Inicial de Upload
+  // Tela Inicial de Upload ou Histórico
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -284,26 +302,35 @@ export function ConferenciaStManager() {
       <Card className="shadow-sm border-t-4 border-t-indigo-600">
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-8 border-b pb-4">
-             <div className="font-semibold text-sm text-indigo-600 border-b-2 border-indigo-600 pb-4 -mb-[18px]">Nova Consulta</div>
-             <div className="font-semibold text-sm text-slate-400 pb-4">Histórico</div>
-             <div className="font-semibold text-sm text-slate-400 pb-4">Empresas</div>
-             <Button variant="outline" size="sm" className="ml-auto bg-slate-800 text-white hover:bg-slate-700">
-                Cadastrar Empresa Destinatária
-             </Button>
+             <button 
+                onClick={() => setActiveTab('nova')}
+                className={`font-semibold text-sm pb-4 -mb-[18px] transition-colors ${activeTab === 'nova' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+                Nova Consulta
+             </button>
+             <button 
+                onClick={() => setActiveTab('historico')}
+                className={`font-semibold text-sm pb-4 -mb-[18px] transition-colors ${activeTab === 'historico' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+                Histórico
+             </button>
           </div>
 
-          <div className="max-w-xl mb-8">
-            <Select value={empresaId} onValueChange={setEmpresaId}>
-              <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm text-slate-600 font-medium">
-                <SelectValue placeholder="Selecione a Empresa" />
-              </SelectTrigger>
-              <SelectContent>
-                {empresas.map(e => (
-                  <SelectItem key={e.id} value={e.id.toString()}>{e.company_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {activeTab === 'nova' ? (
+            <>
+              <div className="max-w-xl mb-8 relative z-10">
+                <Label className="text-sm font-semibold mb-2 block text-slate-700">Selecione a Empresa</Label>
+                <Select value={empresaId} onValueChange={setEmpresaId}>
+                  <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm text-slate-600 font-medium w-full">
+                    <SelectValue placeholder="Selecione a Empresa" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 max-h-[300px]">
+                    {empresas.map(e => (
+                      <SelectItem key={e.id} value={e.id.toString()}>{e.company_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
           {arquivos.length === 0 ? (
             <div className="border-2 border-dashed border-slate-300 rounded-xl p-12 flex flex-col items-center justify-center bg-slate-50/50">
@@ -383,6 +410,49 @@ export function ConferenciaStManager() {
                    Confirmar Envio
                  </Button>
               </div>
+            </div>
+          )}
+          </>
+          ) : (
+            <div className="border rounded-md shadow-sm bg-white overflow-hidden">
+               {loading ? (
+                 <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 text-slate-400 animate-spin" /></div>
+               ) : historico.length === 0 ? (
+                 <div className="p-12 text-center text-slate-400">
+                    <History className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                    <p>Nenhuma conferência realizada ainda.</p>
+                 </div>
+               ) : (
+                 <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 border-b font-semibold text-slate-700">
+                       <tr>
+                          <th className="p-4">Consulta #</th>
+                          <th className="p-4">Empresa</th>
+                          <th className="p-4">Data da consulta</th>
+                          <th className="p-4 text-center">Arquivos enviados</th>
+                          <th className="p-4 text-center">Arquivos válidos</th>
+                          <th className="p-4 text-center">Arquivos inválidos</th>
+                          <th className="p-4 text-center">Usuário</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                       {historico.map(h => (
+                          <tr key={h.consulta_id} onClick={() => { setEmpresaId(h.empresa_id?.toString() || ''); setResultado(h.resultado_json); }} className="hover:bg-slate-50 cursor-pointer transition-colors group">
+                             <td className="p-4 font-medium text-slate-600 flex items-center gap-2">
+                               {h.consulta_id} 
+                               <Eye className="h-4 w-4 text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                             </td>
+                             <td className="p-4 text-slate-600">{h.empresa}</td>
+                             <td className="p-4 text-slate-500">{new Date(h.data_consulta).toLocaleDateString('pt-BR')} {new Date(h.data_consulta).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit'})}</td>
+                             <td className="p-4 text-center text-slate-600">{h.arquivos_enviados}</td>
+                             <td className="p-4 text-center text-emerald-600 font-medium">{h.arquivos_validos}</td>
+                             <td className="p-4 text-center text-slate-400">{h.arquivos_invalidos}</td>
+                             <td className="p-4 text-center text-slate-500">{h.user_name}</td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+               )}
             </div>
           )}
         </CardContent>

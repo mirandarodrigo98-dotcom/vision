@@ -2,10 +2,14 @@
 
 import db from '@/lib/db';
 import { parseStringPromise } from 'xml2js';
+import { getSession } from '@/lib/auth';
 
 // Calcula o ST baseado nas tags do XML e nas regras do estado
-export async function validarArquivosST(arquivosXml: string[], empresaId: number) {
+export async function validarArquivosST(arquivosXml: string[], empresaId: number, empresaNome: string) {
   try {
+    const session = await getSession();
+    if (!session) return { success: false, error: 'Usuário não autenticado.' };
+
     // 1. Buscar a UF da empresa destinatária
     const { rows: empresas } = await db.query('SELECT address_state FROM companies WHERE id = $1', [empresaId]);
     if (empresas.length === 0) return { success: false, error: 'Empresa não encontrada.' };
@@ -178,20 +182,44 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: number
       }
     }
 
+    const dataResultado = {
+       resumo: {
+          qtdNotas: notasValidadas,
+          valorTotalNotas,
+          totalBaseST,
+          totalValorAntesAbatimento,
+          totalIcmsProprio,
+          totalIcmsStDestacado,
+          totalIcmsStCalculado,
+          totalDiferencaRecolher
+       },
+       itens: resultadoNotas
+    };
+
+    // Gravar histórico no banco
+    const { rows: insertResult } = await db.query(`
+       INSERT INTO fiscal_conferencias_st 
+       (empresa_id, empresa_nome, user_id, user_name, arquivos_enviados, arquivos_validos, arquivos_invalidos, resultado_json)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id
+    `, [
+       empresaId, 
+       empresaNome,
+       session.user.id, 
+       session.user.name,
+       arquivosXml.length,
+       notasValidadas,
+       arquivosXml.length - notasValidadas,
+       JSON.stringify(dataResultado)
+    ]);
+
+    const consultaId = insertResult[0].id;
+
     return { 
        success: true, 
        data: {
-          resumo: {
-             qtdNotas: notasValidadas,
-             valorTotalNotas,
-             totalBaseST,
-             totalValorAntesAbatimento,
-             totalIcmsProprio,
-             totalIcmsStDestacado,
-             totalIcmsStCalculado,
-             totalDiferencaRecolher
-          },
-          itens: resultadoNotas
+          consultaId,
+          ...dataResultado
        } 
     };
 
