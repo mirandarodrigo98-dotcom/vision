@@ -80,6 +80,23 @@ export default async function FiscalPage() {
             </Link>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-indigo-600" />
+              Automação GNRE
+            </CardTitle>
+            <CardDescription>
+              Emissão e transmissão de Lotes GNRE para a SEFAZ via WebService.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/gnre">
+              <Button className="w-full bg-indigo-600 hover:bg-indigo-700">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
