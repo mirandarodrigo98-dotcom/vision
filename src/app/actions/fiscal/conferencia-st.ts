@@ -205,8 +205,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
     `, [
        empresaId, 
        empresaNome,
-       session.user.id, 
-       session.user.name,
+       session.user_id, 
+       session.name,
        arquivosXml.length,
        notasValidadas,
        arquivosXml.length - notasValidadas,
