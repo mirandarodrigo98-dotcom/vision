@@ -1,6 +1,6 @@
 {
   "name": "vision",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "engines": {
     "node": ">=18.0.0"
@@ -71,6 +71,7 @@
     "use-debounce": "^10.1.0",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5",
+    "xml2js": "^0.6.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -82,6 +83,7 @@
     "@types/pg": "^8.11.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/xml2js": "^0.4.14",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "postcss": "^8",

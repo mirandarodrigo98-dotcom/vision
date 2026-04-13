@@ -97,6 +97,40 @@ export default async function FiscalPage() {
             </Link>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-emerald-600" />
+              Conferência ICMS-ST
+            </CardTitle>
+            <CardDescription>
+              Valide e calcule o ICMS-ST através da importação de notas fiscais XML.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/conferencia-st">
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-slate-600" />
+              Regras Fiscais ST
+            </CardTitle>
+            <CardDescription>
+              Cadastro e importação de MVAs e regras de ST por Estado e NCM/CEST.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/fiscal/regras-st">
+              <Button variant="outline" className="w-full">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

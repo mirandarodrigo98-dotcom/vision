@@ -1,0 +1,37 @@
+import { getSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { getUserPermissions } from '@/app/actions/permissions';
+import { ConferenciaStManager } from '@/components/fiscal/st/conferencia-st-manager';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
+
+export default async function ConferenciaStPage() {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  const permissions = await getUserPermissions();
+  if (!permissions.includes('fiscal.view')) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
+        <p className="text-gray-500">Você não tem permissão para acessar este módulo.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/admin/fiscal" className="text-slate-500 hover:text-slate-800 transition-colors">
+          <ChevronLeft className="h-6 w-6" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Módulo Fiscal</h1>
+          <p className="text-sm text-slate-500">Conferência ICMS - ST</p>
+        </div>
+      </div>
+      
+      <ConferenciaStManager />
+    </div>
+  );
+}
