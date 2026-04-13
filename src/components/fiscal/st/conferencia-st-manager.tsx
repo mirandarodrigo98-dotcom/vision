@@ -26,11 +26,11 @@ export function ConferenciaStManager() {
   
   // Filtros
   const [buscaNcmCest, setBuscaNcmCest] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<string[]>(['Com Valor a Recolher', 'Sem Valor a Recolher', 'Não Calculado']);
+  const [filtroStatus, setFiltroStatus] = useState<string>('Todos');
   const [filtroNotas, setFiltroNotas] = useState<string[]>([]);
 
   const toggleStatusFiltro = (status: string) => {
-    setFiltroStatus(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
+    setFiltroStatus(status);
   };
 
   const handleExportXLSX = () => {
@@ -61,7 +61,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
            item.data.split('-').reverse().join('/'),
            item.descricao,
            item.ncm,
-           item.cest || '0',
+           item.cest || '-',
            item.cfop,
            item.cst,
            item.valorItem,
@@ -82,7 +82,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
            item.aliInternaFecoep || null,
            item.valorSt || null,
            item.difRecolher || null,
-           item.alerta || (item.status === 'Não Calculado' ? 'Produto não sujeito ao regime de substituição tributária na UF de destino informada' : '')
+           item.alerta || (item.status === 'Não Calculado' ? 'A NCM/CEST informado não foi encontrada em nossa base de dados. Baseado nos demais dados do documento fiscal, verifique nossas sugestões ao editar o registro. Caso as sugestões não se enquadrem ao seu produto, basta não selecionar, pois seu produto não está sujeito ao regime de substituição tributária' : '')
         ]);
      });
 
@@ -175,7 +175,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
 
     const itensFiltrados = resultado.itens.filter((item: any) => {
       // Filtro Status
-      if (!filtroStatus.includes(item.status)) return false;
+      if (filtroStatus !== 'Todos' && item.status !== filtroStatus) return false;
       
       // Filtro Notas
       if (filtroNotas.length > 0 && !filtroNotas.includes(item.nota)) return false;
@@ -286,20 +286,26 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
            {/* Legendas Clicáveis */}
             <div className="flex items-center gap-4 text-xs font-medium mt-2">
                <button 
+                  onClick={() => toggleStatusFiltro('Todos')}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Todos' ? 'text-indigo-600 font-bold' : 'text-slate-500'}`}
+               >
+                  <div className={`w-3 h-3 rounded-full ${filtroStatus === 'Todos' ? 'bg-indigo-600' : 'bg-slate-300'}`}></div>Todos
+               </button>
+               <button 
                   onClick={() => toggleStatusFiltro('Com Valor a Recolher')}
-                  className={`flex items-center gap-1.5 transition-opacity hover:opacity-80 ${!filtroStatus.includes('Com Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Com Valor a Recolher' ? 'text-amber-600 font-bold' : 'text-slate-500'}`}
                >
                   <div className="w-3 h-3 rounded-full bg-amber-400"></div>Com Valor a Recolher
                </button>
                <button 
                   onClick={() => toggleStatusFiltro('Sem Valor a Recolher')}
-                  className={`flex items-center gap-1.5 transition-opacity hover:opacity-80 ${!filtroStatus.includes('Sem Valor a Recolher') ? 'opacity-40 grayscale' : 'text-slate-700'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Sem Valor a Recolher' ? 'text-slate-800 font-bold' : 'text-slate-500'}`}
                >
-                  <div className="w-3 h-3 rounded-full bg-slate-300"></div>Sem Valor a Recolher
+                  <div className="w-3 h-3 rounded-full bg-slate-400"></div>Sem Valor a Recolher
                </button>
                <button 
                   onClick={() => toggleStatusFiltro('Não Calculado')}
-                  className={`flex items-center gap-1.5 transition-opacity hover:opacity-80 ${!filtroStatus.includes('Não Calculado') ? 'opacity-40 grayscale' : 'text-slate-700'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Não Calculado' ? 'text-rose-600 font-bold' : 'text-slate-500'}`}
                >
                   <div className="w-3 h-3 rounded-full bg-rose-500"></div>Não Calculado
                </button>
@@ -351,9 +357,9 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                     <td className="p-3 font-medium text-indigo-600 flex items-center gap-1">
                       {item.nota}
                       {item.status === 'Não Calculado' ? (
-                        <div className="w-4 h-4 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title="Produto não sujeito ao regime de substituição tributária na UF de destino informada">i</div>
+                        <div className="w-4 h-4 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title="A NCM/CEST informado não foi encontrada em nossa base de dados.">i</div>
                       ) : item.alerta && (
-                        <div className="w-4 h-4 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title={item.alerta}>!</div>
+                        <div className="w-4 h-4 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title={item.alerta}>i</div>
                       )}
                     </td>
                     <td className="p-3 text-slate-500">{item.data.split('-').reverse().join('/')}</td>

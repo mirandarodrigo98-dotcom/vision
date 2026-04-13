@@ -81,8 +81,10 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           const icmsNodeKey = Object.keys(icms)[0];
           const icmsNode = icms[icmsNodeKey] || {};
 
-          const ncm = prod.NCM || '';
-          const cest = prod.CEST || '';
+          const ncmRaw = prod.NCM || '';
+          const cestRaw = prod.CEST || '';
+          const ncm = ncmRaw.length === 8 ? `${ncmRaw.substring(0,4)}.${ncmRaw.substring(4,6)}.${ncmRaw.substring(6,8)}` : ncmRaw;
+          const cest = cestRaw.length === 7 ? `${cestRaw.substring(0,2)}.${cestRaw.substring(2,5)}.${cestRaw.substring(5,7)}` : cestRaw;
           const cfop = prod.CFOP || '';
           const descricao = prod.xProd || '';
           

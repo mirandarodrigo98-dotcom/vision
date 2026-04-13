@@ -5,4 +5,4 @@ const sheetName = workbook.SheetNames[0];
 const worksheet = workbook.Sheets[sheetName];
 const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
-console.log(JSON.stringify(data.slice(5, 10), null, 2));
+console.log(JSON.stringify(data.slice(5, 20), null, 2));
