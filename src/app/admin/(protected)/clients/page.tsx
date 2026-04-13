@@ -19,7 +19,7 @@ interface ClientsPageProps {
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const session = await getSession();
   const permissions = await getUserPermissions();
-  if (!permissions.includes('clients.view')) {
+  if (!permissions.includes('companies.view')) {
     redirect('/admin/dashboard');
   }
 

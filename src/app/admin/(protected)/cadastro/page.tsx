@@ -11,7 +11,16 @@ export default async function CadastroPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  if (!permissions.includes('clients.view')) {
+  const hasCadastroAccess = [
+    'companies.view',
+    'employees.view',
+    'socios.view',
+    'client_users.view',
+    'team.view',
+    'departments.view'
+  ].some(p => permissions.includes(p));
+
+  if (!hasCadastroAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>

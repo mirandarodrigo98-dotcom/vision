@@ -23,11 +23,6 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'socios.edit', label: 'Editar Sócio', category: 'Sócios', module: 'Cadastros' },
     { code: 'socios.delete', label: 'Excluir Sócio', category: 'Sócios', module: 'Cadastros' },
 
-    { code: 'clients.view', label: 'Visualizar Clientes', category: 'Clientes', module: 'Cadastros' },
-    { code: 'clients.create', label: 'Cadastrar Cliente', category: 'Clientes', module: 'Cadastros' },
-    { code: 'clients.edit', label: 'Editar Cliente', category: 'Clientes', module: 'Cadastros' },
-    { code: 'clients.delete', label: 'Excluir Cliente', category: 'Clientes', module: 'Cadastros' },
-
     { code: 'client_users.view', label: 'Visualizar Usuários de Cliente', category: 'Usuários de Cliente', module: 'Cadastros' },
     { code: 'client_users.create', label: 'Criar Usuário de Cliente', category: 'Usuários de Cliente', module: 'Cadastros' },
     { code: 'client_users.edit', label: 'Editar Usuário de Cliente', category: 'Usuários de Cliente', module: 'Cadastros' },

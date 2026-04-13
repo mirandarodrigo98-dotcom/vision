@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { validarArquivosST } from '@/app/actions/fiscal/conferencia-st';
 import { listarHistoricoSt } from '@/app/actions/fiscal/historico-st';
-import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search } from 'lucide-react';
 import { CompanySelector } from '@/components/shared/company-selector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function ConferenciaStManager() {
   const [loading, setLoading] = useState(false);
