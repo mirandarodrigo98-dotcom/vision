@@ -20,16 +20,22 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
     
     // Função auxiliar de match
     const findRegra = (ncm: string, cest: string) => {
+      // Limpar pontos dos dados do banco para comparar com o XML
+      const cleanStr = (s: string) => (s || '').replace(/\D/g, '');
+      
+      const cleanNcm = cleanStr(ncm);
+      const cleanCest = cleanStr(cest);
+
       // Procura match exato de NCM e CEST primeiro
-      let regra = regrasSt.find(r => r.ncm_sh === ncm && r.cest === cest);
+      let regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm && cleanStr(r.cest) === cleanCest);
       // Se não achar com CEST, tenta só com NCM
       if (!regra) {
-        regra = regrasSt.find(r => r.ncm_sh === ncm);
+        regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm);
       }
       // Tenta achar com os 4 primeiros digitos do NCM se não achar o exato
-      if (!regra && ncm.length >= 4) {
-         const ncmPrefix = ncm.substring(0, 4);
-         regra = regrasSt.find(r => r.ncm_sh?.startsWith(ncmPrefix));
+      if (!regra && cleanNcm.length >= 4) {
+         const ncmPrefix = cleanNcm.substring(0, 4);
+         regra = regrasSt.find(r => cleanStr(r.ncm_sh).startsWith(ncmPrefix));
       }
       return regra;
     };
@@ -106,7 +112,7 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           
           let mva = 0;
           let bcStCalculado = 0;
-          let aliquotaInterna = 0; // Default, idealmente precisariamos saber a aliquota interna do estado para o produto
+          let aliquotaInterna = 0; 
           let valorStCalculado = 0;
           let status = 'Sem Valor a Recolher';
           let diferenca = 0;
@@ -136,7 +142,9 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              
              if (valorStCalculado < 0) valorStCalculado = 0;
 
+             // Ajuste para não mostrar diferença negativa, garantindo que bata com o validador
              diferenca = valorStCalculado - valorIcmsStDestacado;
+             if (diferenca < 0) diferenca = 0;
              
              if (diferenca > 0) {
                status = 'Com Valor a Recolher';

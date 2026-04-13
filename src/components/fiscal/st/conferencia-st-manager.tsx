@@ -350,7 +350,9 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                     <td className="p-0 pl-1"><div className={`w-1 h-full py-4 ${bulletColor} rounded-r-md`}></div></td>
                     <td className="p-3 font-medium text-indigo-600 flex items-center gap-1">
                       {item.nota}
-                      {item.alerta && (
+                      {item.status === 'Não Calculado' ? (
+                        <div className="w-4 h-4 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title="Produto não sujeito ao regime de substituição tributária na UF de destino informada">i</div>
+                      ) : item.alerta && (
                         <div className="w-4 h-4 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title={item.alerta}>!</div>
                       )}
                     </td>
