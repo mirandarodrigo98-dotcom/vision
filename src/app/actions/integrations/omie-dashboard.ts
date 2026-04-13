@@ -26,25 +26,11 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
       const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
       if (cached && cached.data) {
         const lastUpdate = new Date(cached.updated_at);
-        // Regra de recarga automática às 6h da manhã (Horário de Brasília)
-        const getBrasiliaTime = (date: Date) => {
-          return new Date(date.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-        };
         
-        const brNow = getBrasiliaTime(now);
-        const brLastUpdate = getBrasiliaTime(lastUpdate);
-        
-        // Cria a data de hoje às 6h da manhã usando os valores do relógio de Brasília
-        const today6AM_BR = new Date(brNow.getFullYear(), brNow.getMonth(), brNow.getDate(), 6, 0, 0);
-        
-        if (brNow >= today6AM_BR && brLastUpdate < today6AM_BR) {
-          console.log('Forçando full refresh das 6h da manhã (BRT)...');
-          fullRefresh = true;
-          forceRefresh = true;
-        } else {
-          console.log('Retornando do cache...');
-          return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
-        }
+        // Sempre retorna do cache se não for forceRefresh. 
+        // A atualização automática das 6h é feita exclusivamente pelo Cron Job no servidor (vercel.json)
+        console.log('Retornando do cache...');
+        return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
       }
     } catch (e) {
       console.warn("Aviso: tabela de cache não encontrada ou erro de leitura.");
