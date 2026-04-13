@@ -84,7 +84,7 @@ export function ConferenciaStManager() {
     setLoading(true);
     try {
       const xmls = arquivos.map(a => a.content);
-      const res = await validarArquivosST(xmls, parseInt(empresaId), empresaNome || 'Empresa');
+      const res = await validarArquivosST(xmls, empresaId, empresaNome || 'Empresa');
       if (res.success) {
         setResultado(res.data);
         toast.success('Arquivos processados com sucesso!');

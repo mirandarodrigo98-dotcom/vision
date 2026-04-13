@@ -5,7 +5,7 @@ import { parseStringPromise } from 'xml2js';
 import { getSession } from '@/lib/auth';
 
 // Calcula o ST baseado nas tags do XML e nas regras do estado
-export async function validarArquivosST(arquivosXml: string[], empresaId: number, empresaNome: string) {
+export async function validarArquivosST(arquivosXml: string[], empresaId: string, empresaNome: string) {
   try {
     const session = await getSession();
     if (!session) return { success: false, error: 'Usuário não autenticado.' };
