@@ -1,6 +1,6 @@
 {
   "name": "vision",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "private": true,
   "engines": {
     "node": ">=18.0.0"
@@ -45,6 +45,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "csv-parse": "^6.2.1",
     "date-fns": "^3.6.0",
     "file-saver": "^2.0.5",
     "jspdf": "^4.2.0",
