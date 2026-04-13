@@ -32,11 +32,6 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
       if (!regra) {
         regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm);
       }
-      // Tenta achar com os 4 primeiros digitos do NCM se não achar o exato
-      if (!regra && cleanNcm.length >= 4) {
-         const ncmPrefix = cleanNcm.substring(0, 4);
-         regra = regrasSt.find(r => cleanStr(r.ncm_sh).startsWith(ncmPrefix));
-      }
       return regra;
     };
 
