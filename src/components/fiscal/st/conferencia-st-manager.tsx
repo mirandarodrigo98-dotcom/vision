@@ -318,15 +318,15 @@ export function ConferenciaStManager() {
 
           {activeTab === 'nova' ? (
             <>
-              <div className="max-w-xl mb-8 relative z-10">
+              <div className="max-w-xl mb-8 relative z-50">
                 <Label className="text-sm font-semibold mb-2 block text-slate-700">Selecione a Empresa</Label>
                 <Select value={empresaId} onValueChange={setEmpresaId}>
-                  <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm text-slate-600 font-medium w-full">
+                  <SelectTrigger className="h-12 bg-white border-slate-200 shadow-sm text-slate-600 font-medium w-full relative z-50 hover:bg-slate-50 cursor-pointer">
                     <SelectValue placeholder="Selecione a Empresa" />
                   </SelectTrigger>
-                  <SelectContent className="z-50 max-h-[300px]">
+                  <SelectContent className="z-[100] bg-white border shadow-lg max-h-[300px]">
                     {empresas.map(e => (
-                      <SelectItem key={e.id} value={e.id.toString()}>{e.company_name}</SelectItem>
+                      <SelectItem key={e.id} value={e.id.toString()} className="cursor-pointer">{e.company_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
