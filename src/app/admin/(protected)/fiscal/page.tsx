@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ReceiptText, FileText } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function FiscalPage() {
   const session = await getSession();
   if (!session) redirect('/login');

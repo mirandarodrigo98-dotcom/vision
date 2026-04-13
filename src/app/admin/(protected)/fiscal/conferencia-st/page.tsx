@@ -5,6 +5,9 @@ import { ConferenciaStManager } from '@/components/fiscal/st/conferencia-st-mana
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ConferenciaStPage() {
   const session = await getSession();
   if (!session) redirect('/login');

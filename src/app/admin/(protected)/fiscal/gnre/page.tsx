@@ -5,6 +5,9 @@ import { GnreManager } from '@/components/fiscal/gnre/gnre-manager';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function GnrePage() {
   const session = await getSession();
   if (!session) redirect('/login');

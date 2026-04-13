@@ -5,6 +5,9 @@ import { RegrasStManager } from '@/components/fiscal/st/regras-st-manager';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function RegrasStPage() {
   const session = await getSession();
   if (!session) redirect('/login');
