@@ -140,12 +140,16 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
 
           if (regra) {
              // Define qual MVA utilizar baseado na aliquota do ICMS Próprio
-             if (aliqIcmsProprio === 4) {
-                 mva = parseFloat(regra.mva_ajustada_int4 || regra.mva_original || '0');
-             } else if (aliqIcmsProprio === 12 || aliqIcmsProprio === 7) {
-                 mva = parseFloat(regra.mva_ajustada_int12 || regra.mva_original || '0');
+             const mvaOriginal = parseFloat(regra.mva_original || '0');
+             const mva12 = parseFloat(regra.mva_ajustada_int12 || '0');
+             const mva4 = parseFloat(regra.mva_ajustada_int4 || '0');
+             
+             if (aliqIcmsProprio === 4 && mva4 > 0) {
+                 mva = mva4;
+             } else if ((aliqIcmsProprio === 12 || aliqIcmsProprio === 7) && mva12 > 0) {
+                 mva = mva12;
              } else {
-                 mva = parseFloat(regra.mva_original || '0');
+                 mva = mvaOriginal;
              }
              
              // Base ST Calculada = (Valor Total do Item) * (1 + MVA/100)

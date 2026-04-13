@@ -175,10 +175,8 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
 
     const itensFiltrados = resultado.itens.filter((item: any) => {
       // Filtro Status
-      if (filtroStatus !== 'Todos') {
-        if (filtroStatus === 'Com Valor a Recolher' && item.difRecolher <= 0) return false;
-        if (filtroStatus === 'Sem Valor a Recolher' && item.difRecolher > 0) return false;
-        if (item.status !== filtroStatus && !(filtroStatus === 'Com Valor a Recolher' || filtroStatus === 'Sem Valor a Recolher')) return false;
+      if (filtroStatus !== 'Todos' && item.status !== filtroStatus) {
+         return false;
       }
       
       // Filtro Notas
