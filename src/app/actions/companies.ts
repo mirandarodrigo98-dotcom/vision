@@ -327,12 +327,7 @@ export async function createCompany(data: FormData) {
     });
     
     if (error.code === '23505') {
-      if (error.constraint?.includes('code') || error.message?.includes('code')) {
-        return { error: 'Código já cadastrado.' };
-      }
-      if (error.constraint?.includes('cnpj') || error.message?.includes('cnpj')) {
-        return { error: 'CNPJ já cadastrado.' };
-      }
+      return { error: 'Já existe uma empresa cadastrada com esta mesma combinação de Código, Filial e CNPJ.' };
     }
     
     return { error: 'Erro ao criar empresa: ' + (error.message || 'Desconhecido') };
@@ -409,12 +404,7 @@ export async function updateCompany(companyId: string, data: FormData) {
     });
     
     if (error.code === '23505') {
-      if (error.constraint?.includes('code') || error.message?.includes('code')) {
-        return { error: 'Código já cadastrado.' };
-      }
-      if (error.constraint?.includes('cnpj') || error.message?.includes('cnpj')) {
-        return { error: 'CNPJ já cadastrado.' };
-      }
+      return { error: 'Já existe uma empresa cadastrada com esta mesma combinação de Código, Filial e CNPJ.' };
     }
     
     return { error: 'Erro ao atualizar empresa: ' + (error.message || 'Desconhecido') };
