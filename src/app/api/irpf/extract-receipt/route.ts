@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Usando Promise para encapsular a API baseada em eventos do pdf2json
-    const text = await new Promise<string>((resolve, reject) => {
+    const rawText = await new Promise<string>((resolve, reject) => {
       // O segundo parâmetro '1' indica que queremos extrair apenas texto raw (menos processamento)
       const pdfParser = new PDFParser(null, 1);
 
@@ -25,6 +25,10 @@ export async function POST(request: Request) {
 
       pdfParser.parseBuffer(buffer);
     });
+
+    // Limpar quebras de linha, tabulações e excesso de espaços para garantir que as expressões regulares (Regex)
+    // consigam ler os valores mesmo que o pdf2json tenha quebrado o valor para a linha de baixo
+    const text = rawText.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ');
 
     // Default return
     const result = {
