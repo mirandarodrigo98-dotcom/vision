@@ -54,7 +54,7 @@ export async function gerarDarjSt(params: {
       const valorTotal = Math.round(params.totalGeral * 100);
       
       const infoComplXML = params.informacoesComplementares 
-         ? \`<open:InformacoesComplementares>\${params.informacoesComplementares.substring(0, 255)}</open:InformacoesComplementares>\` 
+         ? '<open:InformacoesComplementares>' + params.informacoesComplementares.substring(0, 255) + '</open:InformacoesComplementares>' 
          : '';
 
       // Natureza 4 = Substituição Tributária por Operação/Outros
