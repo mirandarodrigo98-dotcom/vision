@@ -203,7 +203,8 @@ export async function obterBoletoOmie(codigoLancamento: number) {
 
 export async function downloadBoletoPdfServer(url: string) {
   try {
-    // Alguns PDFs do Omie ou bancos vêm com redirecionamentos ou exigem headers específicos.
+    // IMPORTANTE: NÃO enviar User-Agent de navegador (ex: Mozilla/5.0...) 
+    // pois a API/Portal do Omie detecta navegadores e retorna uma página HTML (Visualizador) em vez do arquivo PDF binário.
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/pdf, application/octet-stream, */*'
@@ -217,7 +218,7 @@ export async function downloadBoletoPdfServer(url: string) {
     const buffer = Buffer.from(arrayBuffer);
     const header = buffer.subarray(0, 5).toString('utf-8');
     if (header !== '%PDF-') {
-      console.warn('Aviso: O arquivo baixado não possui cabeçalho de PDF padrão.', header);
+      console.warn('Aviso crítico: O arquivo baixado do Omie não possui cabeçalho de PDF padrão. Pode ser uma página HTML de erro ou redirecionamento.', header);
     }
 
     const base64 = buffer.toString('base64');
