@@ -30,7 +30,6 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
       let regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm && cleanStr(r.cest) === cleanCest);
       
       // Se não achar exato, mas tiver CEST, começa a varredura do NCM (do final para o início)
-      // Ex: 96151100 -> 9615110 -> 961511 -> 96151 -> 9615 -> 961 -> 96
       if (!regra && cleanCest && cleanNcm.length > 2) {
          for (let i = cleanNcm.length - 1; i >= 2; i--) {
             const varreduraNcm = cleanNcm.substring(0, i);
@@ -39,17 +38,9 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
          }
       }
 
-      // Se ainda assim não achar, tenta encontrar uma regra onde o NCM do banco seja apenas "9615" 
-      // (a varredura acima já cobriria isso se o banco tivesse "9615", mas isso garante casos onde o banco tenha "9615.00.00")
-      if (!regra && cleanCest) {
-        regra = regrasSt.find(r => {
-           const bancoNcm = cleanStr(r.ncm_sh);
-           return cleanStr(r.cest) === cleanCest && bancoNcm.length > 0 && cleanNcm.startsWith(bancoNcm);
-        });
-      }
-
-      // Se não achar com CEST, tenta só com NCM exato
-      if (!regra) {
+      // Se não achar com CEST exato, tenta encontrar a regra onde o NCM é exato mas o CEST tá um pouco diferente ou vazio (Fallback perigoso)
+      // Como o CEST é mandatório para a ST, não deveriamos achar só pelo NCM a menos que o CEST esteja completamente ausente na nota
+      if (!regra && !cleanCest) {
         regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm);
       }
       
