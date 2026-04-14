@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-// Usar require pois a biblioteca pdf-parse pode não ter default export configurado corretamente para ESM
-const pdfParse = require('pdf-parse');
+// Usando pdf2json que é compatível com Node puro e não exige DOMMatrix/canvas
+const PDFParser = require('pdf2json');
 
 export async function POST(request: Request) {
   try {
@@ -11,8 +11,20 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const data = await pdfParse(buffer);
-    const text = data.text;
+
+    // Usando Promise para encapsular a API baseada em eventos do pdf2json
+    const text = await new Promise<string>((resolve, reject) => {
+      // O segundo parâmetro '1' indica que queremos extrair apenas texto raw (menos processamento)
+      const pdfParser = new PDFParser(null, 1);
+
+      pdfParser.on('pdfParser_dataError', (errData: any) => reject(errData.parserError));
+      pdfParser.on('pdfParser_dataReady', () => {
+        // No modo text-only, o texto fica disponível usando getRawTextContent()
+        resolve(pdfParser.getRawTextContent());
+      });
+
+      pdfParser.parseBuffer(buffer);
+    });
 
     // Default return
     const result = {
