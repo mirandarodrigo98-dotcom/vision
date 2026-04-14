@@ -18,15 +18,15 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
   const queryParams: any[] = [id];
 
   if (session.role === 'operator') {
-    companyQuery += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
+    companyQuery += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2)`;
     queryParams.push(session.user_id);
   } else if (session.role === 'client_user') {
     // Usually client_users don't edit companies, but for completeness
-    companyQuery += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+    companyQuery += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $2)`;
     queryParams.push(session.user_id);
   }
 
-  const company = (await db.query(companyQuery, [...queryParams])).rows[0] as any;
+  const company = (await db.query(companyQuery, queryParams)).rows[0] as any;
 
   if (!company) {
     notFound();
