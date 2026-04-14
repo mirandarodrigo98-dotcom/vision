@@ -19,10 +19,10 @@ export async function searchEnuvesCompanies(query: string) {
     const params: any[] = [`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`];
 
     if (session.role === 'operator') {
-      sql += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
+      sql += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $5)`;
       params.push(session.user_id);
     } else if (session.role === 'client_user') {
-      sql += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+      sql += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $5)`;
       params.push(session.user_id);
     }
 
@@ -59,10 +59,10 @@ export async function searchEklesiaCompanies(query: string) {
     const params: any[] = [`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`];
 
     if (session.role === 'operator') {
-      sql += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)`;
+      sql += ` AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $5)`;
       params.push(session.user_id);
     } else if (session.role === 'client_user') {
-      sql += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+      sql += ` AND id IN (SELECT company_id FROM user_companies WHERE user_id = $5)`;
       params.push(session.user_id);
     }
 
