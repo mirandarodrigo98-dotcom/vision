@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { validarArquivosST } from '@/app/actions/fiscal/conferencia-st';
 import { listarHistoricoSt } from '@/app/actions/fiscal/historico-st';
-import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search, ChevronDownIcon, Receipt } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search, ChevronDownIcon, Receipt, Calculator } from 'lucide-react';
 import { CompanySelector } from '@/components/shared/company-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import * as XLSX from 'xlsx';
 import { gerarDarjSt } from '@/app/actions/fiscal/gerar-darj-st';
 
@@ -34,6 +36,12 @@ export function ConferenciaStManager() {
   // DARJ State
   const [modalDarjOpen, setModalDarjOpen] = useState(false);
   const [dataDarj, setDataDarj] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [dataVencimento, setDataVencimento] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [tipoApuracao, setTipoApuracao] = useState<'periodo' | 'operacao'>('periodo');
+  const [natureza, setNatureza] = useState('4');
+  const [produto, setProduto] = useState('698');
+  const [tipoPeriodo, setTipoPeriodo] = useState('M');
+  const [infoCompl, setInfoCompl] = useState('');
   const [gerandoDarj, setGerandoDarj] = useState(false);
   const [darjResult, setDarjResult] = useState<any>(null);
 
@@ -181,7 +189,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
   const formatPct = (val: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + '%';
 
   const handleGerarDarj = async () => {
-    if (!resultado || !dataDarj) return;
+    if (!resultado || !dataDarj || !dataVencimento) return;
     if (resultado.resumo.totalIcmsStPuro <= 0 && resultado.resumo.totalFecpSt <= 0) {
        toast.error('Não há valores de ST a recolher nesta conferência.');
        return;
@@ -192,6 +200,12 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
       const res = await gerarDarjSt({
          empresaId,
          dataPagamento: dataDarj,
+         dataVencimento: dataVencimento,
+         natureza: natureza,
+         produto: produto,
+         tipoApuracao: tipoApuracao === 'periodo' ? 1 : 2,
+         tipoPeriodo: tipoPeriodo,
+         informacoesComplementares: infoCompl,
          totalIcmsStPuro: resultado.resumo.totalIcmsStPuro,
          totalFecpSt: resultado.resumo.totalFecpSt,
          totalGeral: resultado.resumo.totalIcmsStCalculado,
@@ -340,83 +354,261 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                        Gerar DARJ ST (RJ)
                     </Button>
                  </DialogTrigger>
-                 <DialogContent className="sm:max-w-md">
+                 <DialogContent className="sm:max-w-3xl h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                       <DialogTitle>Gerar Guia DARJ - ICMS ST</DialogTitle>
+                       <DialogTitle className="text-xl flex items-center gap-2"><Receipt className="h-5 w-5 text-indigo-600"/> Emitir DARJ - Substituição Tributária</DialogTitle>
                        <DialogDescription>
-                          A guia será gerada diretamente no sistema da SEFAZ RJ com o CNPJ da empresa destinatária e as informações abaixo.
+                          Preencha e valide os dados abaixo para emissão da guia via Webservice da SEFAZ RJ.
                        </DialogDescription>
                     </DialogHeader>
                     {!darjResult ? (
-                    <div className="flex flex-col gap-4 py-4">
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-1">
-                             <span className="text-xs text-slate-500 font-semibold uppercase">ICMS ST Puro</span>
-                             <span className="text-lg font-bold text-slate-800">{formatBRL(resultado.resumo.totalIcmsStPuro || 0)}</span>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                             <span className="text-xs text-slate-500 font-semibold uppercase">FECP ST</span>
-                             <span className="text-lg font-bold text-slate-800">{formatBRL(resultado.resumo.totalFecpSt || 0)}</span>
-                          </div>
-                          <div className="col-span-2 flex flex-col gap-1 pt-2 border-t border-dashed">
-                             <span className="text-xs text-slate-500 font-semibold uppercase">Total da Guia</span>
-                             <span className="text-xl font-black text-indigo-700">{formatBRL(resultado.resumo.totalIcmsStCalculado || 0)}</span>
+                    <div className="flex flex-col gap-6 py-2">
+                       {/* Dados do Pagamento */}
+                       <div>
+                          <h4 className="text-emerald-700 font-bold text-lg mb-2 border-b border-emerald-100 pb-1">Dados do pagamento</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div className="space-y-1">
+                                <Label className="text-xs font-bold text-slate-600">Tipo de Pagamento *</Label>
+                                <Input value="ICMS/FECP" disabled className="bg-slate-50 font-medium" />
+                             </div>
+                             <div className="space-y-1">
+                                <Label className="text-xs font-bold text-slate-600">Tipo de Documento *</Label>
+                                <Input value="DARJ" disabled className="bg-slate-50 font-medium" />
+                             </div>
+                             <div className="space-y-1">
+                                <Label className="text-xs font-bold text-slate-600">Data de Pagamento *</Label>
+                                <Input 
+                                   type="date" 
+                                   value={dataDarj}
+                                   onChange={e => setDataDarj(e.target.value)}
+                                   min={new Date().toISOString().substring(0, 10)}
+                                   className="font-medium"
+                                />
+                             </div>
                           </div>
                        </div>
-                       <div className="space-y-2 mt-2">
-                          <Label htmlFor="data-vencimento">Data de Pagamento/Vencimento</Label>
-                          <Input 
-                             id="data-vencimento" 
-                             type="date" 
-                             value={dataDarj}
-                             onChange={e => setDataDarj(e.target.value)}
-                             min={new Date().toISOString().substring(0, 10)}
-                          />
-                          <p className="text-xs text-slate-500 mt-1">Datas em finais de semana ou feriados podem retornar alertas ou recusas da SEFAZ.</p>
+
+                       {/* Itens de Pagamento */}
+                       <div>
+                          <h4 className="text-emerald-700 font-bold text-lg mb-2 border-b border-emerald-100 pb-1">Itens de Pagamento</h4>
+                          <div className="bg-slate-50 border rounded-md p-4 space-y-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <Label className="text-xs font-bold text-slate-600">Natureza *</Label>
+                                   <Select value={natureza} onValueChange={setNatureza}>
+                                      <SelectTrigger className="bg-white">
+                                         <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                         <SelectItem value="1">ICMS Subst. Tributária Operação Interna - Apur. Mensal</SelectItem>
+                                         <SelectItem value="4">Substituição Tributária por Operação / Outros</SelectItem>
+                                      </SelectContent>
+                                   </Select>
+                                </div>
+                                <div className="space-y-1">
+                                   <Label className="text-xs font-bold text-slate-600">Produto *</Label>
+                                   <Select value={produto} onValueChange={setProduto}>
+                                      <SelectTrigger className="bg-white">
+                                         <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                         <SelectItem value="698">Outros</SelectItem>
+                                         <SelectItem value="023">Combustíveis / Lubrificantes</SelectItem>
+                                      </SelectContent>
+                                   </Select>
+                                </div>
+                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-600">CNPJ/CPF *</Label>
+                                    <Input value="Preenchimento Automático" disabled className="bg-white text-slate-400 italic" />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-600">Inscrição Estadual - RJ</Label>
+                                    <Input value="99199237" disabled className="bg-white text-slate-400" />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-600">Razão Social/Nome *</Label>
+                                    <Input value={empresaNome || 'Carregando...'} disabled className="bg-white font-medium" />
+                                 </div>
+                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                   <Label className="text-xs font-bold text-slate-600">Tipo de Apuração *</Label>
+                                   <RadioGroup value={tipoApuracao} onValueChange={(val: any) => setTipoApuracao(val)} className="flex items-center space-x-4">
+                                      <div className="flex items-center space-x-2">
+                                         <RadioGroupItem value="periodo" id="por-periodo" />
+                                         <Label htmlFor="por-periodo" className="cursor-pointer">Por período</Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                         <RadioGroupItem value="operacao" id="por-operacao" disabled />
+                                         <Label htmlFor="por-operacao" className="cursor-pointer text-slate-400">Por operação (Em breve)</Label>
+                                      </div>
+                                   </RadioGroup>
+                                </div>
+                                {tipoApuracao === 'periodo' && (
+                                   <div className="space-y-1">
+                                      <Label className="text-xs font-bold text-slate-600">Tipo Período *</Label>
+                                      <Select value={tipoPeriodo} onValueChange={setTipoPeriodo}>
+                                         <SelectTrigger className="bg-white">
+                                            <SelectValue />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                            <SelectItem value="M">Mensal</SelectItem>
+                                            <SelectItem value="Q">Quinzenal</SelectItem>
+                                            <SelectItem value="D">Decendial</SelectItem>
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                )}
+                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <Label className="text-xs font-bold text-slate-600">Data Vencimento *</Label>
+                                   <Input 
+                                      type="date" 
+                                      value={dataVencimento}
+                                      onChange={e => setDataVencimento(e.target.value)}
+                                      className="bg-white font-medium"
+                                   />
+                                </div>
+                                <div className="space-y-1">
+                                   <Label className="text-xs font-bold text-slate-600">Informações Complementares</Label>
+                                   <Textarea 
+                                      value={infoCompl}
+                                      onChange={e => setInfoCompl(e.target.value)}
+                                      maxLength={255}
+                                      className="bg-white resize-none h-10"
+                                      placeholder="Ex: DARJ referente a notas fiscais..."
+                                   />
+                                </div>
+                             </div>
+                          </div>
                        </div>
+
+                       {/* Valores em Reais */}
+                       <div>
+                          <h4 className="text-emerald-700 font-bold text-lg mb-2 border-b border-emerald-100 pb-1">Valores em Reais</h4>
+                          <div className="bg-slate-50 border rounded-md p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                             {/* Coluna ICMS */}
+                             <div className="space-y-3">
+                                <div className="flex items-center justify-between bg-white border p-2 rounded-md">
+                                   <span className="text-sm font-semibold text-slate-600">ICMS Informado</span>
+                                   <span className="font-bold text-slate-800">{formatBRL(resultado.resumo.totalIcmsStPuro || 0)}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-sm text-slate-500">
+                                   <div className="flex flex-col border p-2 rounded bg-white/50">
+                                      <span>Juros/Multa Mora</span>
+                                      <span className="font-medium text-xs italic">Calculado via SEFAZ</span>
+                                   </div>
+                                   <div className="flex flex-col border p-2 rounded bg-emerald-50 text-emerald-800">
+                                      <span className="font-semibold">Total ICMS</span>
+                                      <span className="font-bold">{formatBRL(resultado.resumo.totalIcmsStPuro || 0)}</span>
+                                   </div>
+                                </div>
+                             </div>
+                             
+                             {/* Coluna FECP */}
+                             <div className="space-y-3">
+                                <div className="flex items-center justify-between bg-white border p-2 rounded-md">
+                                   <span className="text-sm font-semibold text-slate-600">FECP Informado</span>
+                                   <span className="font-bold text-slate-800">{formatBRL(resultado.resumo.totalFecpSt || 0)}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-sm text-slate-500">
+                                   <div className="flex flex-col border p-2 rounded bg-white/50">
+                                      <span>Juros/Multa Mora</span>
+                                      <span className="font-medium text-xs italic">Calculado via SEFAZ</span>
+                                   </div>
+                                   <div className="flex flex-col border p-2 rounded bg-emerald-50 text-emerald-800">
+                                      <span className="font-semibold">Total FECP</span>
+                                      <span className="font-bold">{formatBRL(resultado.resumo.totalFecpSt || 0)}</span>
+                                   </div>
+                                </div>
+                             </div>
+
+                             {/* Total Geral */}
+                             <div className="col-span-1 md:col-span-2 flex justify-end">
+                                <div className="flex items-center gap-4 bg-indigo-50 border border-indigo-100 p-3 rounded-md min-w-[300px] justify-between">
+                                   <span className="font-bold text-indigo-800 uppercase">Total da Guia</span>
+                                   <span className="text-xl font-black text-indigo-700">{formatBRL(resultado.resumo.totalIcmsStCalculado || 0)}</span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+
                     </div>
                     ) : (
-                    <div className="flex flex-col gap-4 py-4 bg-emerald-50 rounded-lg p-4 mt-2 border border-emerald-100">
-                       <div className="flex flex-col items-center text-center gap-2 mb-2">
-                          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-                             <CheckCircle2 className="w-8 h-8" />
+                    <div className="flex flex-col gap-4 py-4 bg-emerald-50 rounded-lg p-6 mt-2 border border-emerald-100 items-center justify-center min-h-[300px]">
+                       <div className="flex flex-col items-center text-center gap-3 mb-4">
+                          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                             <CheckCircle2 className="w-10 h-10" />
                           </div>
-                          <h3 className="font-bold text-emerald-800 text-lg">Guia Gerada com Sucesso</h3>
+                          <h3 className="font-bold text-emerald-800 text-2xl">Guia DARJ Gerada com Sucesso!</h3>
+                          <p className="text-emerald-600 text-sm">O documento de arrecadação foi processado pela SEFAZ-RJ.</p>
                        </div>
                        
-                       <div className="flex flex-col gap-1">
-                          <span className="text-xs text-emerald-700 font-semibold">Nosso Número (SEFAZ)</span>
-                          <span className="font-mono text-sm bg-white p-2 rounded border">{darjResult.nossoNumero || darjResult.idSessao}</span>
-                       </div>
-
-                       <div className="flex flex-col gap-1">
-                          <span className="text-xs text-emerald-700 font-semibold">Código de Barras</span>
-                          <span className="font-mono text-sm bg-white p-2 rounded border break-all">{darjResult.codigoBarra}</span>
-                       </div>
-
-                       {darjResult.pixCopiaCola && (
-                       <div className="flex flex-col gap-1">
-                          <span className="text-xs text-emerald-700 font-semibold">Pix Copia e Cola</span>
-                          <span className="font-mono text-xs bg-white p-2 rounded border break-all max-h-24 overflow-y-auto">{darjResult.pixCopiaCola}</span>
+                       {/* Valores Calculados Retornados pela SEFAZ */}
+                       {darjResult.valores && (
+                       <div className="w-full max-w-lg bg-white border rounded-md p-4 mb-2">
+                          <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 border-b pb-1">Demonstrativo de Valores</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                             <div className="space-y-1">
+                                <div className="flex justify-between"><span className="text-slate-500">ICMS Informado:</span> <span className="font-medium">{formatBRL(resultado.resumo.totalIcmsStPuro)}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Mora:</span> <span className="font-medium text-red-600">{formatBRL(darjResult.valores.icmsMora)}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Multa:</span> <span className="font-medium text-red-600">{formatBRL(darjResult.valores.icmsMulta)}</span></div>
+                                <div className="flex justify-between border-t pt-1"><span className="font-bold text-slate-700">ICMS Total:</span> <span className="font-bold">{formatBRL(darjResult.valores.icmsAtualizado)}</span></div>
+                             </div>
+                             <div className="space-y-1">
+                                <div className="flex justify-between"><span className="text-slate-500">FECP Informado:</span> <span className="font-medium">{formatBRL(resultado.resumo.totalFecpSt)}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Mora:</span> <span className="font-medium text-red-600">{formatBRL(darjResult.valores.fecpMora)}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Multa:</span> <span className="font-medium text-red-600">{formatBRL(darjResult.valores.fecpMulta)}</span></div>
+                                <div className="flex justify-between border-t pt-1"><span className="font-bold text-slate-700">FECP Total:</span> <span className="font-bold">{formatBRL(darjResult.valores.fecpAtualizado)}</span></div>
+                             </div>
+                          </div>
+                          <div className="mt-3 pt-2 border-t flex justify-between items-center bg-emerald-50/50 p-2 rounded">
+                             <span className="font-bold text-emerald-800 uppercase">Total a Pagar</span>
+                             <span className="font-black text-xl text-emerald-700">{formatBRL(darjResult.valores.totalGuia || resultado.resumo.totalIcmsStCalculado)}</span>
+                          </div>
                        </div>
                        )}
+
+                       <div className="w-full max-w-lg space-y-3">
+                          <div className="flex flex-col gap-1 bg-white p-3 rounded border shadow-sm">
+                             <span className="text-xs text-emerald-700 font-semibold uppercase">Nosso Número (SEFAZ)</span>
+                             <span className="font-mono text-lg text-slate-800 tracking-wider">{darjResult.nossoNumero || darjResult.idSessao}</span>
+                          </div>
+
+                          <div className="flex flex-col gap-1 bg-white p-3 rounded border shadow-sm">
+                             <span className="text-xs text-emerald-700 font-semibold uppercase">Código de Barras</span>
+                             <span className="font-mono text-sm text-slate-800 break-all">{darjResult.codigoBarra}</span>
+                          </div>
+
+                          {darjResult.pixCopiaCola && (
+                          <div className="flex flex-col gap-1 bg-white p-3 rounded border shadow-sm">
+                             <span className="text-xs text-emerald-700 font-semibold uppercase">Pix Copia e Cola</span>
+                             <span className="font-mono text-xs text-slate-800 break-all max-h-24 overflow-y-auto">{darjResult.pixCopiaCola}</span>
+                          </div>
+                          )}
+                       </div>
                     </div>
                     )}
                     
-                    <DialogFooter className="sm:justify-end">
-                       {!darjResult ? (
+                    <DialogFooter className="sm:justify-between border-t pt-4 mt-2">
+                       <Button type="button" variant="outline" onClick={() => { setModalDarjOpen(false); setDarjResult(null); }}>
+                          {darjResult ? 'Fechar' : 'Cancelar'}
+                       </Button>
+                       
+                       {!darjResult && (
                        <Button 
                           type="button" 
-                          variant="default" 
                           onClick={handleGerarDarj} 
-                          disabled={gerandoDarj || !dataDarj}
-                          className="w-full sm:w-auto"
+                          disabled={gerandoDarj || !dataDarj || !dataVencimento}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[200px]"
                        >
-                          {gerandoDarj ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Conectando à SEFAZ...</> : 'Confirmar e Gerar'}
-                       </Button>
-                       ) : (
-                       <Button type="button" variant="outline" onClick={() => { setModalDarjOpen(false); setDarjResult(null); }}>
-                          Fechar
+                          {gerandoDarj ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando na SEFAZ...</> : 'Confirmar e Enviar para SEFAZ'}
                        </Button>
                        )}
                     </DialogFooter>
