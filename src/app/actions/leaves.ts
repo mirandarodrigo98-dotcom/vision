@@ -497,7 +497,7 @@ export async function getLeaves(companyId?: string) {
         // Filter by companies the user has access to
         query += `
             JOIN user_companies uc ON uc.company_id = l.company_id
-            WHERE uc.user_id = ?
+            WHERE uc.user_id = $${params.length + 1}
         `;
         params.push(session.user_id);
 
@@ -506,7 +506,7 @@ export async function getLeaves(companyId?: string) {
             params.push(companyId);
         }
     } else if (session.role === 'operator') {
-        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+        query += ` WHERE (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
         params.push(session.user_id);
 
         if (companyId) {

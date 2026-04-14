@@ -162,11 +162,11 @@ export async function getProcessesFiltered(filters?: { company?: string; cnpj?: 
   const params: any[] = [];
 
   if (filters?.company) {
-    query += ` AND (sp.razao_social ILIKE $${params.length + 1} OR cc.razao_social ILIKE $${params.length + 1})`;
+    query += ` AND (sp.razao_social ILIKE $${params.length + 1} OR cc.razao_social ILIKE $${params.length + 2})`;
     params.push(`%${filters.company}%`, `%${filters.company}%`);
   }
   if (filters?.cnpj) {
-    query += ` AND (cc.cnpj ILIKE $${params.length + 1} OR sp.company_cnpj ILIKE $${params.length + 1})`;
+    query += ` AND (cc.cnpj ILIKE $${params.length + 1} OR sp.company_cnpj ILIKE $${params.length + 2})`;
     params.push(`%${filters.cnpj}%`, `%${filters.cnpj}%`);
   }
   if (filters?.type && filters.type !== 'all') {
@@ -179,10 +179,10 @@ export async function getProcessesFiltered(filters?: { company?: string; cnpj?: 
   }
 
   if (session.role === 'operator') {
-    query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+    query += ` AND (sp.company_id IS NULL OR sp.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
     params.push(session.user_id);
   } else if (session.role === 'client_user') {
-    query += ` AND (sp.company_id IS NOT NULL AND sp.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1))`;
+    query += ` AND (sp.company_id IS NOT NULL AND sp.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $${params.length + 1}))`;
     params.push(session.user_id);
   }
 

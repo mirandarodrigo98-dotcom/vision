@@ -59,7 +59,7 @@ export async function getSocios(q: string = '') {
     }
     
     if (q) {
-      query += ` AND (ss.nome ILIKE $${params.length + 1} OR ss.cpf ILIKE $${params.length + 1} OR cc.razao_social ILIKE $${params.length + 1})`;
+      query += ` AND (ss.nome ILIKE $${params.length + 1} OR ss.cpf ILIKE $${params.length + 2} OR cc.razao_social ILIKE $${params.length + 3})`;
       const likeQ = `%${q}%`;
       params.push(likeQ, likeQ, likeQ);
     }

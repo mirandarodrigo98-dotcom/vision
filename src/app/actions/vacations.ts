@@ -59,7 +59,7 @@ export async function getVacations(
         }
 
         if (search) {
-            query += ` AND (e.name LIKE $${params.length + 1} OR v.protocol_number LIKE $${params.length + 1})`;
+            query += ` AND (e.name ILIKE $${params.length + 1} OR v.protocol_number ILIKE $${params.length + 2})`;
             params.push(`%${search}%`, `%${search}%`);
         }
 
@@ -73,10 +73,10 @@ export async function getVacations(
             params.push(companyId);
         }
 
-        const countQuery = `SELECT COUNT(*) as total FROM (${query})`;
+        const countQuery = `SELECT COUNT(*) as total FROM (${query}) AS subquery`;
         const totalResult = (await db.query(countQuery, [...params])).rows[0] as { total: number };
         
-        query += ` ORDER BY v.created_at DESC LIMIT $1 OFFSET $2`;
+        query += ` ORDER BY v.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(limit, offset);
 
         const vacations = (await db.query(query, [...params])).rows;

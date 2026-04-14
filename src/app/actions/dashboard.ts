@@ -53,10 +53,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
   // Helper for counts
   async function getCounts(startDate: Date, endDate?: Date) {
     const params: any[] = [companyId, startDate.toISOString()];
-    let dateFilter = `created_at >= $1`;
+    let dateFilter = `created_at >= $2`;
     
     if (endDate) {
-      dateFilter += ` AND created_at <= $1`;
+      dateFilter += ` AND created_at <= $3`;
       params.push(endDate.toISOString());
     }
 
