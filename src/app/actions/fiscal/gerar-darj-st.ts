@@ -59,53 +59,53 @@ export async function gerarDarjSt(params: {
 
       // Natureza 4 = Substituição Tributária por Operação/Outros
       // CodigoProduto 698 = Outros
-      const xmlChamada = \`<?xml version="1.0" encoding="utf-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/">
-   <soapenv:Header/>
-   <soapenv:Body>
-      <open:enviarDados>
-         <open:emitente>
-            <open:CnpjEmitente>\${emitenteCnpj}</open:CnpjEmitente>
-            <open:Email>\${emitenteEmail}</open:Email>
-         </open:emitente>
-         <open:documentos>
-            <open:Documento>
-               <open:DataPagamento>\${dataPagtoFormatada}</open:DataPagamento>
-               <open:SqDocumento>1</open:SqDocumento>
-               <open:TipoDocumento>1</open:TipoDocumento>
-               <open:TipoPagamento>1</open:TipoPagamento>
-               <open:ItensPagamentos>
-                  <open:ItemPagamento>
-                     <open:TipoId>1</open:TipoId>
-                     <open:CepContribuinte>\${cep}</open:CepContribuinte>
-                     <open:Cnpj>\${cnpjDest}</open:Cnpj>
-                     <open:CodigoProduto>\${params.produto}</open:CodigoProduto>
-                     <open:DataVencimento>\${dataVencFormatada}</open:DataVencimento>
-                     <open:DddContribuinte>\${ddd}</open:DddContribuinte>
-                     <open:DiaVencimento>\${diaVencimento}</open:DiaVencimento>
-                     <open:EnderecoContribuinte>\${endereco}</open:EnderecoContribuinte>
-                     \${infoComplXML}
-                     <open:InscEstadualRJ>\${ie}</open:InscEstadualRJ>
-                     <open:MunicipioContribuinte>\${municipio}</open:MunicipioContribuinte>
-                     <open:UfContribuinte>\${uf}</open:UfContribuinte>
-                     <open:Natureza>\${params.natureza}</open:Natureza>
-                     <open:NomeRazaoSocial>\${razaoSocial}</open:NomeRazaoSocial>
-                     <open:NumControleContribuinte>DARJST\${Date.now()}</open:NumControleContribuinte>
-                     <open:PeriodoReferenciaAno>\${params.periodoAno}</open:PeriodoReferenciaAno>
-                     <open:PeriodoReferenciaMes>\${params.periodoMes}</open:PeriodoReferenciaMes>
-                     <open:TelefoneContribuinte>\${telefone}</open:TelefoneContribuinte>
-                     <open:TipoApuracao>\${params.tipoApuracao}</open:TipoApuracao>
-                     <open:TipoPeriodoApuracao>\${params.tipoPeriodo}</open:TipoPeriodoApuracao>
-                     <open:ValorFECPPrincipal>\${valorFecp}</open:ValorFECPPrincipal>
-                     <open:ValorICMSPrincipal>\${valorIcms}</open:ValorICMSPrincipal>
-                     <open:ValorTotal>\${valorTotal}</open:ValorTotal>
-                  </open:ItemPagamento>
-               </open:ItensPagamentos>
-            </open:Documento>
-         </open:documentos>
-      </open:enviarDados>
-   </soapenv:Body>
-</soapenv:Envelope>\`;
+      const xmlChamada = '<?xml version="1.0" encoding="utf-8"?>\n' +
+'<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/">\n' +
+'   <soapenv:Header/>\n' +
+'   <soapenv:Body>\n' +
+'      <open:enviarDados>\n' +
+'         <open:emitente>\n' +
+'            <open:CnpjEmitente>' + emitenteCnpj + '</open:CnpjEmitente>\n' +
+'            <open:Email>' + emitenteEmail + '</open:Email>\n' +
+'         </open:emitente>\n' +
+'         <open:documentos>\n' +
+'            <open:Documento>\n' +
+'               <open:DataPagamento>' + dataPagtoFormatada + '</open:DataPagamento>\n' +
+'               <open:SqDocumento>1</open:SqDocumento>\n' +
+'               <open:TipoDocumento>1</open:TipoDocumento>\n' +
+'               <open:TipoPagamento>1</open:TipoPagamento>\n' +
+'               <open:ItensPagamentos>\n' +
+'                  <open:ItemPagamento>\n' +
+'                     <open:TipoId>1</open:TipoId>\n' +
+'                     <open:CepContribuinte>' + cep + '</open:CepContribuinte>\n' +
+'                     <open:Cnpj>' + cnpjDest + '</open:Cnpj>\n' +
+'                     <open:CodigoProduto>' + params.produto + '</open:CodigoProduto>\n' +
+'                     <open:DataVencimento>' + dataVencFormatada + '</open:DataVencimento>\n' +
+'                     <open:DddContribuinte>' + ddd + '</open:DddContribuinte>\n' +
+'                     <open:DiaVencimento>' + diaVencimento + '</open:DiaVencimento>\n' +
+'                     <open:EnderecoContribuinte>' + endereco + '</open:EnderecoContribuinte>\n' +
+'                     ' + infoComplXML + '\n' +
+'                     <open:InscEstadualRJ>' + ie + '</open:InscEstadualRJ>\n' +
+'                     <open:MunicipioContribuinte>' + municipio + '</open:MunicipioContribuinte>\n' +
+'                     <open:UfContribuinte>' + uf + '</open:UfContribuinte>\n' +
+'                     <open:Natureza>' + params.natureza + '</open:Natureza>\n' +
+'                     <open:NomeRazaoSocial>' + razaoSocial + '</open:NomeRazaoSocial>\n' +
+'                     <open:NumControleContribuinte>DARJST' + Date.now() + '</open:NumControleContribuinte>\n' +
+'                     <open:PeriodoReferenciaAno>' + params.periodoAno + '</open:PeriodoReferenciaAno>\n' +
+'                     <open:PeriodoReferenciaMes>' + params.periodoMes + '</open:PeriodoReferenciaMes>\n' +
+'                     <open:TelefoneContribuinte>' + telefone + '</open:TelefoneContribuinte>\n' +
+'                     <open:TipoApuracao>' + params.tipoApuracao + '</open:TipoApuracao>\n' +
+'                     <open:TipoPeriodoApuracao>' + params.tipoPeriodo + '</open:TipoPeriodoApuracao>\n' +
+'                     <open:ValorFECPPrincipal>' + valorFecp + '</open:ValorFECPPrincipal>\n' +
+'                     <open:ValorICMSPrincipal>' + valorIcms + '</open:ValorICMSPrincipal>\n' +
+'                     <open:ValorTotal>' + valorTotal + '</open:ValorTotal>\n' +
+'                  </open:ItemPagamento>\n' +
+'               </open:ItensPagamentos>\n' +
+'            </open:Documento>\n' +
+'         </open:documentos>\n' +
+'      </open:enviarDados>\n' +
+'   </soapenv:Body>\n' +
+'</soapenv:Envelope>';
 
       const WSDL_URL = 'https://www1.fazenda.rj.gov.br/portaldepagamentos/br/gov/rj/sef/gct/webservice/GerarDocumentoArrecadacaoWS.jws';
 
@@ -132,16 +132,16 @@ export async function gerarDarjSt(params: {
       // Aguardar alguns segundos antes de consultar
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      const xmlConsulta = \`<?xml version="1.0" encoding="utf-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/">
-   <soapenv:Header/>
-   <soapenv:Body>
-      <open:consultarDados>
-         <open:cnpj>\${emitenteCnpj}</open:cnpj>
-         <open:idSessao>\${idSessao}</open:idSessao>
-      </open:consultarDados>
-   </soapenv:Body>
-</soapenv:Envelope>\`;
+      const xmlConsulta = '<?xml version="1.0" encoding="utf-8"?>\n' +
+'<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:open="http://www.openuri.org/">\n' +
+'   <soapenv:Header/>\n' +
+'   <soapenv:Body>\n' +
+'      <open:consultarDados>\n' +
+'         <open:cnpj>' + emitenteCnpj + '</open:cnpj>\n' +
+'         <open:idSessao>' + idSessao + '</open:idSessao>\n' +
+'      </open:consultarDados>\n' +
+'   </soapenv:Body>\n' +
+'</soapenv:Envelope>';
 
       // Consultar até 3 vezes se estiver em processamento
       for (let i = 0; i < 3; i++) {
