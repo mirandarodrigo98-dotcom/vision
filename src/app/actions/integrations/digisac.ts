@@ -168,6 +168,11 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   if (message.base64File) {
     let base64Data = message.base64File;
     
+    // Garantir que enviamos APENAS a string base64 pura para a API do Digisac (sem prefixo data:mime/type;base64,)
+    if (base64Data.includes('base64,')) {
+      base64Data = base64Data.split('base64,')[1];
+    }
+
     // Limpar o base64 de qualquer quebra de linha ou espaço em branco que possa corromper o arquivo
     base64Data = base64Data.replace(/[\r\n\s]+/g, '');
 
@@ -176,15 +181,6 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     let mime = "application/pdf";
     if (extension === "png") mime = "image/png";
     else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
-
-    // A API do Digisac exige que o base64 contenha o prefixo data:mime/type;base64,
-    if (!base64Data.startsWith('data:')) {
-      // Se por acaso alguém já enviou com 'base64,' mas sem o 'data:', vamos garantir a formatação exata
-      if (base64Data.includes('base64,')) {
-        base64Data = base64Data.split('base64,')[1];
-      }
-      base64Data = `data:${mime};base64,${base64Data}`;
-    }
 
     // Fazer upload do arquivo primeiro para evitar erro de limite de payload 500 no Digisac
     const uploadRes = await uploadFileDigisac(base64Data, nameToUse, mime, extension);

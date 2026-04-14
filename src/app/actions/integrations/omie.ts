@@ -205,12 +205,45 @@ export async function downloadBoletoPdfServer(url: string) {
   try {
     // IMPORTANTE: NÃO enviar User-Agent de navegador (ex: Mozilla/5.0...) 
     // pois a API/Portal do Omie detecta navegadores e retorna uma página HTML (Visualizador) em vez do arquivo PDF binário.
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       headers: {
         'Accept': 'application/pdf, application/octet-stream, */*'
       }
     });
+
     if (!response.ok) throw new Error(`Falha ao acessar o link do boleto. Status: ${response.status}`);
+    
+    let contentType = response.headers.get('content-type') || '';
+    
+    // Se por acaso o Omie retornar HTML mesmo sem User-Agent (ex: tela de visualização do boleto),
+    // vamos varrer o HTML em busca do link real do PDF (geralmente em um iframe ou variável)
+    if (contentType.includes('text/html')) {
+      const htmlText = await response.text();
+      // O Omie geralmente coloca o link do PDF dentro de um iframe com id "pdf" ou src="...pdf"
+      const pdfMatch = htmlText.match(/<iframe[^>]+src=["']([^"']+\.pdf[^"']*)["']/i) 
+                    || htmlText.match(/window\.location\.href\s*=\s*["']([^"']+\.pdf[^"']*)["']/i)
+                    || htmlText.match(/https?:\/\/[^"'\s>]+\.pdf/i);
+                    
+      if (pdfMatch && pdfMatch[1]) {
+         let realPdfUrl = pdfMatch[1];
+         if (!realPdfUrl.startsWith('http')) {
+             const urlObj = new URL(url);
+             realPdfUrl = `${urlObj.protocol}//${urlObj.host}${realPdfUrl.startsWith('/') ? '' : '/'}${realPdfUrl}`;
+         }
+         response = await fetch(realPdfUrl, {
+           headers: { 'Accept': 'application/pdf, application/octet-stream, */*' }
+         });
+         if (!response.ok) throw new Error(`Falha ao baixar o PDF real extraído do HTML. Status: ${response.status}`);
+      } else {
+         console.warn('Aviso: O link retornou HTML, mas não encontramos um link de PDF válido dentro dele.');
+         // Tentar prosseguir, mas provavelmente vai dar erro no cabeçalho PDF
+         response = await fetch(url, { headers: { 'Accept': '*/*' }}); 
+      }
+    } else {
+      // Se não for HTML, precisamos pegar o arrayBuffer da resposta que já temos
+      // Mas como a resposta é um stream consumível, se tivéssemos lido como text(), não poderíamos ler como arrayBuffer.
+      // Como não lemos ainda, está seguro.
+    }
     
     const arrayBuffer = await response.arrayBuffer();
     
@@ -219,6 +252,10 @@ export async function downloadBoletoPdfServer(url: string) {
     const header = buffer.subarray(0, 5).toString('utf-8');
     if (header !== '%PDF-') {
       console.warn('Aviso crítico: O arquivo baixado do Omie não possui cabeçalho de PDF padrão. Pode ser uma página HTML de erro ou redirecionamento.', header);
+      return { 
+        error: 'O link do boleto no Omie não retornou um arquivo PDF válido.', 
+        fallbackUrl: url 
+      };
     }
 
     const base64 = buffer.toString('base64');
@@ -468,25 +505,9 @@ export async function enviarCobrancaDigisacOmie(conta: any) {
       pdfUrl = resBoleto.data.cLinkBoleto;
     }
 
-    // Fazer o download do PDF em Base64 para garantir envio no Digisac
-    const pdfData = await downloadBoletoPdfServer(pdfUrl);
-    if (pdfData.error || !pdfData.base64) {
-      return { error: 'Não foi possível fazer o download do boleto para envio.' };
-    }
-    const base64File = `data:application/pdf;base64,${pdfData.base64}`;
-
-    let fileName = 'boleto.pdf';
-    try {
-      const urlObj = new URL(pdfUrl);
-      const pathParts = urlObj.pathname.split('/');
-      const extracted = pathParts[pathParts.length - 1];
-      if (extracted && extracted.endsWith('.pdf')) {
-        fileName = extracted;
-      } else {
-        fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
-      }
-    } catch (e) {
-      fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+    const configDigisac = await getDigisacConfig();
+    if (!configDigisac || !configDigisac.is_active || !configDigisac.connection_phone) {
+      return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
     }
 
     const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
@@ -500,7 +521,7 @@ export async function enviarCobrancaDigisacOmie(conta: any) {
       }
     }
 
-    const messageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
+    let messageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
 
 Olá *${phone.name}*.
 Como vai? Esperamos que esteja bem!
@@ -512,12 +533,45 @@ Atenciosamente
 *NZD Contabilidade*
 Departamento Financeiro`;
 
-    const configDigisac = await getDigisacConfig();
-    if (!configDigisac || !configDigisac.is_active || !configDigisac.connection_phone) {
-      return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
+    // Fazer o download do PDF em Base64 para garantir envio no Digisac
+    const pdfData = await downloadBoletoPdfServer(pdfUrl);
+    
+    // Se não conseguimos o PDF em binário, enviamos apenas a mensagem de texto com o link.
+    if (pdfData.error && pdfData.fallbackUrl) {
+       messageBody += `\n\nAcesse o seu boleto através deste link: ${pdfData.fallbackUrl}`;
+       
+       const resultMsg = await sendDigisacMessage({
+         number: phone.number,
+         serviceId: configDigisac.connection_phone,
+         body: messageBody
+       });
+
+       if (!resultMsg.success) {
+         return { error: resultMsg.error || 'Erro ao enviar a cobrança via Digisac.' };
+       }
+
+       return { success: true, warning: 'Boleto enviado como link, pois o banco bloqueou o download do arquivo PDF direto.' };
+    } else if (pdfData.error || !pdfData.base64) {
+      return { error: pdfData.error || 'Não foi possível fazer o download do boleto para envio.' };
     }
 
-    // Enviar via Digisac (Primeiro o arquivo sem texto, depois a mensagem - mais seguro)
+    const base64File = `data:application/pdf;base64,${pdfData.base64}`;
+ 
+     let fileName = 'boleto.pdf';
+     try {
+       const urlObj = new URL(pdfUrl);
+       const pathParts = urlObj.pathname.split('/');
+       const extracted = pathParts[pathParts.length - 1];
+       if (extracted && extracted.endsWith('.pdf')) {
+         fileName = extracted;
+       } else {
+         fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+       }
+     } catch (e) {
+       fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+     }
+
+     // Enviar via Digisac (Primeiro o arquivo sem texto, depois a mensagem - mais seguro)
     // A API Digisac dá 500 às vezes quando junta "file" grande e "text" longo
     const resultFile = await sendDigisacMessage({
       number: phone.number,
