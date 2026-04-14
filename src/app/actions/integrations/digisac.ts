@@ -166,9 +166,13 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   }
 
   if (message.base64File) {
-    const base64Data = message.base64File.includes('base64,') 
-        ? message.base64File.split('base64,')[1] 
-        : message.base64File;
+    let base64Data = message.base64File;
+    if (message.base64File.includes('base64,')) {
+      base64Data = message.base64File.split('base64,')[1];
+    }
+    
+    // Limpar o base64 de qualquer quebra de linha ou espaço em branco que possa corromper o arquivo
+    base64Data = base64Data.replace(/[\r\n\s]+/g, '');
 
     const nameToUse = message.fileName || "documento.pdf";
     const extension = nameToUse.split('.').pop()?.toLowerCase() || "pdf";

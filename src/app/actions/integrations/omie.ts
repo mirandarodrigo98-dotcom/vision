@@ -203,10 +203,24 @@ export async function obterBoletoOmie(codigoLancamento: number) {
 
 export async function downloadBoletoPdfServer(url: string) {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Falha ao acessar o link do boleto');
+    // Alguns PDFs do Omie ou bancos vêm com redirecionamentos ou exigem headers específicos.
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/pdf, application/octet-stream, */*'
+      }
+    });
+    if (!response.ok) throw new Error(`Falha ao acessar o link do boleto. Status: ${response.status}`);
+    
     const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    
+    // Validar se o buffer realmente parece ser um PDF
+    const buffer = Buffer.from(arrayBuffer);
+    const header = buffer.subarray(0, 5).toString('utf-8');
+    if (header !== '%PDF-') {
+      console.warn('Aviso: O arquivo baixado não possui cabeçalho de PDF padrão.', header);
+    }
+
+    const base64 = buffer.toString('base64');
     return { base64 };
   } catch (error: any) {
     console.error('Erro ao baixar PDF do boleto:', error);
