@@ -1,0 +1,598 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<WL5G3N0:definitions name="GerarDocumentoArrecadacaoWSDefinitions" targetNamespace="http://www.openuri.org/" xmlns="" xmlns:WL5G3N0="http://schemas.xmlsoap.org/wsdl/" xmlns:WL5G3N1="http://www.openuri.org/" xmlns:WL5G3N2="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:WL5G3N3="http://www.openuri.org/2006/12/wsdl/upgradedJWS">
+  <WL5G3N0:types>
+    <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://www.openuri.org/" xmlns:s0="http://schemas.xmlsoap.org/wsdl/" xmlns:s1="http://www.openuri.org/" xmlns:s2="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:s3="http://www.openuri.org/2006/12/wsdl/upgradedJWS" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:complexType name="ConsultaDadosWebService">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="DocsRetorno" nillable="true" type="open:ArrayOfDocumentosRetorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="IdSessao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="ListaFalha" nillable="true" type="open:ArrayOfFalhaSessaoLote" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="Status" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DocumentosRetorno">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="DataPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="ItensRetorno" nillable="true" type="open:ArrayOfItemPagamentoRetorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="ListaCodigoBarra" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="TxId" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="PixCopiaCola" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="MsgInsercao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NossoNumeroSEFAZ" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ItemPagamentoRetorno">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="NumControleContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="PrincipalRetorno" nillable="true" type="open:DadosContribuintePrincipalRetorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="ValorFECPMora" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPMulta" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPPrincipal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPTotal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSMora" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSMulta" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSPrincipal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSTotal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorTotal" nillable="true" type="xs:double"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DadosContribuintePrincipalRetorno">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CepContribuintePrincipal" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="CnpjContribuintePrincipal" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="DddContribuintePrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="EnderecoContribuintePrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="MunicipioContribuintePrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="RazaoSocialContribuintePrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="TelefoneContribuintePrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="TelefoneDDDContribuintePrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="UFContribuintePrincipal" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="Retorno">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CodigoRetorno" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="MensagemRetorno" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfItemPagamentoRetorno">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="ItemPagamentoRetorno" nillable="true" type="open:ItemPagamentoRetorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfItemPagamentoRetorno" type="open:ArrayOfItemPagamentoRetorno" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="ArrayOfDocumentosRetorno">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="DocumentosRetorno" nillable="true" type="open:DocumentosRetorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfDocumentosRetorno" type="open:ArrayOfDocumentosRetorno" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="FalhaSessaoLote">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CoErro" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="DescricaoErro" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NuIdentificador" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfFalhaSessaoLote">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="FalhaSessaoLote" nillable="true" type="open:FalhaSessaoLote" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfFalhaSessaoLote" type="open:ArrayOfFalhaSessaoLote" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="ChamadaDadosCDIWebService">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="ItensCDIRetorno" nillable="true" type="open:ArrayOfItemCDIRetorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ItemCDIRetorno">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="UrlDocumento" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfItemCDIRetorno">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="ItemCDIRetorno" nillable="true" type="open:ItemCDIRetorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfItemCDIRetorno" type="open:ArrayOfItemCDIRetorno" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="DocumentoProcEspecial">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="DataPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="InscEstadual" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="0" name="ItensPagamentos" nillable="true" type="open:ArrayOfItemPagamentoICMS" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="Natureza" nillable="true" type="xs:long"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ItemPagamentoICMS">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="AnoReferencia" nillable="true" type="xs:int"/>
+          <xs:element minOccurs="1" name="DataVencimento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="MesReferencia" nillable="true" type="xs:int"/>
+          <xs:element minOccurs="1" name="ValorFECP" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPAtualizado" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPMora" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPMultaMora" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMS" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSAtualizado" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSMora" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSMultaMora" nillable="true" type="xs:double"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfItemPagamentoICMS">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="ItemPagamentoICMS" nillable="true" type="open:ItemPagamentoICMS" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfItemPagamentoICMS" type="open:ArrayOfItemPagamentoICMS" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="DocumentoAuto">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataCiencia" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataReferencia" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumAutoInfracao" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="Documento">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="DataPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="ItensPagamentos" nillable="true" type="open:ArrayOfItemPagamento" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="SqDocumento" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="TipoDocumento" nillable="true" type="xs:int"/>
+          <xs:element minOccurs="1" name="TipoPagamento" nillable="true" type="xs:int"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ItemPagamento">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CepContribuinte" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="Cnpj" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="CodigoProduto" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="Cpf" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="DataFatoGerador" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataVencimento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DddContribuinte" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="DiaVencimento" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="EnderecoContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="InformacoesComplementares" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="InscEstadualRJ" nillable="false" type="xs:long"/>
+          <xs:element minOccurs="1" name="MunicipioContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Natureza" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="NaturezaQualificacao" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="NomeRazaoSocial" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NotaFiscalCnpj" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="NotaFiscalCpf" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="NotaFiscalDataEmissao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NotaFiscalNumero" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="NotaFiscalSerie" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="NotaFiscalTipo" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumControleContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumDocOrigem" nillable="true" type="xs:integer"/>
+          <xs:element minOccurs="1" name="Passaporte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="PeriodoReferenciaAno" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="PeriodoReferenciaDecendio" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="PeriodoReferenciaMes" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="TelefoneContribuinte" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="TipoApuracao" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="TipoId" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="TipoImportacao" nillable="false" type="xs:int"/>
+          <xs:element minOccurs="1" name="TipoPeriodoApuracao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="UfContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorFECPPrincipal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSPrincipal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorTotal" nillable="true" type="xs:double"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfItemPagamento">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="ItemPagamento" nillable="true" type="open:ItemPagamento" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfItemPagamento" type="open:ArrayOfItemPagamento" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="DocumentoITD">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumGuiaControle" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DocumentoCDI">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="ItensPagamentos" nillable="true" type="open:ArrayOfItemPagamentoCDI" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ItemPagamentoCDI">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CepContribuinte" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataFatoGerador" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DddContribuinte" nillable="true" type="xs:int"/>
+          <xs:element minOccurs="1" name="DescOutrasDespesas" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="EnderecoContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="InscEstadual" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="IsencaoFrete" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="JustificativaIsencaoFrete" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="MunicipioContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Natureza" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NomeRazaoSocial" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumDocumento" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="TelefoneContribuinte" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="TipoAdicionalFrete" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="TipoDocumento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="TipoImportacao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="TipoPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="UfContribuinte" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorAdicionalFrete" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorFECPPrincipal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorICMSPrincipal" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorOutrasDespesas" nillable="true" type="xs:double"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfItemPagamentoCDI">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="ItemPagamentoCDI" nillable="true" type="open:ItemPagamentoCDI" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfItemPagamentoCDI" type="open:ArrayOfItemPagamentoCDI" xmlns:open="http://www.openuri.org/"/>
+      <xs:complexType name="ChamadaDadosPrecatorioWebService">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="CodigoBarras" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ChamadaDadosDocArrecadacaoWebService">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="CodigoBarras" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ChamadaDadosProcEspecialWebService">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="AnoEmissao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Cep" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Cnpj" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="CodigoBarras" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataVencimento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DiaEmissao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Endereco" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="InscricaoEstadual" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="ItensPagamentos" nillable="true" type="open:ArrayOfItemPagamentoICMS" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="MesEmissao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Municipio" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NaturezaReceita" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NomeRazaoSocial" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NossoNumero" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumeroDocumento" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="Receita" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+          <xs:element minOccurs="1" name="Uf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorMora" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorMulta" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorMultaMora" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorPrincipal" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorTotal" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DocumentoPrecatorio">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NomeRazaoSocial" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NuPrecatorio" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="ValorBaseCalculo" nillable="true" type="xs:double"/>
+          <xs:element minOccurs="1" name="ValorIRRF" nillable="true" type="xs:double"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ChamadaDadosWebServiceRefLote">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CNPJCPF" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="DataRecebimento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="IdSessao" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="Retorno" nillable="true" type="open:Retorno" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DocumentoParcelamento">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjCpf" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="DataPagamento" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumParcela" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="1" name="NumRqp" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="Emitente">
+        <xs:sequence>
+          <xs:element minOccurs="1" name="CnpjEmitente" nillable="true" type="xs:long"/>
+          <xs:element minOccurs="1" name="Email" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ArrayOfDocumento">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="Documento" nillable="true" type="open:Documento" xmlns:open="http://www.openuri.org/"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfDocumento" type="open:ArrayOfDocumento" xmlns:open="http://www.openuri.org/"/>
+      <xs:element name="enviarDadosAuto">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="documento" type="open:DocumentoAuto" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosAutoResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosAutoResult" type="open:ChamadaDadosDocArrecadacaoWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDados">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="emitente" type="open:Emitente" xmlns:open="http://www.openuri.org/"/>
+            <xs:element name="documentos" type="open:ArrayOfDocumento" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosResult" type="open:ChamadaDadosWebServiceRefLote" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosCDI">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="documento" type="open:DocumentoCDI" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosCDIResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosProcEspecial" type="open:ChamadaDadosCDIWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosProcEspecial">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="documento" type="open:DocumentoProcEspecial" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosProcEspecialResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosProcEspecial" type="open:ChamadaDadosProcEspecialWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="consultarDados">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="cnpj" nillable="true" type="xs:long"/>
+            <xs:element minOccurs="0" name="idSessao" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="consultarDadosResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="consultarDadosResult" type="open:ConsultaDadosWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosParcelamento">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="documento" type="open:DocumentoParcelamento" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosParcelamentoResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosParcelamentoResult" type="open:ChamadaDadosDocArrecadacaoWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosITD">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="documento" type="open:DocumentoITD" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosITDResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosITDResult" type="open:ChamadaDadosDocArrecadacaoWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosPrecatorio">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="documento" type="open:DocumentoPrecatorio" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="enviarDadosPrecatorioResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="enviarDadosPrecatorioResult" type="open:ChamadaDadosPrecatorioWebService" xmlns:open="http://www.openuri.org/"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </WL5G3N0:types>
+  <WL5G3N0:message name="enviarDadosAuto">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosAuto" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosAutoResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosAutoResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDados">
+    <WL5G3N0:part element="WL5G3N1:enviarDados" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosCDI">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosCDI" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosCDIResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosCDIResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosProcEspecial">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosProcEspecial" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosProcEspecialResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosProcEspecialResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="consultarDados">
+    <WL5G3N0:part element="WL5G3N1:consultarDados" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="consultarDadosResponse">
+    <WL5G3N0:part element="WL5G3N1:consultarDadosResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosParcelamento">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosParcelamento" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosParcelamentoResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosParcelamentoResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosITD">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosITD" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosITDResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosITDResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosPrecatorio">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosPrecatorio" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:message name="enviarDadosPrecatorioResponse">
+    <WL5G3N0:part element="WL5G3N1:enviarDadosPrecatorioResponse" name="parameters"/>
+  </WL5G3N0:message>
+  <WL5G3N0:portType name="GerarDocumentoArrecadacaoWS">
+    <WL5G3N0:operation name="enviarDadosAuto" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDadosAuto"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosAutoResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDados" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDados"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosCDI" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDadosCDI"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosCDIResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosProcEspecial" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDadosProcEspecial"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosProcEspecialResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="consultarDados" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:consultarDados"/>
+      <WL5G3N0:output message="WL5G3N1:consultarDadosResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosParcelamento" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDadosParcelamento"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosParcelamentoResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosITD" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDadosITD"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosITDResponse"/>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosPrecatorio" parameterOrder="parameters">
+      <WL5G3N0:input message="WL5G3N1:enviarDadosPrecatorio"/>
+      <WL5G3N0:output message="WL5G3N1:enviarDadosPrecatorioResponse"/>
+    </WL5G3N0:operation>
+  </WL5G3N0:portType>
+  <WL5G3N0:binding name="GerarDocumentoArrecadacaoWSSoapBinding" type="WL5G3N1:GerarDocumentoArrecadacaoWS">
+    <WL5G3N2:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <WL5G3N0:operation name="enviarDadosAuto">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDados">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosCDI">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosProcEspecial">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="consultarDados">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosParcelamento">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosITD">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+    <WL5G3N0:operation name="enviarDadosPrecatorio">
+      <WL5G3N2:operation style="document"/>
+      <WL5G3N0:input>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:input>
+      <WL5G3N0:output>
+        <WL5G3N2:body parts="parameters" use="literal"/>
+      </WL5G3N0:output>
+    </WL5G3N0:operation>
+  </WL5G3N0:binding>
+  <WL5G3N0:service name="GerarDocumentoArrecadacaoWS">
+    <WL5G3N3:upgraded81/>
+    <WL5G3N0:port binding="WL5G3N1:GerarDocumentoArrecadacaoWSSoapBinding" name="GerarDocumentoArrecadacaoWSSoapPort">
+      <WL5G3N2:address location="http://www1.fazenda.rj.gov.br:80/portaldepagamentos/br/gov/rj/sef/gct/webservice/GerarDocumentoArrecadacaoWS.jws"/>
+    </WL5G3N0:port>
+  </WL5G3N0:service>
+</WL5G3N0:definitions>

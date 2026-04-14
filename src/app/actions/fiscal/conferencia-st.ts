@@ -70,8 +70,10 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
         if (!nfe) continue;
 
         const numNota = nfe.ide?.nNF || 'S/N';
+        const serieNota = nfe.ide?.serie || '';
         const dataEmissao = nfe.ide?.dhEmi ? nfe.ide.dhEmi.substring(0, 10) : '';
         const valorNotaTotal = parseFloat(nfe.total?.ICMSTot?.vNF || '0');
+        const cnpjEmitente = nfe.emit?.CNPJ || nfe.emit?.CPF || '';
         
         notasValidadas++;
         valorTotalNotas += valorNotaTotal;
@@ -214,6 +216,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
 
           resultadoNotas.push({
              nota: numNota,
+             serie: serieNota,
+             cnpj_emitente: cnpjEmitente,
              data: dataEmissao,
              descricao,
              ncm,

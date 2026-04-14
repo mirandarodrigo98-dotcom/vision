@@ -195,6 +195,23 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
   const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
   const formatPct = (val: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + '%';
 
+  const preencherCamposNota = () => {
+    if (!resultado || !resultado.itens || resultado.itens.length === 0) return;
+    
+    // Pega a primeira nota da lista (assumindo que o usuário filtrou para 1 nota)
+    const notaFiltrada = filtroNotas.length === 1 
+       ? resultado.itens.find((i: any) => i.nota === filtroNotas[0])
+       : resultado.itens[0];
+
+    if (notaFiltrada) {
+       setNotaFiscalNum(notaFiltrada.nota || '');
+       setNotaFiscalSerie(notaFiltrada.serie || '1');
+       setNotaFiscalData(notaFiltrada.data || '');
+       setNotaFiscalCnpjEmitente(notaFiltrada.cnpj_emitente || '');
+       toast.success('Campos preenchidos com os dados do XML!');
+    }
+  };
+
   const handleGerarDarj = async () => {
     if (!resultado || !dataDarj || !dataVencimento) return;
     if (resultado.resumo.totalIcmsStPuro <= 0 && resultado.resumo.totalFecpSt <= 0) {

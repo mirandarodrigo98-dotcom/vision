@@ -1,0 +1,1371 @@
+ 
+Estado do Rio de Janeiro 
+Secretaria de Estado de Fazenda 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Usuário Externo 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Manual do Webservice 
+Emissão de Darj em Lote 
+----------------Page (0) Break----------------
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para suporte: 
+sac.darj@fazenda.rj.gov.br 
+ 
+ 
+ 
+Usuário Externo 
+ 
+ 
+MANUAL DO WEBSERVICE 
+EMISSÃO DE DARJ EM LOTE 
+ 
+ 
+ 
+ 
+Data da publicação: 03/04/2025 
+VERSÃO 8 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Nota: a emissão de GNRE em lote deve ser efetuada pelo webservice do Portal da GNRE 
+Nacional (http://www.gnre.pe.gov.br). Legislação: Portaria SUAR Nº 42/2020. 
+                                               
+----------------Page (1) Break----------------
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para suporte: 
+sac.darj@fazenda.rj.gov.br 
+ 
+ 
+ 
+Alterações realizadas nesta versão 
+ 
+Data                                                                        Descrição da modificação 
+03/04/2025          O rodapé do documento foi ajustado, adicionando o número de cada página. (págs. 2 
+até 24) 
+03/04/2025          O endereço do ambiente de Homologação foi ajustado, informando a URL correta. (pág. 
+23) 
+03/04/2025          Foi adicionada uma nova seção "2. Boas práticas de preenchimento", mencionando a 
+especificação do documento XML e um link para o portal da NFe. (pág. 22) 
+03/04/2025          Com relação aos códigos de retorno do endpoint de enviarDados, foi realizado uma 
+análise e ajustado a descrição com os respectivos id’s. (pág. 14) 
+03/04/2025          Foram adicionados novos campos no endpoint consultarDados: TxId e PixCopiaCola 
+(pág. 17) 
+03/04/2025          Inclusão da natureza 61 - Fundo Orçam Temp FOT/Fundo Estad Equil Fiscal FEEF na 
+tabela Naturezas. (pág. 9) 
+03/04/2025          Inclusão do tópico 1.8 Natureza - Fundo Orçam Temp FOT/Fundo Estad Equil Fiscal 
+FEEF. (pág. 22) 
+03/04/2025          Inclusão do tópico 1.8 Natureza - Fundo Orçam Temp FOT/Fundo Estad Equil Fiscal FEEF 
+no Sumário. (pág. 5) 
+03/04/2025          Inclusão da natureza 61 - Fundo Orçam Temp FOT/Fundo Estad Equil Fiscal FEEF no 
+campo de observação de tabela contida no tópico 1. OBRIGATORIEDADE DOS CAMPOS 
+do ANEXO II. (pág. 19) 
+03/04/2025          Renumeração dos tópicos do Sumário, em virtude das alterações acima. (págs. 4 e 5) 
+ 
+ 
+ 
+----------------Page (2) Break----------------
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br 
+ 
+ 
+ 
+Sumário 
+INTRODUÇÃO .......................................................................................................................................... 6 
+FUNCIONALIDADES ................................................................................................................................. 6 
+     
+ENVIAR DADOS
+ ........................................................................................................................................ 6 
+          Dados de Entrada ............................................................................................................................ 6 
+      Bloco Emitente ............................................................................................................................... 6 
+ Bloco Documento ........................................................................................................................... 6 
+ Bloco Item ...................................................................................................................................... 6 
+ Dados de Retorno .......................................................................................................................... 8 
+                
+CONSULTAR DADOS
+ ................................................................................................................................ 8 
+ Dados de Entrada ........................................................................................................................... 8 
+ Dados de Retorno .......................................................................................................................... 8 
+          ANEXO I ................................................................................................................................................... 9 
+                
+DOMÍNIOS
+ ............................................................................................................................................. 9 
+1.             TIPODOCUMENTO  .......................................................................................................................... 9 
+2.             TIPOPAGAMENTO  ........................................................................................................................... 9 
+3.             DIAVENCIMENTO  ............................................................................................................................ 9 
+4.             NATUREZAS  ..................................................................................................................................... 9 
+4.1              DARJ ................................................................................................................................................ 9 
+5.             CODIGOPRODUTO  ......................................................................................................................... 10 
+5.1              DARJ .............................................................................................................................................. 10 
+•    Substituição Tributária por Operação Própria – Apuração Mensal ................................. 10 
+•    ICMS Cons Final não Contrib. Outra UF por Apuração  ................................................... 10 
+•    Substituição Tribut. por Operação/Outros (Substit Tribut. por Responsabilidade)   ...... 10 
+•    ICMS Cons Final Contrib. Outra UF por Operação ........................................................... 10 
+6.             NATUREZAQUALIFICACAO  ........................................................................................................... 11 
+REGIME DE CONFRONTO (DÉBITOS E CRÉDITOS) ................................................................... 11 
+6.1              DARJ .............................................................................................................................................. 11 
+7.             TIPOAPURACAO  ............................................................................................................................ 11 
+8.             TIPOID  ........................................................................................................................................... 11 
+9.             NOTAFISCALTIPO ........................................................................................................................... 11 
+10.               PERÍODOREFERENCIADECENDIO ............................................................................................. 11 
+11.               TIPOPERIODOAPURACAO ......................................................................................................... 12 
+12.               TIPOIMPORTACAO ................................................................................................................... 12 
+13.               VALORES ................................................................................................................................... 12 
+           RETORNOS ............................................................................................................................................ 12 
+----------------Page (3) Break----------------
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br 
+ 
+ 
+                RETORNO: ENVIAR DADOS ............................................................................................................... 12 
+                RETORNO: CONSULTAR DADOS ....................................................................................................... 14 
+                LISTAFALHA: CONSULTAR DADOS .................................................................................................... 14 
+                DOCSRETORNO: CONSULTAR DADOS .............................................................................................. 17 
+                ITENSRETORNO: CONSULTAR DADOS .............................................................................................. 17 
+                PRINCIPALRETORNO: CONSULTAR DADOS ...................................................................................... 18 
+          ANEXO II ................................................................................................................................................ 19 
+1.           OBRIGATORIEDADE DOS CAMPOS .................................................................................................. 19 
+1.1              NATUREZA: REGIME DE CONFRONTO (DÉBITOS E CRÉDITOS) ...................................................... 20 
+1.2              NATUREZAS: ICMS Subst. Trib. Op. Inter e ICMS Cons. Final NÃO CONTRIB. OUTRA UF ............. 20 
+•    NATUREZA: ICMS Subst. Trib. Op. Interes. Apur. Mensal (Subst. Trib. Oper. Própria)  ...... 20 
+•    NATUREZA: ICMS Cons Final não Contrib. Outra UF por Apuração  .................................... 20 
+1.3              NATUREZA: DIREFENCIAL DE ALÍQUOTA ....................................................................................... 21 
+1.4              NATUREZAS: SUBST. TRIB. E ICMS CONS. FINAL POR OPERAÇÃO  ............................................... 21 
+•    NATUREZA: Subst. Trib. Por Operação/Outros (Por Operação/Mensal) ............................ 21 
+•    NATUREZA: ICMS Cons. Final não Contribuinte Outra UF por Operação ........................... 21 
+1.5               NATUREZA: SUBST. TRIB.POR OPERAÇÃO/OUTROS (POR PERÍODO/DECÊNDIO) ........................ 21 
+1.6               NATUREZA: IMPORTAÇÃO ........................................................................................................... 21 
+1.7               NATUREZA: REGIME DE ESTIMATIVA ........................................................................................... 22 
+1.8               NATUREZA: FUNDO ORCAM. TEMP. FOT/FUNDO ESTAD EQUIL FISCAL FEEF ............................. 22 
+1.9               FATO GERADOR ............................................................................................................................ 22 
+1.10             TIPOPERIODOAPURACAO ............................................................................................................ 22 
+2.      BOAS PRÁTICAS DE PREENCHIMENTO ................................................................................................ 22 
+               AMBIENTE DE HOMOLOGAÇÃO ............................................................................................................ 23 
+           DIAGRAMA DE ESTADO – FLUXO DO PROCESSAMENTO ..................................................................... 23 
+           CONSULTA/IMPRESSAO ........................................................................................................................ 23 
+           CÓDIGO DE BARRAS E EXPRESSÃO NUMÉRICA .................................................................................... 23          
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (4) Break----------------
+6 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+  INTRODUÇÃO 
+ 
+O  DARJ  é  o  Documento  de  Arrecadação  do  Estado  do  Rio  de  Janeiro  e  se  destina  à  arrecadação  de 
+tributos e de outras receitas devidas ao Estado do Rio de Janeiro.  
+ 
+FUNCIONALIDADES 
+ 
+ENVIAR DADOS 
+ 
+A funcionalidade “EnviarDados” deve ser utilizada para enviar itens de pagamento via arquivo xml a 
+serem processados 
+O preenchimento dos campos deverá seguir rigorosamente as informações abaixo (complementadas 
+pelos anexos I e II). 
+Quando um campo não pertencer a uma determinada natureza escolhida deverá ser enviado vazio, 
+caso contrário o débito será invalidado.  
+ 
+Dados de Entrada 
+ 
+Bloco Emitente: 
+ 
+Campo                                 Descrição                    Natureza             Domínio           Obrigatoriedade 
+CnpjEmitente                  CNPJ que iniciará a 
+sessão. 
+Numérico           14 dígitos               Obrigatório 
+Email                         E-mail que receberá 
+informações e resultados 
+do processamento. 
+Texto             xxx@xxx.xxx             Obrigatório 
+ 
+Bloco Documento: 
+ 
+Campo                                Descrição                     Natureza             Domínio           Obrigatoriedade 
+TipoDocumento            Tipo do documento a 
+ser emitido. 
+Numérico         Vide Anexo I             Obrigatório 
+TipoPagamento            Tipo do pagamento a 
+ser emitido. 
+Numérico         Vide Anexo I             Obrigatório 
+DataPagamento               Data de pagamento                 Data            DD/MM/AAAA       Obrigatório 
+Vide Anexo II 
+Obs: Pode haver vários documentos por emitente.  
+ 
+Bloco Item: 
+ 
+Campo                                 Descrição                      Natureza               Domínio         Obrigatorie
+dade 
+CepContribuinte                      CEP do contribuinte           Numérico              8 dígitos                 Vide Anexo II 
+Cnpj                                            CNPJ  do contribuinte        Numérico              14 dígitos              Vide Anexo II 
+CodigoProduto                         Código  do Produto            Numérico              Vide Anexo I         Vide Anexo II 
+Cpf                                              CPF do contribuinte           Numérico              11 dígitos              Vide Anexo II 
+DataFatoGerador                     Data  do Fato Gerador       Data                       DD/MM/AAAA     Vide Anexo II 
+DataVencimento                      Data  de vencimento          Data                       DD/MM/AAAA     Vide Anexo II 
+ 
+----------------Page (5) Break----------------
+7 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+DddContribuinte                     DDD do contribuinte         Numérico              Até 4 dígitos         Vide Anexo II 
+DiaVencimento                         Dia  do vencimento            Numérico              Vide Anexo I         Vide Anexo II 
+EnderecoContribuinte             Endereço  do 
+contribuinte  
+Texto                       Até 70 
+caracteres  
+Vide  Anexo  II 
+InformacoesComplementa
+res 
+Informações a serem 
+adicionadas  ao debito 
+Texto                     Até 255 
+caracteres 
+Opcional 
+InscEstadualRJ                         Inscrição estadual              Numérico              8 dígitos                Vide Anexo II 
+MunicipioContribuinte            Município  do 
+contribuinte  
+Texto                       Até 30 
+caracteres  
+Vide  Anexo  II 
+Natureza                                    Natureza                               Numérico               Vide  Anexo  I         Obrigatório  
+NaturezaQualificacao              Qualificação  da 
+natureza  
+Numérico               Vide  Anexo  I         Vide  Anexo  II 
+NomeRazaoSocial                    Nome  do contribuinte      Texto                      Até 70 
+caracteres 
+Vide Anexo II 
+NotaFiscalCnpj                          CNPJ  da nota fiscal            Numérico              14 dígitos              Vide Anexo II 
+NotaFiscalCpf                            CPF da nota fiscal               Numérico              11 dígitos              Vide Anexo II 
+NotaFiscalDataEmissao           Data  de emissão da 
+nota fiscal 
+Data                       DD/MM/AAAA     Vide Anexo II 
+NotaFiscalNumero                   Numero  da nota fiscal       Numérico              Até 10 dígitos       Vide Anexo II 
+NotaFiscalSerie                         Serie da Nota Fiscal           Numérico              Até 3 dígitos         Vide Anexo II 
+NotaFiscalTipo                          Tipo da Nota Fiscal            Texto                      Vide Anexo I         Vide Anexo II 
+NumControleContribuinte     Identificação  de cada 
+débito por sessão 
+Alfanumérico        Até 20 
+caracteres 
+Obrigatório 
+NumDocOrigem                      Numero do 
+documento de origem 
+Numérico              Até 20 dígitos       Vide Anexo II 
+Passaporte                                 Passaporte  do débito        Alfanumérico        Até 20 
+caracteres 
+Vide Anexo II 
+PeriodoReferenciaAno            Período  de referência 
+ano 
+Numérico              AAAA                      Vide Anexo  II 
+PeriodoReferenciaDecendi
+o 
+Período  referência 
+decêndio  
+Numérico               Vide  Anexo  I         Vide  Anexo  II 
+PeriodoReferenciaMes           Período  referência 
+mês 
+Numérico               MM                        Vide  Anexo  II 
+TelefoneContribuinte              Telefone do 
+contribuinte  
+Numérico               Até 10 dígitos       Vide Anexo II 
+TipoApuracao                           Tipo de apuração da 
+substituição  tributária 
+por responsabilidade   
+Numérico               Vide  Anexo  I         Vide  Anexo  II 
+TipoId                                         Identificador  do tipo 
+de documento 
+Numérico              Vide Anexo I         Obrigatório 
+TipoImportacao                       Tipo de importação           Texto                     Vide Anexo I         Vide Anexo II 
+TipoPeriodoApuracao             Tipo do período de 
+apuração 
+Texto                      Vide Anexo I         Vide Anexo II 
+UfContribuinte                         UF do contribuinte             Texto                      Até 2 caracteres   Vide Anexo II 
+ValorFECPPrincipal                  Valor  FECP                           Decimal                  Vide  Anexo  I         Vide  Anexo  II 
+ValorICMSPrincipal                  Valor  ICMS                          Decimal                  Vide  Anexo  I         Vide  Anexo  II 
+ValorTotal                                  Valor principal 
+somado  a mora  e 
+multa  
+Decimal                  Vide  Anexo  I         Vide  Anexo  II 
+----------------Page (6) Break----------------
+8 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+Obs: Pode haver vários itens por documento 
+ 
+Dados de Retorno: 
+ 
+Campo                          Descrição                           Natureza                       Domínio         Obrigatorie
+dade 
+IdSessao                         Identificador da 
+sessão iniciada. 
+Numérico                             Até 30 dígitos       Obrigatório 
+CNPJCPF                         CNPJ informado  para 
+iniciar a sessão. 
+Numérico                             14 dígitos              Obrigatório 
+Código do Retorno       Dados de retorno.          (vide Anexo I) Retorno: 
+Enviar Dados 
+Vide Anexo I         Obrigatório 
+MensagemRetorno      Mensagem de 
+Retorno 
+(vide Anexo I) Retorno: 
+Enviar Dados 
+Vide Anexo I 
+Retorno: Enviar 
+Dados 
+Obrigatório 
+DataRecebimento        Data de 
+recebimento  dos 
+dados.  
+Data                                       DD/mm/AAAA 
+Thh:mm:ss  
+Obrigatório  
+ 
+CONSULTAR DADOS  
+ 
+Pré -requisito: Acionar com sucesso a funcionalidade “Enviar Dados”. A funcionalidade “consultarDados” 
+poderá  ser  utilizada  para  obter  o  status  da  sessão,  lista  de  falhas  e  a  lista  de  códigos  de  barras  dos 
+documentos gerados. 
+ 
+Dados de Entrada: 
+ 
+Campo                             Descrição                Natureza              Domínio               Obrigatoriedade 
+CNPJ                     CNPJ informado para 
+iniciar a sessão. 
+Numérico            14 dígitos                   Obrigatório 
+idSessao               Identificador da 
+sessão iniciada. 
+Numérico         Até 30 dígitos               Obrigatório 
+ 
+Dados de Retorno: 
+ 
+Campo                      Descrição                   Natureza                    Domínio              Obrigatoriedade 
+IdSessao              Identificador da 
+sessão iniciada. 
+Numérico               Até 30 dígitos                Obrigatório 
+Status                      Status dos 
+débitos enviados. 
+Texto                     Processado 
+Não Processado. 
+Obrigatório 
+ListaFalha               Lista de Falhas.          (vide Anexo I)           Vide  Anexo  I                     Opcional  
+Retorno               Dados  de 
+retorno. 
+(vide Anexo I)             Vide  Anexo  I                 Obrigatório  
+DocsRetorno                    Lista de 
+Documentos.  
+(vide Anexo I) 
+DocsRetorno: 
+Consultar  Dados  
+Vide  Anexo  I 
+DocsRetorno: 
+Consultar  Dados  
+Vide  Anexo  II 
+DocsRetorno: 
+Consultar  Dados  
+ 
+----------------Page (7) Break----------------
+9 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+ANEXO I 
+ 
+DOMÍNIOS 
+ 
+1.  TIPODOCUMENTO 
+ 
+Valor                   Descrição 
+1                           DARJ 
+ 
+2.  TIPOPAGAMENTO 
+ 
+Valor                    Descrição 
+1                       ICMS/FECP 
+ 
+3.  DIAVENCIMENTO 
+ 
+Valor                                                                     Descrição 
+5                        “Dia Vencimento” igual a dia “5” do mês seguinte (Recolhimento 
+mensal) 
+10                                    1º decêndio (Recolhimento decendial antecipado) 
+15                                  “Dia Vencimento” igual  a dia  “15” do mês seguinte – 
+Complemento (Recolhimento decendial ou mensal) 
+20                                    2º decêndio (Recolhimento decendial antecipado) 
+28/29/30/31                           3º decêndio (Recolhimento decendial antecipado) 
+ 
+4.  NATUREZAS 
+ 
+4.1  DARJ 
+ 
+Valor                                                                       Descrição 
+1                                              Regime de confronto (débitos e créditos) 
+2                                 Substituição Tributária por Operação Própria - Apuração 
+Mensal 
+3                                                               Diferencial de alíquota 
+4                                           Substituição Tributária por Operação/Outros 
+5                                                                         Importação 
+6                                                                Regime de estimativa 
+7                                                               Outras (Fato Gerador) 
+56                                   ICMS  Cons  Final  não Contrib.  Outra  UF por Apuração 
+58                                   ICMS  Cons  Final  não  Contrib.  Outra  UF por Operação 
+61                                  Fundo Orçam Temp FOT/Fundo Estad Equil Fiscal FEEF 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (8) Break----------------
+10 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+5.  CODIGOPRODUTO 
+ 
+5.1  DARJ 
+ 
+•    Substituição Tributária por Operação Própria - Apuração Mensal. 
+•    ICMS Cons Final não Contrib. Outra UF por Apuração. 
+                 
+Valor                                                                              Descrição 
+108                                                                                 Bebidas  
+116                                               Cigarros  e Outros  Produtos  Derivados  do Fumo 
+124                                                                   Veículos  e Pneumáticos  
+132                                                   Medicamentos  e Produtos  Farmacêuticos  
+140                                        Peças,  Partes  e Acessórios  para  Veículos  Automotores  
+159                                                                    Material  de Construção 
+167                                                                     Produtos  Alimentícios  
+175                                                                                 Cimento  
+183                                                                         Tintas  e Vernizes  
+191                                                                       Venda  Porta  a Porta 
+205                                                            Material  de Limpeza Doméstica 
+396                                                                                  Outros  
+ 
+•    NATUREZA :   Substituição   Tributária   por   Operação/Outros    (Substituição   Tributária   por 
+Responsabilidade). 
+•    NATUREZA: ICMS Cons Final não Contrib. Outra UF por Operação. 
+  
+Valor                                                                               Descrição 
+400                                                                                   Bebidas  
+418                                                Cigarros  e Outros  Produtos  Derivados  do Fumo 
+426                                                                     Veículos  e Pneumáticos  
+434                                                     Medicamentos  e Produtos  Farmacêuticos  
+442                                         Peças,  Partes  e Acessórios  para  Veículos  Automotores  
+450                                                                     Material  de Construção 
+469                                                                      Produtos  Alimentícios  
+477                                                                                  Cimento  
+485                                                                           Tintas  e Vernizes  
+493                                                                        Venda  Porta  a Porta 
+507                                                              Material  de Limpeza Doméstica 
+698                                                                                   Outros  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (9) Break----------------
+11 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+6. NATUREZAQUALIFICACAO 
+ 
+REGIME DE CONFRONTO (DÉBITOS E CRÉDITOS) 
+ 
+6.1 DARJ 
+ 
+Valor                                             Descrição 
+1                                                  Normal 
+2                                                  Petróleo 
+3                                           Energia Elétrica 
+4                                            Comunicações 
+5                                               Transporte 
+ 
+7. TIPOAPURACAO 
+ 
+Valor                     Descrição                   Obrigatoriedade 
+1                       Por período                     Vide Anexo II 
+2                      Por  Operação                    Vide  Anexo  II 
+ 
+8. TIPOID  
+ 
+Valor                      Descrição                    Obrigatoriedade  
+1                              CNPJ                           Vide  Anexo  II 
+2                               CPF                            Vide  Anexo  II 
+3                        Passaporte                       Vide  Anexo  II 
+ 
+9. NOTAFISCALTIPO  
+ 
+Valor                      Descrição                      Obrigatoriedade  
+M                          Manual                           Vide  Anexo  II 
+PD                Processamento  de 
+Dados 
+Vide Anexo II 
+NF-e            Nota Fiscal Eletrônica             Vide Anexo II 
+ 
+10. PERIODOREFERENCIADECENDIO 
+ 
+•    NATUREZA: Substituição Tributária Operação Própria - Apuração Mensal 
+ 
+Valor                       Descrição                  Obrigatoriedade 
+1                         1º Decêndio                   Vide Anexo II 
+2                         2º Decêndio                   Vide Anexo II 
+3                         3º Decêndio                   Vide Anexo II 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (10) Break----------------
+12 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+11. TIPOPERIODOAPURACAO 
+ 
+Valor                        Descrição                  Obrigatoriedade 
+D                           Decendial                     Vide Anexo II 
+M                             Mensal                         Vide  Anexo  II 
+ 
+12. TIPOIMPORTACAO 
+ 
+•    NATUREZA: Importação 
+ 
+Valor                        Descrição                   Obrigatoriedade 
+1                       Importação DI                   Obrigatório*  
+2                       Importação  DSI                  Obrigatório*  
+3                     Importação  AWB                 Obrigatório*  
+*Obrigatório informar ao menos uma das opções       
+ 
+13. VALORES 
+ 
+Campo                                       Formato                                          Obrigatoriedade 
+ValorICMSPrincipal                  9999999999999.99                                    Vide Anexo II 
+ValorICMSMora                                   IDEM                                                     opcional  
+ValorICMSMulta                                  IDEM                                                     opcional  
+ValorFECPPrincipal                                IDEM                                                Vide  Anexo  II 
+ValorFECPMora                                   IDEM                                                     opcional  
+ValorFECPMulta                                  IDEM                                                     opcional  
+ValorTotal                                        IDEM                                                Vide  Anexo  II 
+ 
+RETORNOS  
+ 
+RETORNO: ENVIAR DADOS   
+ 
+CodigoRetorno                                                               MensagemRetorno  
+1                                                                  ID SESSAO NAO PREENCHIDO 
+2                                  CNPJ E CPF NAO PODEM SER PREENCHIDOS AO MESMO TEMPO 
+3                                                     NATUREZA NAO PODE SER VAZIA OU ZERO 
+4                                                                VALOR ICMS E OU VALOR FECP 
+NAO PODE SER MENOR OU IGUAL A ZERO 
+5                  DADOS NOTA FISCAL E IMPORTACAO NÃO PODEM SER PREENCHIDOS AO MESMO 
+TEMPO 
+6                                         PERIODO REFERENCIA DEVE SER MAIOR QUE 01-02-1989 
+7                                                                 DATA VENCIMENTO INVALIDA 
+8                                                                 DATA PAGAMENTO INVALIDA 
+9                                                               DATA FATO GERADOR INVALIDA 
+10                                                        DATA  EMISSAO  NOTA FISCAL INVALIDA 
+11                                                                      SESSAO  JA FINALIZADA 
+12                                                                        SESSAO  INEXISTENTE  
+14                                                     SESSAO  AGUARDANDO  PROCESSAMENTO  
+18                                                                TIPO  DOCUMENTO  INVALIDO  
+----------------Page (11) Break----------------
+13 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+19                                                                            EMAIL  INVALIDO  
+20                                                                   A SESSAO  FOI INVALIDADA 
+21                                                                    EMAIL  NAO  PREENCHIDO  
+22                                                        DATA  VENCIMENTO  NAO PREENCHIDA  
+23                                                            IDENTIFICADOR  NAO PREENCHIDO  
+24                                                                 GERA  PDF NAO PREENCHIDO 
+25                                                                     CNPJ  NAO PREENCHIDO  
+26                                                                      CPF NAO PREENCHIDO 
+27                                                                    EMAIL  NAO  PREENCHIDO  
+28                                                                 TIPO  PAGAMENTO  INVALIDO  
+29                                                               TIPO  IDENTIFICADOR  INVALIDO  
+30                                                              PASSAPORTE  NAO INFORMADO  
+31                                                      CODIGO  DO PRODUTO NAO INFORMADO 
+32                                                  ENDERECO  CONTRIBUINTE  NAO INFORMADO  
+33                                                  MUNICIPIO  CONTRIBUINTE  NAO INFORMADO  
+34                                                         UF CONTRIBUINTE NAO INFORMADO 
+35                                               QUALIFICACAO  DA NATUREZA NAO INFORMADO 
+36                                                             RAZAO  SOCIAL  NAO INFORMADO  
+37                  DADOS  NOTA  FISCAL  DE CNPJ E CPF NAO PODEM SER PREENCHIDOS AO MESMO 
+TEMPO. 
+38                                                 CPF OU CNPJ NOTA FISCAL NAO INFORMADOS 
+39                                          DATA  DE EMISSAO DA NOTA FISCAL NAO INFORMADO 
+40                                                  DATA  DE EMISSAO DA NOTA FISCAL INVALIDA 
+41                                                     NUMERO  NOTA  FISCAL  NAO PREENCHIDO  
+42                                                         SERIE  NOTA  FISCAL  NAO PREENCHIDO  
+43                                                         TIPO  NOTA  FISCAL  NAO PREENCHIDO  
+44                                                         TIPO  IMPORTACAO  NAO PREENCHIDO  
+45                                                                TIPO  IMPORTACAO  INVALIDO  
+46                                      NUMERO  DO DOCUMENTO DE ORIGEM NAO INFORMADO 
+47                                    NUMERO  DE CONTROLE DO CONRIBUINTE NAO INFORMADO 
+48                                                        TIPO  DE APURACAO NAO INFORMADO 
+49                                                                TIPO  DE APURACAO INVALIDO 
+50                                                  TIPO  PERIODO  APURACAO  NAO INFORMADO  
+51                                                          TIPO  PERIODO  APURACAO  INVALIDO  
+52                                            PERIODO  REFERENCIA  DECENDIO  NAO  INFORMADO  
+53                                                          DIA VENCIMENTO  NAO INFORMADO  
+54                   PERIODO  REFERENCIA  TEM  QUE SER  A PARTIR  DE 2016 PARA AS NATUREZAS 56 
+55                                                                 FALHA_AO_INSERIR_DADOS  
+57                                                  NUMERO  DO PRECATORIO NAO INFORMADO 
+58                          VALOR  BASE  DO PRECATORIO NAO PODE SER MENOR OU IGUAL A ZERO 
+59                           VALOR  IRRF  DO PRECATORIO NAO PODE SER MENOR OU IGUAL A ZERO 
+60                                                                          DADOS  INVÁLIDOS  
+61                                            NUMERO  DA GUIA DE CONTROLE NAO INFORMADO 
+62                                            NUMERO  DO AUTO DE INFRACAO NAO INFORMADO 
+63                                                          NUMERO  DO RQP NAO INFORMADO 
+64                                                                  DATA  DE CIENCIA INVALIDA 
+65                                                      NUMERO  DA PARCELA NAO INFORMADO 
+67                                                      INSCRICAO  ESTADUAL  NAO INFORMADA  
+68                                                              DATA  DE REFERENCIA INVALIDA 
+----------------Page (12) Break----------------
+14 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+69                                                                        NATUREZA  INVALIDA  
+70                                                        MES DE REFERENCIA NAO INFORMADO 
+71                                                               MES DE REFERENCIA INVALIDO 
+72                                                       ANO DE REFERENCIA NAO INFORMADO 
+73                                                               ANO DE REFERENCIA INVALIDO 
+74                                                              RAIZ  DE CNPJ NAO INFORMADA 
+75                                                                      RAIZ  DE CNPJ INVALIDA 
+76                                                         TIPO  PAGAMENTO  NAO INFORMADO  
+77                                                         TIPO  DOCUMENTO  NAO INFORMADO  
+78                                                                NATUREZA  NAO INFORMADA  
+79                                                      DATA  FATO  GERADOR  NAO INFORMADA  
+80                                              DESCRICAO  OUTRAS  DESPESAS  NAO INFORMADO  
+81                                                 NUMERO  DO DOCUMENTO NAO INFORMADO 
+82                                                         NUMERO  DO DOCUMENTO INVALIDO 
+83                                                         ISENCAO  DE FRETE NAO INFORMADO 
+84                                                                 ISENCAO  DE FRETE INVALIDO 
+85                                                       TIPO  DE ADICIONAL DE FRETE INVALIDO 
+86                       INFORME  DARJ  em ARQUIVOS XML SEPARADOS POR TIPO DE DOCUMENTO 
+88                   Para  DARJ,  informe  o codigo  de NATUREZA(56)-Consumidor Final...Outra UF por 
+Apuracao, ou o codigo (58) para ...por Operacao  
+89                          CNPJ  DO EMITENTE NAO AUTORIZADO PARA EMISSAO DE DOCUMENTO 
+90                        A raiz  do campo CNPJ do débito, não corresponde a raiz do CNPJ da sessão 
+99                                         Número  de telefone não pode ter mais do que 9 dígitos 
+135                                          Inscrição  estadual  inválida  para  CPF/CNPJ  informado.  
+136                                       Não existe  uma inscrição  estadual  para  esse  cpf  ou cnpj. 
+144              CNPJ/CPF  não está  associado  com nenhuma  Inscrição  Estadual  e os campos 
+obrigatórios não foram preenchidos. 
+145              CNPJ/CPF  não está  associado  com nenhuma  Inscrição  Estadual  e a Inscrição  Estadual 
+foi preenchida.   
+156                     Há mais de uma \\\"Inscrição Estadual\\\" ATIVA para o CNPJ/CPF informado 
+ 
+RETORNO: CONSULTAR DADOS 
+ 
+CodigoRetorno                                  MensagemRetorno 
+0                                                        SUCESSO 
+1                                      ID SESSAO NAO PREENCHIDO 
+12                                            SESSAO  INEXISTENTE  
+13                                        SESSAO  NAO FINALIZADA  
+15                                    SESSAO  EM PROCESSAMENTO 
+16                                                 CNPJ  INVALIDO  
+17                                                  CPF INVALIDO 
+ 
+LISTAFALHA: CONSULTAR DADOS 
+ 
+CoErro                                                      DescricaoErro                                                    NuIdentificador 
+1                     [item] Natureza "? - ? " não permitida para geração de 
+documento de arrecadação via WebService.  
+Identificador do 
+débito 
+2                          [item] Campo "?" obrigatório para natureza "? - ? ".                   Identificador  do 
+débito 
+3                     [item] "Verificar se o código do produto (\"?\") e ́  vAlido"              Identificador do 
+----------------Page (13) Break----------------
+15 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+débito 
+4                  [item] Código da qualificação de receita informado ("?") é 
+inválido. 
+Identificador do 
+débito 
+5            [item] Decêndio inválido. Valor informado "?", valores válidos 1, 
+2 ou 3. 
+Identificador do 
+débito 
+6              [item] Tipo de período de referência inválido. Valor informado 
+"?". Valores válidos "M - Mensal" e "D - Decendial". 
+Identificador do 
+débito 
+7               [item] Tipo de nota fiscal inválido. Valor informado "?". Valores 
+válidos "M - Manual", "PD - Processamento de Dados" e "NF-e - 
+Nota Fiscal Eletrônica". 
+Identificador do 
+débito 
+8                            [item] CNPJ do contribuinte informado é inválido.                     Identificador do 
+débito 
+9                             [item] CPF do contribuinte informado é inválido.                      Identificador do 
+débito 
+10               [item]  Inscrição  Estadual  do contribuinte informada é inválida.         Identificador do 
+débito 
+11                         [item]  CNPJ  informado  para  a nota  fiscal  é inválido.                    Identificador  do 
+débito 
+12                           [item]  CPF informado para a nota fiscal é inválido.                    Identificador do 
+débito 
+13                  [item]  "Verifique  se o perIodo de referencia e' valido. Valor 
+informado \"?\". Os valores permitidos estAo entre 1 e 12." 
+Identificador do 
+débito 
+15                   [item]  Os campos CNPJ e CPF da nota fiscal não podem ser 
+informados ao mesmo tempo. 
+Identificador do 
+débito 
+16           *item+  “Valor de Mora" do ICMS informado, entretanto, o "Valor 
+do ICMS" não foi informado. 
+Identificador do 
+débito 
+17           *item+  “Valor de Mora" do FECP informado, entretanto, o "Valor 
+do FECP" não foi informado. 
+Identificador do 
+débito 
+18                                            [item]  "Lista  de débitos vazia."                                      Identificador do 
+débito 
+19                                             [item]  Campo  "?" obrigatório.                                        Identificador  do 
+débito 
+20              [item]  Falha  inesperada  na validação do débito. Mensagem: "?".        Identificador do 
+débito 
+21                          [item]  Natureza  com o código  "?" não  encontrada.                     Identificador  do 
+débito 
+22              [item]  Campo  "?"  não deve  ser informado  para  a natureza  "? - ?        Identificador do 
+débito 
+23                [item]  Período  de referência informado inválido. O período de 
+referência para ICMS deve ser maior que 02/1989. 
+Identificador do 
+débito 
+24           [item]  Período  de referência inválido. O período de referência para 
+FECP deve ser maior que 12/2002. 
+Identificador do 
+débito 
+25             [item]  As informações de "Nota Fiscal" e "Período de Referência" 
+não podem ser informadas ao mesmo tempo para a natureza "? - 
+? ". 
+Identificador  do 
+débito 
+26            [item]  Valor  informado  para  o campo  "?" inválido.  Valor esperado: 
+"?".  
+Identificador  do 
+débito 
+27                                 [item]  Número  da DI informado é inválido.                           Identificador do 
+débito 
+28                                [item]  Número  da DSI informado é inválido.                          Identificador do 
+débito 
+30                             [item]  Não foram  encontradas  falhas  no item.*                       Identificador do 
+débito 
+31                         *item+ Para a natureza “Substituição Tributária por Identificador  do 
+----------------Page (14) Break----------------
+16 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+Operação/Outros” deve-se informar “TipoApuracao”.                          débito 
+32             [item]  Para  período  de referência do tipo "M - Mensal" não deve 
+ser informado o campo "?". 
+Identificador do 
+débito 
+33                                      [item]  Tipo da importação incorreto.                                Identificador do 
+débito 
+34                [item]  Inscrição  estadual  para  esse  débito  já existe na base de 
+dados. Dados trocados pelos dados na base.* 
+Identificador do 
+débito 
+35                  [item]  Inscrição  estadual  inválida  para  CPF/CNPJ  informado.             Identificador  do 
+débito 
+36              [item]  Não existe  uma inscrição  estadual  para  esse  CPF ou CNPJ.        Identificador do 
+débito 
+37            [item]  O Identificador  do débito não foi preenchido corretamente.      Identificador do 
+débito 
+38                    [item]  O Tipo de Documento não corresponde a Natureza 
+informada. 
+Identificador do 
+débito 
+39            [item]  A raiz  do campo CNPJ do débito, não corresponde a raiz do 
+CNPJ da sessão. 
+Identificador do 
+débito 
+40                          [item]  Campo  inválido  para  a natureza  preenchida.                     Identificador  do 
+débito 
+41                 [item]  CPF da sessão não corresponde com o CPF do débito.           Identificador do 
+débito 
+43                 [item]  Ocorreu  um erro ao recuperar o(s) débito(s) para essa 
+sessão. 
+Identificador do 
+débito 
+44                 [item]  CNPJ/CPF  não está  associado  com nenhuma  Inscrição 
+Estadual e os campos obrigatórios não foram preenchidos.       
+Identificador  do 
+débito 
+45                [item]  CNPJ/CPF  não está  associado  com nenhuma  a Inscrição 
+Estadual e a Inscrição Estadual foi     preenchida.  
+Identificador  do 
+débito 
+46                [item]  Data  de Pagamento não pode ser anterior à data atual.          Identificador do 
+débito 
+47            [item]  Data  de pagamento não deve ser maior que 30 dias da data 
+atual. 
+Identificador do 
+débito 
+48              [item]  Não existe  UFIR -RJ ou taxa SELIC cadastrada para Data de 
+Pagamento informada. 
+Identificador do 
+débito 
+49                         [item]  A data  de pagamento deve ser um dia útil.**                   Identificador do 
+débito 
+50                                       [item]  Data  de pagamento inválido.                                 Identificador do 
+débito 
+51                    [item]  Valor  total  não bate  com os valores de ICMS/FECP 
+informados. 
+Identificador do 
+débito 
+54                 [item]  "Para  TipoApuracao  \"Por  Período \" deve -se informar 
+\"PeriodoReferenciaTipo\"." 
+Identificador do 
+débito 
+55               [item]  "Para  TipoApuracao  \"Por  Operação \" deve -se fornecer 
+informações de \"Nota Fiscal\"." 
+Identificador do 
+débito 
+56                 [item],  "Há mais  de uma \"Inscrição Estadual\" ATIVA para o 
+CNPJ/CPF informado." 
+Identificador do 
+débito 
+57              [item],  "Data  de Emissao da Nota Fiscal nAo pode ser maior que 
+data atual." 
+Identificador do 
+débito 
+156          [item],  "Período  de referência 'mm/aaaa' deve ser maior ou igual a 
+'01/2016' " 
+Identificador do 
+débito 
+158                [item]  ), "Data de emissão da Nota Fiscal deve ser maior que 
+'01/2016' " 
+Identificador do 
+débito 
+159               [item]  ),, "Mês  de referência deve ser igual ao mês corrente "          Identificador do 
+débito 
+* Considerar apenas como informativo. 
+** Dia útil é todo aquele que não seja sábado, domingo ou feriado nacional.  
+----------------Page (15) Break----------------
+17 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+Obs: “Para os itens que estão com “?” significa que será preenchido pelo campo/valor que está 
+incorreto. 
+ 
+DOCSRETORNO: CONSULTAR DADOS 
+ 
+Campo                            Descrição                       Natureza                Domínio         Obrigatoriedade 
+NossoNumeroSEFAZ           Numero SEFAZ.                 Numérico              25 dígitos             Obrigatório 
+ListaCodigoBarra           Código de barra.                  Numérico              44 dígitos             Obrigatório 
+TxId                          Código do TxId              Alfanumérico        30 caracteres          Obrigatório 
+PixCopiaCola          Código Pix Copia e Cola       Alfanumérico       200 caracteres         Obrigatório 
+ItensRetorno                      Código do 
+retorno  do  item.  
+Numérico            (vide  Anexo  I)          Obrigatório  
+ 
+ITENSRETORNO:   CONSULTAR DADOS   
+ 
+Campo                             Descrição                Natureza                  Domínio            Obrigatoriedade  
+NumControleContribuinte          Número  de 
+controle do 
+contribuinte. 
+Alfanumérico      Até 20 caracteres        Obrigatório 
+PrincipalRetorno                   Dados do 
+Contribuinte. 
+Vide Anexo I           Vide Anexo I              Opcional 
+Retorno                         Código do 
+retorno do 
+item. 
+Vide Anexo I           Vide Anexo I            Obrigatório 
+ValorICMSPrincipal          Valor principal do 
+ICMS. 
+Numérico             Vide Anexo I          Vide Anexo II 
+ValorICMSMora              Valor  da mora do 
+ICMS. 
+Numérico             Vide Anexo I              Opcional 
+ValorICMSMulta            Valor da multa do 
+ICMS. 
+Numérico             Vide Anexo I              Opcional 
+ValorICMSTotal                 Valor total do 
+ICMS. 
+Numérico             Vide Anexo I          Vide Anexo II 
+ValorFECPPrincipal           Valor  principal  do 
+FECP.  
+Numérico              Vide  Anexo  I           Vide  Anexo  II 
+ValorFECPMora               Valor  da mora do 
+FECP. 
+Numérico             Vide Anexo I              Opcional 
+ValorFECPMulta             Valor da multa do 
+FECP. 
+Numérico             Vide Anexo I              Opcional 
+ValorFECPTotal                 Valor total do 
+FECP. 
+Numérico             Vide Anexo I              Opcional 
+ValorTotal                        Valor total.             Numérico             Vide Anexo I          Vide Anexo II 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (16) Break----------------
+18 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+ 
+PRINCIPALRETORNO: CONSULTAR DADOS 
+ 
+Campo                                 Descrição            Natureza          Domínio         Obrigatoriedade 
+CnpjContribuintePrincipal                  CNPJ do 
+contribuinte 
+principal.  
+Numérico       Até 14 dígitos         Obrigatório 
+RazaoSocialContribuintePrincipal     Razão social do 
+contribuinte 
+principal.  
+Texto                 Até 70 
+caracteres 
+Obrigatório 
+EnderecoContribuintePrincipal         Endereço do 
+contribuinte 
+principal.  
+Texto                 Até 70 
+caracteres 
+Obrigatório 
+MunicipioContribuintePrincipal        Município do 
+contribuinte 
+principal.  
+Texto                 Até30  
+caracteres  
+Obrigatório  
+UFContribuintePrincipal                      UF do 
+contribuinte 
+principal.  
+Texto                  Até 2 
+caracteres  
+Obrigatório  
+CepContribuintePrincipal                    CEP  do 
+contribuinte 
+principal.  
+Numérico        Até 8 dígitos            Obrigatório  
+DDDContribuintePrincipal                   DDD do 
+contribuinte  
+principal.  
+Numérico        Até 4 dígitos              Opcional  
+TelefoneContribuintePrincipal            Telefone do 
+contribuinte  
+principal.  
+Numérico       Até 10 dígitos            Opcional 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (17) Break----------------
+19 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+ 
+ANEXO II 
+ 
+  1. OBRIGATORIEDADE DOS CAMPOS 
+ 
+Os  campos  não  obrigatórios  não  devem  ser  inseridos  na  <TAG>  do  XML  e  não  podem  ter  seu 
+conteúdo preenchido com zero. 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+Cnpj                                         CNPJ do débito                                    Obrigatório* 
+Cpf                                           CPF do débito                                     Obrigatório* 
+                *  Obrigatório  preencher  somente  um  dos  campos,  ou  seja,  se  preencher  o  campo  CNPJ,  o  campo  CPF  não   
+pode ser preenchido ou se preencher o campo CPF o campo CNPJ não pode ser preenchido.   
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+ValorICMS                                       Valor ICMS                                        Obrigatório* 
+ValorFECP                                        Valor FECP                                        Obrigatório* 
+ValorICMSTotal                           Valor Total do ICMS                       Obrigatório caso tenha 
+Valores de ICMS Preenchido 
+ValorICMSTotal                           Valor Total do FECP             Obrigatório caso tenha Valores de 
+FECP 
+Preenchido 
+                *Obrigatório preencher pelo menos um dos campos, com um valor diferente de zero. 
+*Para as naturezas 56 (ICMS Cons Final não Contrib. Outra UF por Apuração), 58 (ICMS Cons Final não Contrib.   
+Outra UF por Operação) e 61 (Fundo Orçam Temp FOT/Fundo   Estad Equil Fiscal FEEF), o campo Valor FECP 
+não deve ser preenchido. 
+                          
+Campo                                           Descrição                                     Obrigatoriedade 
+Natureza                                 Natureza do débito                                Obrigatório* 
+                 * Obrigatório, não pode ser vazio e nem 0(zero). 
+ 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+CodigoProduto                            Código do Produto                                 Obrigatório* 
+                 * Obrigatório, para as naturezas:  2,4,56,58  (Vide Anexo I) 
+ 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+NaturezaQualificacao                            Qualificação                                      Obrigatório* 
+                 * Obrigatório, para as natureza = 1 Regime de confronto (débitos e créditos) 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+----------------Page (18) Break----------------
+20 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+                                       
+Campo                                           Descrição                                     Obrigatoriedade 
+InscEstadual                               Inscrição estadual                                    Opcional* 
+NomeRazaoSocial                     Nome da razão social do 
+débito 
+Opcional* 
+Endereco                           Endereço do contribuinte                             Opcional* 
+DddContribuinte                         DDD do contribuinte                                  Opcional 
+TelefoneContribuinte                 Telefone do contribuinte                               Opcional 
+CepContribuinte                          CEP do contribuinte                                  Opcional* 
+MunicipioContribuinte               Município do contribuinte                            Opcional* 
+UfContribuinte                             Uf do contribuinte                                   Opcional* 
+DiaVencimento                            Dia do vencimento                                  Opcional** 
+ *  Se  o  CNPJ/CPF  NÃO  estiver  associado  a  pelo  menos  uma  Inscrição  Estadual,  será  obrigatório  deixar  o  campo 
+InscEstadual    vazio    e    será    obrigatório    o    preenchimento    dos    campos:    NomeRazaoSocial,    Endereco, 
+CepContribuinte, MunicipioContribuinte e UfContribuinte.  
+  •  Se a Inscrição Estadual for preenchida e não estiver associada ao CNPJ /CPF o item será considerado inválido. 
+  •  Se houver mais de uma Inscrição Estadual associada ao CPF/ CNPJ, o campo InscEstadual será obrigatório. 
+  •             Se o CNPJ/CPF estiver associado a pelo menos uma Inscrição Estadual todos os campos preenchidos, com 
+exceção do campo InscEstadual, serão descartados e serão utilizadas as informações do cadastro. 
+  ** Obrigatório para natureza “1” Regime de apuração (débitos e créditos) quando o contribuinte esteja submetido 
+pela SEFAZ-RJ a regime especial de recolhimento antecipado do ICMS (mensal/decendial). 
+                                         
+Campo                                           Descrição                                     Obrigatoriedade 
+DataVencimento                         Data de vencimento                               Obrigatório * 
+DataPagamento                          Data de pagamento                                 Obrigatório 
+         * Caso a Data de Vencimento não seja informada, será utilizado o mesmo valor da Data de Pagamento. 
+ ** Data de Pagamento não pode ser anterior ou ser maior que 30 dias à data atual e deve ser um dia útil. 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+Passaporte                              Passaporte  do débito                              Obrigatório* 
+TipoApuracao                              Tipo de apuração                                 Obrigatório** 
+*Obrigatório para TipoId=3 
+**Obrigatório para Natureza 4,56 e 58 (Tipo Apuração = 1) 
+ 
+1.1  NATUREZA:  REGIME DE CONFRONTO (DÉBITOS E CRÉDITOS)     
+ 
+Campo                                             Descrição                                      Obrigatoriedade  
+QualificacaoNatureza                  Qualificação  da natureza                            Obrigatório 
+PeriodoReferenciaMes                 Período referência mês                              Obrigatório  
+PeriodoReferenciaAno                Período  de referência ano                           Obrigatório 
+ 
+1.2  NATUREZAS:  ICMS  SUBST.TRIBUT.  OPER.  INTER.  E  ICMS  CONS.  FINAL  NÃO  CONTRIB. 
+OUTRA UF 
+ 
+•    NATUREZA: ICMS Substituição Tributária Oper. Interestadual Apuração Mensal (Substituição 
+Tributária por Oper. Própria) 
+•    NATUREZA: ICMS Cons Final não Contrib. Outra UF por Apuração 
+ 
+ 
+ 
+ 
+----------------Page (19) Break----------------
+21 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+CodigoProduto                             Produto do débito                                  Obrigatório 
+PeriodoReferenciaMes                 Período referência mês                              Obrigatório  
+PeriodoReferenciaAno                Período  de referência ano                           Obrigatório 
+ 
+1.3  NATUREZA: DIFERENCIAL DE ALÍQUOTA 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+PeriodoReferenciaMes                 Período referência mês                              Obrigatório  
+PeriodoReferenciaAno                Período  de referência ano                           Obrigatório 
+ 
+1.4  NATUREZAS: SUBST. TRIBUT. E ICMS CONS. FINAL POR OPERAÇÃO  
+ 
+•    NATUREZA: Substituição Tributária por Operação/Outros (Por Operação / Mensal).  
+•    NATUREZA: ICMS Consumidor Final não Contribuinte. Outra UF por Operação.  
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+CodigoProduto                             Produto do débito                                  Obrigatório 
+NotaFiscalCnpj                            CNPJ da nota fiscal                                 Obrigatório* 
+NotaFiscalCpf                               CPF da nota fiscal                                  Obrigatório* 
+NotaFiscalDataEmissao                Data de emissão da nota 
+fiscal 
+Obrigatório 
+NotaFiscalNumero                      Numero da nota fiscal                               Obrigatório 
+NotaFiscalSerie                           Serie da Nota Fiscal                                   Opcional 
+NotaFiscalTipo                            Tipo da Nota Fiscal                                  Obrigatório 
+ * O campo NotaFiscalCnpj é obrigatório quando o campo NotaFiscalCpf não é preenchido e vice - versa. 
+ 
+1.5  NATUREZA: SUBST. TRIBUTÁRIA POR OPERAÇÃO/OUTROS (POR PERÍODO/DECÊNDIO) 
+               
+Campo                                                Descrição                                   Obrigatoriedade 
+CodigoProduto                                 Produto do débito                                Obrigatório 
+PeriodoReferenciaTipo                      Período referência tipo                           Obrigatório* 
+PeriodoReferenciaMes                      Período referência mês                          Obrigatório**  
+PeriodoReferenciaAno                     Período  de referência ano                       Obrigatório** 
+PeriodoReferenciaDecendio             Período referência decêndio                       Opcional** 
+               * Deve-se preencher o período de referência escolhida. 
+                  *. A data do Período de Referencia deverá ser superior a 01/02/1989.  
+                  ** Caso PeriodoReferenciaTipo seja decendial, PeridoReferenciaDecendio será obrigatório.
+ 
+ 
+               1.6  NATUREZA: IMPORTAÇÃO 
+                 
+Campo                                                  Descrição                                     Obrigatoriedade 
+TipoImportacao                                  Tipo de importação                                 Obrigatório 
+NumDocOrigem                    Numero do documento de origem                    Obrigatório 
+ 
+ 
+ 
+ 
+ 
+----------------Page (20) Break----------------
+22 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+ 
+  1.7  NATUREZA: REGIME DE ESTIMATIVA 
+ 
+Campo                                                  Descrição                                      Obrigatoriedade 
+PeriodoReferenciaMes                        Período referência mês                               Obrigatório  
+PeriodoReferenciaAno                       Período  de referência ano                            Obrigatório 
+ 
+             1.8  NATUREZA: FUNDO ORÇAM. TEMPORÁRIO FOT/FUNDO ESTAD. EQUIL. FISCAL FEEF 
+ 
+Campo                                           Descrição                                     Obrigatoriedade 
+PeriodoReferenciaMes                 Período referência mês                              Obrigatório 
+PeriodoReferenciaAno               Período de referência ano                           Obrigatório 
+ 
+             1.9  FATO GERADOR 
+                
+Campo                                           Descrição                                     Obrigatoriedade 
+DataFatoGerador                        Data do Fato Gerador                             Obrigatório * 
+ 
+   1.10  TIPOPERIODOAPURACAO 
+                
+Valor                       Descrição                                                       Obrigatoriedade 
+D                           Decendial                                                          Obrigatório * 
+M                             Mensal                                                            Obrigatório * 
+ 
+            2.  BOAS PRÁTICAS DE PREENCHIMENTO 
+ 
+              A  especificação  do  documento  XML  adotada  é  a  recomendação  W3C  para  XML  1.0,  disponível  em 
+www.w3.org/TR/REC-xml e a codificação dos caracteres é UTF  -8. Além disso, é recomendável seguir 
+as orientações que estão presentes no documento que pode ser feito o d    ownload por meio do link: 
+https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=ndIjl+iEFdE=   e    clicar   no 
+primeiro link: 
+  
+ 
+----------------Page (21) Break----------------
+23 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+ 
+               
+   AMBIENTE DE HOMOLOGAÇÃO 
+ 
+Ambiente de Testes para realização do upload dos xml na url    abaixo: https://gct-portal-pagamentos- 
+beta.fazenda.rj.gov.br/portaldepagamentos/br/gov/rj/sef/gct/webservice/GerarDocumentoArrecadac
+aoW S.jws?WSDL 
+ 
+   DIAGRAMA DE ESTADO: FLUXO DE PROCESSAMENTO 
+ 
+O  diagrama  abaixo  representa  o  fluxo  do  envio  do  arquivo  xml  (lote)  até  o  retorno  da  consulta  da 
+sessão.  Após  o  envio  do  xml  o  usuário/sistema  recebe  o  status  “RECEBIDO  COM  SUCESSO.  EM 
+PROCESSAMENTO” no caso de sucesso, poderá consultar a sessão obtendo  o retorno “SESSAO  EM 
+PROCESSAMENTO” (aguardar alguns minutos) ou “SUCESSO” com o envio da lista do Código de Barras 
+em seguida. 
+              
+ 
+ 
+  CONSULTA/IMPRESSÃO 
+      
+O  arquivo  RETORNO  contém  os  Códigos  de  Barras  de  cada  guia  de  recolhimento transmitida  que 
+possibilitam  ao  usuário  efetuar  seu  pagamento  e  consulta  ou  impressão  pelo  site  da  SEFAZ-RJ.  A 
+consulta ou impressão deve ser efetuada pelos menus a seguir:  
+ 
+www.fazenda.rj.gov.br 
+ 
+> Acesso Rápido > DARJ e GNRE > DARJ > Reimprimir DARJ > Reimprimir DARJ  
+ 
+  CÓDIGO DE BARRAS E EXPRESSÃO NUMÉRICA 
+ 
+O  Código  de  Barras  e  a  Expressão  Numérica  do  código  de  barras  possuem  conteúdos  diferentes  e 
+devem ser utilizados de forma distinta: 
+ 
+a)           Código de barras: apresenta 44 algarismos deve ser lido apenas por LEITURA ÓTICA. 
+----------------Page (22) Break----------------
+24 
+Órgão responsável: SUBTIC/SUTIC 
+E-mail para contato: 
+sac.darj@fazenda.rj.gov.br
+.br 
+ 
+ 
+ 
+b)           Expressão numérica: possui 48 algarismos e deve ser digitada sempre que não for possível a 
+leitura ótica do código de barras. 
+ 
+A Expressão Numérica é  apresentada em quatro blocos de 11 algarismos para facilitar sua digitação, 
+com um algarismo a mais ao final de cada bloco (dígitos de auto conferência).  
+ 
+O webservice da SEFAZ -RJ foi desenvolvido para usuários de officebanking que permite o upload do 
+código de barras com 44 caracteres. Caso o sistema do banco do usuário não disponibilize esta opção 
+de upload, o conteúdo do código de barras somente será validado por meio de leitura ótica das barras 
+do documento de arrecadação. 
+ 
+O  usuário  poderá  implementar  em  seu  sistema  rotina  de  calculo  do  dígito  verificador  dos  blocos 
+numéricos do código de barras de modo a contornar o problema.  
+ 
+A fórmula de cálculo dos dígitos de auto -conferência (DAC) da representação numérica do código de 
+barras do documento de arrecadação consta no item 7 do Manual de Utilização do Código de Barras  
+(versão 5) da Febraban. 
+ 
+Oportunamente, a SEFAZ-RJ disponibilizará uma nova versão do webservice que retornará ao usuário 
+sequencial  com  44  posições,  para  geração  das  barras  e  outro  sequencial  com  48  posições,  para 
+impressão de sua expressão numérica.
+----------------Page (23) Break----------------
