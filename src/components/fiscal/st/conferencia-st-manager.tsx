@@ -289,25 +289,25 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
             <div className="flex items-center gap-4 text-xs font-medium mt-2">
                <button 
                   onClick={() => toggleStatusFiltro('Todos')}
-                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Todos' ? 'text-indigo-600 font-bold' : 'text-slate-500'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Todos' ? 'text-indigo-600 font-bold' : 'text-slate-700'}`}
                >
                   <div className={`w-3 h-3 rounded-full ${filtroStatus === 'Todos' ? 'bg-indigo-600' : 'bg-slate-300'}`}></div>Todos
                </button>
                <button 
                   onClick={() => toggleStatusFiltro('Com Valor a Recolher')}
-                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Com Valor a Recolher' ? 'text-amber-600 font-bold' : 'text-slate-500'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Com Valor a Recolher' ? 'text-amber-600 font-bold' : 'text-slate-700'}`}
                >
                   <div className="w-3 h-3 rounded-full bg-amber-400"></div>Com Valor a Recolher
                </button>
                <button 
                   onClick={() => toggleStatusFiltro('Sem Valor a Recolher')}
-                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Sem Valor a Recolher' ? 'text-slate-800 font-bold' : 'text-slate-500'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Sem Valor a Recolher' ? 'text-slate-800 font-bold' : 'text-slate-700'}`}
                >
                   <div className="w-3 h-3 rounded-full bg-slate-400"></div>Sem Valor a Recolher
                </button>
                <button 
                   onClick={() => toggleStatusFiltro('Não Calculado')}
-                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Não Calculado' ? 'text-rose-600 font-bold' : 'text-slate-500'}`}
+                  className={`flex items-center gap-1.5 transition-all hover:opacity-80 ${filtroStatus === 'Não Calculado' ? 'text-rose-600 font-bold' : 'text-slate-700'}`}
                >
                   <div className="w-3 h-3 rounded-full bg-rose-500"></div>Não Calculado
                </button>
@@ -359,9 +359,17 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                     <td className="p-3 font-medium text-indigo-600 flex items-center gap-1">
                       {item.nota}
                       {item.status === 'Não Calculado' ? (
-                        <div className="w-4 h-4 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title="A NCM/CEST informado não foi encontrada em nossa base de dados.">i</div>
+                        <div 
+                          onClick={() => toast.info("A NCM/CEST informado não foi encontrada em nossa base de dados. Baseado nos demais dados do documento fiscal, verifique nossas sugestões ao editar o registro. Caso as sugestões não se enquadrem ao seu produto, basta não selecionar, pois seu produto não está sujeito ao regime de substituição tributária", { duration: 8000 })}
+                          className="w-4 h-4 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-pointer" 
+                          title="A NCM/CEST informado não foi encontrada em nossa base de dados. Clique para ver mais."
+                        >i</div>
                       ) : item.alerta && (
-                        <div className="w-4 h-4 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-help" title={item.alerta}>i</div>
+                        <div 
+                          onClick={() => toast.info(item.alerta, { duration: 8000 })}
+                          className="w-4 h-4 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold cursor-pointer" 
+                          title="Alerta da Regra Fiscal. Clique para ler."
+                        >i</div>
                       )}
                     </td>
                     <td className="p-3 text-slate-500">{item.data.split('-').reverse().join('/')}</td>

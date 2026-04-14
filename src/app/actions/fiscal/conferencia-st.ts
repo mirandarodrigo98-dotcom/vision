@@ -28,10 +28,21 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
 
       // Procura match exato de NCM e CEST primeiro
       let regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm && cleanStr(r.cest) === cleanCest);
-      // Se não achar com CEST, tenta só com NCM
+      
+      // Se não achar exato, mas tiver CEST, procura regras com o mesmo CEST onde o NCM do banco seja um prefixo do NCM do XML
+      // (ex: XML tem 96151100, mas o banco tem apenas 9615 com o mesmo CEST 2006100)
+      if (!regra && cleanCest) {
+        regra = regrasSt.find(r => {
+           const bancoNcm = cleanStr(r.ncm_sh);
+           return cleanStr(r.cest) === cleanCest && bancoNcm.length > 0 && cleanNcm.startsWith(bancoNcm);
+        });
+      }
+
+      // Se não achar com CEST, tenta só com NCM exato
       if (!regra) {
         regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm);
       }
+      
       return regra;
     };
 
