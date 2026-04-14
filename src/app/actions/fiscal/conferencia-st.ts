@@ -58,6 +58,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
     let totalIcmsStDestacado = 0;
     let totalIcmsStCalculado = 0;
     let totalDiferencaRecolher = 0;
+    let totalFecpSt = 0;
+    let totalIcmsStPuro = 0;
 
     for (const xmlContent of arquivosXml) {
       try {
@@ -126,7 +128,7 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           // Dados do ICMS Próprio (Destacado na nota)
           const bcIcmsProprio = parseFloat(icmsNode.vBC || '0');
           const aliqIcmsProprio = parseFloat(icmsNode.pICMS || '0');
-          const valorIcmsProprio = parseFloat(icmsNode.vICMS || '0');
+          let valorIcmsProprio = parseFloat(icmsNode.vICMS || '0');
           
           // Dados do ICMS ST (Destacado na nota)
           const bcStDestacado = parseFloat(icmsNode.vBCST || '0');
@@ -142,6 +144,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           let bcStCalculado = 0;
           let aliquotaInterna = 0; 
           let valorStCalculado = 0;
+          let fecpStCalculado = 0;
+          let icmsStPuroCalculado = 0;
           let status = 'Sem Valor a Recolher';
           let diferenca = 0;
 
@@ -166,25 +170,26 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              }
              
              // Base ST Calculada = (Valor Total do Item) * (1 + MVA/100)
-             // Ajuste: A BC ICMS na nota costuma já refletir o valor final da mercadoria na operação interestadual.
-             // O valor total do item do XML já compõe o valor aduaneiro/operação. 
-             // Como as MVAs na planilha diferem (ex: 76.12), se baseia na base de calculo do ICMS + IPI + frete.
-             // Para garantir 100% de compatibilidade com a Econet, a base usada para o cálculo do MVA é a BC do ICMS Próprio
-             // acrescida de IPI, Frete, Seguro e Outras Despesas. Mas na maioria das vezes a BC ICMS já engloba isso.
-             // Portanto, a formula mais segura de BC ST é: (BC ICMS + IPI) * (1 + MVA / 100)
              const baseCalculoMva = bcIcmsProprio > 0 ? bcIcmsProprio + ipi : valorTotalItem;
              bcStCalculado = baseCalculoMva * (1 + (mva / 100));
              
+             // A Econet exige que o Valor do ICMS Próprio deduzido seja calculado exatamente sobre a BC do ICMS
+             // em vez de confiar apenas no valor destacado na nota.
+             valorIcmsProprio = (bcIcmsProprio > 0 ? bcIcmsProprio : valorTotalItem) * (aliqIcmsProprio / 100);
+
              // Se houver notas ou âmbito na regra, repassamos para a view
              let alerta = regra.notas || regra.ambito_aplicacao ? (regra.notas || '') : '';
              
-             // Valor ST Calculado = (Base ST Calculada * Aliquota Interna) - ICMS Próprio
-             // IMPORTANTE: De acordo com a Econet, o ICMS próprio deduzido não é necessariamente o destacado na nota, 
-             // mas sim (Valor Total do Item * Alíquota Interestadual). Como a nota já deve destacar esse valor, usamos valorIcmsProprio.
+             // Valor ST Calculado = (Base ST Calculada * Aliquota Interna) - ICMS Próprio Calculado
              const valorAntesAbatimento = bcStCalculado * (aliquotaInterna / 100);
              valorStCalculado = valorAntesAbatimento - valorIcmsProprio;
              
              if (valorStCalculado < 0) valorStCalculado = 0;
+
+             // Separação em FECP ST (2%) e ICMS ST Puro (20%)
+             fecpStCalculado = bcStCalculado * (2 / 100);
+             icmsStPuroCalculado = valorStCalculado - fecpStCalculado;
+             if (icmsStPuroCalculado < 0) icmsStPuroCalculado = 0;
 
              // Ajuste para não mostrar diferença negativa, garantindo que bata com o validador
              diferenca = valorStCalculado - valorIcmsStDestacado;
@@ -201,6 +206,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              totalIcmsStDestacado += valorIcmsStDestacado;
              totalIcmsStCalculado += valorStCalculado;
              totalDiferencaRecolher += diferenca;
+             totalFecpSt += fecpStCalculado;
+             totalIcmsStPuro += icmsStPuroCalculado;
           } else {
              status = 'Não Calculado';
           }
@@ -230,6 +237,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              bcStCalculado,
              aliInternaFecoep: aliquotaInterna,
              valorSt: valorStCalculado,
+             fecp_st_calculado: fecpStCalculado,
+             icms_st_puro_calculado: icmsStPuroCalculado,
              difRecolher: diferenca,
              status,
              alerta: regra ? regra.notas || regra.ambito_aplicacao : ''
@@ -249,6 +258,8 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           totalIcmsProprio,
           totalIcmsStDestacado,
           totalIcmsStCalculado,
+          totalFecpSt,
+          totalIcmsStPuro,
           totalDiferencaRecolher
        },
        itens: resultadoNotas

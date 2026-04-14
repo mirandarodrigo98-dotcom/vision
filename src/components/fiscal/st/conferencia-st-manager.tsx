@@ -51,6 +51,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
           "Valor Total do Item", "BC ICMS", "Alíquota ICMS", "ICMS Próprio", 
           "BC ST", "Alíquota ICMS ST", "ICMS ST Destacado", "MVA", 
           "BC ST Calculado", "Alí.Interna + FECOEP", "ICMS ST Calculado", 
+          "ICMS ST Puro (20%)", "FECP ST (2%)",
           "Dif. Recolher", "Alerta"
         ]
      ];
@@ -81,6 +82,8 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
            item.bcStCalculado || null,
            item.aliInternaFecoep || null,
            item.valorSt || null,
+           item.icms_st_puro_calculado || null,
+           item.fecp_st_calculado || null,
            item.difRecolher || null,
            item.alerta || (item.status === 'Não Calculado' ? 'A NCM/CEST informado não foi encontrada em nossa base de dados. Baseado nos demais dados do documento fiscal, verifique nossas sugestões ao editar o registro. Caso as sugestões não se enquadrem ao seu produto, basta não selecionar, pois seu produto não está sujeito ao regime de substituição tributária' : '')
         ]);
@@ -210,7 +213,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
         </div>
 
         {/* Resumo Financeiro */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-0 border rounded-lg bg-white overflow-hidden shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-0 border rounded-lg bg-white overflow-hidden shadow-sm">
           <div className="p-4 border-r flex flex-col justify-center">
             <span className="text-xs font-bold text-slate-700">Base ICMS-ST Calculado</span>
             <span className="text-lg font-medium text-slate-500">{formatBRL(resultado.resumo.totalBaseST)}</span>
@@ -230,6 +233,13 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
           <div className="p-4 border-r flex flex-col justify-center">
             <span className="text-xs font-bold text-slate-700">ICMS ST Calculado</span>
             <span className="text-lg font-medium text-slate-500">{formatBRL(resultado.resumo.totalIcmsStCalculado)}</span>
+          </div>
+          <div className="p-4 border-r flex flex-col justify-center bg-emerald-50/50">
+            <span className="text-xs font-bold text-emerald-700">ICMS ST (20%) + FECP ST (2%)</span>
+            <div className="flex flex-col mt-1">
+              <span className="text-sm font-medium text-emerald-600">{formatBRL(resultado.resumo.totalIcmsStPuro || 0)} <span className="text-[10px] text-emerald-500 font-normal">ST Puro</span></span>
+              <span className="text-sm font-medium text-emerald-600">{formatBRL(resultado.resumo.totalFecpSt || 0)} <span className="text-[10px] text-emerald-500 font-normal">FECP</span></span>
+            </div>
           </div>
           <div className="p-4 flex flex-col justify-center border-2 border-amber-400 bg-amber-50">
             <span className="text-xs font-bold text-slate-800">Diferença a Recolher</span>
@@ -344,6 +354,8 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                 <th className="p-3 text-right font-bold text-indigo-600">BC ST Calculado</th>
                 <th className="p-3 text-right font-bold text-indigo-600">Ali.Interna+ FECOEP</th>
                 <th className="p-3 text-right font-bold text-indigo-600">Valor ST Calculado</th>
+                <th className="p-3 text-right font-bold text-emerald-600">ICMS ST Puro (20%)</th>
+                <th className="p-3 text-right font-bold text-emerald-600">FECP ST (2%)</th>
                 <th className="p-3 text-right font-black text-amber-600">Dif. Recolher</th>
               </tr>
             </thead>
@@ -398,12 +410,12 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                     {/* Campos Calculados */}
                     <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.mva > 0 ? formatPct(item.mva) : '-'}</td>
                     <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.bcStCalculado > 0 ? formatBRL(item.bcStCalculado) : '-'}</td>
-                    <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.mva > 0 ? formatBRL(item.aliInternaFecoep) : '-'}</td>
+                    <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.aliInternaFecoep ? formatPct(item.aliInternaFecoep) : '-'}</td>
                     <td className="p-3 text-right font-semibold text-indigo-700 bg-indigo-50/30">{item.valorSt > 0 ? formatBRL(item.valorSt) : '-'}</td>
+                    <td className="p-3 text-right font-semibold text-emerald-700 bg-emerald-50/30">{item.icms_st_puro_calculado > 0 ? formatBRL(item.icms_st_puro_calculado) : '-'}</td>
+                    <td className="p-3 text-right font-semibold text-emerald-700 bg-emerald-50/30">{item.fecp_st_calculado > 0 ? formatBRL(item.fecp_st_calculado) : '-'}</td>
                     
-                    <td className={`p-3 text-right font-bold ${item.difRecolher > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                      {item.difRecolher > 0 ? formatBRL(item.difRecolher) : '-'}
-                    </td>
+                    <td className="p-3 text-right font-black text-amber-700 bg-amber-50/50">{item.difRecolher > 0 ? formatBRL(item.difRecolher) : '-'}</td>
                   </tr>
                 );
               })}
