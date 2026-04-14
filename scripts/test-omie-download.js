@@ -15,48 +15,34 @@ async function testDownload() {
     param: [{ 
       pagina: 1,
       registros_por_pagina: 100,
-      exibir_link_boleto: 'S'
+      filtrar_por_cpf_cnpj: '43139881000139'
     }] 
   };
   
   const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
   const contas = response.data.conta_receber_cadastro || [];
+  if (contas.length === 0) return console.log('Sem contas');
   
-  const boleto = contas.find(c => c.cLinkBoleto);
-  if (!boleto) {
-      console.log('Nenhum link de boleto encontrado.');
-      pool.end();
-      return;
-  }
+  const id = contas[0].codigo_lancamento_omie;
+  const resBoleto = await axios.post('https://app.omie.com.br/api/v1/financas/contareceberboleto/', {
+     call: 'ObterBoleto',
+     app_key: config.app_key, 
+     app_secret: config.app_secret, 
+     param: [{ nCodTitulo: id }]
+  });
   
-  const url = boleto.cLinkBoleto;
-  console.log('Baixando:', url);
+  const url = resBoleto.data.cLinkBoleto;
+  if (!url) return console.log('No link');
   
-  let res = await fetch(url, { headers: { 'Accept': 'application/pdf, application/octet-stream, */*' } });
-  let contentType = res.headers.get('content-type') || '';
-  console.log('Content-Type 1:', contentType);
-  
-  if (contentType.includes('text/html')) {
-      const htmlText = await res.text();
-      const pdfMatch = htmlText.match(/<iframe[^>]+src=["']([^"']+\.pdf[^"']*)["']/i) 
-                    || htmlText.match(/window\.location\.href\s*=\s*["']([^"']+\.pdf[^"']*)["']/i)
-                    || htmlText.match(/https?:\/\/[^"'\s>]+\.pdf/i);
-                    
-      if (pdfMatch && pdfMatch[1]) {
-          const realPdfUrl = pdfMatch[1].startsWith('http') ? pdfMatch[1] : 'https://app.omie.com.br' + (pdfMatch[1].startsWith('/') ? '' : '/') + pdfMatch[1];
-          console.log('Link real:', realPdfUrl);
-          res = await fetch(realPdfUrl, { headers: { 'Accept': 'application/pdf, application/octet-stream, */*' } });
-      } else {
-          console.log('Não encontrou link PDF no HTML');
+  const resPdf = await fetch(url, {
+      headers: {
+          'Accept': 'application/pdf, application/octet-stream, */*'
       }
-  }
+  });
   
-  const arrayBuffer = await res.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  
-  console.log('Header final:', buffer.subarray(0, 15).toString('utf-8'));
-  fs.writeFileSync('teste_omie_final.pdf', buffer);
-  console.log('Salvo em teste_omie_final.pdf');
+  const buf = await resPdf.arrayBuffer();
+  fs.writeFileSync('boleto_real.pdf', Buffer.from(buf));
+  console.log('Salvo boleto_real.pdf', Buffer.from(buf).subarray(0, 15).toString());
   pool.end();
 }
 

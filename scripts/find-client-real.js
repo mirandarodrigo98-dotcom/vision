@@ -12,29 +12,27 @@ async function findBoleto() {
     app_secret: config.app_secret, 
     param: [{ 
       pagina: 1,
-      registros_por_pagina: 100
+      registros_por_pagina: 100,
+      filtrar_por_cpf_cnpj: '43139881000139',
+      exibir_link_boleto: 'S'
     }] 
   };
   
   const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload);
   const contas = response.data.conta_receber_cadastro || [];
-  
   const boleto = contas.find(c => c.cLinkBoleto);
+  
   if (boleto) {
-    console.log('Boleto found:', boleto.cLinkBoleto);
-    const resPdf = await fetch(boleto.cLinkBoleto, {
+      console.log('Link:', boleto.cLinkBoleto);
+      const resPdf = await fetch(boleto.cLinkBoleto, {
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
-    });
-    const contentType = resPdf.headers.get('content-type');
-    console.log('Content-Type:', contentType);
-    if (contentType && contentType.includes('text/html')) {
-        const html = await resPdf.text();
-        console.log('HTML Snippet:', html.substring(0, 1500));
-    }
-  } else {
-    console.log('No boleto found');
+      });
+      const html = await resPdf.text();
+      const fs = require('fs');
+      fs.writeFileSync('boleto.html', html);
+      console.log('Salvo em boleto.html');
   }
   pool.end();
 }

@@ -168,7 +168,7 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   if (message.base64File) {
     let base64Data = message.base64File;
     
-    // Garantir que enviamos APENAS a string base64 pura para a API do Digisac (sem prefixo data:mime/type;base64,)
+    // A API do Digisac exige que o base64 seja RAW, SEM O PREFIXO data:mime/type;base64,
     if (base64Data.includes('base64,')) {
       base64Data = base64Data.split('base64,')[1];
     }
