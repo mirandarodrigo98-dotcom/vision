@@ -65,6 +65,10 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
           setBankInfo(data.bankInfo || '');
           setShowTaxToPayInput(true);
           setShowRestitutionInput(false);
+        } else {
+          // Se ambos vierem vazios ou 0,00, fechamos as duas opções automaticamente
+          setShowRestitutionInput(false);
+          setShowTaxToPayInput(false);
         }
       }
     } catch (error) {

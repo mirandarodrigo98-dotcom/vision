@@ -41,14 +41,14 @@ export async function POST(request: Request) {
 
     // Parse "IMPOSTO A RESTITUIR"
     // Usually it looks like: "IMPOSTO A RESTITUIR 1.250,00"
-    const restitutionMatch = text.match(/IMPOSTO A RESTITUIR.*?([\d]+(?:\.\d{3})*,\d{2})/i);
+    const restitutionMatch = text.match(/IMPOSTO A RESTITUIR.{0,50}?([\d]+(?:\.\d{3})*,\d{2})/i);
     if (restitutionMatch && restitutionMatch[1]) {
       result.restitutionValue = restitutionMatch[1].trim();
     }
 
     // Parse "SALDO DO IMPOSTO A PAGAR"
     // Usually it looks like: "SALDO DO IMPOSTO A PAGAR 5.916,86"
-    const taxToPayMatch = text.match(/SALDO DO IMPOSTO A PAGAR.*?([\d]+(?:\.\d{3})*,\d{2})/i);
+    const taxToPayMatch = text.match(/SALDO DO IMPOSTO A PAGAR.{0,50}?([\d]+(?:\.\d{3})*,\d{2})/i);
     if (taxToPayMatch && taxToPayMatch[1]) {
       result.taxToPayValue = taxToPayMatch[1].trim();
     }
