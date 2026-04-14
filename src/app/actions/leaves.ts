@@ -502,7 +502,7 @@ export async function getLeaves(companyId?: string) {
         params.push(session.user_id);
 
         if (companyId) {
-            query += ` AND l.company_id = ?`;
+            query += ` AND l.company_id = $${params.length + 1}`;
             params.push(companyId);
         }
     } else if (session.role === 'operator') {
@@ -510,14 +510,14 @@ export async function getLeaves(companyId?: string) {
         params.push(session.user_id);
 
         if (companyId) {
-            query += ` AND l.company_id = ?`;
+            query += ` AND l.company_id = $${params.length + 1}`;
             params.push(companyId);
         }
     } else {
         // Admin
         query += ` WHERE 1=1`;
         if (companyId) {
-            query += ` AND l.company_id = ?`;
+            query += ` AND l.company_id = $${params.length + 1}`;
             params.push(companyId);
         }
     }

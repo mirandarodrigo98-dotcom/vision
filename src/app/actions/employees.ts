@@ -204,7 +204,7 @@ export async function getEmployees(optionsOrCompanyId?: string | { companyId?: s
     }
 
     if (companyId) {
-      query += ` AND e.company_id = ?`;
+      query += ` AND e.company_id = $${params.length + 1}`;
       params.push(companyId);
     }
 

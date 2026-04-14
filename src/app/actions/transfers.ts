@@ -536,12 +536,12 @@ export async function getTransfers(companyId?: string) {
         // Filter by companies the user has access to
         query += `
             JOIN user_companies uc ON uc.company_id = tr.source_company_id
-            WHERE uc.user_id = ?
+            WHERE uc.user_id = $${params.length + 1}
         `;
         params.push(session.user_id);
 
         if (companyId) {
-            query += ` AND tr.source_company_id = ?`;
+            query += ` AND tr.source_company_id = $${params.length + 1}`;
             params.push(companyId);
         }
     } else if (session.role === 'operator') {
@@ -549,12 +549,12 @@ export async function getTransfers(companyId?: string) {
         params.push(session.user_id);
 
         if (companyId) {
-            query += ` AND tr.source_company_id = ?`;
+            query += ` AND tr.source_company_id = $${params.length + 1}`;
             params.push(companyId);
         }
     } else if (session.role === 'admin') {
         if (companyId) {
-            query += ` WHERE tr.source_company_id = ?`;
+            query += ` WHERE tr.source_company_id = $${params.length + 1}`;
             params.push(companyId);
         }
     }

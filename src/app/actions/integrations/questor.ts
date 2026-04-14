@@ -95,11 +95,11 @@ export async function checkQuestorSyncStatus(companyId: string, filters: any) {
 
     if (filters) {
         if (filters.startDate) {
-            query += ` AND t.date >= ?`;
+            query += ` AND t.date >= $${params.length + 1}`;
             params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
         }
         if (filters.endDate) {
-            query += ` AND t.date <= ?`;
+            query += ` AND t.date <= $${params.length + 1}`;
             params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
         }
     }
@@ -153,11 +153,11 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
 
     if (filters) {
         if (filters.startDate) {
-            query += ` AND t.date >= ?`;
+            query += ` AND t.date >= $${params.length + 1}`;
             params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
         }
         if (filters.endDate) {
-            query += ` AND t.date <= ?`;
+            query += ` AND t.date <= $${params.length + 1}`;
             params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
         }
     }
@@ -438,11 +438,11 @@ export async function checkEklesiaQuestorSyncStatus(companyId: string, filters: 
 
     if (filters) {
         if (filters.startDate) {
-            query += ` AND t.date >= ?`;
+            query += ` AND t.date >= $${params.length + 1}`;
             params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
         }
         if (filters.endDate) {
-            query += ` AND t.date <= ?`;
+            query += ` AND t.date <= $${params.length + 1}`;
             params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
         }
     }
@@ -496,11 +496,11 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
 
     if (filters) {
         if (filters.startDate) {
-            query += ` AND t.date >= ?`;
+            query += ` AND t.date >= $${params.length + 1}`;
             params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
         }
         if (filters.endDate) {
-            query += ` AND t.date <= ?`;
+            query += ` AND t.date <= $${params.length + 1}`;
             params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
         }
     }

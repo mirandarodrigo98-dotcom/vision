@@ -655,19 +655,19 @@ export async function getCompanies(filters?: { razao_social?: string, cnpj?: str
   }
 
   if (filters?.razao_social) {
-    query += ` AND razao_social ILIKE '%' || ? || '%'`;
+    query += ` AND razao_social ILIKE '%' || $${params.length + 1} || '%'`;
     params.push(filters.razao_social);
   }
   if (filters?.cnpj) {
-    query += ` AND cnpj ILIKE '%' || ? || '%'`;
+    query += ` AND cnpj ILIKE '%' || $${params.length + 1} || '%'`;
     params.push(filters.cnpj);
   }
   if (filters?.nome) {
-    query += ` AND nome ILIKE '%' || ? || '%'`;
+    query += ` AND nome ILIKE '%' || $${params.length + 1} || '%'`;
     params.push(filters.nome);
   }
   if (filters?.code) {
-    query += ` AND code ILIKE '%' || ? || '%'`;
+    query += ` AND code ILIKE '%' || $${params.length + 1} || '%'`;
     params.push(filters.code);
   }
 

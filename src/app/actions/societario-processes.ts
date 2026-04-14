@@ -162,19 +162,19 @@ export async function getProcessesFiltered(filters?: { company?: string; cnpj?: 
   const params: any[] = [];
 
   if (filters?.company) {
-    query += ` AND (sp.razao_social ILIKE ? OR cc.razao_social ILIKE ?)`;
+    query += ` AND (sp.razao_social ILIKE $${params.length + 1} OR cc.razao_social ILIKE $${params.length + 1})`;
     params.push(`%${filters.company}%`, `%${filters.company}%`);
   }
   if (filters?.cnpj) {
-    query += ` AND (cc.cnpj ILIKE ? OR sp.company_cnpj ILIKE ?)`;
+    query += ` AND (cc.cnpj ILIKE $${params.length + 1} OR sp.company_cnpj ILIKE $${params.length + 1})`;
     params.push(`%${filters.cnpj}%`, `%${filters.cnpj}%`);
   }
   if (filters?.type && filters.type !== 'all') {
-    query += ` AND sp.type = ?`;
+    query += ` AND sp.type = $${params.length + 1}`;
     params.push(filters.type);
   }
   if (filters?.status && filters.status !== 'all') {
-    query += ` AND sp.status = ?`;
+    query += ` AND sp.status = $${params.length + 1}`;
     params.push(filters.status);
   }
 

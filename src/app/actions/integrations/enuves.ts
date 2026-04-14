@@ -54,19 +54,19 @@ export async function getCategories(
 
     if (filters) {
       if (filters.code) {
-        query += ` AND code ILIKE ?`;
+        query += ` AND code ILIKE $${params.length + 1}`;
         params.push(`%${filters.code}%`);
       }
       if (filters.description) {
-        query += ` AND description ILIKE ?`;
+        query += ` AND description ILIKE $${params.length + 1}`;
         params.push(`%${filters.description}%`);
       }
       if (filters.integration_code) {
-        query += ` AND integration_code ILIKE ?`;
+        query += ` AND integration_code ILIKE $${params.length + 1}`;
         params.push(`%${filters.integration_code}%`);
       }
       if (filters.nature && filters.nature !== 'all') {
-        query += ` AND nature = ?`;
+        query += ` AND nature = $${params.length + 1}`;
         params.push(filters.nature);
       }
     }
@@ -391,35 +391,35 @@ export async function getTransactions(
 
     if (filters) {
       if (filters.startDate) {
-        query += ` AND t.date >= ?`;
+        query += ` AND t.date >= $${params.length + 1}`;
         params.push(filters.startDate);
       }
       if (filters.endDate) {
-        query += ` AND t.date <= ?`;
+        query += ` AND t.date <= $${params.length + 1}`;
         params.push(filters.endDate);
       }
       if (filters.categoryId && filters.categoryId !== 'all') {
-        query += ` AND t.category_id = ?`;
+        query += ` AND t.category_id = $${params.length + 1}`;
         params.push(filters.categoryId);
       }
       if (filters.accountId && filters.accountId !== 'all') {
-        query += ` AND t.account_id = ?`;
+        query += ` AND t.account_id = $${params.length + 1}`;
         params.push(filters.accountId);
       }
       if (filters.categoryName) {
-        query += ` AND c.description LIKE ?`;
+        query += ` AND c.description LIKE $${params.length + 1}`;
         params.push(`%${filters.categoryName}%`);
       }
       if (filters.description) {
-        query += ` AND t.description LIKE ?`;
+        query += ` AND t.description LIKE $${params.length + 1}`;
         params.push(`%${filters.description}%`);
       }
       if (filters.minValue !== undefined && filters.minValue !== null) {
-        query += ` AND t.value >= ?`;
+        query += ` AND t.value >= $${params.length + 1}`;
         params.push(filters.minValue);
       }
       if (filters.maxValue !== undefined && filters.maxValue !== null) {
-        query += ` AND t.value <= ?`;
+        query += ` AND t.value <= $${params.length + 1}`;
         params.push(filters.maxValue);
       }
     }
@@ -577,15 +577,15 @@ export async function getAccounts(
 
     if (filters) {
       if (filters.code) {
-        query += ` AND code ILIKE ?`;
+        query += ` AND code ILIKE $${params.length + 1}`;
         params.push(`%${filters.code}%`);
       }
       if (filters.description) {
-        query += ` AND description ILIKE ?`;
+        query += ` AND description ILIKE $${params.length + 1}`;
         params.push(`%${filters.description}%`);
       }
       if (filters.integration_code) {
-        query += ` AND integration_code ILIKE ?`;
+        query += ` AND integration_code ILIKE $${params.length + 1}`;
         params.push(`%${filters.integration_code}%`);
       }
     }
@@ -768,31 +768,31 @@ export async function exportTransactionsCsv(companyId: string, filters?: any) {
 
     if (filters) {
       if (filters.startDate) {
-        query += ` AND t.date >= ?`;
+        query += ` AND t.date >= $${params.length + 1}`;
         params.push(filters.startDate instanceof Date ? filters.startDate.toISOString() : filters.startDate);
       }
       if (filters.endDate) {
-        query += ` AND t.date <= ?`;
+        query += ` AND t.date <= $${params.length + 1}`;
         params.push(filters.endDate instanceof Date ? filters.endDate.toISOString() : filters.endDate);
       }
       if (filters.categoryName) {
-        query += ` AND c.description ILIKE ?`;
+        query += ` AND c.description ILIKE $${params.length + 1}`;
         params.push(`%${filters.categoryName}%`);
       }
       if (filters.accountId && filters.accountId !== 'all') {
-        query += ` AND t.account_id = ?`;
+        query += ` AND t.account_id = $${params.length + 1}`;
         params.push(filters.accountId);
       }
       if (filters.description) {
-        query += ` AND t.description ILIKE ?`;
+        query += ` AND t.description ILIKE $${params.length + 1}`;
         params.push(`%${filters.description}%`);
       }
       if (filters.minValue !== undefined && filters.minValue !== null && filters.minValue !== '') {
-        query += ` AND t.value >= ?`;
+        query += ` AND t.value >= $${params.length + 1}`;
         params.push(filters.minValue);
       }
       if (filters.maxValue !== undefined && filters.maxValue !== null && filters.maxValue !== '') {
-        query += ` AND t.value <= ?`;
+        query += ` AND t.value <= $${params.length + 1}`;
         params.push(filters.maxValue);
       }
     }

@@ -20,7 +20,7 @@ export async function getTicketCategories(includeInactive = false) {
     const params: any[] = [];
     
     if (!includeInactive) {
-      sql += ' WHERE active = ?';
+      sql += ' WHERE active = $1';
       params.push(true);
     }
     
@@ -48,7 +48,7 @@ export async function getAdminTicketCategories(search?: string) {
     const params: any[] = [];
     
     if (search) {
-      sql += ' WHERE lower(name) LIKE ?';
+      sql += ' WHERE lower(name) LIKE $1';
       params.push(`%${search.toLowerCase()}%`);
     }
     
@@ -76,20 +76,20 @@ export async function updateTicketCategory(id: string, data: { name?: string; ac
     const params: any[] = [];
 
     if (data.name !== undefined) {
-      updates.push('name = ?');
       params.push(data.name);
+      updates.push(`name = $${params.length}`);
     }
 
     if (data.active !== undefined) {
-      updates.push('active = ?');
       params.push(data.active);
+      updates.push(`active = $${params.length}`);
     }
 
     if (updates.length === 0) return { success: true };
 
     params.push(id);
     
-    await db.query(`UPDATE ticket_categories SET ${updates.join(', ')} WHERE id = $1`, [...params]);
+    await db.query(`UPDATE ticket_categories SET ${updates.join(', ')} WHERE id = $${params.length}`, [...params]);
     
     revalidatePath('/admin/tickets');
     return { success: true };

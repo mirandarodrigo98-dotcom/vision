@@ -59,17 +59,17 @@ export async function getVacations(
         }
 
         if (search) {
-            query += ` AND (e.name LIKE ? OR v.protocol_number LIKE ?)`;
+            query += ` AND (e.name LIKE $${params.length + 1} OR v.protocol_number LIKE $${params.length + 1})`;
             params.push(`%${search}%`, `%${search}%`);
         }
 
         if (status !== 'ALL') {
-            query += ` AND v.status = ?`;
+            query += ` AND v.status = $${params.length + 1}`;
             params.push(status);
         }
 
         if (companyId !== 'ALL') {
-            query += ` AND v.company_id = ?`;
+            query += ` AND v.company_id = $${params.length + 1}`;
             params.push(companyId);
         }
 

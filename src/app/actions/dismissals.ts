@@ -56,17 +56,17 @@ export async function getDismissals(
         }
 
         if (search) {
-            query += ` AND (e.name LIKE ? OR d.protocol_number LIKE ?)`;
+            query += ` AND (e.name LIKE $${params.length + 1} OR d.protocol_number LIKE $${params.length + 1})`;
             params.push(`%${search}%`, `%${search}%`);
         }
 
         if (status !== 'ALL') {
-            query += ` AND d.status = ?`;
+            query += ` AND d.status = $${params.length + 1}`;
             params.push(status);
         }
 
         if (companyId !== 'ALL') {
-            query += ` AND d.company_id = ?`;
+            query += ` AND d.company_id = $${params.length + 1}`;
             params.push(companyId);
         }
 
