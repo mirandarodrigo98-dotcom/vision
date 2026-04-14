@@ -146,15 +146,21 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           let diferenca = 0;
 
           if (regra) {
-             // Define qual MVA utilizar baseado na aliquota do ICMS Próprio
-             const mvaOriginal = parseFloat(regra.mva_original || '0');
-             const mva12 = parseFloat(regra.mva_ajustada_int12 || '0');
-             const mva4 = parseFloat(regra.mva_ajustada_int4 || '0');
+             // Aliquota interna padrão (baseado no print da Econet RJ = 22%)
+             aliquotaInterna = 22; 
              
-             if (aliqIcmsProprio === 4 && mva4 > 0) {
-                 mva = mva4;
-             } else if ((aliqIcmsProprio === 12 || aliqIcmsProprio === 7) && mva12 > 0) {
-                 mva = mva12;
+             // Define qual MVA utilizar
+             const mvaOriginal = parseFloat(regra.mva_original || '0');
+             
+             if (aliqIcmsProprio > 0 && aliqIcmsProprio < aliquotaInterna && mvaOriginal > 0) {
+                 // Calcula MVA Ajustada dinamicamente com base na MVA Original e Alíquotas
+                 // Fórmula: MVA Ajustada = { [(1 + MVA Original) * (1 - ALQ Inter) / (1 - ALQ Intra)] - 1 } * 100
+                 const mvaDecimal = mvaOriginal / 100;
+                 const alqInterDecimal = aliqIcmsProprio / 100;
+                 const alqIntraDecimal = aliquotaInterna / 100;
+                 
+                 const mvaAjustadaDecimal = ((1 + mvaDecimal) * (1 - alqInterDecimal) / (1 - alqIntraDecimal)) - 1;
+                 mva = Number((mvaAjustadaDecimal * 100).toFixed(2));
              } else {
                  mva = mvaOriginal;
              }
@@ -168,9 +174,6 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              // Portanto, a formula mais segura de BC ST é: (BC ICMS + IPI) * (1 + MVA / 100)
              const baseCalculoMva = bcIcmsProprio > 0 ? bcIcmsProprio + ipi : valorTotalItem;
              bcStCalculado = baseCalculoMva * (1 + (mva / 100));
-             
-             // Aliquota interna padrão (baseado no print da Econet RJ = 22%)
-             aliquotaInterna = 22; 
              
              // Se houver notas ou âmbito na regra, repassamos para a view
              let alerta = regra.notas || regra.ambito_aplicacao ? (regra.notas || '') : '';
