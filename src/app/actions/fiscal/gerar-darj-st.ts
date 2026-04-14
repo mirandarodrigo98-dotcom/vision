@@ -16,6 +16,13 @@ export async function gerarDarjSt(params: {
    totalGeral: number;
    periodoMes: number;
    periodoAno: number;
+   notaFiscal?: {
+      numero: string;
+      serie: string;
+      tipo: string;
+      dataEmissao: string;
+      cnpjEmitente: string;
+   }
 }) {
    try {
       // 1. Obter dados do Emitente (NZD Contabilidade)
@@ -57,6 +64,20 @@ export async function gerarDarjSt(params: {
          ? '<open:InformacoesComplementares>' + params.informacoesComplementares.substring(0, 255) + '</open:InformacoesComplementares>' 
          : '';
 
+      let notaFiscalXML = '';
+      if (params.tipoApuracao === 2 && params.notaFiscal) {
+         const dEmissao = params.notaFiscal.dataEmissao.split('-').reverse().join('/');
+         const isCnpj = params.notaFiscal.cnpjEmitente.length > 11;
+         notaFiscalXML = 
+            '<open:NotaFiscalNumero>' + params.notaFiscal.numero + '</open:NotaFiscalNumero>\n' +
+            (params.notaFiscal.serie ? '<open:NotaFiscalSerie>' + params.notaFiscal.serie + '</open:NotaFiscalSerie>\n' : '') +
+            '<open:NotaFiscalTipo>' + params.notaFiscal.tipo + '</open:NotaFiscalTipo>\n' +
+            '<open:NotaFiscalDataEmissao>' + dEmissao + '</open:NotaFiscalDataEmissao>\n' +
+            (isCnpj 
+               ? '<open:NotaFiscalCnpj>' + params.notaFiscal.cnpjEmitente + '</open:NotaFiscalCnpj>\n' 
+               : '<open:NotaFiscalCpf>' + params.notaFiscal.cnpjEmitente + '</open:NotaFiscalCpf>\n');
+      }
+
       // Natureza 4 = Substituição Tributária por Operação/Outros
       // CodigoProduto 698 = Outros
       const xmlChamada = '<?xml version="1.0" encoding="utf-8"?>\n' +
@@ -90,6 +111,7 @@ export async function gerarDarjSt(params: {
 '                     <open:UfContribuinte>' + uf + '</open:UfContribuinte>\n' +
 '                     <open:Natureza>' + params.natureza + '</open:Natureza>\n' +
 '                     <open:NomeRazaoSocial>' + razaoSocial + '</open:NomeRazaoSocial>\n' +
+                     notaFiscalXML +
 '                     <open:NumControleContribuinte>DARJST' + Date.now() + '</open:NumControleContribuinte>\n' +
 '                     <open:PeriodoReferenciaAno>' + params.periodoAno + '</open:PeriodoReferenciaAno>\n' +
 '                     <open:PeriodoReferenciaMes>' + params.periodoMes + '</open:PeriodoReferenciaMes>\n' +

@@ -39,9 +39,16 @@ export function ConferenciaStManager() {
   const [dataVencimento, setDataVencimento] = useState<string>(new Date().toISOString().substring(0, 10));
   const [tipoApuracao, setTipoApuracao] = useState<'periodo' | 'operacao'>('periodo');
   const [natureza, setNatureza] = useState('4');
-  const [produto, setProduto] = useState('698');
+  const [produto, setProduto] = useState('396');
   const [tipoPeriodo, setTipoPeriodo] = useState('M');
   const [infoCompl, setInfoCompl] = useState('');
+  
+  // Campos "Por operação"
+  const [notaFiscalNum, setNotaFiscalNum] = useState('');
+  const [notaFiscalSerie, setNotaFiscalSerie] = useState('');
+  const [notaFiscalTipo, setNotaFiscalTipo] = useState('NFe');
+  const [notaFiscalData, setNotaFiscalData] = useState('');
+  const [notaFiscalCnpjEmitente, setNotaFiscalCnpjEmitente] = useState('');
   const [gerandoDarj, setGerandoDarj] = useState(false);
   const [darjResult, setDarjResult] = useState<any>(null);
 
@@ -210,7 +217,14 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
          totalFecpSt: resultado.resumo.totalFecpSt,
          totalGeral: resultado.resumo.totalIcmsStCalculado,
          periodoMes: parseInt(dataDarj.split('-')[1]),
-         periodoAno: parseInt(dataDarj.split('-')[0])
+         periodoAno: parseInt(dataDarj.split('-')[0]),
+         notaFiscal: tipoApuracao === 'operacao' ? {
+            numero: notaFiscalNum,
+            serie: notaFiscalSerie,
+            tipo: notaFiscalTipo,
+            dataEmissao: notaFiscalData,
+            cnpjEmitente: notaFiscalCnpjEmitente.replace(/\D/g, '')
+         } : undefined
       });
 
       if (res.success) {
@@ -392,6 +406,9 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                        <div>
                           <h4 className="text-emerald-700 font-bold text-lg mb-2 border-b border-emerald-100 pb-1">Itens de Pagamento</h4>
                           <div className="bg-slate-50 border rounded-md p-4 space-y-4">
+                             {/* Campos Condicionais para 'Por operação' */}
+                             
+
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                    <Label className="text-xs font-bold text-slate-600">Natureza *</Label>
@@ -412,8 +429,18 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                                          <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                         <SelectItem value="698">Outros</SelectItem>
-                                         <SelectItem value="023">Combustíveis / Lubrificantes</SelectItem>
+                                         <SelectItem value="108">Bebidas</SelectItem>
+                                         <SelectItem value="116">Cigarros e Outros Produtos Derivados do Fumo</SelectItem>
+                                         <SelectItem value="124">Veículos e Pneumáticos</SelectItem>
+                                         <SelectItem value="132">Medicamentos e Produtos Farmacêuticos</SelectItem>
+                                         <SelectItem value="140">Peças, Partes e Acessórios para Veículos Automotores</SelectItem>
+                                         <SelectItem value="159">Material de Construção</SelectItem>
+                                         <SelectItem value="167">Produtos Alimentícios</SelectItem>
+                                         <SelectItem value="175">Cimento</SelectItem>
+                                         <SelectItem value="183">Tintas e Vernizes</SelectItem>
+                                         <SelectItem value="191">Venda Porta a Porta</SelectItem>
+                                         <SelectItem value="205">Material de Limpeza Doméstica</SelectItem>
+                                         <SelectItem value="396">Outros</SelectItem>
                                       </SelectContent>
                                    </Select>
                                 </div>
@@ -443,8 +470,8 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                                          <Label htmlFor="por-periodo" className="cursor-pointer">Por período</Label>
                                       </div>
                                       <div className="flex items-center space-x-2">
-                                         <RadioGroupItem value="operacao" id="por-operacao" disabled />
-                                         <Label htmlFor="por-operacao" className="cursor-pointer text-slate-400">Por operação (Em breve)</Label>
+                                         <RadioGroupItem value="operacao" id="por-operacao" />
+                                         <Label htmlFor="por-operacao" className="cursor-pointer">Por operação</Label>
                                       </div>
                                    </RadioGroup>
                                 </div>
@@ -465,29 +492,116 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                                 )}
                              </div>
 
+                             {/* Campos Condicionais para 'Por operação' */}
+                             {tipoApuracao === 'operacao' && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-indigo-50/50 rounded-md border border-indigo-100 mt-2">
+                                   <div className="space-y-1">
+                                      <Label className="text-xs font-bold text-indigo-800">Nº Nota Fiscal *</Label>
+                                      <Input 
+                                         value={notaFiscalNum} 
+                                         onChange={e => setNotaFiscalNum(e.target.value)} 
+                                         className="bg-white border-indigo-200" 
+                                         placeholder="Ex: 123456"
+                                      />
+                                   </div>
+                                   <div className="space-y-1">
+                                      <Label className="text-xs font-bold text-indigo-800">Série</Label>
+                                      <Input 
+                                         value={notaFiscalSerie} 
+                                         onChange={e => setNotaFiscalSerie(e.target.value)} 
+                                         className="bg-white border-indigo-200" 
+                                         placeholder="Ex: 1"
+                                      />
+                                   </div>
+                                   <div className="space-y-1">
+                                      <Label className="text-xs font-bold text-indigo-800">Tipo *</Label>
+                                      <Select value={notaFiscalTipo} onValueChange={setNotaFiscalTipo}>
+                                         <SelectTrigger className="bg-white border-indigo-200">
+                                            <SelectValue />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                            <SelectItem value="NFe">Nota Fiscal Eletrônica</SelectItem>
+                                            <SelectItem value="CTe">Conhecimento de Transporte</SelectItem>
+                                            <SelectItem value="NFCe">NFC-e</SelectItem>
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                   <div className="space-y-1 md:col-span-1">
+                                      <Label className="text-xs font-bold text-indigo-800">Data de Emissão *</Label>
+                                      <Input 
+                                         type="date"
+                                         value={notaFiscalData} 
+                                         onChange={e => setNotaFiscalData(e.target.value)} 
+                                         className="bg-white font-medium border-indigo-200" 
+                                      />
+                                   </div>
+                                   <div className="space-y-1 md:col-span-2">
+                                      <Label className="text-xs font-bold text-indigo-800">CNPJ/CPF Emitente *</Label>
+                                      <Input 
+                                         value={notaFiscalCnpjEmitente} 
+                                         onChange={e => setNotaFiscalCnpjEmitente(e.target.value)} 
+                                         className="bg-white border-indigo-200" 
+                                         placeholder="Apenas números (14 dígitos)"
+                                         maxLength={14}
+                                      />
+                                   </div>
+                                </div>
+                             )}
+
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                   <Label className="text-xs font-bold text-slate-600">Data Vencimento *</Label>
-                                   <Input 
-                                      type="date" 
-                                      value={dataVencimento}
-                                      onChange={e => setDataVencimento(e.target.value)}
-                                      className="bg-white font-medium"
-                                   />
+                                <div className="space-y-2">
+                                   <Label className="text-xs font-bold text-slate-600">Tipo de Apuração *</Label>
+                                   <RadioGroup value={tipoApuracao} onValueChange={(val: any) => setTipoApuracao(val)} className="flex items-center space-x-4">
+                                      <div className="flex items-center space-x-2">
+                                         <RadioGroupItem value="periodo" id="por-periodo" />
+                                         <Label htmlFor="por-periodo" className="cursor-pointer">Por período</Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                         <RadioGroupItem value="operacao" id="por-operacao" />
+                                         <Label htmlFor="por-operacao" className="cursor-pointer">Por operação</Label>
+                                      </div>
+                                   </RadioGroup>
                                 </div>
-                                <div className="space-y-1">
-                                   <Label className="text-xs font-bold text-slate-600">Informações Complementares</Label>
-                                   <Textarea 
-                                      value={infoCompl}
-                                      onChange={e => setInfoCompl(e.target.value)}
-                                      maxLength={255}
-                                      className="bg-white resize-none h-10"
-                                      placeholder="Ex: DARJ referente a notas fiscais..."
-                                   />
-                                </div>
-                             </div>
-                          </div>
-                       </div>
+                                {tipoApuracao === 'periodo' && (
+                                   <div className="space-y-1">
+                                      <Label className="text-xs font-bold text-slate-600">Tipo Período *</Label>
+                                      <Select value={tipoPeriodo} onValueChange={setTipoPeriodo}>
+                                         <SelectTrigger className="bg-white">
+                                            <SelectValue />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                            <SelectItem value="M">Mensal</SelectItem>
+                                            <SelectItem value="Q">Quinzenal</SelectItem>
+                                            <SelectItem value="D">Decendial</SelectItem>
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-600">Data Vencimento *</Label>
+                                    <Input 
+                                       type="date" 
+                                       value={dataVencimento}
+                                       onChange={e => setDataVencimento(e.target.value)}
+                                       className="bg-white font-medium"
+                                    />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-600">Informações Complementares</Label>
+                                    <Textarea 
+                                       value={infoCompl}
+                                       onChange={e => setInfoCompl(e.target.value)}
+                                       maxLength={255}
+                                       className="bg-white resize-none h-10"
+                                       placeholder="Ex: DARJ referente a notas fiscais..."
+                                    />
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
 
                        {/* Valores em Reais */}
                        <div>
