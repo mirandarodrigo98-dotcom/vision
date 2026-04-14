@@ -45,6 +45,37 @@ async function testDigisacUpload() {
   const fileRes2 = await fetch(json2.url);
   const arrayBuffer2 = await fileRes2.arrayBuffer();
   console.log('Com prefixo Header:', Buffer.from(arrayBuffer2).subarray(0, 50).toString());
+  
+  // Now send both as messages to a test number
+  const msg1 = await fetch(`${config.base_url}/api/v1/messages`, {
+      method: 'POST',
+      headers: {
+          'Authorization': `Bearer ${config.api_token}`,
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+          number: '551799135176', // User's test number from screenshot
+          serviceId: config.connection_phone,
+          type: 'file',
+          fileId: json1.id
+      })
+  });
+  console.log('Msg1:', await msg1.text());
+
+  const msg2 = await fetch(`${config.base_url}/api/v1/messages`, {
+      method: 'POST',
+      headers: {
+          'Authorization': `Bearer ${config.api_token}`,
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+          number: '551799135176',
+          serviceId: config.connection_phone,
+          type: 'file',
+          fileId: json2.id
+      })
+  });
+  console.log('Msg2:', await msg2.text());
   pool.end();
 }
 

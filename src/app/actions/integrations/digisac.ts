@@ -168,19 +168,23 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   if (message.base64File) {
     let base64Data = message.base64File;
     
-    // A API do Digisac exige que o base64 seja RAW, SEM O PREFIXO data:mime/type;base64,
-    if (base64Data.includes('base64,')) {
-      base64Data = base64Data.split('base64,')[1];
-    }
-
-    // Limpar o base64 de qualquer quebra de linha ou espaço em branco que possa corromper o arquivo
-    base64Data = base64Data.replace(/[\r\n\s]+/g, '');
-
     const nameToUse = message.fileName || "documento.pdf";
     const extension = nameToUse.split('.').pop()?.toLowerCase() || "pdf";
     let mime = "application/pdf";
     if (extension === "png") mime = "image/png";
     else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
+
+    // A API do Digisac EXIGE o prefixo data:mime/type;base64, para decodificar o arquivo corretamente.
+    // Se o prefixo não for enviado, o arquivo chegará corrompido (como um arquivo de texto com o base64 literal).
+    if (base64Data.includes('base64,')) {
+      base64Data = base64Data.split('base64,')[1];
+    }
+
+    // Limpar o base64 de qualquer quebra de linha ou espaço em branco
+    base64Data = base64Data.replace(/[\r\n\s]+/g, '');
+
+    // Reconstruir o base64 com o prefixo obrigatoriamente
+    base64Data = `data:${mime};base64,${base64Data}`;
 
     // Fazer upload do arquivo primeiro para evitar erro de limite de payload 500 no Digisac
     const uploadRes = await uploadFileDigisac(base64Data, nameToUse, mime, extension);

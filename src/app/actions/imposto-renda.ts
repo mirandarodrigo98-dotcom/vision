@@ -613,6 +613,127 @@ _Departamento Tributário_`;
   return { success: true };
 }
 
+export async function resendIRDeclaration(
+  declarationId: string,
+  sendWhatsapp: boolean,
+  sendEmail: boolean
+) {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+
+  const declaration = await getIRDeclarationById(declarationId);
+  if (!declaration) throw new Error('Declaração não encontrada');
+
+  const files = await getIRFiles(declarationId);
+  
+  const uploadedFiles = [];
+  for (const file of files) {
+    try {
+      const res = await fetch(file.file_url);
+      if (!res.ok) continue;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const mimeType = file.file_name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
+      uploadedFiles.push({
+        fileName: file.file_name,
+        base64: buffer.toString('base64'),
+        mimeType
+      });
+    } catch (e) {
+      console.error('Error fetching file for resend:', e);
+    }
+  }
+
+  // Get interactions to find the transmission message to extract restitution or tax to pay
+  const interactions = await getIRInteractions(declarationId);
+  const transmissionInteraction = interactions.find((i: any) => i.new_status === 'Transmitida' && i.type === 'status_change');
+  
+  const contactName = declaration.name;
+  const year = declaration.year;
+  
+  // Create a generic message since we don't have the exact values easily without parsing again
+  // Or we can just send the default success message without values if not available
+  const textMessage = `_*Essa é uma mensagem automática. Não é necessário responder*_
+
+Olá *${contactName}*
+Estamos reenviando a sua declaração de Imposto de Renda Exercício *${year}* e os respectivos comprovantes.
+Em caso de dúvidas entre em contato com a nossa Central de Atendimento através do número (24) 3026-5648 ou 3337-4865.
+
+Atenciosamente
+*NZD Contabilidade*
+_Departamento Tributário_`;
+
+  let messagesErrors = [];
+
+  if (sendWhatsapp && declaration.phone) {
+    try {
+      const { getDigisacConfig, sendDigisacMessage } = await import('./integrations/digisac');
+      const config = await getDigisacConfig();
+
+      if (uploadedFiles.length > 0) {
+        for (let i = 0; i < uploadedFiles.length; i++) {
+          const file = uploadedFiles[i];
+          const res = await sendDigisacMessage({
+            number: declaration.phone,
+            serviceId: config.connection_phone,
+            contactName: declaration.name,
+            body: null,
+            base64File: `data:${file.mimeType};base64,${file.base64}`,
+            fileName: file.fileName
+          });
+          if (!res.success) throw new Error(res.error || 'Erro ao enviar arquivo via Digisac');
+        }
+        
+        const resText = await sendDigisacMessage({
+          number: declaration.phone,
+          serviceId: config.connection_phone,
+          body: textMessage
+        });
+        if (!resText.success) throw new Error(resText.error || 'Erro ao enviar mensagem de texto via Digisac');
+      } else {
+        const resText = await sendDigisacMessage({
+          number: declaration.phone,
+          serviceId: config.connection_phone,
+          body: textMessage
+        });
+        if (!resText.success) throw new Error(resText.error || 'Erro ao enviar mensagem de texto via Digisac');
+      }
+    } catch (e: any) {
+      console.error("Erro ao enviar WhatsApp:", e);
+      messagesErrors.push(`WhatsApp: ${e.message}`);
+    }
+  }
+
+  if (sendEmail && declaration.email) {
+    try {
+      const { sendEmail: mailerSend } = await import('@/lib/email/resend');
+      const attachments = uploadedFiles.map(f => ({
+        filename: f.fileName,
+        content: Buffer.from(f.base64, 'base64'),
+        contentType: f.mimeType
+      }));
+      
+      const htmlMessage = textMessage.replace(/\n/g, '<br/>').replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+
+      await mailerSend({
+        to: declaration.email,
+        subject: `Reenvio: Declaração de Imposto de Renda Transmitida - Exercício ${year}`,
+        html: htmlMessage,
+        category: 'irpf_transmissao',
+        attachments
+      });
+    } catch (e: any) {
+      console.error("Erro ao enviar Email:", e);
+      messagesErrors.push(`E-mail: ${e.message}`);
+    }
+  }
+
+  if (messagesErrors.length > 0) {
+      return { success: true, warning: `Reenvio processado, mas houve falha: ${messagesErrors.join(', ')}` };
+  }
+  
+  return { success: true };
+}
+
 export async function getIRInteractions(id: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF, IRFile, deleteIRFile } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF, IRFile, deleteIRFile, resendIRDeclaration } from '@/app/actions/imposto-renda';
 import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { getCompaniesForSelect } from '@/app/actions/companies';
@@ -88,6 +88,9 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
 
   const [processadaDialog, setProcessadaDialog] = useState(false);
   const [transmitidaDialog, setTransmitidaDialog] = useState(false);
+  const [resendDialog, setResendDialog] = useState(false);
+  const [resendWhatsapp, setResendWhatsapp] = useState(true);
+  const [resendEmail, setResendEmail] = useState(true);
   const [processadaData, setProcessadaData] = useState({
     outcome_type: '' as 'restituicao' | 'imposto' | '',
     outcome_value: '',
@@ -95,6 +98,27 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
     installments_count: '',
     installment_value: ''
   });
+
+  const handleResend = async () => {
+    if (!resendWhatsapp && !resendEmail) {
+      toast.error('Selecione pelo menos um meio de envio (WhatsApp ou E-mail).');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await resendIRDeclaration(declaration.id, resendWhatsapp, resendEmail);
+      if (response && response.warning) {
+        toast.warning(response.warning, { duration: 10000 });
+      } else {
+        toast.success('Documentos reenviados com sucesso!');
+      }
+      setResendDialog(false);
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao reenviar documentos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const parseMoney = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -766,6 +790,19 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
                   ))}
                 </div>
               )}
+              {files.length > 0 && declaration.status === 'Transmitida' && (
+                <div className="mt-4 pt-4 border-t flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setResendDialog(true)}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Reenviar Declaração e Recibos
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1344,6 +1381,54 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
             </Button>
             <Button onClick={submitProcessada} disabled={loading}>
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Reenvio */}
+      <Dialog open={resendDialog} onOpenChange={setResendDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reenviar Declaração e Recibos</DialogTitle>
+            <DialogDescription>
+              Selecione por onde deseja reenviar os arquivos anexados para o contribuinte.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <Label className="text-base">WhatsApp</Label>
+                <p className="text-sm text-muted-foreground">{declaration.phone || 'Sem número'}</p>
+              </div>
+              <input 
+                type="checkbox" 
+                className="w-5 h-5" 
+                checked={resendWhatsapp} 
+                onChange={(e) => setResendWhatsapp(e.target.checked)} 
+                disabled={!declaration.phone}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <Label className="text-base">E-mail</Label>
+                <p className="text-sm text-muted-foreground">{declaration.email || 'Sem e-mail'}</p>
+              </div>
+              <input 
+                type="checkbox" 
+                className="w-5 h-5" 
+                checked={resendEmail} 
+                onChange={(e) => setResendEmail(e.target.checked)} 
+                disabled={!declaration.email}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResendDialog(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button onClick={handleResend} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {loading ? 'Enviando...' : 'Confirmar Reenvio'}
             </Button>
           </DialogFooter>
         </DialogContent>
