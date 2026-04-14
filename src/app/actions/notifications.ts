@@ -101,8 +101,8 @@ export async function createNotification(userId: string, title: string, message:
       VALUES ($1, $2, $3, $4, $5, $6)
     `, [id, userId, title, message, link || null, type]);
     return { success: true, id };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating notification:', error);
-    return { error: 'Failed to create notification' };
+    return { error: 'Failed to create notification', details: error.message };
   }
 }

@@ -5,6 +5,25 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { v4 as uuidv4 } from 'uuid';
+import { createNotification } from './notifications';
+
+async function notifyIRUpdate(declarationId: string, declarationName: string, actionDesc: string) {
+  const session = await getSession();
+  if (!session) return;
+
+  const title = `Atualização - IR ${declarationName}`;
+  const message = `${session.name} ${actionDesc}`;
+  const link = `/admin/pessoa-fisica/imposto-renda/${declarationId}`;
+
+  // Notificar o próprio usuário que fez a ação
+  await createNotification(session.user_id, title, message, link, 'info');
+
+  // Notificar administradores
+  const { rows: admins } = await db.query("SELECT id FROM users WHERE role = 'admin' AND id != $1", [session.user_id]);
+  for (const admin of admins) {
+    await createNotification(admin.id, title, message, link, 'info');
+  }
+}
 
 export type IRStatus = 'Não Iniciado' | 'Iniciado' | 'Pendente' | 'Validada' | 'Transmitida' | 'Processada' | 'Malha Fina' | 'Retificadora' | 'Reaberta' | 'Cancelada';
 
@@ -136,6 +155,8 @@ export async function deleteIRDeclaration(id: string) {
     // Então revalidamos apenas a lista principal aqui
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
     
+    await notifyIRUpdate(id, 'Declaração Excluída', 'excluiu uma declaração de IR');
+
     return { success: true };
   } catch (error: any) {
     console.error('Error deleting IR declaration:', error);
@@ -173,6 +194,9 @@ export async function updateIRContributor(
 
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
     revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+    
+    await notifyIRUpdate(id, data.name, 'atualizou os dados do contribuinte');
+    
     return { success: true };
   } catch (error: any) {
     console.error('Error updating IR contributor:', error);
@@ -214,6 +238,8 @@ export async function createIRDeclaration(data: {
   `, [result.id, session.user_id]);
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
+  await notifyIRUpdate(result.id, data.name, 'criou a declaração');
+  
   return result;
 }
 
@@ -282,6 +308,9 @@ export async function updateIRIndication(id: string, data: { indicated_by_user_i
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+  if (prev) {
+    await notifyIRUpdate(id, prev.name, 'atualizou a indicação da declaração');
+  }
 }
 
 export async function updateIRPriority(id: string, priority: 'Baixa' | 'Média' | 'Alta' | 'Crítica') {
@@ -300,6 +329,9 @@ export async function updateIRPriority(id: string, priority: 'Baixa' | 'Média' 
   })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+  if (decl) {
+    await notifyIRUpdate(id, decl.name, `alterou a prioridade para ${priority}`);
+  }
 }
 
 export async function updateIRStatus(id: string, newStatus: IRStatus, justification?: string, processadaData?: any) {
@@ -336,6 +368,7 @@ export async function updateIRStatus(id: string, newStatus: IRStatus, justificat
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+  await notifyIRUpdate(id, decl.name, `alterou o status de ${oldStatus} para ${newStatus}`);
 }
 
 export async function addIRComment(id: string, formData: FormData) {
@@ -370,6 +403,11 @@ export async function addIRComment(id: string, formData: FormData) {
     }
   })();
 
+  const decl = await getIRDeclarationById(id);
+  if (decl) {
+    await notifyIRUpdate(id, decl.name, 'adicionou um comentário/anexo');
+  }
+
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
   return { success: true };
 }
@@ -401,6 +439,11 @@ export async function deleteIRFile(fileId: string, declarationId: string) {
     VALUES ($1, $2, 'comment', 'Arquivo removido')
   `, [declarationId, session.user_id]);
   
+  const decl = await getIRDeclarationById(declarationId);
+  if (decl) {
+    await notifyIRUpdate(declarationId, decl.name, 'removeu um arquivo');
+  }
+
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
 }
 
@@ -555,6 +598,8 @@ _Departamento Tributário_`;
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
   
+  await notifyIRUpdate(declarationId, declaration.name, 'transmitiu a declaração');
+
   if (messagesErrors.length > 0) {
       return { success: true, warning: `Declaração transmitida e salva, mas houve falha no envio: ${messagesErrors.join(', ')}` };
   }
@@ -674,6 +719,11 @@ export async function registerIRReceipt(id: string, formData: FormData) {
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+
+  const decl = await getIRDeclarationById(id);
+  if (decl) {
+    await notifyIRUpdate(id, decl.name, 'registrou um recebimento');
+  }
 }
 
 export async function markIRAsReceived(id: string) {
@@ -691,6 +741,11 @@ export async function markIRAsReceived(id: string) {
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+
+  const decl = await getIRDeclarationById(id);
+  if (decl) {
+    await notifyIRUpdate(id, decl.name, 'marcou a declaração como recebida (quitação)');
+  }
 }
 
 export async function deleteIRReceipt(id: string) {
@@ -716,6 +771,12 @@ export async function deleteIRReceipt(id: string) {
   })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+
+  const decl = await getIRDeclarationById(id);
+  if (decl) {
+    await notifyIRUpdate(id, decl.name, 'excluiu um recebimento');
+  }
+
   return { success: true };
 }
 
@@ -775,5 +836,11 @@ export async function saveIRReceiptPDF(id: string, base64Pdf: string, companyNam
   })();
   
   revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+
+  const decl = await getIRDeclarationById(id);
+  if (decl) {
+    await notifyIRUpdate(id, decl.name, `salvou um recibo de entrega para a empresa ${companyName}`);
+  }
+
   return { success: true, url: publicUrl };
 }
