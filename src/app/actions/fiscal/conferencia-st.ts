@@ -29,8 +29,18 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
       // Procura match exato de NCM e CEST primeiro
       let regra = regrasSt.find(r => cleanStr(r.ncm_sh) === cleanNcm && cleanStr(r.cest) === cleanCest);
       
-      // Se não achar exato, mas tiver CEST, procura regras com o mesmo CEST onde o NCM do banco seja um prefixo do NCM do XML
-      // (ex: XML tem 96151100, mas o banco tem apenas 9615 com o mesmo CEST 2006100)
+      // Se não achar exato, mas tiver CEST, começa a varredura do NCM (do final para o início)
+      // Ex: 96151100 -> 9615110 -> 961511 -> 96151 -> 9615 -> 961 -> 96
+      if (!regra && cleanCest && cleanNcm.length > 2) {
+         for (let i = cleanNcm.length - 1; i >= 2; i--) {
+            const varreduraNcm = cleanNcm.substring(0, i);
+            regra = regrasSt.find(r => cleanStr(r.cest) === cleanCest && cleanStr(r.ncm_sh) === varreduraNcm);
+            if (regra) break; // Encontrou match, para a varredura
+         }
+      }
+
+      // Se ainda assim não achar, tenta encontrar uma regra onde o NCM do banco seja apenas "9615" 
+      // (a varredura acima já cobriria isso se o banco tivesse "9615", mas isso garante casos onde o banco tenha "9615.00.00")
       if (!regra && cleanCest) {
         regra = regrasSt.find(r => {
            const bancoNcm = cleanStr(r.ncm_sh);
