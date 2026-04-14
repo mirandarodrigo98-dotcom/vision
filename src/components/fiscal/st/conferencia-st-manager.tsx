@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { validarArquivosST } from '@/app/actions/fiscal/conferencia-st';
 import { listarHistoricoSt } from '@/app/actions/fiscal/historico-st';
-import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search, ChevronDownIcon } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, CheckCircle2, ChevronLeft, Download, History, Eye, Plus, Search, ChevronDownIcon, Receipt } from 'lucide-react';
 import { CompanySelector } from '@/components/shared/company-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import * as XLSX from 'xlsx';
+import { gerarDarjSt } from '@/app/actions/fiscal/gerar-darj-st';
 
 export function ConferenciaStManager() {
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,12 @@ export function ConferenciaStManager() {
   const [buscaNcmCest, setBuscaNcmCest] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('Todos');
   const [filtroNotas, setFiltroNotas] = useState<string[]>([]);
+
+  // DARJ State
+  const [modalDarjOpen, setModalDarjOpen] = useState(false);
+  const [dataDarj, setDataDarj] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [gerandoDarj, setGerandoDarj] = useState(false);
+  const [darjResult, setDarjResult] = useState<any>(null);
 
   const toggleStatusFiltro = (status: string) => {
     setFiltroStatus(status);
@@ -172,6 +180,38 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
   const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
   const formatPct = (val: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + '%';
 
+  const handleGerarDarj = async () => {
+    if (!resultado || !dataDarj) return;
+    if (resultado.resumo.totalIcmsStPuro <= 0 && resultado.resumo.totalFecpSt <= 0) {
+       toast.error('Não há valores de ST a recolher nesta conferência.');
+       return;
+    }
+
+    setGerandoDarj(true);
+    try {
+      const res = await gerarDarjSt({
+         empresaId,
+         dataPagamento: dataDarj,
+         totalIcmsStPuro: resultado.resumo.totalIcmsStPuro,
+         totalFecpSt: resultado.resumo.totalFecpSt,
+         totalGeral: resultado.resumo.totalIcmsStCalculado,
+         periodoMes: parseInt(dataDarj.split('-')[1]),
+         periodoAno: parseInt(dataDarj.split('-')[0])
+      });
+
+      if (res.success) {
+         toast.success('DARJ gerado com sucesso!');
+         setDarjResult(res.data);
+      } else {
+         toast.error(res.error || 'Erro ao gerar DARJ na SEFAZ RJ.');
+      }
+    } catch (err) {
+      toast.error('Erro na conexão com a SEFAZ RJ.');
+    } finally {
+      setGerandoDarj(false);
+    }
+  };
+
   // Tela de Resultado
   if (resultado) {
     const notasUnicas = Array.from(new Set(resultado.itens.map((i: any) => i.nota))) as string[];
@@ -293,6 +333,95 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
               <Button variant="outline" onClick={handleExportXLSX} className="ml-auto border-emerald-500 text-emerald-600 hover:bg-emerald-50">
                 <Download className="h-4 w-4 mr-2" /> Exportar
               </Button>
+              <Dialog open={modalDarjOpen} onOpenChange={setModalDarjOpen}>
+                 <DialogTrigger asChild>
+                    <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+                       <Receipt className="h-4 w-4 mr-2" />
+                       Gerar DARJ ST (RJ)
+                    </Button>
+                 </DialogTrigger>
+                 <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                       <DialogTitle>Gerar Guia DARJ - ICMS ST</DialogTitle>
+                       <DialogDescription>
+                          A guia será gerada diretamente no sistema da SEFAZ RJ com o CNPJ da empresa destinatária e as informações abaixo.
+                       </DialogDescription>
+                    </DialogHeader>
+                    {!darjResult ? (
+                    <div className="flex flex-col gap-4 py-4">
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1">
+                             <span className="text-xs text-slate-500 font-semibold uppercase">ICMS ST Puro</span>
+                             <span className="text-lg font-bold text-slate-800">{formatBRL(resultado.resumo.totalIcmsStPuro || 0)}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                             <span className="text-xs text-slate-500 font-semibold uppercase">FECP ST</span>
+                             <span className="text-lg font-bold text-slate-800">{formatBRL(resultado.resumo.totalFecpSt || 0)}</span>
+                          </div>
+                          <div className="col-span-2 flex flex-col gap-1 pt-2 border-t border-dashed">
+                             <span className="text-xs text-slate-500 font-semibold uppercase">Total da Guia</span>
+                             <span className="text-xl font-black text-indigo-700">{formatBRL(resultado.resumo.totalIcmsStCalculado || 0)}</span>
+                          </div>
+                       </div>
+                       <div className="space-y-2 mt-2">
+                          <Label htmlFor="data-vencimento">Data de Pagamento/Vencimento</Label>
+                          <Input 
+                             id="data-vencimento" 
+                             type="date" 
+                             value={dataDarj}
+                             onChange={e => setDataDarj(e.target.value)}
+                             min={new Date().toISOString().substring(0, 10)}
+                          />
+                          <p className="text-xs text-slate-500 mt-1">Datas em finais de semana ou feriados podem retornar alertas ou recusas da SEFAZ.</p>
+                       </div>
+                    </div>
+                    ) : (
+                    <div className="flex flex-col gap-4 py-4 bg-emerald-50 rounded-lg p-4 mt-2 border border-emerald-100">
+                       <div className="flex flex-col items-center text-center gap-2 mb-2">
+                          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                             <CheckCircle2 className="w-8 h-8" />
+                          </div>
+                          <h3 className="font-bold text-emerald-800 text-lg">Guia Gerada com Sucesso</h3>
+                       </div>
+                       
+                       <div className="flex flex-col gap-1">
+                          <span className="text-xs text-emerald-700 font-semibold">Nosso Número (SEFAZ)</span>
+                          <span className="font-mono text-sm bg-white p-2 rounded border">{darjResult.nossoNumero || darjResult.idSessao}</span>
+                       </div>
+
+                       <div className="flex flex-col gap-1">
+                          <span className="text-xs text-emerald-700 font-semibold">Código de Barras</span>
+                          <span className="font-mono text-sm bg-white p-2 rounded border break-all">{darjResult.codigoBarra}</span>
+                       </div>
+
+                       {darjResult.pixCopiaCola && (
+                       <div className="flex flex-col gap-1">
+                          <span className="text-xs text-emerald-700 font-semibold">Pix Copia e Cola</span>
+                          <span className="font-mono text-xs bg-white p-2 rounded border break-all max-h-24 overflow-y-auto">{darjResult.pixCopiaCola}</span>
+                       </div>
+                       )}
+                    </div>
+                    )}
+                    
+                    <DialogFooter className="sm:justify-end">
+                       {!darjResult ? (
+                       <Button 
+                          type="button" 
+                          variant="default" 
+                          onClick={handleGerarDarj} 
+                          disabled={gerandoDarj || !dataDarj}
+                          className="w-full sm:w-auto"
+                       >
+                          {gerandoDarj ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Conectando à SEFAZ...</> : 'Confirmar e Gerar'}
+                       </Button>
+                       ) : (
+                       <Button type="button" variant="outline" onClick={() => { setModalDarjOpen(false); setDarjResult(null); }}>
+                          Fechar
+                       </Button>
+                       )}
+                    </DialogFooter>
+                 </DialogContent>
+              </Dialog>
            </div>
            
            {/* Legendas Clicáveis */}
