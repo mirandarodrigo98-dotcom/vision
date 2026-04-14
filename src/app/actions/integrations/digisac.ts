@@ -174,17 +174,13 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     if (extension === "png") mime = "image/png";
     else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
 
-    // A API do Digisac EXIGE o prefixo data:mime/type;base64, para decodificar o arquivo corretamente.
-    // Se o prefixo não for enviado, o arquivo chegará corrompido (como um arquivo de texto com o base64 literal).
+    // A API do Digisac EXIGE o base64 PURO (sem prefixo data:mime/type;base64,) na rota /api/v1/files
     if (base64Data.includes('base64,')) {
       base64Data = base64Data.split('base64,')[1];
     }
 
     // Limpar o base64 de qualquer quebra de linha ou espaço em branco
     base64Data = base64Data.replace(/[\r\n\s]+/g, '');
-
-    // Reconstruir o base64 com o prefixo obrigatoriamente
-    base64Data = `data:${mime};base64,${base64Data}`;
 
     // Fazer upload do arquivo primeiro para evitar erro de limite de payload 500 no Digisac
     const uploadRes = await uploadFileDigisac(base64Data, nameToUse, mime, extension);
