@@ -37,7 +37,7 @@ export function ConferenciaStManager() {
   const [modalDarjOpen, setModalDarjOpen] = useState(false);
   const [dataDarj, setDataDarj] = useState<string>(new Date().toISOString().substring(0, 10));
   const [dataVencimento, setDataVencimento] = useState<string>(new Date().toISOString().substring(0, 10));
-  const [tipoApuracao, setTipoApuracao] = useState<'periodo' | 'operacao'>('periodo');
+  const [tipoApuracao, setTipoApuracao] = useState<'periodo' | 'operacao'>('operacao');
   const [natureza, setNatureza] = useState('4');
   const [produto, setProduto] = useState('396');
   const [tipoPeriodo, setTipoPeriodo] = useState('M');
@@ -363,7 +363,11 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
               </Button>
               <Dialog open={modalDarjOpen} onOpenChange={setModalDarjOpen}>
                  <DialogTrigger asChild>
-                    <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+                    <Button 
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
+                        disabled={resultado.resumo.qtdNotas > 1}
+                        title={resultado.resumo.qtdNotas > 1 ? "O DARJ só pode ser gerado para uma única nota (Por Operação). Filtre a nota desejada antes de gerar." : "Gerar guia DARJ"}
+                    >
                        <Receipt className="h-4 w-4 mr-2" />
                        Gerar DARJ ST (RJ)
                     </Button>
@@ -494,7 +498,17 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
 
                              {/* Campos Condicionais para 'Por operação' */}
                              {tipoApuracao === 'operacao' && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-indigo-50/50 rounded-md border border-indigo-100 mt-2">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-indigo-50/50 rounded-md border border-indigo-100 mt-2 relative">
+                                   <Button 
+                                      type="button" 
+                                      size="sm" 
+                                      className="absolute -top-3 -right-3 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-full px-3 py-1 text-xs"
+                                      onClick={preencherCamposNota}
+                                      title="Preencher com os dados do XML atual"
+                                   >
+                                      <FileText className="w-3 h-3 mr-1" />
+                                      Preencher com XML
+                                   </Button>
                                    <div className="space-y-1">
                                       <Label className="text-xs font-bold text-indigo-800">Nº Nota Fiscal *</Label>
                                       <Input 
@@ -548,38 +562,7 @@ Data exportação: ${new Date().toLocaleDateString('pt-BR')}`],
                                 </div>
                              )}
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                   <Label className="text-xs font-bold text-slate-600">Tipo de Apuração *</Label>
-                                   <RadioGroup value={tipoApuracao} onValueChange={(val: any) => setTipoApuracao(val)} className="flex items-center space-x-4">
-                                      <div className="flex items-center space-x-2">
-                                         <RadioGroupItem value="periodo" id="por-periodo" />
-                                         <Label htmlFor="por-periodo" className="cursor-pointer">Por período</Label>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                         <RadioGroupItem value="operacao" id="por-operacao" />
-                                         <Label htmlFor="por-operacao" className="cursor-pointer">Por operação</Label>
-                                      </div>
-                                   </RadioGroup>
-                                </div>
-                                {tipoApuracao === 'periodo' && (
-                                   <div className="space-y-1">
-                                      <Label className="text-xs font-bold text-slate-600">Tipo Período *</Label>
-                                      <Select value={tipoPeriodo} onValueChange={setTipoPeriodo}>
-                                         <SelectTrigger className="bg-white">
-                                            <SelectValue />
-                                         </SelectTrigger>
-                                         <SelectContent>
-                                            <SelectItem value="M">Mensal</SelectItem>
-                                            <SelectItem value="Q">Quinzenal</SelectItem>
-                                            <SelectItem value="D">Decendial</SelectItem>
-                                         </SelectContent>
-                                      </Select>
-                                   </div>
-                                )}
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                  <div className="space-y-1">
                                     <Label className="text-xs font-bold text-slate-600">Data Vencimento *</Label>
                                     <Input 
