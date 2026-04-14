@@ -314,7 +314,7 @@ export async function createCompany(data: FormData) {
     });
     revalidatePath('/admin/companies');
     return { success: true, companyId: id };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create company:', error);
     await logAudit({
       actor_user_id: session.user_id,
@@ -325,7 +325,17 @@ export async function createCompany(data: FormData) {
       metadata: { nome, cnpj, error: String(error) },
       success: false
     });
-    return { error: 'Erro ao criar empresa' };
+    
+    if (error.code === '23505') {
+      if (error.constraint?.includes('code') || error.message?.includes('code')) {
+        return { error: 'Código já cadastrado.' };
+      }
+      if (error.constraint?.includes('cnpj') || error.message?.includes('cnpj')) {
+        return { error: 'CNPJ já cadastrado.' };
+      }
+    }
+    
+    return { error: 'Erro ao criar empresa: ' + (error.message || 'Desconhecido') };
   }
 }
 
@@ -386,7 +396,7 @@ export async function updateCompany(companyId: string, data: FormData) {
     revalidatePath('/admin/companies');
     revalidatePath(`/admin/companies/${companyId}`);
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to update company:', error);
     await logAudit({
       actor_user_id: session.user_id,
@@ -397,7 +407,17 @@ export async function updateCompany(companyId: string, data: FormData) {
       metadata: { error: String(error) },
       success: false
     });
-    return { error: 'Erro ao atualizar empresa' };
+    
+    if (error.code === '23505') {
+      if (error.constraint?.includes('code') || error.message?.includes('code')) {
+        return { error: 'Código já cadastrado.' };
+      }
+      if (error.constraint?.includes('cnpj') || error.message?.includes('cnpj')) {
+        return { error: 'CNPJ já cadastrado.' };
+      }
+    }
+    
+    return { error: 'Erro ao atualizar empresa: ' + (error.message || 'Desconhecido') };
   }
 }
 
