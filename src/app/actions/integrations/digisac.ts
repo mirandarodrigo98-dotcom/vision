@@ -174,24 +174,21 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     if (extension === "png") mime = "image/png";
     else if (extension === "jpg" || extension === "jpeg") mime = "image/jpeg";
 
-    // A API do Digisac EXIGE o base64 PURO (sem prefixo data:mime/type;base64,) na rota /api/v1/files
     if (base64Data.includes('base64,')) {
       base64Data = base64Data.split('base64,')[1];
     }
 
-    // Limpar o base64 de qualquer quebra de linha ou espaço em branco
     base64Data = base64Data.replace(/[\r\n\s]+/g, '');
 
-    // Fazer upload do arquivo primeiro para evitar erro de limite de payload 500 no Digisac
-    const uploadRes = await uploadFileDigisac(base64Data, nameToUse, mime, extension);
-    if (!uploadRes.success || !uploadRes.id) {
-        return { success: false, error: uploadRes.error || 'Falha ao processar arquivo para envio' };
-    }
+    // Revertendo para o comportamento original (enviar direto no payload) que funcionava perfeitamente
+    // antes das refatorações de uploadFileDigisac
+    payload.file = {
+        base64: `data:${mime};base64,${base64Data}`, // O formato original suportado
+        mimetype: mime,
+        name: nameToUse
+    };
+    payload.type = 'file';
 
-    payload.fileId = uploadRes.id;
-    payload.type = 'file'; 
-    
-    // Se o tipo é 'file', precisamos ter certeza que o campo 'text' existe como null se não houver texto
     if (payload.text === ' ' || payload.text === undefined) {
       payload.text = null;
     }
