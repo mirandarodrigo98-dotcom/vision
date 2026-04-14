@@ -34,7 +34,7 @@ export async function gerarDarjSt(params: {
       const emp = empresaRows[0];
       const cnpjDest = (emp.cnpj || '').replace(/\D/g, '');
       const cep = (emp.address_zip_code || '00000000').replace(/\D/g, '');
-      const endereco = \`\${emp.address_street || ''} \${emp.address_number || ''} \${emp.address_complement || ''}\`.trim().substring(0, 70);
+      const endereco = (emp.address_street || '') + ' ' + (emp.address_number || '') + ' ' + (emp.address_complement || '').trim().substring(0, 70);
       const municipio = (emp.municipio || 'Rio de Janeiro').substring(0, 30);
       const uf = (emp.uf || 'RJ').substring(0, 2);
       const telefoneStr = (emp.telefone || '0000000000').replace(/\D/g, '');
