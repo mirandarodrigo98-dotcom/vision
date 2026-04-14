@@ -452,7 +452,11 @@ export async function transmitIRDeclaration(
   sendWhatsapp: boolean,
   sendEmail: boolean,
   formData: FormData,
-  restitutionValue?: string
+  restitutionValue?: string,
+  taxToPayValue?: string,
+  quotasCount?: string,
+  quotaValue?: string,
+  bankInfo?: string
 ) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
@@ -515,9 +519,11 @@ export async function transmitIRDeclaration(
 
 Olá *${contactName}*
 Estamos enviando a sua declaração de Imposto de Renda Exercício *${year}* que foi transmitida com sucesso.${
-    restitutionValue && restitutionValue.trim() !== '' 
+    restitutionValue && restitutionValue.trim() !== '' && restitutionValue.trim() !== '0,00'
       ? `\nO valor da sua restituição foi de *R$ ${restitutionValue.trim()}*`
-      : ''
+      : taxToPayValue && taxToPayValue.trim() !== '' && taxToPayValue.trim() !== '0,00'
+        ? `\nO saldo do imposto a pagar é de *R$ ${taxToPayValue.trim()}* que foi dividido em *${quotasCount || '1'}* cotas de *R$ ${quotaValue || taxToPayValue.trim()}* que será debitado em: *${bankInfo || 'sua conta'}* todo último dia útil de cada mês. Providencie saldo na conta para o pagamento e monitore o débito em conta para evitar pagamento com juros e multas após o vencimento.`
+        : ''
   }
 A partir de agora passamos a monitorar o processamento junto à Receita Federal.
 Caso seja necessário faremos contato.

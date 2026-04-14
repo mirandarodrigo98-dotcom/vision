@@ -24,11 +24,53 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
   const [sendEmail, setSendEmail] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [restitutionValue, setRestitutionValue] = useState<string>('');
+  const [taxToPayValue, setTaxToPayValue] = useState<string>('');
+  const [quotasCount, setQuotasCount] = useState<string>('');
+  const [quotaValue, setQuotaValue] = useState<string>('');
+  const [bankInfo, setBankInfo] = useState<string>('');
+
   const [showRestitutionInput, setShowRestitutionInput] = useState(false);
+  const [showTaxToPayInput, setShowTaxToPayInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasPhone = !!declaration.phone;
   const hasEmail = !!declaration.email;
+
+  const extractPdfData = async (file: File) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      // Em um ambiente de produção real, idealmente faríamos um POST para uma Server Action
+      // que usa `pdf-parse` e retorna os dados extraídos, pois ler PDF no client-side via
+      // fetch/buffer puro é complexo sem bibliotecas pesadas como pdf.js.
+      // Vamos criar um formData e enviar para uma rota de API que extrai os dados.
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/irpf/extract-receipt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.restitutionValue && data.restitutionValue !== '0,00') {
+          setRestitutionValue(data.restitutionValue);
+          setShowRestitutionInput(true);
+          setShowTaxToPayInput(false);
+        } else if (data.taxToPayValue && data.taxToPayValue !== '0,00') {
+          setTaxToPayValue(data.taxToPayValue);
+          setQuotasCount(data.quotasCount || '1');
+          setQuotaValue(data.quotaValue || data.taxToPayValue);
+          setBankInfo(data.bankInfo || '');
+          setShowTaxToPayInput(true);
+          setShowRestitutionInput(false);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to extract PDF data:', error);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -81,6 +123,10 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
 
       if (file.name.toLowerCase().includes('imagem-recibo')) {
         setShowRestitutionInput(true);
+        // Extract data from PDF here (We will need pdf.js or similar to extract text)
+        // Since we're on the client side, we can use a server action to parse it, 
+        // or a small utility. Let's try to extract basic values if possible.
+        extractPdfData(file);
       }
 
       validFiles.push(file);
@@ -94,7 +140,12 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
     const fileToRemove = files[index];
     if (fileToRemove.name.toLowerCase().includes('imagem-recibo')) {
       setShowRestitutionInput(false);
+      setShowTaxToPayInput(false);
       setRestitutionValue('');
+      setTaxToPayValue('');
+      setQuotasCount('');
+      setQuotaValue('');
+      setBankInfo('');
     }
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
@@ -111,7 +162,7 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
       const formData = new FormData();
       files.forEach(f => formData.append('files', f));
 
-      const response = await transmitIRDeclaration(declaration.id, sendWhatsapp, sendEmail, formData, restitutionValue);
+      const response = await transmitIRDeclaration(declaration.id, sendWhatsapp, sendEmail, formData, restitutionValue, taxToPayValue, quotasCount, quotaValue, bankInfo);
       
       if (response && response.warning) {
         toast.warning(response.warning, { duration: 10000 });
@@ -127,7 +178,12 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
       setSendWhatsapp(false);
       setSendEmail(false);
       setRestitutionValue('');
+      setTaxToPayValue('');
+      setQuotasCount('');
+      setQuotaValue('');
+      setBankInfo('');
       setShowRestitutionInput(false);
+      setShowTaxToPayInput(false);
     } catch (e: any) {
       toast.error(e.message || 'Erro ao transmitir declaração');
     } finally {
@@ -240,6 +296,58 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
                   onChange={(e) => setRestitutionValue(e.target.value)}
                   disabled={loading}
                 />
+              </div>
+            )}
+
+            {showTaxToPayInput && (
+              <div className="mt-4 p-3 border rounded-lg bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold text-rose-800 dark:text-rose-400">
+                    Saldo do Imposto a Pagar (Opcional)
+                  </Label>
+                  <p className="text-xs text-rose-600 dark:text-rose-500 mb-2">
+                    Identificamos saldo a pagar no recibo. Confirme ou ajuste os valores.
+                  </p>
+                  <Input
+                    type="text"
+                    placeholder="Ex: 5.916,86"
+                    value={taxToPayValue}
+                    onChange={(e) => setTaxToPayValue(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold text-rose-800 dark:text-rose-400">Qtd de Cotas</Label>
+                    <Input
+                      type="text"
+                      placeholder="Ex: 8"
+                      value={quotasCount}
+                      onChange={(e) => setQuotasCount(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold text-rose-800 dark:text-rose-400">Valor da Cota (R$)</Label>
+                    <Input
+                      type="text"
+                      placeholder="Ex: 739,60"
+                      value={quotaValue}
+                      onChange={(e) => setQuotaValue(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-rose-800 dark:text-rose-400">Dados Bancários (Débito)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Ex: Banco Itaú (341), Ag: 9339, Conta: 00333-8"
+                    value={bankInfo}
+                    onChange={(e) => setBankInfo(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
               </div>
             )}
           </div>
