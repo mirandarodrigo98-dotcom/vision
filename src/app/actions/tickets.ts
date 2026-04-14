@@ -1035,53 +1035,53 @@ export async function getTickets(filters?: {
   
   // Apply company restrictions for operators (even if they are admins/have permissions, they shouldn't see restricted companies)
   if (session.role === 'operator') {
-    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
+    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length}))`;
   }
 
   if (session.role !== 'admin' && !canAdmin) {
-    query += ` AND (
-      t.requester_id = ? 
-      OR t.assignee_id = ? 
-      OR (a.department_id IS NOT NULL AND a.department_id = ?)
-      OR (r.department_id IS NOT NULL AND r.department_id = ?)
-    )`;
     params.push(session.user_id, session.user_id, userDepartmentId, userDepartmentId);
+    query += ` AND (
+      t.requester_id = $${params.length - 3} 
+      OR t.assignee_id = $${params.length - 2} 
+      OR (a.department_id IS NOT NULL AND a.department_id = $${params.length - 1})
+      OR (r.department_id IS NOT NULL AND r.department_id = $${params.length})
+    )`;
   }
 
   if (filters?.status && filters.status !== 'all') {
-    query += ` AND t.status = ?`;
     params.push(filters.status);
+    query += ` AND t.status = $${params.length}`;
   }
 
   if (filters?.assignee_id && filters.assignee_id !== 'all') {
-    query += ` AND t.assignee_id = ?`;
     params.push(filters.assignee_id);
+    query += ` AND t.assignee_id = $${params.length}`;
   }
 
   if (filters?.requester_id && filters.requester_id !== 'all') {
-    query += ` AND t.requester_id = ?`;
     params.push(filters.requester_id);
+    query += ` AND t.requester_id = $${params.length}`;
   }
 
   if (filters?.title) {
-    query += ` AND t.title LIKE ?`;
     params.push(`%${filters.title}%`);
+    query += ` AND t.title ILIKE $${params.length}`;
   }
 
   if (filters?.department_id && filters.department_id !== 'all') {
-    query += ` AND r.department_id = ?`;
     params.push(filters.department_id);
+    query += ` AND r.department_id = $${params.length}`;
   }
 
   if (filters?.startDate) {
-    query += ` AND date(t.created_at) >= date($1)`;
     params.push(filters.startDate);
+    query += ` AND t.created_at::date >= $${params.length}::date`;
   }
 
   if (filters?.endDate) {
-    query += ` AND date(t.created_at) <= date($1)`;
     params.push(filters.endDate);
+    query += ` AND t.created_at::date <= $${params.length}::date`;
   }
 
   query += ` ORDER BY t.created_at DESC`;
@@ -1130,49 +1130,49 @@ export async function getTicketCounts(filters?: {
   
   // Apply company restrictions for operators
   if (session.role === 'operator') {
-    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
     params.push(session.user_id);
+    query += ` AND (t.company_id IS NULL OR t.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length}))`;
   }
 
   if (session.role !== 'admin' && !canAdmin) {
-    query += ` AND (
-      t.requester_id = ? 
-      OR t.assignee_id = ? 
-      OR (a.department_id IS NOT NULL AND a.department_id = ?)
-      OR (r.department_id IS NOT NULL AND r.department_id = ?)
-    )`;
     params.push(session.user_id, session.user_id, userDepartmentId, userDepartmentId);
+    query += ` AND (
+      t.requester_id = $${params.length - 3} 
+      OR t.assignee_id = $${params.length - 2} 
+      OR (a.department_id IS NOT NULL AND a.department_id = $${params.length - 1})
+      OR (r.department_id IS NOT NULL AND r.department_id = $${params.length})
+    )`;
   }
 
   // Filters (excluding status)
   if (filters?.assignee_id && filters.assignee_id !== 'all') {
-    query += ` AND t.assignee_id = ?`;
     params.push(filters.assignee_id);
+    query += ` AND t.assignee_id = $${params.length}`;
   }
 
   if (filters?.requester_id && filters.requester_id !== 'all') {
-    query += ` AND t.requester_id = ?`;
     params.push(filters.requester_id);
+    query += ` AND t.requester_id = $${params.length}`;
   }
 
   if (filters?.title) {
-    query += ` AND t.title LIKE ?`;
     params.push(`%${filters.title}%`);
+    query += ` AND t.title ILIKE $${params.length}`;
   }
 
   if (filters?.department_id && filters.department_id !== 'all') {
-    query += ` AND r.department_id = ?`;
     params.push(filters.department_id);
+    query += ` AND r.department_id = $${params.length}`;
   }
 
   if (filters?.startDate) {
-    query += ` AND date(t.created_at) >= date($1)`;
     params.push(filters.startDate);
+    query += ` AND t.created_at::date >= $${params.length}::date`;
   }
 
   if (filters?.endDate) {
-    query += ` AND date(t.created_at) <= date($1)`;
     params.push(filters.endDate);
+    query += ` AND t.created_at::date <= $${params.length}::date`;
   }
 
   try {
@@ -1301,8 +1301,8 @@ export async function getPotentialAssignees(excludeCurrentUser: boolean = true) 
     const params: any[] = [];
 
     if (excludeCurrentUser) {
-      query += ` AND u.id != ?`;
       params.push(session.user_id);
+      query += ` AND u.id != $${params.length}`;
     }
 
     query += ` ORDER BY u.name ASC`;
