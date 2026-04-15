@@ -316,16 +316,39 @@ export async function lancarRecebimentoOmie(payloadData: any) {
       // Se a conta for integrada (ex: Banco Inter) e tiver boleto, o Omie bloqueia a baixa manual.
       // O procedimento padrão do Omie é cancelar o boleto antes de permitir o recebimento.
       if (faultstring.includes('não é permitido que recebimentos manuais') || faultstring.includes('conectada')) {
-        console.log('Detectado bloqueio de conta integrada. Tentando cancelar o boleto primeiro...');
+        console.log('Detectado bloqueio de conta integrada. Tentando bypass (cancelar boleto e alterar conta)...');
         
         const cancelResult = await cancelarBoletoTituloOmie(payloadData.codigo_lancamento);
         if (cancelResult.error) {
-           console.error('Falha ao cancelar o boleto na tentativa de bypass:', cancelResult.error);
-           throw apiError; // Lança o erro original se o cancelamento falhar
+           console.log('Boleto não pôde ser cancelado ou já estava cancelado:', cancelResult.error);
+           // Continuamos mesmo assim, pois o boleto pode não existir, e o problema ser apenas a conta do título
+        } else {
+           console.log('Boleto cancelado com sucesso.');
         }
         
-        console.log('Boleto cancelado com sucesso. Retentando o recebimento...');
-        // Retenta o lançamento do recebimento após o cancelamento do boleto
+        console.log('Alterando a conta do título para a conta selecionada para permitir a baixa...');
+        try {
+          const payloadAlter = {
+            call: "AlterarContaReceber",
+            app_key: config.app_key,
+            app_secret: config.app_secret,
+            param: [{
+                codigo_lancamento_omie: payloadData.codigo_lancamento,
+                id_conta_corrente: payloadData.codigo_conta_corrente
+            }]
+          };
+          await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadAlter, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          console.log('Conta do título alterada com sucesso.');
+        } catch (alterError: any) {
+          console.error('Falha ao alterar a conta do título:', alterError.response?.data || alterError.message);
+          // Lança o erro original se a alteração falhar, pois a baixa também vai falhar
+          throw apiError; 
+        }
+
+        console.log('Retentando o recebimento...');
+        // Retenta o lançamento do recebimento após o cancelamento do boleto e alteração da conta
         response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
           headers: { 'Content-Type': 'application/json' }
         });
