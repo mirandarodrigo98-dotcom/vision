@@ -211,13 +211,11 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
     payload.isWhisper = true;
   }
 
-  if ((message as any).origin) {
-      payload.origin = (message as any).origin;
-  }
-
-  if ((message as any).dontOpenTicket) {
-      payload.dontOpenTicket = true;
-  }
+  // OBRIGATÓRIO PARA NÃO ABRIR CHAMADO:
+  // origin: 'bot' faz a mensagem ser enviada como o bot da plataforma (não exige userId)
+  // dontOpenTicket: true previne a criação de um novo ticket no painel de atendimento
+  payload.origin = 'bot';
+  payload.dontOpenTicket = true;
 
   try {
     let response = await fetch(endpoint, {
