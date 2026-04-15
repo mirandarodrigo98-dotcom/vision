@@ -113,7 +113,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                 toast.error('Selecione pelo menos uma empresa.');
                 return;
             }
-            setStep(2);
+            setStep(initialData ? 3 : 2);
         } else if (step === 2) {
             if (!emailValid) {
                 toast.error('Valide o e-mail antes de continuar.');
@@ -370,7 +370,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
 
                 <DialogFooter className="flex justify-between sm:justify-between">
                     {step > 1 ? (
-                        <Button variant="outline" onClick={() => setStep(step - 1)}>
+                        <Button variant="outline" onClick={() => setStep(initialData && step === 3 ? 1 : step - 1)}>
                             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                         </Button>
                     ) : (

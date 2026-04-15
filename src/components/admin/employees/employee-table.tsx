@@ -235,7 +235,8 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                         const date = new Date(employee.admission_date);
                         if (!isNaN(date.getTime())) {
                           // Adjust for timezone offset if needed, but usually YYYY-MM-DD string is better handled by split
-                          const [y, m, d] = employee.admission_date.split('-');
+                          const datePart = employee.admission_date.split('T')[0];
+                          const [y, m, d] = datePart.split('-');
                           if (y && m && d) admissionDate = `${d}/${m}/${y}`;
                           else admissionDate = format(date, 'dd/MM/yyyy');
                         }

@@ -10,8 +10,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie } from '@/app/actions/integrations/omie';
+import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie, getOmieBankSyncStatus } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
+import { AlertTriangle } from 'lucide-react';
 
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
@@ -138,6 +139,7 @@ export default function CobrancaPage() {
   const [dataAte, setDataAte] = useState('');
   const [loading, setLoading] = useState(false);
   const [contas, setContas] = useState<any[]>([]);
+  const [bankSyncStatus, setBankSyncStatus] = useState<any[] | null>(null);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [gridApi, setGridApi] = useState<any>(null);
   const [hiddenColumns, setHiddenColumns] = useState<{ id: string, name: string }[]>([]);
@@ -654,7 +656,15 @@ export default function CobrancaPage() {
       const formattedDe = `${deParts[2]}/${deParts[1]}/${deParts[0]}`;
       const formattedAte = `${ateParts[2]}/${ateParts[1]}/${ateParts[0]}`;
 
-      const response = await listarContasReceber(formattedDe, formattedAte);
+      // Fetch Bank Sync Status in parallel
+      const syncStatusPromise = getOmieBankSyncStatus();
+      const responsePromise = listarContasReceber(formattedDe, formattedAte);
+
+      const [syncStatus, response] = await Promise.all([syncStatusPromise, responsePromise]);
+
+      if (syncStatus) {
+        setBankSyncStatus(syncStatus);
+      }
 
       if (response.contasCorrentes) {
         setContasCorrentes(response.contasCorrentes);
@@ -724,6 +734,34 @@ export default function CobrancaPage() {
           </form>
         </CardContent>
       </Card>
+
+      {bankSyncStatus && bankSyncStatus.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-semibold text-yellow-800">
+                Verifique a Sincronização Bancária no Omie
+              </h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                Para evitar cobrar clientes que já pagaram, certifique-se de que a integração com os bancos abaixo está atualizada e sem a mensagem de <strong>"Alguns problemas foram encontrados"</strong> no painel do Omie.
+              </p>
+              <div className="mt-3 space-y-2">
+                {bankSyncStatus.map((banco, index) => (
+                  <div key={index} className="text-sm text-yellow-800 bg-yellow-100/50 p-2 rounded flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div className="font-medium">
+                      {banco.banco} (Ag: {banco.agencia || '-'} / CC: {banco.conta || '-'})
+                    </div>
+                    <div className="text-yellow-700 text-xs md:text-sm">
+                      Última atualização da conta: <strong>{banco.data_alt || '-'} às {banco.hora_alt || '-'}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

@@ -301,6 +301,47 @@ export async function lancarRecebimentoOmie(payloadData: any) {
   }
 }
 
+export async function getOmieBankSyncStatus() {
+  const config = await getOmieConfig();
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) return null;
+
+  try {
+    const payload = {
+      call: "ListarContasCorrentes",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [{ pagina: 1, registros_por_pagina: 500 }]
+    };
+
+    const response = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const ccList = response.data.ListarContasCorrentes || [];
+    
+    const targetBanks = ccList.filter((c: any) => 
+      c.inativo !== "S" && 
+      (c.descricao.toLowerCase().includes('itau') || 
+       c.descricao.toLowerCase().includes('itaú') || 
+       c.codigo_banco === '341' || 
+       c.descricao.toLowerCase().includes('inter') || 
+       c.codigo_banco === '077')
+    );
+
+    return targetBanks.map((c: any) => ({
+      banco: c.descricao,
+      agencia: c.codigo_agencia,
+      conta: c.numero_conta_corrente,
+      saldo_data: c.saldo_data,
+      data_alt: c.data_alt,
+      hora_alt: c.hora_alt
+    }));
+  } catch (error: any) {
+    console.error('Erro ao buscar contas correntes do Omie:', error.response?.data || error.message);
+    return null;
+  }
+}
+
 export async function cancelarRecebimentoOmie(codigoBaixa: number) {
   const config = await getOmieConfig();
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
