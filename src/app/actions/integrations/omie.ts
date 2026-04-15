@@ -266,6 +266,27 @@ export async function downloadBoletoPdfServer(url: string) {
   }
 }
 
+export async function cancelarBoletoTituloOmie(codigoLancamento: number) {
+  const config = await getOmieConfig();
+  if (!config || !config.is_active || !config.app_key || !config.app_secret) return { error: 'Configuração Omie inválida' };
+
+  try {
+    const payload = {
+      call: "CancelarBoleto",
+      app_key: config.app_key,
+      app_secret: config.app_secret,
+      param: [{ nCodTitulo: codigoLancamento }]
+    };
+    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceberboleto/', payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error('Erro ao cancelar boleto do título:', error.response?.data || error.message);
+    return { error: error.response?.data?.faultstring || 'Falha ao cancelar boleto.' };
+  }
+}
+
 export async function lancarRecebimentoOmie(payloadData: any) {
   const config = await getOmieConfig();
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
@@ -278,9 +299,35 @@ export async function lancarRecebimentoOmie(payloadData: any) {
       app_secret: config.app_secret,
       param: [payloadData]
     };
-    const response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    let response;
+    
+    try {
+      response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (apiError: any) {
+      const faultstring = apiError.response?.data?.faultstring || '';
+      
+      // Se a conta for integrada (ex: Banco Inter) e tiver boleto, o Omie bloqueia a baixa manual.
+      // O procedimento padrão do Omie é cancelar o boleto antes de permitir o recebimento.
+      if (faultstring.includes('não é permitido que recebimentos manuais') || faultstring.includes('conectada')) {
+        console.log('Detectado bloqueio de conta integrada. Tentando cancelar o boleto primeiro...');
+        
+        const cancelResult = await cancelarBoletoTituloOmie(payloadData.codigo_lancamento);
+        if (cancelResult.error) {
+           console.error('Falha ao cancelar o boleto na tentativa de bypass:', cancelResult.error);
+           throw apiError; // Lança o erro original se o cancelamento falhar
+        }
+        
+        console.log('Boleto cancelado com sucesso. Retentando o recebimento...');
+        // Retenta o lançamento do recebimento após o cancelamento do boleto
+        response = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payload, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        throw apiError;
+      }
+    }
     
     // Armazenar localmente o codigo_baixa gerado pelo Vision para possibilitar o cancelamento futuro
     if (response.data && response.data.codigo_baixa && payloadData.codigo_lancamento) {
