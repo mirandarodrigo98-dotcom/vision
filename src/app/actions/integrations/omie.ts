@@ -343,43 +343,42 @@ export async function getOmieBankSyncStatus() {
             
             const formatDate = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
             
-            const movPayload = {
-              call: "PesquisarLancamentos",
+            const extratoPayload = {
+              call: "ListarExtrato",
               app_key: config.app_key,
               app_secret: config.app_secret,
               param: [{ 
-                  pagina: 1,
-                  registros_por_pagina: 100, // Pegar alguns e ordenar no javascript para ter certeza
                   nCodCC: bank.nCodCC,
-                  // Vamos olhar todos os alterados recentemente, porque a baixa gera uma alteração no título
-                  dDtAltDe: formatDate(pastDate),
-                  dDtAltAte: formatDate(today)
+                  dPeriodoInicial: formatDate(pastDate),
+                  dPeriodoFinal: formatDate(today)
               }]
             };
 
-            const movRes = await axios.post('https://app.omie.com.br/api/v1/financas/pesquisartitulos/', movPayload, {
+            const extratoRes = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', extratoPayload, {
                 headers: { 'Content-Type': 'application/json' }
             });
             
-            let records = movRes.data.titulosEncontrados || [];
+            let records = extratoRes.data.listaMovimentos || [];
             if (records.length > 0) {
-                // Queremos o título com a data/hora de alteração mais recente
-                records.sort((a: any, b: any) => {
-                    const parseDate = (d: string) => d ? d.split('/').reverse().join('') : '';
-                    const altA = parseDate(a.cabecTitulo?.dDtAlt);
-                    const altB = parseDate(b.cabecTitulo?.dDtAlt);
-                    if (altA !== altB) {
-                        return altA < altB ? 1 : -1;
-                    }
-                    const hrA = a.cabecTitulo?.cHrAlt || '';
-                    const hrB = b.cabecTitulo?.cHrAlt || '';
-                    return hrA < hrB ? 1 : -1;
-                });
+                // Filtramos para não considerar saldos previstos (que não têm hora de inclusão real)
+                const validRecords = records.filter((r: any) => r.cDataInclusao && r.cHoraInclusao);
                 
-                const latest = records[0];
-                if (latest && latest.cabecTitulo) {
-                    lastSyncDate = latest.cabecTitulo.dDtAlt || lastSyncDate;
-                    lastSyncTime = latest.cabecTitulo.cHrAlt || lastSyncTime;
+                if (validRecords.length > 0) {
+                    validRecords.sort((a: any, b: any) => {
+                        const parseDate = (d: string) => d ? d.split('/').reverse().join('') : '';
+                        const dateA = parseDate(a.cDataInclusao);
+                        const dateB = parseDate(b.cDataInclusao);
+                        if (dateA !== dateB) {
+                            return dateA < dateB ? 1 : -1;
+                        }
+                        const hrA = a.cHoraInclusao || '';
+                        const hrB = b.cHoraInclusao || '';
+                        return hrA < hrB ? 1 : -1;
+                    });
+                    
+                    const latest = validRecords[0];
+                    lastSyncDate = latest.cDataInclusao;
+                    lastSyncTime = latest.cHoraInclusao;
                 }
             }
         } catch (e) {
