@@ -319,6 +319,7 @@ export async function getOmieBankSyncStatus() {
     
     const ccList = response.data.ListarContasCorrentes || [];
     
+    // Filtramos apenas as contas de interesse ativas
     const targetBanks = ccList.filter((c: any) => 
       c.inativo !== "S" && 
       (c.descricao.toLowerCase().includes('itau') || 
@@ -328,14 +329,73 @@ export async function getOmieBankSyncStatus() {
        c.codigo_banco === '077')
     );
 
-    return targetBanks.map((c: any) => ({
-      banco: c.descricao,
-      agencia: c.codigo_agencia,
-      conta: c.numero_conta_corrente,
-      saldo_data: c.saldo_data,
-      data_alt: c.data_alt,
-      hora_alt: c.hora_alt
-    }));
+    // Agora precisamos buscar a data real da última movimentação de cada conta
+    const result = [];
+    for (const bank of targetBanks) {
+        let lastSyncDate = bank.data_alt || bank.saldo_data || '-';
+        let lastSyncTime = bank.hora_alt || '-';
+        
+        try {
+            // Buscamos os lançamentos recentes desta conta corrente
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - 30); // Busca últimos 30 dias para não pesar
+            
+            const formatDate = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            
+            const movPayload = {
+              call: "PesquisarLancamentos",
+              app_key: config.app_key,
+              app_secret: config.app_secret,
+              param: [{ 
+                  pagina: 1,
+                  registros_por_pagina: 100, // Pegar alguns e ordenar no javascript para ter certeza
+                  nCodCC: bank.nCodCC,
+                  // Vamos olhar todos os alterados recentemente, porque a baixa gera uma alteração no título
+                  dDtAltDe: formatDate(pastDate),
+                  dDtAltAte: formatDate(today)
+              }]
+            };
+
+            const movRes = await axios.post('https://app.omie.com.br/api/v1/financas/pesquisartitulos/', movPayload, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            let records = movRes.data.titulosEncontrados || [];
+            if (records.length > 0) {
+                // Queremos o título com a data/hora de alteração mais recente
+                records.sort((a: any, b: any) => {
+                    const altA = a.cabecTitulo?.dDtAlt || '';
+                    const altB = b.cabecTitulo?.dDtAlt || '';
+                    if (altA !== altB) {
+                        return altA < altB ? 1 : -1;
+                    }
+                    const hrA = a.cabecTitulo?.cHrAlt || '';
+                    const hrB = b.cabecTitulo?.cHrAlt || '';
+                    return hrA < hrB ? 1 : -1;
+                });
+                
+                const latest = records[0];
+                if (latest && latest.cabecTitulo) {
+                    lastSyncDate = latest.cabecTitulo.dDtAlt || lastSyncDate;
+                    lastSyncTime = latest.cabecTitulo.cHrAlt || lastSyncTime;
+                }
+            }
+        } catch (e) {
+            // Se falhar (ex: nenhum título encontrado), mantemos a data de alteração básica da CC
+            console.log(`Fallback de data para banco ${bank.descricao} - Sem lançamentos recentes.`);
+        }
+
+        result.push({
+            banco: bank.descricao,
+            agencia: bank.codigo_agencia,
+            conta: bank.numero_conta_corrente,
+            data_alt: lastSyncDate,
+            hora_alt: lastSyncTime
+        });
+    }
+
+    return result;
   } catch (error: any) {
     console.error('Erro ao buscar contas correntes do Omie:', error.response?.data || error.message);
     return null;
