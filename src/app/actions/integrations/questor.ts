@@ -381,7 +381,7 @@ export async function syncTransactionsToQuestor(companyId: string, filters: any)
         const syncId = `SYNC-SYN-${Date.now()}`;
         const now = new Date().toISOString();
         const ids = transactions.map((t: any) => t.id);
-        const placeholders = ids.map(() => '?').join(',');
+        const placeholders = ids.map((_: any, i: number) => `$${i + 3}`).join(',');
         
         await db.query(`
             UPDATE enuves_transactions 
@@ -709,7 +709,7 @@ export async function syncEklesiaTransactionsToQuestor(companyId: string, filter
         const syncId = `SYNC-SYN-${Date.now()}`;
         const now = new Date().toISOString();
         const ids = transactions.map((t: any) => t.id);
-        const placeholders = ids.map(() => '?').join(',');
+        const placeholders = ids.map((_: any, i: number) => `$${i + 3}`).join(',');
         
         await db.query(`
             UPDATE eklesia_transactions 

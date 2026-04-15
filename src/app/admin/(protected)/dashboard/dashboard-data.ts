@@ -159,10 +159,10 @@ export async function getDashboardData(): Promise<DashboardStats> {
     const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
 
     if (session.role === 'client_user') {
-        whereClause += ` AND ${companyCol} IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+        whereClause += ` AND ${companyCol} IN (SELECT company_id FROM user_companies WHERE user_id = $${queryParams.length + 1})`;
         queryParams.push(session.user_id);
     } else if (session.role === 'operator') {
-        whereClause += ` AND (${companyCol} IS NULL OR ${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        whereClause += ` AND (${companyCol} IS NULL OR ${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${queryParams.length + 1}))`;
         queryParams.push(session.user_id);
     }
 
@@ -210,10 +210,10 @@ export async function getDashboardData(): Promise<DashboardStats> {
     const rankingParams: any[] = [];
     
     if (session.role === 'client_user') {
-        rankingWhere += ` AND t.${companyCol} IN (SELECT company_id FROM user_companies WHERE user_id = ?)`;
+        rankingWhere += ` AND t.${companyCol} IN (SELECT company_id FROM user_companies WHERE user_id = $${rankingParams.length + 1})`;
         rankingParams.push(session.user_id);
     } else if (session.role === 'operator') {
-        rankingWhere += ` AND (t.${companyCol} IS NULL OR t.${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = ?))`;
+        rankingWhere += ` AND (t.${companyCol} IS NULL OR t.${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${rankingParams.length + 1}))`;
         rankingParams.push(session.user_id);
     }
 

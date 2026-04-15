@@ -70,40 +70,40 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
 
   // Filter by company permission (if not admin/operator)
   if (session.role === 'client_user') {
-    query += ` AND v.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+    query += ` AND v.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $${params.length + 1})`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+    query += ` AND (v.company_id IS NULL OR v.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
     params.push(session.user_id);
   }
 
   if (name) {
-    query += ` AND e.name LIKE ?`;
+    query += ` AND e.name ILIKE $${params.length + 1}`;
     params.push(`%${name}%`);
   }
 
   if (company && company.length >= 3) {
-    query += ` AND (cc.razao_social LIKE ? OR cc.nome LIKE ?)`;
+    query += ` AND (cc.razao_social ILIKE $${params.length + 1} OR cc.nome ILIKE $${params.length + 2})`;
     params.push(`%${company}%`, `%${company}%`);
   }
 
   if (status && status !== 'all') {
-    query += ` AND v.status = ?`;
+    query += ` AND v.status = $${params.length + 1}`;
     params.push(status);
   }
 
   if (startDate) {
-    query += ` AND v.created_at >= $1`;
+    query += ` AND v.created_at >= $${params.length + 1}`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND v.created_at <= $1`;
+    query += ` AND v.created_at <= $${params.length + 1}`;
     params.push(endDate + ' 23:59:59');
   }
 
   if (vacationDate) {
-    query += ` AND v.start_date LIKE ?`;
+    query += ` AND v.start_date::text LIKE $${params.length + 1}`;
     params.push(vacationDate + '%');
   }
 

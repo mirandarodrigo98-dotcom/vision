@@ -487,8 +487,8 @@ export async function deleteTransactionsBatch(ids: string[], companyId: string) 
 
   try {
     // SQLite/Postgres 'IN' clause parameter generation
-    const placeholders = ids.map(() => '?').join(',');
-    const query = `DELETE FROM eklesia_transactions WHERE id IN (${placeholders}) AND company_id = ?`;
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+    const query = `DELETE FROM eklesia_transactions WHERE id IN (${placeholders}) AND company_id = $${ids.length + 1}`;
     
     await db.query(query, [...ids, targetCompanyId]);
     
@@ -1438,8 +1438,8 @@ export async function deleteCategoriesBatch(ids: string[], companyId: string) {
   if (!ids || ids.length === 0) return { error: 'Nenhuma categoria selecionada' };
 
   try {
-    const placeholders = ids.map(() => '?').join(',');
-    const query = `DELETE FROM eklesia_categories WHERE id IN (${placeholders}) AND company_id = ?`;
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+    const query = `DELETE FROM eklesia_categories WHERE id IN (${placeholders}) AND company_id = $${ids.length + 1}`;
     
     await db.query(query, [...ids, targetCompanyId]);
     
@@ -1461,8 +1461,8 @@ export async function deleteAccountsBatch(ids: string[], companyId: string) {
   if (!ids || ids.length === 0) return { error: 'Nenhuma conta selecionada' };
 
   try {
-    const placeholders = ids.map(() => '?').join(',');
-    const query = `DELETE FROM eklesia_accounts WHERE id IN (${placeholders}) AND company_id = ?`;
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+    const query = `DELETE FROM eklesia_accounts WHERE id IN (${placeholders}) AND company_id = $${ids.length + 1}`;
     
     await db.query(query, [...ids, targetCompanyId]);
     

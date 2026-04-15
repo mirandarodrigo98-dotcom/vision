@@ -49,41 +49,41 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   const params: any[] = [];
 
   if (session.role === 'client_user') {
-    query += ` AND ar.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+    query += ` AND ar.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $${params.length + 1})`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (ar.company_id IS NULL OR ar.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+    query += ` AND (ar.company_id IS NULL OR ar.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
     params.push(session.user_id);
   }
 
   if (name) {
-    query += ` AND ar.employee_full_name LIKE ?`;
+    query += ` AND ar.employee_full_name ILIKE $${params.length + 1}`;
     params.push(`%${name}%`);
   }
 
   if (company && company.length >= 3) {
-    query += ` AND cc.razao_social LIKE ?`;
+    query += ` AND cc.razao_social ILIKE $${params.length + 1}`;
     params.push(`%${company}%`);
   }
 
   if (startDate) {
-    query += ` AND ar.created_at >= $1`;
+    query += ` AND ar.created_at >= $${params.length + 1}`;
     params.push(startDate);
   }
 
   if (endDate) {
     // Add 1 day to include the end date fully if it's just a date string, or handle timestamp
-    query += ` AND ar.created_at <= $1`;
+    query += ` AND ar.created_at <= $${params.length + 1}`;
     params.push(endDate + ' 23:59:59');
   }
 
   if (admissionDate) {
-    query += ` AND ar.admission_date LIKE ?`;
+    query += ` AND ar.admission_date::text LIKE $${params.length + 1}`;
     params.push(admissionDate + '%');
   }
 
   if (status && status !== 'all') {
-    query += ` AND ar.status = ?`;
+    query += ` AND ar.status = $${params.length + 1}`;
     params.push(status);
   }
 

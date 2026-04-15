@@ -52,7 +52,7 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
   const params: any[] = [activeCompanyId];
 
   if (q) {
-    query += ` AND (d.protocol_number LIKE ? OR e.name LIKE ? OR cc.nome LIKE ?)`;
+    query += ` AND (d.protocol_number ILIKE $${params.length + 1} OR e.name ILIKE $${params.length + 2} OR cc.nome ILIKE $${params.length + 3})`;
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ, likeQ);
   }

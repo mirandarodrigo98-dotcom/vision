@@ -55,41 +55,41 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   
   if (session) {
     if (session.role === 'client_user') {
-      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+      query += ` AND e.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $${params.length + 1})`;
       params.push(session.user_id);
     } else if (session.role === 'operator') {
-      query += ` AND (e.company_id IS NULL OR e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+      query += ` AND (e.company_id IS NULL OR e.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
       params.push(session.user_id);
     }
   }
 
   if (name) {
-    query += ` AND e.name LIKE ?`;
+    query += ` AND e.name ILIKE $${params.length + 1}`;
     params.push(`%${name}%`);
   }
   
   if (company && company.length >= 3) {
-    query += ` AND c.razao_social LIKE ?`;
+    query += ` AND c.razao_social ILIKE $${params.length + 1}`;
     params.push(`%${company}%`);
   }
 
   if (cpf) {
-    query += ` AND e.cpf LIKE ?`;
+    query += ` AND e.cpf ILIKE $${params.length + 1}`;
     params.push(`%${cpf}%`);
   }
   
   if (admissionStart) {
-    query += ` AND e.admission_date >= ?`;
+    query += ` AND e.admission_date >= $${params.length + 1}`;
     params.push(admissionStart);
   }
   
   if (admissionEnd) {
-    query += ` AND e.admission_date <= ?`;
+    query += ` AND e.admission_date <= $${params.length + 1}`;
     params.push(admissionEnd);
   }
 
   if (status && status !== 'all') {
-    query += ` AND e.status = ?`;
+    query += ` AND e.status = $${params.length + 1}`;
     params.push(status);
   }
 

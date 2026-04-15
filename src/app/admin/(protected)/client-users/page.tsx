@@ -23,8 +23,8 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   let query = `
     SELECT u.id, u.name, u.email, u.phone, u.cell_phone, u.is_active,
            u.notification_email, u.notification_whatsapp,
-           GROUP_CONCAT(c.id) as company_ids,
-           GROUP_CONCAT(c.nome, ', ') as company_names
+           STRING_AGG(c.id::text, ',') as company_ids,
+           STRING_AGG(c.nome, ', ') as company_names
     FROM users u
     LEFT JOIN user_companies uc ON u.id = uc.user_id
     LEFT JOIN client_companies c ON uc.company_id = c.id
@@ -44,7 +44,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   }
 
   if (q) {
-    query += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
+    query += ` AND (u.name ILIKE $${params.length + 1} OR u.email ILIKE $${params.length + 2})`;
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ);
   }

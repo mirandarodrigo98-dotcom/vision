@@ -26,7 +26,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
   const params: any[] = [];
 
   if (q) {
-    query += ' WHERE (actor_email LIKE ? OR action LIKE ? OR entity_type LIKE ? OR details LIKE ?)';
+    query += ' WHERE (actor_email ILIKE $1 OR action ILIKE $2 OR entity_type ILIKE $3 OR metadata::text ILIKE $4)';
     const likeQ = `%${q}%`;
     params.push(likeQ, likeQ, likeQ, likeQ);
   }

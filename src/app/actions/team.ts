@@ -52,7 +52,7 @@ export async function getTeamUsers() {
 
   const users = (await db.query(`
     SELECT u.id, u.name, u.email, u.role, u.is_active, u.last_login_at, u.created_at, u.cpf, u.phone, u.receive_ticket_messages, u.department_id, d.name as department_name, u.access_schedule_id, s.name as access_schedule_name, u.ir_commission_active, u.ir_commission_percent,
-    (SELECT GROUP_CONCAT(urc.company_id) FROM user_restricted_companies urc WHERE urc.user_id = u.id) as restricted_company_ids
+    (SELECT STRING_AGG(urc.company_id::text, ',') FROM user_restricted_companies urc WHERE urc.user_id = u.id) as restricted_company_ids
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.id
     LEFT JOIN access_schedules s ON u.access_schedule_id = s.id

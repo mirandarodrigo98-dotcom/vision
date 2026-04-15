@@ -69,40 +69,40 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
 
   // Filter by company permission (if not admin/operator)
   if (session.role === 'client_user') {
-    query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+    query += ` AND d.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $${params.length + 1})`;
     params.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+    query += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
     params.push(session.user_id);
   }
 
   if (name) {
-    query += ` AND e.name LIKE ?`;
+    query += ` AND e.name ILIKE $${params.length + 1}`;
     params.push(`%${name}%`);
   }
 
   if (company && company.length >= 3) {
-    query += ` AND (cc.razao_social LIKE ? OR cc.nome LIKE ?)`;
+    query += ` AND (cc.razao_social ILIKE $${params.length + 1} OR cc.nome ILIKE $${params.length + 2})`;
     params.push(`%${company}%`, `%${company}%`);
   }
 
   if (status && status !== 'all') {
-    query += ` AND d.status = ?`;
+    query += ` AND d.status = $${params.length + 1}`;
     params.push(status);
   }
 
   if (startDate) {
-    query += ` AND d.created_at >= $1`;
+    query += ` AND d.created_at >= $${params.length + 1}`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND d.created_at <= $1`;
+    query += ` AND d.created_at <= $${params.length + 1}`;
     params.push(endDate + ' 23:59:59');
   }
 
   if (dismissalDate) {
-    query += ` AND d.dismissal_date LIKE ?`;
+    query += ` AND d.dismissal_date::text LIKE $${params.length + 1}`;
     params.push(dismissalDate + '%');
   }
 

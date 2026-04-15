@@ -44,41 +44,41 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
 
   if (session) {
     if (session.role === 'client_user') {
-      query += ` AND t.source_company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+      query += ` AND t.source_company_id IN (SELECT company_id FROM user_companies WHERE user_id = $${params.length + 1})`;
       params.push(session.user_id);
     } else if (session.role === 'operator') {
-      query += ` AND (t.source_company_id IS NULL OR t.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+      query += ` AND (t.source_company_id IS NULL OR t.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $${params.length + 1}))`;
       params.push(session.user_id);
     }
   }
 
   if (name) {
-    query += ` AND t.employee_name LIKE ?`;
+    query += ` AND t.employee_name ILIKE $${params.length + 1}`;
     params.push(`%${name}%`);
   }
 
   if (company && company.length >= 3) {
-    query += ` AND (sc.razao_social LIKE ? OR sc.nome LIKE ?)`;
+    query += ` AND (sc.razao_social ILIKE $${params.length + 1} OR sc.nome ILIKE $${params.length + 2})`;
     params.push(`%${company}%`, `%${company}%`);
   }
 
   if (status && status !== 'all') {
-    query += ` AND t.status = ?`;
+    query += ` AND t.status = $${params.length + 1}`;
     params.push(status);
   }
 
   if (startDate) {
-    query += ` AND t.created_at >= $1`;
+    query += ` AND t.created_at >= $${params.length + 1}`;
     params.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND t.created_at <= $1`;
+    query += ` AND t.created_at <= $${params.length + 1}`;
     params.push(endDate + ' 23:59:59');
   }
 
   if (transferDate) {
-    query += ` AND t.transfer_date LIKE ?`;
+    query += ` AND t.transfer_date::text LIKE $${params.length + 1}`;
     params.push(transferDate + '%');
   }
 

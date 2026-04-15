@@ -104,7 +104,7 @@ export async function validateUserEmail(email: string, currentUserId?: string) {
     const params = [email];
 
     if (currentUserId) {
-        query += ' AND id != ?';
+        query += ' AND id != $2';
         params.push(currentUserId);
     }
 
@@ -162,7 +162,7 @@ export async function saveClientUser(data: SaveClientUserPayload) {
   }
 
   if (session.role === 'operator' && company_ids.length > 0) {
-      const placeholders = company_ids.map(() => '?').join(',');
+      const placeholders = company_ids.map((_, i) => `$${i + 2}`).join(',');
       const restricted = (await db.query(`
           SELECT company_id FROM user_restricted_companies 
           WHERE user_id = $1 AND company_id IN (${placeholders})
