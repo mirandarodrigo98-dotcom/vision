@@ -106,6 +106,11 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
       ccList.forEach((cc: any) => {
         // Ignorar contas inativas (se houver campo de inativo)
         if (cc.inativo === "S" || cc.cStatus === "I") return;
+        
+        // Exibir no modal apenas as contas que possuem a palavra "Vision" ou "vision" na observação
+        const obs = (cc.observacao || '').toLowerCase();
+        if (!obs.includes('vision')) return;
+        
         contasCorrentesMap.set(cc.nIdCC || cc.nCodCC, cc.descricao || cc.cDescricao);
       });
     } catch (err) {
