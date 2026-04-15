@@ -65,7 +65,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                     setSelectedPermissions(perms);
                 });
 
-                setStep(1); 
+                setStep(3); 
             } else {
                 // Reset
                 setStep(1);
@@ -190,9 +190,13 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
 
     const filteredCompanies = companies.filter(c => {
         const searchLower = companySearch.toLowerCase();
-        const nomeMatch = c.nome ? c.nome.toLowerCase().includes(searchLower) : false;
         const razaoMatch = c.razao_social ? c.razao_social.toLowerCase().includes(searchLower) : false;
-        return nomeMatch || razaoMatch;
+        const nomeMatch = c.nome ? c.nome.toLowerCase().includes(searchLower) : false;
+        return razaoMatch || nomeMatch;
+    }).sort((a, b) => {
+        const rA = (a.razao_social || a.nome || '').toUpperCase();
+        const rB = (b.razao_social || b.nome || '').toUpperCase();
+        return rA.localeCompare(rB);
     });
 
     return (
@@ -212,7 +216,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                             <div className="relative">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="Buscar empresa..."
+                                    placeholder="Buscar empresa por razão social..."
                                     value={companySearch}
                                     onChange={(e) => setCompanySearch(e.target.value)}
                                     className="pl-8"
@@ -232,12 +236,12 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                                             <div className="grid gap-1.5 leading-none">
                                                 <label
                                                     htmlFor={`company-${company.id}`}
-                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                    className="text-sm font-bold uppercase leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                                 >
-                                                    {company.nome || company.razao_social}
+                                                    {company.razao_social || company.nome}
                                                 </label>
                                                 {company.razao_social && company.nome && company.nome !== company.razao_social && (
-                                                    <p className="text-xs text-muted-foreground">{company.razao_social}</p>
+                                                    <p className="text-xs text-muted-foreground">{company.nome}</p>
                                                 )}
                                             </div>
                                         </div>

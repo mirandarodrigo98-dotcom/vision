@@ -26,7 +26,7 @@ export function EmployeeFilters() {
   });
 
   // Company Autocomplete State
-  const [companySuggestions, setCompanySuggestions] = useState<{id: string, razao_social: string}[]>([]);
+  const [companySuggestions, setCompanySuggestions] = useState<{id: string, razao_social: string, code: string, cnpj: string}[]>([]);
   const [isSearchingCompany, setIsSearchingCompany] = useState(false);
   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
   const [debouncedCompany] = useDebounce(filters.company, 300);
@@ -161,7 +161,7 @@ export function EmployeeFilters() {
                                     setShowCompanySuggestions(false);
                                 }}
                             >
-                                {company.razao_social}
+                                {company.code ? `${company.code} - ` : ''}{company.razao_social}{company.cnpj ? ` - ${company.cnpj}` : ''}
                             </li>
                         ))}
                     </ul>

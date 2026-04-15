@@ -33,13 +33,13 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : '';
 
   // Whitelist allowed sort columns to prevent SQL injection
-  const allowedSorts = ['code', 'name', 'company_name', 'cpf', 'admission_date', 'created_at', 'status'];
+  const allowedSorts = ['code', 'name', 'company_name', 'cnpj', 'cpf', 'admission_date', 'created_at', 'status'];
   const safeSort = allowedSorts.includes(sort) ? sort : 'code';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   // Build query
   let query = `
-    SELECT e.*, c.nome as company_name,
+    SELECT e.*, c.nome as company_name, c.cnpj as cnpj,
     CASE WHEN (
       EXISTS (SELECT 1 FROM dismissals d WHERE d.employee_id = e.id) OR
       EXISTS (SELECT 1 FROM vacations v WHERE v.employee_id = e.id) OR
@@ -98,6 +98,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   
   if (safeSort === 'company_name') {
     orderBy = 'c.nome';
+  } else if (safeSort === 'cnpj') {
+    orderBy = 'c.cnpj';
   } else if (safeSort === 'code') {
     orderBy = 'e.code';
   }
@@ -109,6 +111,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     code: string;
     name: string;
     company_name: string;
+    cnpj: string;
     cpf: string;
     admission_date: Date | string | null;
     created_at: Date | string | null;

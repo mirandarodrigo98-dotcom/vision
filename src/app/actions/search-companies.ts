@@ -16,10 +16,10 @@ export async function searchCompanies(query: string) {
 
   try {
     let sql = `
-      SELECT id, razao_social 
+      SELECT id, razao_social, code, cnpj 
       FROM client_companies 
       WHERE is_active = 1 
-      AND (razao_social ILIKE $1 OR nome ILIKE $2)
+      AND (razao_social ILIKE $1 OR nome ILIKE $2 OR code ILIKE $1 OR cnpj ILIKE $1)
     `;
     const params: any[] = [`%${query}%`, `%${query}%`];
 
@@ -36,7 +36,7 @@ export async function searchCompanies(query: string) {
     const companies = (await db.query(sql, [...params])).rows;
     
     console.log('searchCompanies: Found', companies.length, 'companies');
-    return companies as { id: string; razao_social: string }[];
+    return companies as { id: string; razao_social: string; code: string; cnpj: string }[];
   } catch (error) {
     console.error('Failed to search companies:', error);
     return [];

@@ -49,6 +49,7 @@ interface Employee {
   code: string;
   name: string;
   company_name: string;
+  cnpj: string;
   cpf: string;
   admission_date: string;
   created_at: string;
@@ -188,7 +189,7 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                   disabled={deletableEmployees.length === 0}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="max-w-[80px]">
                 <ColumnHeader column="code" title="Código" />
               </TableHead>
               <TableHead>
@@ -196,6 +197,9 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
               </TableHead>
               <TableHead>
                 <ColumnHeader column="company_name" title="Empresa" />
+              </TableHead>
+              <TableHead>
+                <ColumnHeader column="cnpj" title="CNPJ" />
               </TableHead>
               <TableHead>
                 <ColumnHeader column="cpf" title="CPF" />
@@ -261,10 +265,13 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                       disabled={!canDelete}
                     />
                   </TableCell>
-                  <TableCell>{employee.code || '-'}</TableCell>
+                  <TableCell className="max-w-[80px] truncate" title={employee.code || '-'}>
+                    {employee.code || '-'}
+                  </TableCell>
                   <TableCell className="font-medium">{employee.name}</TableCell>
                   <TableCell>{employee.company_name}</TableCell>
-                  <TableCell>{employee.cpf || '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap">{employee.cnpj || '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap">{employee.cpf || '-'}</TableCell>
                   <TableCell suppressHydrationWarning>
                     {admissionDate}
                   </TableCell>
