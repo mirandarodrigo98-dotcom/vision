@@ -365,8 +365,9 @@ export async function getOmieBankSyncStatus() {
             if (records.length > 0) {
                 // Queremos o título com a data/hora de alteração mais recente
                 records.sort((a: any, b: any) => {
-                    const altA = a.cabecTitulo?.dDtAlt || '';
-                    const altB = b.cabecTitulo?.dDtAlt || '';
+                    const parseDate = (d: string) => d ? d.split('/').reverse().join('') : '';
+                    const altA = parseDate(a.cabecTitulo?.dDtAlt);
+                    const altB = parseDate(b.cabecTitulo?.dDtAlt);
                     if (altA !== altB) {
                         return altA < altB ? 1 : -1;
                     }
