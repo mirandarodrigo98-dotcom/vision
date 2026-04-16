@@ -52,48 +52,72 @@ export async function POST(req: NextRequest) {
     // Replace multiple spaces/newlines with single spaces to make regex easier
     const cleanText = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
 
+    const normalizeMoney = (raw: string): string => {
+      const cleaned = raw.trim().replace(/\s+/g, '').replace(/[^\d.,]/g, '');
+      if (!cleaned) return '';
+
+      let numeric = '';
+      if (cleaned.includes(',')) {
+        // Formato BR: 1.234,56 / 1234,56
+        numeric = cleaned.replace(/\./g, '').replace(',', '.');
+      } else {
+        // Fallback: 1234.56 ou 1.234.56
+        const lastDot = cleaned.lastIndexOf('.');
+        if (lastDot !== -1 && cleaned.length - lastDot - 1 === 2) {
+          const integerPart = cleaned.slice(0, lastDot).replace(/\./g, '');
+          const fractionalPart = cleaned.slice(lastDot + 1);
+          numeric = `${integerPart}.${fractionalPart}`;
+        } else {
+          numeric = cleaned.replace(/\./g, '');
+        }
+      }
+
+      const value = Number.parseFloat(numeric);
+      if (!Number.isFinite(value)) return '';
+
+      return value.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    };
+
+    const collectMoneyValues = (regexes: RegExp[]) => {
+      const values: string[] = [];
+      for (const regex of regexes) {
+        for (const match of cleanText.matchAll(regex)) {
+          const normalized = normalizeMoney(match[1] || '');
+          if (normalized) values.push(normalized);
+        }
+      }
+      return Array.from(new Set(values));
+    };
+
+    const pickPreferredMoney = (values: string[]) => {
+      if (values.length === 0) return '';
+      const nonZero = values.find(v => v !== '0,00');
+      return nonZero || values[0];
+    };
+
     let restitutionValue = '';
     let taxToPayValue = '';
     let quotasCount = '';
     let quotaValue = '';
     let bankInfo = '';
 
-    // Regex para pegar valor no formato 1.234,56 ou 123,45 ou 1 234,56 ou 1234,56
-    // O PDF da RFB geralmente traz os labels abaixo.
-    
-    // Tentar encontrar Imposto a Restituir
-    // A Receita Federal usa "IMPOSTO A RESTITUIR" nos recibos. O match pega o primeiro número monetário após isso.
-    const regexRestituir = /IMPOSTO A RESTITUIR.{0,150}?([\d\.\s]+,\d{2})/;
-    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O.{0,150}?([\d\.\s]+,\d{2})/;
-    
-    const matchRest = cleanText.match(regexRestituir);
-    if (matchRest) {
-      restitutionValue = matchRest[1].trim().replace(/\s+/g, '');
-    } else {
-        const matchRest2 = cleanText.match(regexRestituir2);
-        if (matchRest2) {
-            restitutionValue = matchRest2[1].trim().replace(/\s+/g, '');
-        } else {
-            // Tentar regex mais flexível caso tenha quebra de página ou formatação estranha do PDF da RFB
-            const matchRest3 = cleanText.match(/RESTITUIR.{0,150}?([\d\.\s]+,\d{2})/);
-            if (matchRest3) restitutionValue = matchRest3[1].trim().replace(/\s+/g, '');
-        }
-    }
+    // Coleta todos os valores candidatos e prioriza o primeiro não-zero.
+    const restitutionCandidates = collectMoneyValues([
+      /IMPOSTO A RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+      /VALOR DA RESTITUI[CÇ][AÃ]O.{0,250}?([\d.\s]+[.,]\d{2})/g,
+      /RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+    ]);
+    restitutionValue = pickPreferredMoney(restitutionCandidates);
 
-    // Tentar encontrar Imposto a Pagar
-    const regexPagar = /TOTAL DO IMPOSTO A PAGAR.{0,100}?([\d\.\s]+,\d{2})/;
-    const matchPagar = cleanText.match(regexPagar);
-    if (matchPagar) {
-      taxToPayValue = matchPagar[1].trim().replace(/\s+/g, '');
-    } else {
-        const matchPagar2 = cleanText.match(/SALDO DO IMPOSTO A PAGAR.{0,100}?([\d\.\s]+,\d{2})/);
-        if (matchPagar2) {
-            taxToPayValue = matchPagar2[1].trim().replace(/\s+/g, '');
-        } else {
-            const matchPagar3 = cleanText.match(/IMPOSTO A PAGAR.{0,100}?([\d\.\s]+,\d{2})/);
-            if (matchPagar3) taxToPayValue = matchPagar3[1].trim().replace(/\s+/g, '');
-        }
-    }
+    const taxToPayCandidates = collectMoneyValues([
+      /TOTAL DO IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+      /SALDO DO IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+      /IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+    ]);
+    taxToPayValue = pickPreferredMoney(taxToPayCandidates);
 
     // Se tiver imposto a pagar, tentar pegar cotas
     if (taxToPayValue && taxToPayValue !== '0,00') {
