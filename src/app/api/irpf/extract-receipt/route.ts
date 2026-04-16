@@ -24,7 +24,15 @@ export async function POST(req: NextRequest) {
             pdfData.Pages.forEach((page: any) => {
                 if (page.Texts) {
                     page.Texts.forEach((t: any) => {
-                        const textStr = decodeURIComponent(t.R[0].T);
+                        const rawText = t?.R?.[0]?.T ?? '';
+                        let textStr = '';
+                        try {
+                          textStr = decodeURIComponent(rawText);
+                        } catch {
+                          // Alguns PDFs da Receita trazem sequências percent-encoded inválidas.
+                          // Nesse caso, mantém o texto bruto para não interromper toda a extração.
+                          textStr = String(rawText);
+                        }
                         const y = Math.round(t.y * 2) / 2; // tolerance of 0.5
                         const x = t.x;
                         
