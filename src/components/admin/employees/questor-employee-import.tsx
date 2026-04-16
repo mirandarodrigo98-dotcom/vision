@@ -99,6 +99,7 @@ export function QuestorEmployeeImport() {
       if (result.success) {
         toast.success(result.message);
         setOpen(false);
+        setTimeout(resetState, 300);
       } else {
         toast.error(result.error || 'Erro ao importar funcionários.');
       }

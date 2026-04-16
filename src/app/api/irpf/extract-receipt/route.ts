@@ -14,12 +14,36 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const pdfParser = new PDFParser(null, 1); // 1 = text mode
-
     const text = await new Promise<string>((resolve, reject) => {
+      const pdfParser = new PDFParser(null, 1 as any);
       pdfParser.on('pdfParser_dataError', (errData: any) => reject(errData.parserError));
       pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
-        resolve(pdfParser.getRawTextContent());
+        let lines: Array<{ y: number, items: Array<{ x: number, text: string }> }> = [];
+        
+        if (pdfData && pdfData.Pages) {
+            pdfData.Pages.forEach((page: any) => {
+                if (page.Texts) {
+                    page.Texts.forEach((t: any) => {
+                        const textStr = decodeURIComponent(t.R[0].T);
+                        const y = Math.round(t.y * 2) / 2; // tolerance of 0.5
+                        const x = t.x;
+                        
+                        let line = lines.find(l => l.y === y);
+                        if (!line) {
+                            line = { y, items: [] };
+                            lines.push(line);
+                        }
+                        line.items.push({ x, textStr });
+                    });
+                }
+            });
+        }
+
+        lines.sort((a, b) => a.y - b.y);
+        lines.forEach(l => l.items.sort((a, b) => a.x - b.x));
+
+        const fullText = lines.map(l => l.items.map(i => i.textStr).join(' ')).join('\n');
+        resolve(fullText);
       });
       pdfParser.parseBuffer(buffer);
     });
@@ -39,8 +63,8 @@ export async function POST(req: NextRequest) {
     
     // Tentar encontrar Imposto a Restituir
     // A Receita Federal usa "IMPOSTO A RESTITUIR" nos recibos. O match pega o primeiro número monetário após isso.
-    const regexRestituir = /IMPOSTO A RESTITUIR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
-    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O.*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexRestituir = /IMPOSTO A RESTITUIR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
     
     const matchRest = cleanText.match(regexRestituir);
     if (matchRest) {
@@ -51,22 +75,22 @@ export async function POST(req: NextRequest) {
             restitutionValue = matchRest2[1];
         } else {
             // Tentar regex mais flexível caso tenha quebra de página ou formatação estranha do PDF da RFB
-            const matchRest3 = cleanText.match(/IMPOSTO A RESTITUIR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+            const matchRest3 = cleanText.match(/IMPOSTO A RESTITUIR.{0,50}?(\d{1,3}(?:\.\d{3})*,\d{2})/);
             if (matchRest3) restitutionValue = matchRest3[1];
         }
     }
 
     // Tentar encontrar Imposto a Pagar
-    const regexPagar = /TOTAL DO IMPOSTO A PAGAR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexPagar = /TOTAL DO IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
     const matchPagar = cleanText.match(regexPagar);
     if (matchPagar) {
       taxToPayValue = matchPagar[1];
     } else {
-        const matchPagar2 = cleanText.match(/SALDO DO IMPOSTO A PAGAR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+        const matchPagar2 = cleanText.match(/SALDO DO IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
         if (matchPagar2) {
             taxToPayValue = matchPagar2[1];
         } else {
-            const matchPagar3 = cleanText.match(/IMPOSTO A PAGAR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+            const matchPagar3 = cleanText.match(/IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
             if (matchPagar3) taxToPayValue = matchPagar3[1];
         }
     }
