@@ -485,7 +485,7 @@ export async function getLeaves(companyId?: string) {
     const session = await getSession();
     if (!session) return [];
 
-    let query = \`
+    let query = `
         SELECT l.*, COALESCE(cc.razao_social, cc.nome) as company_name, e.name as employee_name
         FROM leaves l
         JOIN client_companies cc ON l.company_id = cc.id

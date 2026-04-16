@@ -55,7 +55,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  let query = \`
+  let query = `
     SELECT 
       v.*,
       COALESCE(cc.razao_social, cc.nome) as company_name,
@@ -109,7 +109,7 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
 
   const orderBy = safeSort === 'company_name' ? 'COALESCE(cc.razao_social, cc.nome)' : 
                   safeSort === 'employee_name' ? 'e.name' :
-                  \`v.\${safeSort}\`;
+                  `v.${safeSort}`;
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 

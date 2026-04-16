@@ -85,7 +85,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
 
   const orderBy = safeSort === 'company_name' ? 'COALESCE(sc.razao_social, sc.nome)' : 
                   safeSort === 'employee_name' ? 'e.name' :
-                  \`l.\${safeSort}\`;
+                  `l.${safeSort}`;
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 

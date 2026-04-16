@@ -94,7 +94,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   }
 
   // Handle special case for company_name sorting
-  let orderBy = \`e.\${safeSort}\`;
+  let orderBy = `e.${safeSort}`;
   
   if (safeSort === 'company_name') {
     orderBy = 'COALESCE(c.razao_social, c.nome)';

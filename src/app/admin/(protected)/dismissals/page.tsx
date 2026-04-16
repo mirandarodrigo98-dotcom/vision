@@ -54,7 +54,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  let query = \`
+  let query = `
     SELECT 
       d.*,
       COALESCE(cc.razao_social, cc.nome) as company_name,
@@ -108,7 +108,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
 
   const orderBy = safeSort === 'company_name' ? 'COALESCE(cc.razao_social, cc.nome)' : 
                   safeSort === 'employee_name' ? 'e.name' :
-                  \`d.\${safeSort}\`;
+                  `d.${safeSort}`;
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
