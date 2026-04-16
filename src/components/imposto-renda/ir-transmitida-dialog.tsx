@@ -66,13 +66,18 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
           setShowTaxToPayInput(true);
           setShowRestitutionInput(false);
         } else {
-          // Se ambos vierem vazios ou 0,00, fechamos as duas opções automaticamente
-          setShowRestitutionInput(false);
+          // Mantém a opção de restituição aberta por padrão caso o backend falhe
+          // para o usuário preencher manualmente
+          setShowRestitutionInput(true);
           setShowTaxToPayInput(false);
         }
+      } else {
+        // Se a API falhar, também mantém o campo de restituição aberto como fallback
+        setShowRestitutionInput(true);
       }
     } catch (error) {
       console.error('Failed to extract PDF data:', error);
+      setShowRestitutionInput(true);
     }
   };
 
