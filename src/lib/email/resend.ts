@@ -31,7 +31,7 @@ export async function sendEmail({
         return { success: true, id: 'mock-id' };
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(process.env.RESEND_API_KEY || 're_123');
 
     try {
         const { data, error } = await resend.emails.send({

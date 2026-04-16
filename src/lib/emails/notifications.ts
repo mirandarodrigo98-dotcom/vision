@@ -4,7 +4,9 @@ import { format } from 'date-fns';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// O Next.js avalia arquivos globais em tempo de build, então a API key pode não existir.
+// Usamos "re_123" como dummy para evitar quebra de compilação.
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123');
 const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
 async function getLogoBase64(): Promise<string | null> {
