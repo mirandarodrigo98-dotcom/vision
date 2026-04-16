@@ -38,21 +38,37 @@ export async function POST(req: NextRequest) {
     // O PDF da RFB geralmente traz os labels abaixo.
     
     // Tentar encontrar Imposto a Restituir
-    const matchRest = cleanText.match(/IMPOSTO A RESTITUIR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+    // A Receita Federal usa "IMPOSTO A RESTITUIR" nos recibos. O match pega o primeiro número monetário após isso.
+    const regexRestituir = /IMPOSTO A RESTITUIR\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    
+    const matchRest = cleanText.match(regexRestituir);
     if (matchRest) {
       restitutionValue = matchRest[1];
     } else {
-        const matchRest2 = cleanText.match(/VALOR DA RESTITUI[CÇ][AÃ]O[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
-        if (matchRest2) restitutionValue = matchRest2[1];
+        const matchRest2 = cleanText.match(regexRestituir2);
+        if (matchRest2) {
+            restitutionValue = matchRest2[1];
+        } else {
+            // Tentar regex mais flexível caso tenha quebra de página ou formatação estranha do PDF da RFB
+            const matchRest3 = cleanText.match(/IMPOSTO A RESTITUIR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+            if (matchRest3) restitutionValue = matchRest3[1];
+        }
     }
 
     // Tentar encontrar Imposto a Pagar
-    const matchPagar = cleanText.match(/TOTAL DO IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+    const regexPagar = /TOTAL DO IMPOSTO A PAGAR\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const matchPagar = cleanText.match(regexPagar);
     if (matchPagar) {
       taxToPayValue = matchPagar[1];
     } else {
-        const matchPagar2 = cleanText.match(/IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
-        if (matchPagar2) taxToPayValue = matchPagar2[1];
+        const matchPagar2 = cleanText.match(/SALDO DO IMPOSTO A PAGAR\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
+        if (matchPagar2) {
+            taxToPayValue = matchPagar2[1];
+        } else {
+            const matchPagar3 = cleanText.match(/IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+            if (matchPagar3) taxToPayValue = matchPagar3[1];
+        }
     }
 
     // Se tiver imposto a pagar, tentar pegar cotas
