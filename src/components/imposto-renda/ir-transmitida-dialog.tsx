@@ -81,6 +81,39 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
     }
   };
 
+  const handleRestitutionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    const cents = parseInt(value, 10);
+    if (!value || isNaN(cents)) {
+      setRestitutionValue('');
+      return;
+    }
+    const floatVal = cents / 100;
+    setRestitutionValue(floatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  };
+
+  const handleTaxToPayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    const cents = parseInt(value, 10);
+    if (!value || isNaN(cents)) {
+      setTaxToPayValue('');
+      return;
+    }
+    const floatVal = cents / 100;
+    setTaxToPayValue(floatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  };
+
+  const handleQuotaValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    const cents = parseInt(value, 10);
+    if (!value || isNaN(cents)) {
+      setQuotaValue('');
+      return;
+    }
+    const floatVal = cents / 100;
+    setQuotaValue(floatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     
@@ -302,7 +335,7 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
                   type="text"
                   placeholder="Ex: 1.250,00"
                   value={restitutionValue}
-                  onChange={(e) => setRestitutionValue(e.target.value)}
+                  onChange={handleRestitutionChange}
                   disabled={loading}
                 />
               </div>
@@ -321,7 +354,7 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
                     type="text"
                     placeholder="Ex: 5.916,86"
                     value={taxToPayValue}
-                    onChange={(e) => setTaxToPayValue(e.target.value)}
+                    onChange={handleTaxToPayChange}
                     disabled={loading}
                   />
                 </div>
@@ -332,7 +365,7 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
                       type="text"
                       placeholder="Ex: 8"
                       value={quotasCount}
-                      onChange={(e) => setQuotasCount(e.target.value)}
+                      onChange={(e) => setQuotasCount(e.target.value.replace(/\D/g, ''))}
                       disabled={loading}
                     />
                   </div>
@@ -342,7 +375,7 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
                       type="text"
                       placeholder="Ex: 739,60"
                       value={quotaValue}
-                      onChange={(e) => setQuotaValue(e.target.value)}
+                      onChange={handleQuotaValueChange}
                       disabled={loading}
                     />
                   </div>
