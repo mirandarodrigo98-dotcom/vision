@@ -14,44 +14,19 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const pdfParser = new PDFParser(); // Usando JSON mode para ter as coordenadas (x,y)
+    const pdfParser = new PDFParser(null, 1); // 1 = text mode
 
-    const pdfData = await new Promise<any>((resolve, reject) => {
+    const text = await new Promise<string>((resolve, reject) => {
       pdfParser.on('pdfParser_dataError', (errData: any) => reject(errData.parserError));
-      pdfParser.on('pdfParser_dataReady', (data: any) => {
-        resolve(data);
+      pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
+        resolve(pdfParser.getRawTextContent());
       });
       pdfParser.parseBuffer(buffer);
     });
 
-    // Reconstruindo o texto linha por linha baseado na coordenada Y
-    // Isso evita que o pdf2json leia colunas fora de ordem
-    let lines: { y: number, items: { x: number, text: string }[] }[] = [];
-    
-    if (pdfData.Pages) {
-        pdfData.Pages.forEach((page: any) => {
-            if (page.Texts) {
-                page.Texts.forEach((t: any) => {
-                    const text = decodeURIComponent(t.R[0].T);
-                    const y = Math.round(t.y * 2) / 2; // tolerância de 0.5 para mesma linha
-                    const x = t.x;
-                    
-                    let line = lines.find(l => l.y === y);
-                    if (!line) {
-                        line = { y, items: [] };
-                        lines.push(line);
-                    }
-                    line.items.push({ x, text });
-                });
-            }
-        });
-    }
-
-    lines.sort((a, b) => a.y - b.y);
-    lines.forEach(l => l.items.sort((a, b) => a.x - b.x));
-
-    const fullText = lines.map(l => l.items.map(i => i.text).join(' ')).join('\n').toUpperCase();
-    const cleanText = fullText.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
+    // We have the raw text. Let's extract.
+    // Replace multiple spaces/newlines with single spaces to make regex easier
+    const cleanText = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
 
     let restitutionValue = '';
     let taxToPayValue = '';
