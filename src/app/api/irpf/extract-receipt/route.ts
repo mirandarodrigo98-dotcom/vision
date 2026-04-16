@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
     
     // Tentar encontrar Imposto a Restituir
     // A Receita Federal usa "IMPOSTO A RESTITUIR" nos recibos. O match pega o primeiro número monetário após isso.
-    const regexRestituir = /IMPOSTO A RESTITUIR.{0,100}?([\d\.\s]+,\d{2})/;
-    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O.{0,100}?([\d\.\s]+,\d{2})/;
+    const regexRestituir = /IMPOSTO A RESTITUIR.{0,150}?([\d\.\s]+,\d{2})/;
+    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O.{0,150}?([\d\.\s]+,\d{2})/;
     
     const matchRest = cleanText.match(regexRestituir);
     if (matchRest) {
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
             restitutionValue = matchRest2[1].trim().replace(/\s+/g, '');
         } else {
             // Tentar regex mais flexível caso tenha quebra de página ou formatação estranha do PDF da RFB
-            const matchRest3 = cleanText.match(/RESTITUIR.{0,100}?([\d\.\s]+,\d{2})/);
+            const matchRest3 = cleanText.match(/RESTITUIR.{0,150}?([\d\.\s]+,\d{2})/);
             if (matchRest3) restitutionValue = matchRest3[1].trim().replace(/\s+/g, '');
         }
     }
