@@ -6,8 +6,8 @@ import { getOmieConfig } from './omie-config';
 import { sendDigisacMessage, getDigisacConfig } from '@/app/actions/integrations/digisac';
 
 // Retorna as contas a receber do Omie
-export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string) {
-  const config = await getOmieConfig();
+export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string, companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
 
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
     return { error: 'Credenciais da API Omie não configuradas ou inativas. Acesse Integrações > Omie para configurar.' };
@@ -176,8 +176,8 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
   }
 }
 
-export async function obterBoletoOmie(codigoLancamento: number) {
-  const config = await getOmieConfig();
+export async function obterBoletoOmie(codigoLancamento: number, companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
 
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
@@ -271,8 +271,8 @@ export async function downloadBoletoPdfServer(url: string) {
   }
 }
 
-export async function cancelarBoletoTituloOmie(codigoLancamento: number) {
-  const config = await getOmieConfig();
+export async function cancelarBoletoTituloOmie(codigoLancamento: number, companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
   if (!config || !config.is_active || !config.app_key || !config.app_secret) return { error: 'Configuração Omie inválida' };
 
   try {
@@ -292,8 +292,8 @@ export async function cancelarBoletoTituloOmie(codigoLancamento: number) {
   }
 }
 
-export async function lancarRecebimentoOmie(payloadData: any) {
-  const config = await getOmieConfig();
+export async function lancarRecebimentoOmie(payloadData: any, companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
   }
@@ -318,7 +318,7 @@ export async function lancarRecebimentoOmie(payloadData: any) {
       if (faultstring.includes('não é permitido que recebimentos manuais') || faultstring.includes('conectada')) {
         console.log('Detectado bloqueio de conta integrada. Tentando bypass (cancelar boleto e alterar conta)...');
         
-        const cancelResult = await cancelarBoletoTituloOmie(payloadData.codigo_lancamento);
+        const cancelResult = await cancelarBoletoTituloOmie(payloadData.codigo_lancamento, companyId);
         if (cancelResult.error) {
            console.log('Boleto não pôde ser cancelado ou já estava cancelado:', cancelResult.error);
            // Continuamos mesmo assim, pois o boleto pode não existir, e o problema ser apenas a conta do título
@@ -376,8 +376,8 @@ export async function lancarRecebimentoOmie(payloadData: any) {
   }
 }
 
-export async function getOmieBankSyncStatus() {
-  const config = await getOmieConfig();
+export async function getOmieBankSyncStatus(companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
   if (!config || !config.is_active || !config.app_key || !config.app_secret) return null;
 
   try {
@@ -477,8 +477,8 @@ export async function getOmieBankSyncStatus() {
   }
 }
 
-export async function cancelarRecebimentoOmie(codigoBaixa: number) {
-  const config = await getOmieConfig();
+export async function cancelarRecebimentoOmie(codigoBaixa: number, companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
   }
@@ -507,8 +507,8 @@ export async function cancelarRecebimentoOmie(codigoBaixa: number) {
   }
 }
 
-export async function consultarContaReceberOmie(codigoLancamento: number) {
-  const config = await getOmieConfig();
+export async function consultarContaReceberOmie(codigoLancamento: number, companyId: number = 1) {
+  const config = await getOmieConfig(companyId);
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
   }
@@ -542,7 +542,7 @@ export async function consultarContaReceberOmie(codigoLancamento: number) {
   }
 }
 
-export async function enviarBoletoDigisacOmie(conta: any) {
+export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1) {
   try {
     const cnpjRaw = conta.cnpj_cliente || '';
     const cleanCnpj = cnpjRaw.replace(/[^0-9]/g, '');
@@ -574,7 +574,7 @@ export async function enviarBoletoDigisacOmie(conta: any) {
     // 3. Pegar URL do PDF do Boleto
     let pdfUrl = conta.cLinkBoleto;
     if (!pdfUrl) {
-      const resBoleto = await obterBoletoOmie(conta.codigo_lancamento_omie);
+      const resBoleto = await obterBoletoOmie(conta.codigo_lancamento_omie, companyId);
       if (resBoleto.error || !resBoleto.data?.cLinkBoleto) {
         return { error: 'Não foi possível obter o PDF do boleto no Omie.' };
       }
@@ -644,7 +644,7 @@ export async function enviarBoletoDigisacOmie(conta: any) {
   }
 }
 
-export async function enviarCobrancaDigisacOmie(conta: any) {
+export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 1) {
   try {
     const cnpjRaw = conta.cnpj_cliente || '';
     const cleanCnpj = cnpjRaw.replace(/[^0-9]/g, '');
@@ -674,7 +674,7 @@ export async function enviarCobrancaDigisacOmie(conta: any) {
     // 3. Pegar URL do PDF do Boleto
     let pdfUrl = conta.cLinkBoleto;
     if (!pdfUrl) {
-      const resBoleto = await obterBoletoOmie(conta.codigo_lancamento_omie);
+      const resBoleto = await obterBoletoOmie(conta.codigo_lancamento_omie, companyId);
       if (resBoleto.error || !resBoleto.data?.cLinkBoleto) {
         return { error: 'Não foi possível obter o PDF do boleto no Omie.' };
       }

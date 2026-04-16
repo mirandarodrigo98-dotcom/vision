@@ -6,19 +6,22 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { getDashboardFinanceiroData } from '@/app/actions/integrations/omie-dashboard';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function DashboardFinanceiro() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [companyId, setCompanyId] = useState<string>('0');
 
-  const fetchData = async (forceRefresh = false, fullRefresh = false) => {
+  const fetchData = async (forceRefresh = false, fullRefresh = false, selectedCompanyId = companyId) => {
     if (forceRefresh) setRefreshing(true);
     else setLoading(true);
     
     setError('');
-    const res = await getDashboardFinanceiroData(forceRefresh, fullRefresh);
+    const numericCompanyId = selectedCompanyId === '0' ? undefined : Number(selectedCompanyId);
+    const res = await getDashboardFinanceiroData(numericCompanyId, forceRefresh, fullRefresh);
     if (res.error) {
       setError(res.error);
     } else {
@@ -30,8 +33,8 @@ export function DashboardFinanceiro() {
   };
 
   useEffect(() => {
-    fetchData(false);
-  }, []);
+    fetchData(false, false, companyId);
+  }, [companyId]);
 
   if (loading) {
     return (
@@ -243,7 +246,7 @@ export function DashboardFinanceiro() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           {data?.updated_at ? (
             <p className="text-sm text-muted-foreground mt-1 font-medium">
@@ -255,15 +258,27 @@ export function DashboardFinanceiro() {
             </p>
           )}
         </div>
-        <Button 
-          onClick={(e) => fetchData(true, e.shiftKey || e.ctrlKey)} 
-          disabled={refreshing}
-          variant="outline"
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Atualizando...' : 'Atualizar Dados'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={companyId} onValueChange={setCompanyId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Selecione a visão" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Consolidado</SelectItem>
+              <SelectItem value="1">NZD Contabilidade</SelectItem>
+              <SelectItem value="2">NZD Consultoria</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            onClick={(e) => fetchData(true, e.shiftKey || e.ctrlKey, companyId)} 
+            disabled={refreshing}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Atualizando...' : 'Atualizar Dados'}
+          </Button>
+        </div>
       </div>
 
       <ChartRow title="RECEITAS TOTAIS RECEBIDAS (Regime de Caixa)" dataBloco={blocoCaixa} />

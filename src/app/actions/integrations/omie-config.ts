@@ -9,7 +9,7 @@ export interface OmieConfig {
   is_active: boolean;
 }
 
-export async function getOmieConfig() {
+export async function getOmieConfig(companyId: number = 1) {
   try {
     // Ensure table exists
     await db.query(`
@@ -22,7 +22,7 @@ export async function getOmieConfig() {
       )
     `, []);
 
-    const config = (await db.query('SELECT * FROM omie_config WHERE id = 1', [])).rows[0] as any;
+    const config = (await db.query('SELECT * FROM omie_config WHERE id = $1', [companyId])).rows[0] as any;
     if (config) {
       config.is_active = Boolean(config.is_active);
     }
@@ -33,7 +33,7 @@ export async function getOmieConfig() {
   }
 }
 
-export async function saveOmieConfig(data: OmieConfig) {
+export async function saveOmieConfig(data: OmieConfig, companyId: number = 1) {
   try {
     await db.query(`
       CREATE TABLE IF NOT EXISTS omie_config (
@@ -46,15 +46,15 @@ export async function saveOmieConfig(data: OmieConfig) {
     `, []);
 
     const isActive = data.is_active ? 1 : 0;
-    const existing = (await db.query('SELECT * FROM omie_config WHERE id = 1', [])).rows[0];
+    const existing = (await db.query('SELECT * FROM omie_config WHERE id = $1', [companyId])).rows[0];
 
     if (existing) {
       await db.query(`UPDATE omie_config 
          SET app_key = $1, app_secret = $2, is_active = $3, updated_at = CURRENT_TIMESTAMP
-         WHERE id = 1`, [data.app_key || null, data.app_secret || null, isActive]);
+         WHERE id = $4`, [data.app_key || null, data.app_secret || null, isActive, companyId]);
     } else {
       await db.query(`INSERT INTO omie_config (id, app_key, app_secret, is_active) 
-         VALUES (1, $1, $2, $3)`, [data.app_key || null, data.app_secret || null, isActive]);
+         VALUES ($4, $1, $2, $3)`, [data.app_key || null, data.app_secret || null, isActive, companyId]);
     }
     revalidatePath('/admin/integrations/omie');
     return { success: true };

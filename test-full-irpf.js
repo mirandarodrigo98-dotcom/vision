@@ -1,18 +1,6 @@
-const fs = require('fs');
-const PDFDocument = require('pdfkit');
 const PDFParser = require('pdf2json');
 
-const doc = new PDFDocument();
-doc.pipe(fs.createWriteStream('output_test_irpf.pdf'));
-doc.text('TOTAL RENDIMENTOS TRIBUTÁVEIS                      74.685,31');
-doc.text('IMPOSTO DEVIDO                                      4.691,88');
-doc.text('IMPOSTO A RESTITUIR');
-doc.text('              ');
-doc.text('                 ');
-doc.text('QUALQUER OUTRA COISA NO MEIO DA TELA AQUI');
-doc.text('    1.250,00     ');
-doc.text('SALDO DO IMPOSTO A PAGAR');
-doc.end();
+const TARGET_FILE = 'public/12036408702-IRPF-2026-2025-origi-imagem-recibo.pdf';
 
 setTimeout(() => {
     const pdfParser = new PDFParser(null, 1);
@@ -24,7 +12,13 @@ setTimeout(() => {
             pdfData.Pages.forEach((page) => {
                 if (page.Texts) {
                     page.Texts.forEach((t) => {
-                        const textStr = decodeURIComponent(t.R[0].T);
+                        const rawText = t?.R?.[0]?.T ?? '';
+                        let textStr = '';
+                        try {
+                          textStr = decodeURIComponent(rawText);
+                        } catch {
+                          textStr = String(rawText);
+                        }
                         const y = Math.round(t.y * 2) / 2; // tolerance of 0.5
                         const x = t.x;
                         
@@ -42,30 +36,87 @@ setTimeout(() => {
         lines.sort((a, b) => a.y - b.y);
         lines.forEach(l => l.items.sort((a, b) => a.x - b.x));
 
-        const fullText = lines.map(l => l.items.map(i => i.textStr).join(' ')).join('\n');
-        
-        const cleanText = fullText.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
-        console.log("CLEAN TEXT:\n", cleanText);
+        const lineTexts = lines.map(l => l.items.map(i => i.textStr).join(' ').trim());
+        const cleanLines = lineTexts.map((line) => line.replace(/\s+/g, ' ').toUpperCase());
+        const cleanText = lineTexts.join(' ').replace(/\s+/g, ' ').toUpperCase();
 
-        let restitutionValue = '';
+        const normalizeMoney = (raw) => {
+          const cleaned = raw.trim().replace(/\s+/g, '').replace(/[^\d.,]/g, '');
+          if (!cleaned) return '';
 
-        const regexRestituir = /IMPOSTO A RESTITUIR.{0,150}?([\d\.\s]+,\d{2})/;
-        const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O.{0,150}?([\d\.\s]+,\d{2})/;
-        
-        const matchRest = cleanText.match(regexRestituir);
-        if (matchRest) {
-          restitutionValue = matchRest[1].trim().replace(/\s+/g, '');
-        } else {
-            const matchRest2 = cleanText.match(regexRestituir2);
-            if (matchRest2) {
-                restitutionValue = matchRest2[1].trim().replace(/\s+/g, '');
+          let numeric = '';
+          if (cleaned.includes(',')) {
+            numeric = cleaned.replace(/\./g, '').replace(',', '.');
+          } else {
+            const lastDot = cleaned.lastIndexOf('.');
+            if (lastDot !== -1 && cleaned.length - lastDot - 1 === 2) {
+              const integerPart = cleaned.slice(0, lastDot).replace(/\./g, '');
+              const fractionalPart = cleaned.slice(lastDot + 1);
+              numeric = `${integerPart}.${fractionalPart}`;
             } else {
-                const matchRest3 = cleanText.match(/RESTITUIR.{0,150}?([\d\.\s]+,\d{2})/);
-                if (matchRest3) restitutionValue = matchRest3[1].trim().replace(/\s+/g, '');
+              numeric = cleaned.replace(/\./g, '');
             }
+          }
+
+          const value = Number.parseFloat(numeric);
+          if (!Number.isFinite(value)) return '';
+          return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        const collectMoneyValues = (regexes) => {
+          const values = [];
+          for (const regex of regexes) {
+            for (const match of cleanText.matchAll(regex)) {
+              const normalized = normalizeMoney(match[1] || '');
+              if (normalized) values.push(normalized);
+            }
+          }
+          return Array.from(new Set(values));
+        };
+
+        const collectByLineProximity = (lineKeywords, lookAhead = 6) => {
+          const values = [];
+          const moneyRegex = /([\d.\s]+[.,]\d{2})/g;
+          for (let i = 0; i < cleanLines.length; i++) {
+            const line = cleanLines[i];
+            if (!lineKeywords.some((k) => line.includes(k))) continue;
+            for (let j = i; j <= Math.min(i + lookAhead, cleanLines.length - 1); j++) {
+              const target = cleanLines[j];
+              for (const match of target.matchAll(moneyRegex)) {
+                const normalized = normalizeMoney(match[1] || '');
+                if (normalized) values.push(normalized);
+              }
+            }
+          }
+          return Array.from(new Set(values));
+        };
+
+        const pickPreferredMoney = (values) => {
+          if (!values.length) return '';
+          const nonZero = values.find((v) => v !== '0,00');
+          return nonZero || values[0];
+        };
+
+        const restitutionCandidates = collectMoneyValues([
+          /IMPOSTO A RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+          /VALOR DA RESTITUI[CÇ][AÃ]O.{0,250}?([\d.\s]+[.,]\d{2})/g,
+          /RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+        ]);
+        const restitutionLineCandidates = collectByLineProximity([
+          'IMPOSTO A RESTITUIR',
+          'VALOR DA RESTITUI',
+          'RESTITUIR',
+        ]);
+
+        const restitutionValue = pickPreferredMoney([...restitutionCandidates, ...restitutionLineCandidates]);
+
+        console.log('restitutionCandidates:', restitutionCandidates);
+        console.log('restitutionLineCandidates:', restitutionLineCandidates);
+        console.log('Extracted Value:', restitutionValue);
+        if (!restitutionValue) {
+          const interest = cleanLines.filter((l) => l.includes('RESTIT') || l.includes('PAGAR'));
+          console.log('interest lines:', interest.slice(0, 40));
         }
-        
-        console.log("Extracted Value:", restitutionValue);
     });
-    pdfParser.loadPDF("output_test_irpf.pdf");
+    pdfParser.loadPDF(TARGET_FILE);
 }, 1000);

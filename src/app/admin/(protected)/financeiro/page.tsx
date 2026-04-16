@@ -51,7 +51,7 @@ export default async function FinanceiroPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CurrencyDollarIcon className="h-5 w-5" />
-              Contas a Receber (Omie)
+              Contas a Receber (NZD Contabilidade)
             </CardTitle>
             <CardDescription>
               Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos via Omie.
@@ -59,6 +59,23 @@ export default async function FinanceiroPage() {
           </CardHeader>
           <CardContent>
             <Link href="/admin/financeiro/cobranca">
+              <Button className="w-full">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CurrencyDollarIcon className="h-5 w-5" />
+              Contas a Receber (NZD Consultoria)
+            </CardTitle>
+            <CardDescription>
+              Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos da Consultoria.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/financeiro/cobranca-consultoria">
               <Button className="w-full">Acessar Módulo</Button>
             </Link>
           </CardContent>

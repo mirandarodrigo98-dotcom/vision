@@ -8,18 +8,19 @@ async function main() {
     pool.end();
 
     const payload = {
-      call: "ListarContasCorrentes",
+      call: "ListarExtrato",
       app_key: config.app_key,
       app_secret: config.app_secret,
-      param: [{ pagina: 1, registros_por_pagina: 500 }]
+      param: [{ 
+        nCodCC: 6700224052,
+        dPeriodoInicial: "01/04/2026",
+        dPeriodoFinal: "30/04/2026"
+      }]
     };
     
     try {
-      const res = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payload);
-      const ccList = res.data.ListarContasCorrentes || [];
-      const inter = ccList.filter(c => c.descricao.toLowerCase().includes('inter') || c.codigo_banco === '077');
-      
-      console.log("INTER:", JSON.stringify(inter.map(i => ({ cod: i.nCodCC, name: i.descricao, cc: i.numero_conta_corrente })), null, 2));
+      const res = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', payload);
+      console.log(res.data);
     } catch (e) {
       console.log(e.response?.data || e.message);
     }

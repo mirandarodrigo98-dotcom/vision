@@ -134,6 +134,8 @@ const CustomFloatingFilter = (props: any) => {
 
 import { getUserPermissions } from '@/app/actions/permissions';
 
+const COMPANY_ID = 2;
+
 export default function CobrancaPage() {
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
@@ -418,7 +420,7 @@ export default function CobrancaPage() {
         observacao: recObs
       };
       
-      const res = await lancarRecebimentoOmie(payload);
+      const res = await lancarRecebimentoOmie(payload, COMPANY_ID);
       if (res.error) {
         toast.error(res.error);
       } else {
@@ -426,7 +428,7 @@ export default function CobrancaPage() {
         setIsReceberOpen(false);
         
         // Atualização pontual na grid para não depender de reload demorado
-        const refresh = await consultarContaReceberOmie(conta.codigo_lancamento_omie);
+        const refresh = await consultarContaReceberOmie(conta.codigo_lancamento_omie, COMPANY_ID);
         if (!refresh.error && refresh.data) {
           setContas(prev => prev.map(c => {
             if (c.codigo_lancamento_omie === conta.codigo_lancamento_omie) {
@@ -463,7 +465,7 @@ export default function CobrancaPage() {
     setDetalheConta(null);
     
     try {
-      const res = await consultarContaReceberOmie(conta.codigo_lancamento_omie);
+      const res = await consultarContaReceberOmie(conta.codigo_lancamento_omie, COMPANY_ID);
       if (res.error) {
         toast.error(res.error);
         setIsDetalharOpen(false);
@@ -486,14 +488,14 @@ export default function CobrancaPage() {
     if (!confirm('Deseja realmente cancelar este recebimento?')) return;
     
     try {
-      const res = await cancelarRecebimentoOmie(codigoBaixa);
+      const res = await cancelarRecebimentoOmie(codigoBaixa, COMPANY_ID);
       if (res.error) {
         toast.error(res.error);
       } else {
         toast.success('Recebimento cancelado com sucesso!');
         // Atualizar os detalhes
         setIsCarregandoDetalhes(true);
-        const refresh = await consultarContaReceberOmie(selectedRows[0].codigo_lancamento_omie);
+        const refresh = await consultarContaReceberOmie(selectedRows[0].codigo_lancamento_omie, COMPANY_ID);
         if (!refresh.error && refresh.data) {
           setDetalheConta(refresh.data);
           // Atualização pontual também no grid principal
@@ -527,7 +529,7 @@ export default function CobrancaPage() {
     toast.info('Buscando informações e enviando boleto via Digisac...');
     
     try {
-      const res = await enviarBoletoDigisacOmie(conta);
+      const res = await enviarBoletoDigisacOmie(conta, COMPANY_ID);
       if (res.error) {
         toast.error(res.error);
       } else {
@@ -553,7 +555,7 @@ export default function CobrancaPage() {
     toast.info('Enviando mensagem de cobrança via Digisac...');
     
     try {
-      const res = await enviarCobrancaDigisacOmie(conta);
+      const res = await enviarCobrancaDigisacOmie(conta, COMPANY_ID);
       if (res.error) {
         toast.error(res.error);
       } else {
@@ -584,7 +586,7 @@ export default function CobrancaPage() {
       try {
         let pdfUrl = conta.cLinkBoleto;
         if (!pdfUrl) {
-          const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
+          const response = await obterBoletoOmie(conta.codigo_lancamento_omie, COMPANY_ID);
           if (response.error) {
             toast.error(response.error);
             return;
@@ -616,7 +618,7 @@ export default function CobrancaPage() {
           let pdfUrl = conta.cLinkBoleto;
           
           if (!pdfUrl) {
-            const response = await obterBoletoOmie(conta.codigo_lancamento_omie);
+            const response = await obterBoletoOmie(conta.codigo_lancamento_omie, COMPANY_ID);
             if (!response.error && response.data && response.data.cLinkBoleto) {
               pdfUrl = response.data.cLinkBoleto;
             }
@@ -691,8 +693,8 @@ export default function CobrancaPage() {
       const formattedAte = `${ateParts[2]}/${ateParts[1]}/${ateParts[0]}`;
 
       // Fetch Bank Sync Status in parallel
-      const syncStatusPromise = getOmieBankSyncStatus();
-      const responsePromise = listarContasReceber(formattedDe, formattedAte);
+      const syncStatusPromise = getOmieBankSyncStatus(COMPANY_ID);
+      const responsePromise = listarContasReceber(formattedDe, formattedAte, COMPANY_ID);
 
       const [syncStatus, response] = await Promise.all([syncStatusPromise, responsePromise]);
 
@@ -725,8 +727,8 @@ export default function CobrancaPage() {
           <CurrencyDollarIcon className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contas a Receber (NZD Contabilidade)</h1>
-          <p className="text-muted-foreground">Consulte boletos, recebimentos e inadimplência da Contabilidade integrados via Omie ERP</p>
+          <h1 className="text-2xl font-bold tracking-tight">Contas a Receber (NZD Consultoria)</h1>
+          <p className="text-muted-foreground">Consulte boletos, recebimentos e inadimplência da Consultoria integrados via Omie ERP</p>
         </div>
       </div>
 

@@ -26,7 +26,7 @@ const formSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-export default function OmieConfigForm({ initialConfig }: { initialConfig?: OmieConfig }) {
+export default function OmieConfigForm({ initialConfig, companyId = 1 }: { initialConfig?: OmieConfig, companyId?: number }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +46,7 @@ export default function OmieConfigForm({ initialConfig }: { initialConfig?: Omie
         app_key: values.app_key,
         app_secret: values.app_secret,
         is_active: values.is_active,
-      });
+      }, companyId);
 
       if (response.error) {
         toast.error(response.error);

@@ -8,21 +8,20 @@ async function main() {
     pool.end();
 
     try {
-      const res = await axios.post('https://app.omie.com.br/api/v1/financas/resumo/', {
-        call: "ObterResumoFinancas",
+      const res = await axios.post('https://app.omie.com.br/api/v1/financas/extrato/', {
+        call: "ListarExtrato",
         app_key: config.app_key,
         app_secret: config.app_secret,
-        param: [{
-            cDataApuracao: "15/04/2026"
+        param: [{ 
+            nCodCC: 6700224052,
+            dPeriodoInicial: "01/02/2026",
+            dPeriodoFinal: "30/04/2026"
         }]
       });
-      
-      const ccs = res.data.resumoContasCorrentes || [];
-      const inter = ccs.find(c => c.nCodCC === 6700224052 || c.cDescricao.toLowerCase().includes('inter'));
-      
-      console.log("INTER RESUMO:", inter);
+      const movs = res.data.listaMovimentos || [];
+      console.log(movs.filter(m => JSON.stringify(m).includes('METROTEK')));
     } catch (e) {
-      console.log(e.response?.data || e.message);
+      console.log("ERRO:", e.response?.data || e.message);
     }
 }
 main();

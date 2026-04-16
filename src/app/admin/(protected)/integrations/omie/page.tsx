@@ -4,6 +4,7 @@ import { getUserPermissions } from '@/app/actions/permissions';
 import { getOmieConfig } from '@/app/actions/integrations/omie-config';
 import OmieConfigForm from '@/components/admin/integrations/omie-config-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function OmieIntegrationPage() {
   const session = await getSession();
@@ -19,7 +20,8 @@ export default async function OmieIntegrationPage() {
     );
   }
 
-  const initialConfig = await getOmieConfig();
+  const initialConfigContabilidade = await getOmieConfig(1);
+  const initialConfigConsultoria = await getOmieConfig(2);
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -30,17 +32,38 @@ export default async function OmieIntegrationPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Credenciais da API</CardTitle>
-          <CardDescription>
-            Insira o App Key e o App Secret do seu aplicativo Omie. Estas chaves podem ser encontradas no portal do desenvolvedor da Omie.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OmieConfigForm initialConfig={initialConfig} />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="contabilidade" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="contabilidade">NZD Contabilidade</TabsTrigger>
+          <TabsTrigger value="consultoria">NZD Consultoria</TabsTrigger>
+        </TabsList>
+        <TabsContent value="contabilidade">
+          <Card>
+            <CardHeader>
+              <CardTitle>Credenciais da API - Contabilidade</CardTitle>
+              <CardDescription>
+                Insira o App Key e o App Secret do seu aplicativo Omie. Estas chaves podem ser encontradas no portal do desenvolvedor da Omie.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OmieConfigForm initialConfig={initialConfigContabilidade} companyId={1} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="consultoria">
+          <Card>
+            <CardHeader>
+              <CardTitle>Credenciais da API - Consultoria</CardTitle>
+              <CardDescription>
+                Insira o App Key e o App Secret do seu aplicativo Omie. Estas chaves podem ser encontradas no portal do desenvolvedor da Omie.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OmieConfigForm initialConfig={initialConfigConsultoria} companyId={2} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

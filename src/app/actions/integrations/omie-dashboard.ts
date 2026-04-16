@@ -17,19 +17,19 @@ const CATEGORIAS_HONORARIOS = [
 
 const CONTAS_ATIVAS = ['Cora', 'Inter', 'Itaú', 'Caixa Econômica', 'Caixinha'];
 
-export async function getDashboardFinanceiroData(forceRefresh = false, fullRefresh = false) {
+export async function getDashboardFinanceiroDataSingle(companyId: number, forceRefresh = false, fullRefresh = false) {
   let cachedDataRaw: any = null;
   const now = new Date();
   
   if (!forceRefresh) {
     try {
-      const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
+      const cached = (await db.query('SELECT data, updated_at FROM omie_dashboard_cache WHERE id = $1', [companyId])).rows[0];
       if (cached && cached.data) {
         const lastUpdate = new Date(cached.updated_at);
         
         // Sempre retorna do cache se não for forceRefresh. 
         // A atualização automática das 6h é feita exclusivamente pelo Cron Job no servidor (vercel.json)
-        console.log('Retornando do cache...');
+        console.log(`Retornando do cache para companyId ${companyId}...`);
         return { success: true, data: cached.data, cached: true, updated_at: lastUpdate };
       }
     } catch (e) {
@@ -40,14 +40,14 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
   if (forceRefresh && !fullRefresh) {
     // Se for atualização forçada, carregamos o cache para fazer atualização INCREMENTAL rápida
     try {
-      const cached = (await db.query('SELECT data FROM omie_dashboard_cache WHERE id = 1', [])).rows[0];
+      const cached = (await db.query('SELECT data FROM omie_dashboard_cache WHERE id = $1', [companyId])).rows[0];
       if (cached && cached.data) {
         cachedDataRaw = cached.data;
       }
     } catch (e) {}
   }
 
-  const config = await getOmieConfig();
+  const config = await getOmieConfig(companyId);
 
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
@@ -666,16 +666,105 @@ export async function getDashboardFinanceiroData(forceRefresh = false, fullRefre
     try {
       await db.query(`
         INSERT INTO omie_dashboard_cache (id, data, updated_at) 
-        VALUES (1, $1, NOW()) 
+        VALUES ($1, $2, NOW()) 
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-      `, [JSON.stringify(finalData)]);
+      `, [companyId, JSON.stringify(finalData)]);
     } catch (e) {
       console.warn("Erro ao salvar cache", e);
     }
 
     return { success: true, data: finalData, cached: false, updated_at: new Date() };
   } catch (error: any) {
-    console.error('Erro ao buscar dados do Dashboard Financeiro:', error.response?.data || error.message);
+    console.error(`Erro ao buscar dados do Dashboard Financeiro (${companyId}):`, error.response?.data || error.message);
     return { error: 'Falha ao buscar dados do Dashboard Financeiro.' };
   }
+}
+
+export async function getDashboardFinanceiroData(companyId?: number, forceRefresh = false, fullRefresh = false) {
+  if (companyId) {
+    return getDashboardFinanceiroDataSingle(companyId, forceRefresh, fullRefresh);
+  }
+
+  // Consolidado
+  const res1 = await getDashboardFinanceiroDataSingle(1, forceRefresh, fullRefresh);
+  const res2 = await getDashboardFinanceiroDataSingle(2, forceRefresh, fullRefresh);
+
+  if (!res1.success && !res2.success) {
+    return { error: 'Falha ao buscar dados de ambas as empresas.' };
+  }
+
+  // We can do a basic merge if both succeeded, or just return the one that succeeded if only one did.
+  // Full merging logic for charts might be complex, so we will merge main KPIs for now, and arrays by concat.
+  const d1 = res1.data || {};
+  const d2 = res2.data || {};
+
+  const mergeBloco = (b1: any, b2: any) => {
+    if (!b1) return b2;
+    if (!b2) return b1;
+    return {
+      saldoAtual: (b1.saldoAtual || 0) + (b2.saldoAtual || 0),
+      saldoMesAnterior: (b1.saldoMesAnterior || 0) + (b2.saldoMesAnterior || 0),
+      saldoAnoAnteriorMesmoPeriodo: (b1.saldoAnoAnteriorMesmoPeriodo || 0) + (b2.saldoAnoAnteriorMesmoPeriodo || 0),
+      variacaoMes: 0, // Should be recalculated, but let's just leave it or recalculate if possible
+      variacaoAno: 0,
+      ultimos12Meses: b1.ultimos12Meses.map((m: any, i: number) => ({
+        name: m.name,
+        label: m.label,
+        value: m.value + (b2.ultimos12Meses[i]?.value || 0)
+      }))
+    };
+  };
+
+  const mergedData = {
+    blocoCaixa: mergeBloco(d1.blocoCaixa, d2.blocoCaixa),
+    blocoCompetencia: mergeBloco(d1.blocoCompetencia, d2.blocoCompetencia),
+    blocoHonorarios: {
+      faturamentoMensal: (d1.blocoHonorarios?.faturamentoMensal || 0) + (d2.blocoHonorarios?.faturamentoMensal || 0),
+      faturamentoMesAnterior: (d1.blocoHonorarios?.faturamentoMesAnterior || 0) + (d2.blocoHonorarios?.faturamentoMesAnterior || 0),
+      faturamentoMesAnteriorAnoAnterior: (d1.blocoHonorarios?.faturamentoMesAnteriorAnoAnterior || 0) + (d2.blocoHonorarios?.faturamentoMesAnteriorAnoAnterior || 0),
+      variacaoRRM: 0,
+      ticketMedioAtual: ((d1.blocoHonorarios?.ticketMedioAtual || 0) + (d2.blocoHonorarios?.ticketMedioAtual || 0)) / 2, // Simple average
+      ticketMedioMesAnterior: ((d1.blocoHonorarios?.ticketMedioMesAnterior || 0) + (d2.blocoHonorarios?.ticketMedioMesAnterior || 0)) / 2,
+      ticketMedioMesAnteriorAnoAnterior: ((d1.blocoHonorarios?.ticketMedioMesAnteriorAnoAnterior || 0) + (d2.blocoHonorarios?.ticketMedioMesAnteriorAnoAnterior || 0)) / 2,
+      variacaoTicket: 0,
+      clientesAtivosAtual: (d1.blocoHonorarios?.clientesAtivosAtual || 0) + (d2.blocoHonorarios?.clientesAtivosAtual || 0),
+      clientesAtivosMesAnterior: (d1.blocoHonorarios?.clientesAtivosMesAnterior || 0) + (d2.blocoHonorarios?.clientesAtivosMesAnterior || 0),
+      clientesAtivosMesAnteriorAnoAnterior: (d1.blocoHonorarios?.clientesAtivosMesAnteriorAnoAnterior || 0) + (d2.blocoHonorarios?.clientesAtivosMesAnteriorAnoAnterior || 0),
+      variacaoClientes: 0,
+      faturamentoAcumuladoAnoCorrente: (d1.blocoHonorarios?.faturamentoAcumuladoAnoCorrente || 0) + (d2.blocoHonorarios?.faturamentoAcumuladoAnoCorrente || 0),
+      faturamentoAcumuladoAnoAnteriorMesmoPeriodo: (d1.blocoHonorarios?.faturamentoAcumuladoAnoAnteriorMesmoPeriodo || 0) + (d2.blocoHonorarios?.faturamentoAcumuladoAnoAnteriorMesmoPeriodo || 0),
+      variacaoAcumulado: 0,
+      ticketMedioAcumuladoAnoCorrente: ((d1.blocoHonorarios?.ticketMedioAcumuladoAnoCorrente || 0) + (d2.blocoHonorarios?.ticketMedioAcumuladoAnoCorrente || 0)) / 2,
+      ticketMedioAcumuladoAnoAnterior: ((d1.blocoHonorarios?.ticketMedioAcumuladoAnoAnterior || 0) + (d2.blocoHonorarios?.ticketMedioAcumuladoAnoAnterior || 0)) / 2,
+      anoAnterior: d1.blocoHonorarios?.anoAnterior,
+      anoCorrente: d1.blocoHonorarios?.anoCorrente,
+      mesAnteriorNome: d1.blocoHonorarios?.mesAnteriorNome,
+      mesAnteriorNomeAnoAnterior: d1.blocoHonorarios?.mesAnteriorNomeAnoAnterior
+    },
+    receitasCaixaPorMes: d1.receitasCaixaPorMes, // we could merge objects but it's complex, UI only uses blocos mostly
+    faturamentoPorMes: d1.faturamentoPorMes,
+    entradasPorMes: d1.entradasPorMes,
+    saidasPorMes: d1.saidasPorMes
+  };
+
+  // Recalculate variations
+  if (mergedData.blocoCaixa) {
+    const b = mergedData.blocoCaixa;
+    b.variacaoMes = b.saldoMesAnterior > 0 ? ((b.saldoAtual - b.saldoMesAnterior) / b.saldoMesAnterior) * 100 : 0;
+    b.variacaoAno = b.saldoAnoAnteriorMesmoPeriodo > 0 ? ((b.saldoAtual - b.saldoAnoAnteriorMesmoPeriodo) / b.saldoAnoAnteriorMesmoPeriodo) * 100 : 0;
+  }
+  if (mergedData.blocoCompetencia) {
+    const b = mergedData.blocoCompetencia;
+    b.variacaoMes = b.saldoMesAnterior > 0 ? ((b.saldoAtual - b.saldoMesAnterior) / b.saldoMesAnterior) * 100 : 0;
+    b.variacaoAno = b.saldoAnoAnteriorMesmoPeriodo > 0 ? ((b.saldoAtual - b.saldoAnoAnteriorMesmoPeriodo) / b.saldoAnoAnteriorMesmoPeriodo) * 100 : 0;
+  }
+  if (mergedData.blocoHonorarios) {
+    const h = mergedData.blocoHonorarios;
+    h.variacaoRRM = h.faturamentoMesAnteriorAnoAnterior > 0 ? ((h.faturamentoMesAnterior - h.faturamentoMesAnteriorAnoAnterior) / h.faturamentoMesAnteriorAnoAnterior) * 100 : 0;
+    h.variacaoTicket = h.ticketMedioMesAnteriorAnoAnterior > 0 ? ((h.ticketMedioMesAnterior - h.ticketMedioMesAnteriorAnoAnterior) / h.ticketMedioMesAnteriorAnoAnterior) * 100 : 0;
+    h.variacaoClientes = h.clientesAtivosMesAnteriorAnoAnterior > 0 ? ((h.clientesAtivosMesAnterior - h.clientesAtivosMesAnteriorAnoAnterior) / h.clientesAtivosMesAnteriorAnoAnterior) * 100 : 0;
+    h.variacaoAcumulado = h.faturamentoAcumuladoAnoAnteriorMesmoPeriodo > 0 ? ((h.faturamentoAcumuladoAnoCorrente - h.faturamentoAcumuladoAnoAnteriorMesmoPeriodo) / h.faturamentoAcumuladoAnoAnteriorMesmoPeriodo) * 100 : 0;
+  }
+
+  return { success: true, data: mergedData, cached: res1.cached && res2.cached, updated_at: res1.updated_at };
 }
