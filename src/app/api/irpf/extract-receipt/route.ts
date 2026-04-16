@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const text = await new Promise<string>((resolve, reject) => {
+    const parsed = await new Promise<{ text: string; lines: string[] }>((resolve, reject) => {
       const pdfParser = new PDFParser(null, 1 as any);
       pdfParser.on('pdfParser_dataError', (errData: any) => reject(errData.parserError));
       pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
@@ -42,15 +42,17 @@ export async function POST(req: NextRequest) {
         lines.sort((a, b) => a.y - b.y);
         lines.forEach(l => l.items.sort((a, b) => a.x - b.x));
 
-        const fullText = lines.map(l => l.items.map(i => i.textStr).join(' ')).join('\n');
-        resolve(fullText);
+        const lineTexts = lines.map(l => l.items.map(i => i.textStr).join(' ').trim());
+        const fullText = lineTexts.join('\n');
+        resolve({ text: fullText, lines: lineTexts });
       });
       pdfParser.parseBuffer(buffer);
     });
 
     // We have the raw text. Let's extract.
     // Replace multiple spaces/newlines with single spaces to make regex easier
-    const cleanText = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
+    const cleanText = parsed.text.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
+    const cleanLines = parsed.lines.map((line) => line.replace(/\s+/g, ' ').toUpperCase());
 
     const normalizeMoney = (raw: string): string => {
       const cleaned = raw.trim().replace(/\s+/g, '').replace(/[^\d.,]/g, '');
@@ -98,6 +100,28 @@ export async function POST(req: NextRequest) {
       return nonZero || values[0];
     };
 
+    // Fallback forte para PDFs "quebrados": busca por proximidade de linha.
+    // Em muitos recibos o rótulo e o valor são separados em linhas/colunas diferentes.
+    const collectByLineProximity = (lineKeywords: string[], lookAhead = 6) => {
+      const values: string[] = [];
+      const moneyRegex = /([\d.\s]+[.,]\d{2})/g;
+
+      for (let i = 0; i < cleanLines.length; i++) {
+        const line = cleanLines[i];
+        if (!lineKeywords.some((k) => line.includes(k))) continue;
+
+        for (let j = i; j <= Math.min(i + lookAhead, cleanLines.length - 1); j++) {
+          const target = cleanLines[j];
+          for (const match of target.matchAll(moneyRegex)) {
+            const normalized = normalizeMoney(match[1] || '');
+            if (normalized) values.push(normalized);
+          }
+        }
+      }
+
+      return Array.from(new Set(values));
+    };
+
     let restitutionValue = '';
     let taxToPayValue = '';
     let quotasCount = '';
@@ -110,14 +134,24 @@ export async function POST(req: NextRequest) {
       /VALOR DA RESTITUI[CÇ][AÃ]O.{0,250}?([\d.\s]+[.,]\d{2})/g,
       /RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
     ]);
-    restitutionValue = pickPreferredMoney(restitutionCandidates);
+    const restitutionLineCandidates = collectByLineProximity([
+      'IMPOSTO A RESTITUIR',
+      'VALOR DA RESTITUI',
+      'RESTITUIR',
+    ]);
+    restitutionValue = pickPreferredMoney([...restitutionCandidates, ...restitutionLineCandidates]);
 
     const taxToPayCandidates = collectMoneyValues([
       /TOTAL DO IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
       /SALDO DO IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
       /IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
     ]);
-    taxToPayValue = pickPreferredMoney(taxToPayCandidates);
+    const taxToPayLineCandidates = collectByLineProximity([
+      'TOTAL DO IMPOSTO A PAGAR',
+      'SALDO DO IMPOSTO A PAGAR',
+      'IMPOSTO A PAGAR',
+    ]);
+    taxToPayValue = pickPreferredMoney([...taxToPayCandidates, ...taxToPayLineCandidates]);
 
     // Se tiver imposto a pagar, tentar pegar cotas
     if (taxToPayValue && taxToPayValue !== '0,00') {
