@@ -50,9 +50,22 @@ async function getLogoBase64(): Promise<string | null> {
 }
 
 async function wrapHtml(content: string) {
-    const logoSrc = await getLogoBase64();
-    const logoHtml = logoSrc 
-        ? `<div style="text-align: center; margin-bottom: 24px;"><img src="${logoSrc}" alt="Logo" style="max-width: 300px; max-height: 100px; object-fit: contain;" /></div>`
+    let logoUrl: string | null = null;
+    try {
+        const { getSystemLogoUrl } = await import('@/app/actions/upload-logo');
+        logoUrl = await getSystemLogoUrl();
+        // Se for um caminho local relativo (ex: /uploads/logo.png), precisaria do domínio completo.
+        // Como o R2 retorna uma URL completa, deve funcionar no email.
+        if (logoUrl && logoUrl.startsWith('/')) {
+            const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://vision.nzdcontabilidade.com.br';
+            logoUrl = `${domain}${logoUrl}`;
+        }
+    } catch (e) {
+        console.error('Error fetching logo URL for email:', e);
+    }
+
+    const logoHtml = logoUrl 
+        ? `<div style="text-align: center; margin-bottom: 24px;"><img src="${logoUrl}" alt="Logo" style="max-width: 300px; max-height: 100px; object-fit: contain;" /></div>`
         : '';
 
     return `

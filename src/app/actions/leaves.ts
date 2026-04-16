@@ -42,7 +42,7 @@ export async function createLeave(formData: FormData) {
 
         if (session.role === 'client_user') {
             userCompanyData = (await db.query(`
-                SELECT cc.id, cc.nome, cc.cnpj 
+                SELECT cc.id, COALESCE(cc.razao_social, cc.nome) as nome, cc.cnpj 
                 FROM client_companies cc
                 JOIN user_companies uc ON uc.company_id = cc.id
                 WHERE uc.user_id = $1 AND cc.id = $2
@@ -57,11 +57,11 @@ export async function createLeave(formData: FormData) {
             }
 
             userCompanyData = (await db.query(`
-                SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+                SELECT id, COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1
             `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         } else {
              userCompanyData = (await db.query(`
-                SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+                SELECT id, COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1
             `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         }
 
@@ -282,7 +282,7 @@ export async function updateLeave(id: string, formData: FormData) {
         });
 
         // Send Notification
-        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
+        const company = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
         const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [leave.employee_id])).rows[0] as { name: string };
         
         const pdfBytes = await generateLeavePDF({
@@ -368,7 +368,7 @@ export async function cancelLeave(id: string) {
         });
 
         // Send Notification
-        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
+        const company = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
         const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [leave.employee_id])).rows[0] as { name: string };
 
         let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
@@ -426,7 +426,7 @@ export async function approveLeave(id: string) {
 
         // Get creator info
         const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [leave.created_by_user_id])).rows[0] as { email: string, name: string };
-        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
+        const company = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [leave.company_id])).rows[0] as { nome: string, cnpj: string };
         const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [leave.employee_id])).rows[0] as { name: string };
 
         // Update Leave Status

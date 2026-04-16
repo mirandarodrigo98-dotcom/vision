@@ -110,7 +110,7 @@ export async function createAdmission(formData: FormData) {
         let userCompanyData;
         if (session.role === 'client_user') {
             userCompanyData = (await db.query(`
-                SELECT cc.id, cc.nome, cc.cnpj 
+                SELECT cc.id, COALESCE(cc.razao_social, cc.nome) as nome, cc.cnpj 
                 FROM client_companies cc
                 JOIN user_companies uc ON uc.company_id = cc.id
                 WHERE uc.user_id = $1 AND cc.id = $2
@@ -122,12 +122,12 @@ export async function createAdmission(formData: FormData) {
             
             if (!isRestricted) {
                 userCompanyData = (await db.query(`
-                    SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+                    SELECT id, COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1
                 `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
             }
         } else if (session.role === 'admin') {
             userCompanyData = (await db.query(`
-                SELECT id, nome, cnpj FROM client_companies WHERE id = $1
+                SELECT id, COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1
             `, [companyId])).rows[0] as { id: string, nome: string, cnpj: string };
         }
 
@@ -347,7 +347,7 @@ export async function cancelAdmission(admissionId: string) {
         await db.query(`UPDATE admission_requests SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [admissionId]);
 
         // Send Email (Cancellation)
-        const userCompany = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [admission.company_id])).rows[0] as any;
+        const userCompany = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [admission.company_id])).rows[0] as any;
         const user = (await db.query(`SELECT name FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
         const userName = user?.name || session.name || 'Usuário';
 
@@ -617,7 +617,7 @@ export async function updateAdmission(formData: FormData) {
         });
 
         // Send Email (Rectification)
-        const userCompany = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [existingAdmission.company_id])).rows[0] as any;
+        const userCompany = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [existingAdmission.company_id])).rows[0] as any;
         const user = (await db.query(`SELECT name FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
         
         // Generate Updated PDF
@@ -729,7 +729,7 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
         await txn();
 
         // 3. Send Email to Client
-        const userCompany = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [admission.company_id])).rows[0] as any;
+        const userCompany = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [admission.company_id])).rows[0] as any;
         
         await sendAdmissionNotification('COMPLETED', {
             companyName: userCompany.nome,

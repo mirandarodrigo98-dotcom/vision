@@ -174,7 +174,7 @@ export async function createDismissal(formData: FormData) {
     }
 
     // Fetch details for email/PDF
-    const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [company_id])).rows[0] as any;
+    const company = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [company_id])).rows[0] as any;
     const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [employee_id])).rows[0] as any;
 
     if (!company || !employee) {
@@ -467,7 +467,7 @@ export async function approveDismissal(id: string) {
     try {
         // Get creator info for email
         const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [dismissal.created_by_user_id])).rows[0] as { email: string, name: string };
-        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [dismissal.company_id])).rows[0] as any;
+        const company = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [dismissal.company_id])).rows[0] as any;
         const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [dismissal.employee_id])).rows[0] as any;
 
         // Generate PDF first (fail fast)

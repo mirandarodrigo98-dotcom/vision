@@ -40,7 +40,7 @@ export async function createTransfer(formData: FormData) {
 
         if (session.role === 'client_user') {
             userCompanyData = (await db.query(`
-                SELECT cc.id, cc.nome, cc.cnpj, cc.is_active
+                SELECT cc.id, COALESCE(cc.razao_social, cc.nome) as nome, cc.cnpj, cc.is_active
                 FROM client_companies cc
                 JOIN user_companies uc ON uc.company_id = cc.id
                 WHERE uc.user_id = $1 AND cc.id = $2
@@ -56,12 +56,12 @@ export async function createTransfer(formData: FormData) {
             }
 
             userCompanyData = (await db.query(`
-                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = $1
+                SELECT id, COALESCE(razao_social, nome) as nome, cnpj, is_active FROM client_companies WHERE id = $1
             `, [sourceCompanyId])).rows[0] as { id: string, nome: string, cnpj: string, is_active: number };
         } else {
             // Admin: Check if company exists
             userCompanyData = (await db.query(`
-                SELECT id, nome, cnpj, is_active FROM client_companies WHERE id = $1
+                SELECT id, COALESCE(razao_social, nome) as nome, cnpj, is_active FROM client_companies WHERE id = $1
             `, [sourceCompanyId])).rows[0] as { id: string, nome: string, cnpj: string, is_active: number };
         }
 

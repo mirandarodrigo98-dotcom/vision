@@ -211,7 +211,7 @@ export async function createVacation(formData: FormData) {
         });
 
         // Generate PDF and Send Email
-        const companyName = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0] as any;
+        const companyName = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0] as any;
         const employeeName = (await db.query(`SELECT name FROM employees WHERE id = $1`, [employeeId])).rows[0] as any;
         
         const pdfData = {
@@ -338,7 +338,7 @@ export async function updateVacation(id: string, formData: FormData) {
         });
 
         // Generate PDF and Send Email
-        const companyName = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [existingVacation.company_id])).rows[0] as any;
+        const companyName = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [existingVacation.company_id])).rows[0] as any;
         const employeeName = (await db.query(`SELECT name FROM employees WHERE id = $1`, [existingVacation.employee_id])).rows[0] as any;
         
         const pdfData = {
@@ -435,7 +435,7 @@ export async function cancelVacation(id: string) {
         });
 
         // Send Email
-        const companyName = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [vacation.company_id])).rows[0] as any;
+        const companyName = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [vacation.company_id])).rows[0] as any;
         const employeeName = (await db.query(`SELECT name FROM employees WHERE id = $1`, [vacation.employee_id])).rows[0] as any;
 
         let notifType: 'CANCEL' | 'CANCEL_BY_ADMIN' = 'CANCEL';
@@ -491,7 +491,7 @@ export async function approveVacation(id: string) {
 
         // Get creator info
         const creator = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [vacation.created_by_user_id])).rows[0] as { email: string, name: string };
-        const company = (await db.query(`SELECT nome, cnpj FROM client_companies WHERE id = $1`, [vacation.company_id])).rows[0] as { nome: string, cnpj: string };
+        const company = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, cnpj FROM client_companies WHERE id = $1`, [vacation.company_id])).rows[0] as { nome: string, cnpj: string };
         const employee = (await db.query(`SELECT name FROM employees WHERE id = $1`, [vacation.employee_id])).rows[0] as { name: string };
 
         await db.query(`
