@@ -14,19 +14,44 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const pdfParser = new PDFParser(null, 1); // 1 = text mode
+    const pdfParser = new PDFParser(); // Usando JSON mode para ter as coordenadas (x,y)
 
-    const text = await new Promise<string>((resolve, reject) => {
+    const pdfData = await new Promise<any>((resolve, reject) => {
       pdfParser.on('pdfParser_dataError', (errData: any) => reject(errData.parserError));
-      pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
-        resolve(pdfParser.getRawTextContent());
+      pdfParser.on('pdfParser_dataReady', (data: any) => {
+        resolve(data);
       });
       pdfParser.parseBuffer(buffer);
     });
 
-    // We have the raw text. Let's extract.
-    // Replace multiple spaces/newlines with single spaces to make regex easier
-    const cleanText = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
+    // Reconstruindo o texto linha por linha baseado na coordenada Y
+    // Isso evita que o pdf2json leia colunas fora de ordem
+    let lines: { y: number, items: { x: number, text: string }[] }[] = [];
+    
+    if (pdfData.Pages) {
+        pdfData.Pages.forEach((page: any) => {
+            if (page.Texts) {
+                page.Texts.forEach((t: any) => {
+                    const text = decodeURIComponent(t.R[0].T);
+                    const y = Math.round(t.y * 2) / 2; // tolerância de 0.5 para mesma linha
+                    const x = t.x;
+                    
+                    let line = lines.find(l => l.y === y);
+                    if (!line) {
+                        line = { y, items: [] };
+                        lines.push(line);
+                    }
+                    line.items.push({ x, text });
+                });
+            }
+        });
+    }
+
+    lines.sort((a, b) => a.y - b.y);
+    lines.forEach(l => l.items.sort((a, b) => a.x - b.x));
+
+    const fullText = lines.map(l => l.items.map(i => i.text).join(' ')).join('\n').toUpperCase();
+    const cleanText = fullText.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
 
     let restitutionValue = '';
     let taxToPayValue = '';
@@ -39,8 +64,8 @@ export async function POST(req: NextRequest) {
     
     // Tentar encontrar Imposto a Restituir
     // A Receita Federal usa "IMPOSTO A RESTITUIR" nos recibos. O match pega o primeiro número monetário após isso.
-    const regexRestituir = /IMPOSTO A RESTITUIR\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
-    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexRestituir = /IMPOSTO A RESTITUIR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexRestituir2 = /VALOR DA RESTITUI[CÇ][AÃ]O.*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
     
     const matchRest = cleanText.match(regexRestituir);
     if (matchRest) {
@@ -51,32 +76,32 @@ export async function POST(req: NextRequest) {
             restitutionValue = matchRest2[1];
         } else {
             // Tentar regex mais flexível caso tenha quebra de página ou formatação estranha do PDF da RFB
-            const matchRest3 = cleanText.match(/IMPOSTO A RESTITUIR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+            const matchRest3 = cleanText.match(/IMPOSTO A RESTITUIR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
             if (matchRest3) restitutionValue = matchRest3[1];
         }
     }
 
     // Tentar encontrar Imposto a Pagar
-    const regexPagar = /TOTAL DO IMPOSTO A PAGAR\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
+    const regexPagar = /TOTAL DO IMPOSTO A PAGAR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/;
     const matchPagar = cleanText.match(regexPagar);
     if (matchPagar) {
       taxToPayValue = matchPagar[1];
     } else {
-        const matchPagar2 = cleanText.match(/SALDO DO IMPOSTO A PAGAR\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
+        const matchPagar2 = cleanText.match(/SALDO DO IMPOSTO A PAGAR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
         if (matchPagar2) {
             taxToPayValue = matchPagar2[1];
         } else {
-            const matchPagar3 = cleanText.match(/IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+            const matchPagar3 = cleanText.match(/IMPOSTO A PAGAR.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
             if (matchPagar3) taxToPayValue = matchPagar3[1];
         }
     }
 
     // Se tiver imposto a pagar, tentar pegar cotas
     if (taxToPayValue && taxToPayValue !== '0,00') {
-      const matchQuotas = cleanText.match(/N[UÚ]MERO DE QUOTAS[^\d]*?(\d+)/) || cleanText.match(/QUOTAS.*?(\d+)/);
+      const matchQuotas = cleanText.match(/N[UÚ]MERO DE QUOTAS.*?(\d+)/) || cleanText.match(/QUOTAS.*?(\d+)/);
       if (matchQuotas) quotasCount = matchQuotas[1];
 
-      const matchQuotaVal = cleanText.match(/VALOR DA QUOTA[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+      const matchQuotaVal = cleanText.match(/VALOR DA QUOTA.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
       if (matchQuotaVal) quotaValue = matchQuotaVal[1];
 
       // Tentar pegar banco se for debito automatico
