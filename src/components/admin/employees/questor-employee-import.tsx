@@ -183,12 +183,13 @@ export function QuestorEmployeeImport() {
                     <TableHead>Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
+                    <TableHead>Filial</TableHead>
                     <TableHead>Admissão</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employees.map((emp) => (
-                    <TableRow key={emp.cpf}>
+                  {employees.map((emp, i) => (
+                    <TableRow key={i}>
                       <TableCell>
                         <Checkbox 
                           checked={selectedEmployees.has(emp.cpf)}
@@ -198,7 +199,12 @@ export function QuestorEmployeeImport() {
                       <TableCell>{emp.code}</TableCell>
                       <TableCell>{emp.name}</TableCell>
                       <TableCell>{emp.cpf}</TableCell>
-                      <TableCell>{emp.admission_date ? emp.admission_date.split('-').reverse().join('/') : '-'}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                          {emp.filial || '1'}
+                        </span>
+                      </TableCell>
+                      <TableCell>{emp.admission_date ? format(new Date(emp.admission_date), 'dd/MM/yyyy') : ''}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

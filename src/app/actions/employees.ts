@@ -159,7 +159,7 @@ export async function getEmployees(optionsOrCompanyId?: string | { companyId?: s
 
   try {
     let query = `
-      SELECT e.*, c.nome as company_name,
+      SELECT e.*, COALESCE(c.razao_social, c.nome) as company_name, c.cnpj as company_cnpj,
       CASE WHEN (
         EXISTS (SELECT 1 FROM dismissals d WHERE d.employee_id = e.id) OR
         EXISTS (SELECT 1 FROM vacations v WHERE v.employee_id = e.id) OR
@@ -437,9 +437,25 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
         let importedCount = 0;
         let ignoredCount = 0;
 
+        // Fetch parent company code to find branches
+        const parentCompany = (await db.query(`SELECT code FROM client_companies WHERE id = $1`, [companyId])).rows[0];
+        if (!parentCompany) return { success: false, error: 'Empresa base não encontrada.' };
+
         const transaction = db.transaction(async (emps: any[]) => {
             for (const emp of emps) {
-                const existing = (await db.query(`SELECT id FROM employees WHERE company_id = $1 AND cpf = $2`, [companyId, emp.cpf])).rows[0] as any;
+                // Find specific branch company ID based on code and filial
+                let targetCompanyId = companyId;
+                if (emp.filial) {
+                    const branchCompany = (await db.query(
+                        `SELECT id FROM client_companies WHERE code = $1 AND filial = $2`, 
+                        [parentCompany.code, emp.filial.toString()]
+                    )).rows[0];
+                    if (branchCompany) {
+                        targetCompanyId = branchCompany.id;
+                    }
+                }
+
+                const existing = (await db.query(`SELECT id FROM employees WHERE company_id = $1 AND cpf = $2`, [targetCompanyId, emp.cpf])).rows[0] as any;
                 if (existing) {
                     ignoredCount++;
                     continue;
@@ -451,7 +467,7 @@ export async function saveQuestorEmployees(companyId: string, employees: any[]) 
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 `, [
                     uuidv4(),
-                    companyId,
+                    targetCompanyId,
                     emp.code,
                     emp.name,
                     emp.admission_date,

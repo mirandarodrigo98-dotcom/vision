@@ -97,18 +97,25 @@ export async function fetchEmployeesFromQuestor(companyCode: string) {
         const cleanStr = (str: any) => typeof str === 'string' ? str.replace(/&nbsp/g, ' ').trim() : str;
 
         // Map to internal format
-        const employees = items.map((item: any) => ({
-            code: item.CODIGOFUNCCONTR,
-            name: cleanStr(item.NOMEFUNC),
-            admission_date: item.DATAADM, // Note: Vision uses DATAADM, not DATAADMISSAO
-            cpf: item.CPFFUNC,
-            pis: item.PISFUNC,
-            birth_date: item.DATANASC,
-            esocial_registration: item.MATRICULAESOCIAL,
-            status: 1, // 'FuncionariosVision' implies active/current view, or we can map if there's a status field
-            sex: item.SEXO == 1 ? 'Masculino' : (item.SEXO == 2 ? 'Feminino' : 'Outro'),
-            company_code: item.CODIGOEMPRESA
-        }));
+        const employees = items.map((item: any) => {
+            // Se houver múltiplos registros do mesmo funcionário (histórico de filiais),
+            // a query no Questor SYN ('FuncionariosVision') deve idealmente retornar
+            // apenas o mais recente ou o CODIGOESTAB atual.
+            // O usuário instruiu a vincular na filial mais recente.
+            return {
+                code: item.CODIGOFUNCCONTR,
+                name: cleanStr(item.NOMEFUNC),
+                admission_date: item.DATAADM, // Note: Vision uses DATAADM, not DATAADMISSAO
+                cpf: item.CPFFUNC,
+                pis: item.PISFUNC,
+                birth_date: item.DATANASC,
+                esocial_registration: item.MATRICULAESOCIAL,
+                status: 1, // 'FuncionariosVision' implies active/current view, or we can map if there's a status field
+                sex: item.SEXO == 1 ? 'Masculino' : (item.SEXO == 2 ? 'Feminino' : 'Outro'),
+                company_code: item.CODIGOEMPRESA,
+                filial: item.CODIGOESTAB || item.FILIAL || '1' // Fallback para 1 caso a view do Questor SYN não retorne
+            };
+        });
 
         return { success: true, data: employees };
 
