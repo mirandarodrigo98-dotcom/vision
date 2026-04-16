@@ -1,89 +1,85 @@
-import { NextResponse } from 'next/server';
-// Usando pdf2json que é compatível com Node puro e não exige DOMMatrix/canvas
-const PDFParser = require('pdf2json');
+import { NextRequest, NextResponse } from 'next/server';
+import PDFParser from 'pdf2json';
 
-export async function POST(request: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+
     if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+      return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Usando Promise para encapsular a API baseada em eventos do pdf2json
-    const rawText = await new Promise<string>((resolve, reject) => {
-      // O segundo parâmetro '1' indica que queremos extrair apenas texto raw (menos processamento)
-      const pdfParser = new PDFParser(null, 1);
+    const pdfParser = new PDFParser(null, 1); // 1 = text mode
 
+    const text = await new Promise<string>((resolve, reject) => {
       pdfParser.on('pdfParser_dataError', (errData: any) => reject(errData.parserError));
-      pdfParser.on('pdfParser_dataReady', () => {
-        // No modo text-only, o texto fica disponível usando getRawTextContent()
+      pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
         resolve(pdfParser.getRawTextContent());
       });
-
       pdfParser.parseBuffer(buffer);
     });
 
-    // Limpar quebras de linha, tabulações e excesso de espaços para garantir que as expressões regulares (Regex)
-    // consigam ler os valores mesmo que o pdf2json tenha quebrado o valor para a linha de baixo
-    const text = rawText.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ');
+    // We have the raw text. Let's extract.
+    // Replace multiple spaces/newlines with single spaces to make regex easier
+    const cleanText = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').toUpperCase();
 
-    // Default return
-    const result = {
-      restitutionValue: '',
-      taxToPayValue: '',
-      quotasCount: '',
-      quotaValue: '',
-      bankInfo: ''
-    };
+    let restitutionValue = '';
+    let taxToPayValue = '';
+    let quotasCount = '';
+    let quotaValue = '';
+    let bankInfo = '';
 
-    // Parse "IMPOSTO A RESTITUIR"
-    // Usually it looks like: "IMPOSTO A RESTITUIR 1.250,00"
-    const restitutionMatch = text.match(/IMPOSTO A RESTITUIR.{0,50}?([\d]+(?:\.\d{3})*,\d{2})/i);
-    if (restitutionMatch && restitutionMatch[1]) {
-      result.restitutionValue = restitutionMatch[1].trim();
+    // Regex para pegar valor no formato 1.234,56 ou 123,45
+    // O PDF da RFB geralmente traz os labels abaixo.
+    
+    // Tentar encontrar Imposto a Restituir
+    const matchRest = cleanText.match(/IMPOSTO A RESTITUIR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+    if (matchRest) {
+      restitutionValue = matchRest[1];
+    } else {
+        const matchRest2 = cleanText.match(/VALOR DA RESTITUI[CÇ][AÃ]O[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+        if (matchRest2) restitutionValue = matchRest2[1];
     }
 
-    // Parse "SALDO DO IMPOSTO A PAGAR"
-    // Usually it looks like: "SALDO DO IMPOSTO A PAGAR 5.916,86"
-    const taxToPayMatch = text.match(/SALDO DO IMPOSTO A PAGAR.{0,50}?([\d]+(?:\.\d{3})*,\d{2})/i);
-    if (taxToPayMatch && taxToPayMatch[1]) {
-      result.taxToPayValue = taxToPayMatch[1].trim();
+    // Tentar encontrar Imposto a Pagar
+    const matchPagar = cleanText.match(/TOTAL DO IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+    if (matchPagar) {
+      taxToPayValue = matchPagar[1];
+    } else {
+        const matchPagar2 = cleanText.match(/IMPOSTO A PAGAR[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+        if (matchPagar2) taxToPayValue = matchPagar2[1];
     }
 
-    // NÚMERO DE QUOTAS
-    const quotasMatch = text.match(/NÚMERO DE QUOTAS.*?(\d+)/i);
-    if (quotasMatch && quotasMatch[1]) {
-      result.quotasCount = quotasMatch[1].trim();
+    // Se tiver imposto a pagar, tentar pegar cotas
+    if (taxToPayValue && taxToPayValue !== '0,00') {
+      const matchQuotas = cleanText.match(/N[UÚ]MERO DE QUOTAS[^\d]*?(\d+)/) || cleanText.match(/QUOTAS.*?(\d+)/);
+      if (matchQuotas) quotasCount = matchQuotas[1];
+
+      const matchQuotaVal = cleanText.match(/VALOR DA QUOTA[^\d]*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+      if (matchQuotaVal) quotaValue = matchQuotaVal[1];
+
+      // Tentar pegar banco se for debito automatico
+      const matchBanco = cleanText.match(/BANCO:\s*(\d+).*?AG[EÊ]NCIA:\s*(\S+).*?CONTA:\s*(\S+)/);
+      if (matchBanco) {
+        bankInfo = `Banco ${matchBanco[1]} Ag ${matchBanco[2]} Cc ${matchBanco[3]}`;
+      }
     }
 
-    // VALOR DA QUOTA
-    const quotaValMatch = text.match(/VALOR DA QUOTA.*?([\d]+(?:\.\d{3})*,\d{2})/i);
-    if (quotaValMatch && quotaValMatch[1]) {
-      result.quotaValue = quotaValMatch[1].trim();
-    }
-
-    // CÓDIGO DO BANCO
-    const bankCodeMatch = text.match(/CÓDIGO DO BANCO.*?(\d+)/i);
-    let bankCode = bankCodeMatch ? bankCodeMatch[1].trim() : '';
-
-    // AGÊNCIA BANCÁRIA
-    const agencyMatch = text.match(/AGÊNCIA BANCÁRIA.*?([\w\d-]+)/i);
-    let agency = agencyMatch ? agencyMatch[1].trim() : '';
-
-    // CONTA PARA DÉBITO
-    const accountMatch = text.match(/CONTA PARA DÉBITO.*?([\w\d-]+)/i);
-    let account = accountMatch ? accountMatch[1].trim() : '';
-
-    if (bankCode || agency || account) {
-      result.bankInfo = `Banco: ${bankCode}, Ag: ${agency}, Conta: ${account}`;
-    }
-
-    return NextResponse.json(result);
+    return NextResponse.json({
+      restitutionValue,
+      taxToPayValue,
+      quotasCount,
+      quotaValue,
+      bankInfo,
+      // text: cleanText // debug if needed
+    });
   } catch (error: any) {
-    console.error('Error parsing PDF:', error);
+    console.error('Erro ao extrair PDF:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
