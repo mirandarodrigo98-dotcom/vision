@@ -218,45 +218,59 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
   payload.dontOpenTicket = true;
 
   try {
-    let response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${config.api_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
-    });
+    const doRequest = async (requestPayload: any) => {
+      return fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.api_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload)
+      });
+    };
 
-    // Fallback inteligente para o 9º dígito em números brasileiros (Erro 500 Validation Error)
-    if (!response.ok && response.status === 500 && payload.number && payload.number.startsWith('55')) {
+    let response = await doRequest(payload);
+    let errorText = '';
+
+    if (!response.ok) {
+      errorText = await response.text();
+    }
+
+    // Fallback inteligente para o 9º dígito em números brasileiros.
+    // Além do 500, também cobre 400/422 quando a API acusa contato inexistente.
+    if (!response.ok && payload.number && payload.number.startsWith('55')) {
+      const shouldTryAlternative =
+        [400, 422, 500].includes(response.status) ||
+        /does not exist|Validation Error|BadRequestStepError/i.test(errorText);
+
+      if (shouldTryAlternative) {
         const num = payload.number;
-        let tryAlternative = false;
-        
+        const alternatives: string[] = [];
+
         if (num.length === 13 && num[4] === '9') {
-            // Tem o 9º dígito, vamos tentar sem ele
-            payload.number = num.substring(0, 4) + num.substring(5);
-            tryAlternative = true;
+          // Tem 9º dígito: tentar sem ele (55 + DDD + número)
+          alternatives.push(num.substring(0, 4) + num.substring(5));
         } else if (num.length === 12) {
-            // Não tem o 9º dígito, vamos tentar com ele
-            payload.number = num.substring(0, 4) + '9' + num.substring(4);
-            tryAlternative = true;
+          // Sem 9º dígito: tentar com ele
+          alternatives.push(num.substring(0, 4) + '9' + num.substring(4));
         }
 
-        if (tryAlternative) {
-            console.log(`Tentando fallback de numero: de ${num} para ${payload.number}`);
-            response = await fetch(endpoint, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${config.api_token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload)
-            });
+        for (const alternative of alternatives) {
+          const payloadAlt = { ...payload, number: alternative };
+          console.log(`Tentando fallback de numero no Digisac: de ${num} para ${alternative}`);
+          const altResponse = await doRequest(payloadAlt);
+          if (altResponse.ok) {
+            const data = await altResponse.json();
+            return { success: true, data };
+          }
+
+          errorText = await altResponse.text();
+          response = altResponse;
         }
+      }
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
       await logSystemError('Digisac API - Status Not OK', { status: response.status, responseText: errorText, payload });
       return { success: false, error: `Erro na API Digisac (${response.status}): ${errorText.slice(0, 100)}` };
     }
