@@ -30,10 +30,10 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  let query = `
+  let query = \`
     SELECT 
       l.*,
-      sc.nome as company_name,
+      COALESCE(sc.razao_social, sc.nome) as company_name,
       e.name as employee_name
     FROM leaves l
     JOIN client_companies sc ON l.company_id = sc.id
@@ -83,9 +83,9 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
     params.push(leaveDate + '%');
   }
 
-  const orderBy = safeSort === 'company_name' ? 'sc.nome' : 
+  const orderBy = safeSort === 'company_name' ? 'COALESCE(sc.razao_social, sc.nome)' : 
                   safeSort === 'employee_name' ? 'e.name' :
-                  `l.${safeSort}`;
+                  \`l.\${safeSort}\`;
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 

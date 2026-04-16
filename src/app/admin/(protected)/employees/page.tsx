@@ -39,7 +39,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
 
   // Build query
   let query = `
-    SELECT e.*, c.nome as company_name, c.cnpj as cnpj,
+    SELECT e.*, COALESCE(c.razao_social, c.nome) as company_name, c.cnpj as cnpj,
     CASE WHEN (
       EXISTS (SELECT 1 FROM dismissals d WHERE d.employee_id = e.id) OR
       EXISTS (SELECT 1 FROM vacations v WHERE v.employee_id = e.id) OR
@@ -94,10 +94,10 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   }
 
   // Handle special case for company_name sorting
-  let orderBy = `e.${safeSort}`;
+  let orderBy = \`e.\${safeSort}\`;
   
   if (safeSort === 'company_name') {
-    orderBy = 'c.nome';
+    orderBy = 'COALESCE(c.razao_social, c.nome)';
   } else if (safeSort === 'cnpj') {
     orderBy = 'c.cnpj';
   } else if (safeSort === 'code') {

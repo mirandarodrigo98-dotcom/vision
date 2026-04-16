@@ -54,10 +54,10 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  let query = `
+  let query = \`
     SELECT 
       d.*,
-      cc.nome as company_name,
+      COALESCE(cc.razao_social, cc.nome) as company_name,
       e.name as employee_name
     FROM dismissals d
     JOIN client_companies cc ON d.company_id = cc.id
@@ -106,9 +106,9 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
     params.push(dismissalDate + '%');
   }
 
-  const orderBy = safeSort === 'company_name' ? 'cc.nome' : 
+  const orderBy = safeSort === 'company_name' ? 'COALESCE(cc.razao_social, cc.nome)' : 
                   safeSort === 'employee_name' ? 'e.name' :
-                  `d.${safeSort}`;
+                  \`d.\${safeSort}\`;
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 

@@ -55,10 +55,10 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  let query = `
+  let query = \`
     SELECT 
       v.*,
-      cc.nome as company_name,
+      COALESCE(cc.razao_social, cc.nome) as company_name,
       e.name as employee_name
     FROM vacations v
     JOIN client_companies cc ON v.company_id = cc.id
@@ -107,9 +107,9 @@ export default async function AdminVacationsPage({ searchParams }: AdminVacation
     params.push(vacationDate + '%');
   }
 
-  const orderBy = safeSort === 'company_name' ? 'cc.nome' : 
+  const orderBy = safeSort === 'company_name' ? 'COALESCE(cc.razao_social, cc.nome)' : 
                   safeSort === 'employee_name' ? 'e.name' :
-                  `v.${safeSort}`;
+                  \`v.\${safeSort}\`;
                   
   query += ` ORDER BY ${orderBy} ${safeOrder}`;
 
