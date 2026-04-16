@@ -702,22 +702,87 @@ export async function getDashboardFinanceiroData(companyId?: number, forceRefres
     if (!b1) return b2;
     if (!b2) return b1;
     return {
-      saldoAtual: (b1.saldoAtual || 0) + (b2.saldoAtual || 0),
-      saldoMesAnterior: (b1.saldoMesAnterior || 0) + (b2.saldoMesAnterior || 0),
-      saldoAnoAnteriorMesmoPeriodo: (b1.saldoAnoAnteriorMesmoPeriodo || 0) + (b2.saldoAnoAnteriorMesmoPeriodo || 0),
-      variacaoMes: 0, // Should be recalculated, but let's just leave it or recalculate if possible
-      variacaoAno: 0,
+      mesAtual: {
+        atual: (b1.mesAtual?.atual || 0) + (b2.mesAtual?.atual || 0),
+        anoAnterior: (b1.mesAtual?.anoAnterior || 0) + (b2.mesAtual?.anoAnterior || 0),
+        labelAtual: b1.mesAtual?.labelAtual,
+        labelAnoAnterior: b1.mesAtual?.labelAnoAnterior
+      },
+      mesAnterior: {
+        atual: (b1.mesAnterior?.atual || 0) + (b2.mesAnterior?.atual || 0),
+        anoAnterior: (b1.mesAnterior?.anoAnterior || 0) + (b2.mesAnterior?.anoAnterior || 0),
+        labelAtual: b1.mesAnterior?.labelAtual,
+        labelAnoAnterior: b1.mesAnterior?.labelAnoAnterior
+      },
       ultimos12Meses: b1.ultimos12Meses.map((m: any, i: number) => ({
-        name: m.name,
+        month: m.month,
         label: m.label,
         value: m.value + (b2.ultimos12Meses[i]?.value || 0)
       }))
     };
   };
 
+  const mergeCaptacao = (b1: any, b2: any) => {
+    if (!b1) return b2;
+    if (!b2) return b1;
+    
+    const entradasTrimestre = (b1.trimestre?.entradas || 0) + (b2.trimestre?.entradas || 0);
+    const saidasTrimestre = (b1.trimestre?.saidas || 0) + (b2.trimestre?.saidas || 0);
+    const variacaoEntradasTrimestre = 0; // simplified
+    const variacaoSaidasTrimestre = 0; // simplified
+
+    const entradasAnoCorrente = (b1.anoCorrente?.entradas || 0) + (b2.anoCorrente?.entradas || 0);
+    const saidasAnoCorrente = (b1.anoCorrente?.saidas || 0) + (b2.anoCorrente?.saidas || 0);
+    const variacaoEntradasAnoCorrente = 0; // simplified
+    const variacaoSaidasAnoCorrente = 0; // simplified
+
+    const entradasAnoAnterior = (b1.anoAnterior?.entradas || 0) + (b2.anoAnterior?.entradas || 0);
+    const saidasAnoAnterior = (b1.anoAnterior?.saidas || 0) + (b2.anoAnterior?.saidas || 0);
+    const variacaoEntradasAnoAnterior = 0; // simplified
+    const variacaoSaidasAnoAnterior = 0; // simplified
+
+    const totalEntradasPeriodo = b1.ultimos12Meses.reduce((acc: number, m: any, i: number) => acc + m.entradas + (b2.ultimos12Meses[i]?.entradas || 0), 0);
+    const totalSaidasPeriodo = b1.ultimos12Meses.reduce((acc: number, m: any, i: number) => acc + m.saidas + (b2.ultimos12Meses[i]?.saidas || 0), 0);
+    const saldoPeriodo = totalEntradasPeriodo - totalSaidasPeriodo;
+    const percentualSaldo = totalEntradasPeriodo > 0 ? (saldoPeriodo / totalEntradasPeriodo) * 100 : 0;
+
+    return {
+      ultimos12Meses: b1.ultimos12Meses.map((m: any, i: number) => ({
+        month: m.month,
+        label: m.label,
+        entradas: m.entradas + (b2.ultimos12Meses[i]?.entradas || 0),
+        saidas: m.saidas + (b2.ultimos12Meses[i]?.saidas || 0)
+      })),
+      saldoPeriodo,
+      percentualSaldo,
+      trimestre: {
+        entradas: entradasTrimestre,
+        saidas: saidasTrimestre,
+        variacaoEntradas: variacaoEntradasTrimestre,
+        variacaoSaidas: variacaoSaidasTrimestre,
+        label: b1.trimestre?.label
+      },
+      anoCorrente: {
+        entradas: entradasAnoCorrente,
+        saidas: saidasAnoCorrente,
+        variacaoEntradas: variacaoEntradasAnoCorrente,
+        variacaoSaidas: variacaoSaidasAnoCorrente,
+        label: b1.anoCorrente?.label
+      },
+      anoAnterior: {
+        entradas: entradasAnoAnterior,
+        saidas: saidasAnoAnterior,
+        variacaoEntradas: variacaoEntradasAnoAnterior,
+        variacaoSaidas: variacaoSaidasAnoAnterior,
+        label: b1.anoAnterior?.label
+      }
+    };
+  };
+
   const mergedData = {
     blocoCaixa: mergeBloco(d1.blocoCaixa, d2.blocoCaixa),
     blocoCompetencia: mergeBloco(d1.blocoCompetencia, d2.blocoCompetencia),
+    blocoCaptacao: mergeCaptacao(d1.blocoCaptacao, d2.blocoCaptacao),
     blocoHonorarios: {
       faturamentoMensal: (d1.blocoHonorarios?.faturamentoMensal || 0) + (d2.blocoHonorarios?.faturamentoMensal || 0),
       faturamentoMesAnterior: (d1.blocoHonorarios?.faturamentoMesAnterior || 0) + (d2.blocoHonorarios?.faturamentoMesAnterior || 0),
