@@ -30,7 +30,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  let query = \`
+  let query = `
     SELECT 
       l.*,
       COALESCE(sc.razao_social, sc.nome) as company_name,
