@@ -141,12 +141,22 @@ export async function sendDigisacMessage(message: DigisacMessage): Promise<Digis
       }
   }
 
-  // Garantir que number é string e remover não-números
-  let cleanNumber = String(message.number || '').replace(/\D/g, '');
-  
-  // Adicionar DDI do Brasil (55) se o número tiver 10 ou 11 dígitos
-  if (cleanNumber.length === 10 || cleanNumber.length === 11) {
-      cleanNumber = `55${cleanNumber}`;
+  // Normalização do telefone:
+  // - respeita números internacionais em E.164 (+1..., +55..., etc.)
+  // - aplica DDI 55 apenas quando o usuário informar número nacional sem DDI
+  const rawNumber = String(message.number || '').trim();
+  let cleanNumber = rawNumber.replace(/\D/g, '');
+  const hasPlusPrefix = rawNumber.startsWith('+');
+  const hasIntlPrefix00 = rawNumber.startsWith('00');
+
+  // Ex.: 001774... -> 1774...
+  if (hasIntlPrefix00 && cleanNumber.startsWith('00')) {
+    cleanNumber = cleanNumber.slice(2);
+  }
+
+  // Só assume Brasil quando o número não veio com prefixo internacional explícito.
+  if (!hasPlusPrefix && !hasIntlPrefix00 && (cleanNumber.length === 10 || cleanNumber.length === 11)) {
+    cleanNumber = `55${cleanNumber}`;
   }
 
   const payload: any = {
