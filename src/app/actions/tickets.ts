@@ -359,16 +359,20 @@ export async function resubmitTicket(ticketId: string) {
           `/admin/tickets/${ticketId}`
         );
 
-        await sendEmail({
-          to: assignee.email,
-          subject: `[VISION] Chamado Reenviado: ${ticket.title}`,
-          html: `
-            <h2>Olá ${assignee.name},</h2>
-            <p>O chamado foi reenviado após ajustes.</p>
-            <p><strong>Status:</strong> ${translateStatus('open')}</p>
-            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
-          `,
-          category: 'ticket_resubmitted'
+        await sendTicketStatusChangedEmail({
+          ticket,
+          oldStatus: 'returned',
+          newStatus: 'open',
+          updater: { name: session.name || 'Solicitante' },
+          recipient: { name: assignee.name, email: assignee.email }
+        });
+
+        await sendTicketDigisacNotification({
+          userId: ticket.assignee_id,
+          ticketTitle: ticket.title,
+          requesterName: session.name || 'Solicitante',
+          type: 'movimentacao',
+          customText: 'Chamado reenviado após ajustes.'
         });
       }
     }
@@ -581,16 +585,20 @@ export async function reopenTicket(ticketId: string) {
           `/admin/tickets/${ticketId}`
         );
 
-        await sendEmail({
-          to: assignee.email,
-          subject: `[VISION] Chamado Reaberto: ${ticket.title}`,
-          html: `
-            <h2>Olá ${assignee.name},</h2>
-            <p>Um chamado resolvido foi reaberto pelo solicitante.</p>
-            <p><strong>Status:</strong> ${translateStatus('open')}</p>
-            <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
-          `,
-          category: 'ticket_reopened'
+        await sendTicketStatusChangedEmail({
+          ticket,
+          oldStatus: 'resolved',
+          newStatus: 'open',
+          updater: { name: session.name || 'Solicitante' },
+          recipient: { name: assignee.name, email: assignee.email }
+        });
+
+        await sendTicketDigisacNotification({
+          userId: ticket.assignee_id,
+          ticketTitle: ticket.title,
+          requesterName: session.name || 'Solicitante',
+          type: 'movimentacao',
+          customText: 'Chamado reaberto pelo solicitante'
         });
       }
     }
@@ -787,16 +795,17 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
         );
 
         if (assignee?.email) {
-          await sendEmail({
-            to: assignee.email,
-            subject: `[VISION] Chamado Atribuído: ${ticketInfo.title}`,
-            html: `
-              <h2>Olá ${assigneeName},</h2>
-              <p>Um chamado foi atribuído a você.</p>
-              <p><strong>Título:</strong> ${ticketInfo.title}</p>
-              <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Clique aqui para ver o chamado</a></p>
-            `,
-            category: 'ticket_assigned'
+          await sendTicketCreatedEmail({
+            ticket: ticketInfo,
+            creator: { name: session.name || 'Usuário', email: session.email || '' },
+            assignee: { name: assigneeName, email: assignee.email }
+          });
+
+          await sendTicketDigisacNotification({
+            userId: assigneeId,
+            ticketTitle: ticketInfo.title,
+            requesterName: session.name || 'Usuário',
+            type: 'abertura'
           });
         }
       }
