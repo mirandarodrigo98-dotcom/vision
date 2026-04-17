@@ -172,16 +172,31 @@ export async function POST(req: NextRequest) {
     }
 
     // Tentar pegar banco para restituição ou débito automático
-    // Ampliando a tolerância para suportar layouts muito espaçados e limitando barreiras para não invadir palavras
-    // Evitar pegar números fora de contexto com lookbehinds ou lookaheads onde possível.
-    const matchBanco = cleanText.match(/\b(?:BANCO|BCO\.?)\b[^\d]{0,150}?(\d{1,4})/i);
-    const matchAgencia = cleanText.match(/\b(?:AG[EÊ]NCIA|AG\.?)\b[^\d]{0,150}?([\d][\d\s-]*[xX\d]?)/i);
-    const matchConta = cleanText.match(/\b(?:CONTA|CTA\.?|C\/C|C\.C\.)\b[^\d]{0,150}?([\d][\d\s-]*[xX\d]?)/i);
+    // Estratégia 1: Layout Agrupado (onde os cabeçalhos ficam em uma linha/bloco e os valores em outro)
+    // Exemplo: CÓDIGO DO BANCO AGÊNCIA BANCÁRIA CONTA PARA DÉBITO 341 6614 52584-5
+    let b = '';
+    let a = '';
+    let c = '';
 
-    if (matchBanco || matchAgencia || matchConta) {
-      const b = matchBanco?.[1] || '';
-      const a = (matchAgencia?.[1] || '').replace(/\s+/g, '').replace(/-+$/, '');
-      const c = (matchConta?.[1] || '').replace(/\s+/g, '').replace(/-+$/, '');
+    const matchGrouped = cleanText.match(/\b(?:BANCO|BCO\.?)\b[^\d]{0,100}?\b(?:AG[EÊ]NCIA|AG\.?)\b[^\d]{0,100}?\b(?:CONTA|CTA\.?|C\/C|C\.C\.)\b[^\d]{0,100}?(\d{1,4})\s+([\d\s-]*[\dxX])\s+([\d\s-]*[\dxX])/i);
+
+    if (matchGrouped) {
+      b = matchGrouped[1];
+      a = matchGrouped[2].replace(/\s+/g, '').replace(/-+$/, '');
+      c = matchGrouped[3].replace(/\s+/g, '').replace(/-+$/, '');
+    } else {
+      // Estratégia 2: Layout Inline (onde os valores ficam imediatamente após os cabeçalhos)
+      // Exemplo: CÓDIGO DO BANCO 341 AGÊNCIA BANCÁRIA 6614 CONTA PARA DÉBITO 52584-5
+      const matchBanco = cleanText.match(/\b(?:BANCO|BCO\.?)\b[^\d]{0,150}?(\d{1,4})/i);
+      const matchAgencia = cleanText.match(/\b(?:AG[EÊ]NCIA|AG\.?)\b[^\d]{0,150}?([\d][\d\s-]*[xX\d]?)/i);
+      const matchConta = cleanText.match(/\b(?:CONTA|CTA\.?|C\/C|C\.C\.)\b[^\d]{0,150}?([\d][\d\s-]*[xX\d]?)/i);
+
+      if (matchBanco) b = matchBanco[1];
+      if (matchAgencia) a = matchAgencia[1].replace(/\s+/g, '').replace(/-+$/, '');
+      if (matchConta) c = matchConta[1].replace(/\s+/g, '').replace(/-+$/, '');
+    }
+
+    if (b || a || c) {
       bankInfo = `Banco ${b} Ag ${a} Cc ${c}`.trim().replace(/\s{2,}/g, ' ');
     }
 
