@@ -7,12 +7,24 @@ import db from '@/lib/db';
 
 async function addLogo(doc: jsPDF): Promise<number> {
     try {
-        const logoSetting = await db.prepare("SELECT value FROM settings WHERE key = 'SYSTEM_LOGO_PATH'").get() as { value: string } | undefined;
+        const { getSystemLogoUrl } = await import('@/app/actions/upload-logo');
+        const logoUrl = await getSystemLogoUrl();
         
-        if (logoSetting?.value) {
-            const logoPath = join(process.cwd(), 'public', logoSetting.value);
-            const logoData = await readFile(logoPath);
-            const ext = logoSetting.value.split('.').pop()?.toUpperCase();
+        if (logoUrl) {
+            let logoData: Buffer;
+            if (logoUrl.startsWith('http')) {
+                // It's a remote URL
+                const response = await fetch(logoUrl);
+                if (!response.ok) throw new Error('Failed to fetch remote logo: ' + response.statusText);
+                const arrayBuffer = await response.arrayBuffer();
+                logoData = Buffer.from(arrayBuffer);
+            } else {
+                // It's a local file
+                const logoPath = join(process.cwd(), 'public', logoUrl);
+                logoData = await readFile(logoPath);
+            }
+            
+            const ext = logoUrl.split('.').pop()?.toUpperCase().split('?')[0]; // Handle query strings
             const format = (ext === 'JPG' || ext === 'JPEG') ? 'JPEG' : 'PNG';
             
             doc.addImage(logoData, format, 14, 10, 30, 30);

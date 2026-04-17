@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { v4 as uuidv4 } from 'uuid';
 import { createNotification } from './notifications';
+import { sendIRUpdateEmail } from '@/lib/emails/notifications';
 
 async function notifyIRUpdate(declarationId: string, declarationName: string, actionDesc: string) {
   const session = await getSession();
@@ -18,10 +19,46 @@ async function notifyIRUpdate(declarationId: string, declarationName: string, ac
   // Notificar o próprio usuário que fez a ação
   await createNotification(session.user_id, title, message, link, 'info');
 
+  // Buscar criador da declaração para notificar
+  const { rows: decls } = await db.query(`
+    SELECT d.created_by, u.email, u.name as user_name 
+    FROM ir_declarations d 
+    LEFT JOIN users u ON d.created_by = u.id 
+    WHERE d.id = $1
+  `, [declarationId]);
+  
+  const creatorId = decls[0]?.created_by;
+  const creatorEmail = decls[0]?.email;
+
+  if (creatorId && creatorId !== session.user_id) {
+    await createNotification(creatorId, title, message, link, 'info');
+    
+    // Send email to creator if it's someone else (e.g. Daniele)
+    if (creatorEmail) {
+      await sendIRUpdateEmail({
+        declarationName,
+        userName: session.name || 'Usuário',
+        actionDesc,
+        recipientEmail: creatorEmail,
+        link
+      }).catch(e => console.error('Failed to send IR update email:', e));
+    }
+  }
+
   // Notificar administradores
-  const { rows: admins } = await db.query("SELECT id FROM users WHERE role = 'admin' AND id != $1", [session.user_id]);
+  const { rows: admins } = await db.query("SELECT id, email FROM users WHERE role = 'admin' AND id != $1 AND id != $2", [session.user_id, creatorId || '']);
   for (const admin of admins) {
     await createNotification(admin.id, title, message, link, 'info');
+    // Also send email to admins if they didn't do the action
+    if (admin.email) {
+      await sendIRUpdateEmail({
+        declarationName,
+        userName: session.name || 'Usuário',
+        actionDesc,
+        recipientEmail: admin.email,
+        link
+      }).catch(e => console.error('Failed to send IR admin update email:', e));
+    }
   }
 }
 

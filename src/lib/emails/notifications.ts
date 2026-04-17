@@ -197,6 +197,39 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
     });
 }
 
+// --- IRPF ---
+
+interface IRPFEmailData {
+    declarationName: string;
+    userName: string; // The person who updated
+    actionDesc: string; // "alterou o status...", "adicionou um comentário"
+    recipientEmail: string;
+    link: string;
+}
+
+export async function sendIRUpdateEmail(data: IRPFEmailData) {
+    const subject = `Atualização na Declaração IRPF: ${data.declarationName}`;
+    const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://vision.nzdcontabilidade.com.br';
+    const fullLink = `${domain}${data.link}`;
+
+    const html = `
+        <p>Olá,</p>
+        <p>A declaração de Imposto de Renda de <strong>“${data.declarationName}”</strong> foi atualizada por <strong>${data.userName}</strong>.</p>
+        <p>Ação: <strong>${data.actionDesc}</strong></p>
+        <br/>
+        <p><a href="${fullLink}" style="background-color: #f97316; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acessar Declaração</a></p>
+        <br/>
+        <p>NZD Contabilidade</p>
+    `;
+
+    return await resend.emails.send({
+        from: FROM_EMAIL,
+        to: [data.recipientEmail],
+        subject,
+        html: await wrapHtml(html)
+    });
+}
+
 // --- TRANSFER ---
 
 interface TransferEmailData {

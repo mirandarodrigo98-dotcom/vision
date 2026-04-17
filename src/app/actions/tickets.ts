@@ -720,7 +720,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
 
     // Notify requester of status change
     const requester = await getUserEmail(currentTicket.requester_id);
-    if (requester) {
+    if (requester && currentTicket.requester_id !== session.user_id) {
       await createNotification(
         currentTicket.requester_id,
         'Chamado Atualizado',
@@ -812,8 +812,8 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
       const assigneeName = assignee?.name || 'Desconhecido';
       logMessage = `Atribuído a ${assigneeName}`;
 
-      // Notify new assignee (if different from old)
-      if (assigneeId !== ticketInfo.assignee_id) {
+      // Notify new assignee (if different from old and not the user themselves)
+      if (assigneeId !== ticketInfo.assignee_id && assigneeId !== session.user_id) {
          await createNotification(
           assigneeId,
           'Chamado Atribuído',
@@ -838,7 +838,7 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
       }
       
       // Notify requester about new assignee
-      if (assigneeId !== ticketInfo.assignee_id) {
+      if (assigneeId !== ticketInfo.assignee_id && ticketInfo.requester_id !== session.user_id) {
         const requester = await getUserEmail(ticketInfo.requester_id);
         if (requester) {
           await createNotification(
