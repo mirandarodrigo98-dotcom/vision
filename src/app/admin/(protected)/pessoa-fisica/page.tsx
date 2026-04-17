@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Calculator } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Pessoa Física | VISION',
@@ -31,6 +31,23 @@ export default function PessoaFisicaPage() {
           </CardHeader>
           <CardContent>
             <Link href="/admin/pessoa-fisica/imposto-renda">
+              <Button className="w-full">Acessar Módulo</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Carnê Leão
+            </CardTitle>
+            <CardDescription>
+              Controle de rendimentos e pagamentos (Carnê Leão).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/pessoa-fisica/carne-leao">
               <Button className="w-full">Acessar Módulo</Button>
             </Link>
           </CardContent>

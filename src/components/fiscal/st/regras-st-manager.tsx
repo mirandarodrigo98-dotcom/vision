@@ -131,6 +131,7 @@ export function RegrasStManager() {
                     <div className="space-y-2"><Label>MVA Ajustada 12% (%)</Label><Input type="number" step="0.01" value={currentRegra.mva_ajustada_int12 || ''} onChange={e => setCurrentRegra({...currentRegra, mva_ajustada_int12: parseFloat(e.target.value)})} /></div>
                     <div className="col-span-2 space-y-2"><Label>Âmbito de Aplicação</Label><Input value={currentRegra.ambito_aplicacao || ''} onChange={e => setCurrentRegra({...currentRegra, ambito_aplicacao: e.target.value})} /></div>
                     <div className="col-span-2 space-y-2"><Label>Notas / Fundamento</Label><Input value={currentRegra.notas || currentRegra.fundamento_normativo || ''} onChange={e => setCurrentRegra({...currentRegra, notas: e.target.value})} /></div>
+                    <div className="col-span-2 space-y-2"><Label>Notas Econet</Label><Input value={currentRegra.notas_econet || ''} onChange={e => setCurrentRegra({...currentRegra, notas_econet: e.target.value})} /></div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpenModal(false)}>Cancelar</Button>

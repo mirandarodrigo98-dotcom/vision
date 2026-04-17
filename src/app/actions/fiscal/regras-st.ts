@@ -19,6 +19,7 @@ export interface RegraFiscalST {
   fundamento_normativo: string | null;
   ambito_aplicacao?: string | null;
   notas?: string | null;
+  notas_econet?: string | null;
 }
 
 export async function listarRegrasST(uf?: string, search?: string) {
@@ -58,23 +59,23 @@ export async function salvarRegraST(data: RegraFiscalST) {
         UPDATE fiscal_regras_st 
         SET uf = $1, item = $2, nome_item = $3, subitem = $4, cest = $5, ncm_sh = $6, 
             descricao = $7, mva_original = $8, mva_ajustada_int12 = $9, mva_ajustada_int4 = $10, 
-            fundamento_normativo = $11, ambito_aplicacao = $12, notas = $13, updated_at = NOW()
-        WHERE id = $14
+            fundamento_normativo = $11, ambito_aplicacao = $12, notas = $13, notas_econet = $14, updated_at = NOW()
+        WHERE id = $15
       `, [
         data.uf, data.item, data.nome_item, data.subitem, data.cest, data.ncm_sh,
         data.descricao, data.mva_original, data.mva_ajustada_int12, data.mva_ajustada_int4,
-        data.fundamento_normativo, data.ambito_aplicacao, data.notas, data.id
+        data.fundamento_normativo, data.ambito_aplicacao, data.notas, data.notas_econet, data.id
       ]);
       return { success: true, message: 'Regra atualizada com sucesso.' };
     } else {
       await db.query(`
         INSERT INTO fiscal_regras_st 
-        (uf, item, nome_item, subitem, cest, ncm_sh, descricao, mva_original, mva_ajustada_int12, mva_ajustada_int4, fundamento_normativo, ambito_aplicacao, notas)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        (uf, item, nome_item, subitem, cest, ncm_sh, descricao, mva_original, mva_ajustada_int12, mva_ajustada_int4, fundamento_normativo, ambito_aplicacao, notas, notas_econet)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       `, [
         data.uf, data.item, data.nome_item, data.subitem, data.cest, data.ncm_sh,
         data.descricao, data.mva_original, data.mva_ajustada_int12, data.mva_ajustada_int4,
-        data.fundamento_normativo, data.ambito_aplicacao, data.notas
+        data.fundamento_normativo, data.ambito_aplicacao, data.notas, data.notas_econet
       ]);
       return { success: true, message: 'Regra criada com sucesso.' };
     }

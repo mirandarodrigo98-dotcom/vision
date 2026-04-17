@@ -150,6 +150,7 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
           let icmsStPuroCalculado = 0;
           let status = 'Sem Valor a Recolher';
           let diferenca = 0;
+          let alerta = '';
 
           if (regra) {
              // Aliquota interna padrão (baseado no print da Econet RJ = 22%)
@@ -180,7 +181,23 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              valorIcmsProprio = (bcIcmsProprio > 0 ? bcIcmsProprio : valorTotalItem) * (aliqIcmsProprio / 100);
 
              // Se houver notas ou âmbito na regra, repassamos para a view
-             let alerta = regra.notas || regra.ambito_aplicacao ? (regra.notas || '') : '';
+             alerta = '';
+             if (regra.ambito_aplicacao) alerta += `[Âmbito] ${regra.ambito_aplicacao} `;
+             if (regra.notas) alerta += `[Notas] ${regra.notas} `;
+             if (regra.notas_econet) alerta += `[Econet] ${regra.notas_econet} `;
+             alerta = alerta.trim();
+
+             // Checagem de inteligência para ST Suspensa / MVA não recalculada / PMPF
+             if (regra.notas_econet && regra.notas_econet.toUpperCase().includes('ST SUSPENSA')) {
+                 mva = 0;
+                 bcStCalculado = 0;
+                 status = 'Isento/Suspenso';
+                 alerta = `[ATENÇÃO] ST SUSPENSA: A Legislação suspende o regime de ST para este item. Verifique a vigência. ` + alerta;
+             }
+
+             if (regra.notas_econet && regra.notas_econet.toUpperCase().includes('PMPF')) {
+                 alerta = `[ATENÇÃO] PMPF: A base de cálculo prioritária é o PMPF. A MVA listada é apenas subsidiária. ` + alerta;
+             }
              
              // Valor ST Calculado = (Base ST Calculada * Aliquota Interna) - ICMS Próprio Calculado
              const valorAntesAbatimento = bcStCalculado * (aliquotaInterna / 100);
@@ -245,7 +262,7 @@ export async function validarArquivosST(arquivosXml: string[], empresaId: string
              icms_st_puro_calculado: icmsStPuroCalculado,
              difRecolher: diferenca,
              status,
-             alerta: regra ? regra.notas || regra.ambito_aplicacao : ''
+             alerta
           });
         }
       } catch (err) {
