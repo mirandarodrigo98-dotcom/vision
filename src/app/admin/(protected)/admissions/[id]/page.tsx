@@ -16,7 +16,7 @@ export default async function AdmissionDetailPage({ params }: { params: Promise<
   const { id } = await params;
   
   let query = `
-    SELECT a.*, c.nome as company_name, aa.id as attachment_id, aa.original_name
+    SELECT a.*, COALESCE(c.razao_social, c.nome) as company_name, aa.id as attachment_id, aa.original_name
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
     LEFT JOIN admission_attachments aa ON a.id = aa.admission_id

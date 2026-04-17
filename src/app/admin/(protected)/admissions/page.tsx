@@ -38,7 +38,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
   let query = `
     SELECT 
       ar.*,
-      cc.nome as company_name,
+      COALESCE(cc.razao_social, cc.nome) as company_name,
       aa.storage_path as file_path
     FROM admission_requests ar
     JOIN client_companies cc ON ar.company_id = cc.id

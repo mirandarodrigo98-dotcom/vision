@@ -63,12 +63,14 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
     const [hasAdv, setHasAdv] = useState(!!initialData?.has_adv);
     
     const standardPeriods = ['30+30', '45+45', '30+60', '60+30', '90+0'];
-    const initialPeriod = initialData ? `${initialData.trial1_days}+${initialData.trial2_days}` : '30+30';
+    const trial1 = initialData?.trial1_days ?? 30;
+    const trial2 = initialData?.trial2_days ?? 30;
+    const initialPeriod = initialData ? `${trial1}+${trial2}` : '30+30';
     const isCustomPeriod = initialData && !standardPeriods.includes(initialPeriod);
     
     const [trialPeriod, setTrialPeriod] = useState(isCustomPeriod ? 'custom' : initialPeriod);
-    const [customTrial1, setCustomTrial1] = useState(isCustomPeriod ? initialData.trial1_days.toString() : '');
-    const [customTrial2, setCustomTrial2] = useState(isCustomPeriod ? initialData.trial2_days.toString() : '');
+    const [customTrial1, setCustomTrial1] = useState(isCustomPeriod ? trial1.toString() : '');
+    const [customTrial2, setCustomTrial2] = useState(isCustomPeriod ? trial2.toString() : '');
     
     const [date, setDate] = useState<Date | undefined>(
         initialData?.admission_date ? parseDate(initialData.admission_date) : undefined

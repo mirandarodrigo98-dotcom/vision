@@ -29,7 +29,7 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
     let companies = [];
     if (session.role === 'operator') {
         companies = (await db.query(`
-            SELECT id, nome, cnpj 
+            SELECT id, COALESCE(razao_social, nome) as nome, cnpj 
             FROM client_companies 
             WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
@@ -37,7 +37,7 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
     } else {
         // Admin
         companies = (await db.query(`
-            SELECT id, nome, cnpj 
+            SELECT id, COALESCE(razao_social, nome) as nome, cnpj 
             FROM client_companies 
             ORDER BY nome
           `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
