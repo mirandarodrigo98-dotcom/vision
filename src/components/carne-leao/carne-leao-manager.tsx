@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, HelpCircle, ArrowUpDown } from 'lucide-react';
+import { PlanoContas } from './plano-contas';
 
 export function CarneLeaoManager() {
   const searchParams = useSearchParams();
@@ -23,9 +24,10 @@ export function CarneLeaoManager() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+      <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
         <TabsTrigger value="rendimentos">Rendimentos</TabsTrigger>
         <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
+        <TabsTrigger value="plano-contas">Plano de Contas</TabsTrigger>
       </TabsList>
 
       <TabsContent value="rendimentos" className="mt-6">
@@ -136,6 +138,9 @@ export function CarneLeaoManager() {
             </div>
           </CardContent>
         </Card>
+      </TabsContent>
+      <TabsContent value="plano-contas" className="mt-6">
+        <PlanoContas />
       </TabsContent>
     </Tabs>
   );
