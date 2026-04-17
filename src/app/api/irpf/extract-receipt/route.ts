@@ -169,15 +169,15 @@ export async function POST(req: NextRequest) {
 
       const matchQuotaVal = cleanText.match(/VALOR DA QUOTA.*?(\d{1,3}(?:\.\d{3})*,\d{2})/);
       if (matchQuotaVal) quotaValue = matchQuotaVal[1];
+    }
 
-      // Tentar pegar banco se for debito automatico
-      const matchBanco = cleanText.match(/BANCO[\s:]*(\d{3})/);
-      const matchAgencia = cleanText.match(/AG[EÊ]NCIA[\s:]*([\d-X]+)/);
-      const matchConta = cleanText.match(/CONTA[\s:]*([\d-X]+)/);
+    // Tentar pegar banco para restituição ou débito automático
+    const matchBanco = cleanText.match(/BANCO[\s:.-]*(\d{3})/i);
+    const matchAgencia = cleanText.match(/AG[EÊ]NCIA[\s:.-]*([\d\-X]+)/i);
+    const matchConta = cleanText.match(/CONTA[\s:.-]*([\d\-X]+)/i);
 
-      if (matchBanco || matchAgencia || matchConta) {
-        bankInfo = `Banco ${matchBanco?.[1] || ''} Ag ${matchAgencia?.[1] || ''} Cc ${matchConta?.[1] || ''}`.trim();
-      }
+    if (matchBanco || matchAgencia || matchConta) {
+      bankInfo = `Banco ${matchBanco?.[1] || ''} Ag ${matchAgencia?.[1] || ''} Cc ${matchConta?.[1] || ''}`.trim();
     }
 
     return NextResponse.json({
