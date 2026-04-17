@@ -34,9 +34,11 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
   let query = `
     SELECT 
       t.*,
-      sc.nome as source_company_name
+      COALESCE(sc.razao_social, sc.nome) as source_company_name,
+      COALESCE(tc.razao_social, tc.nome, t.target_company_name) as target_company_name_display
     FROM transfer_requests t
     JOIN client_companies sc ON t.source_company_id = sc.id
+    LEFT JOIN client_companies tc ON t.target_company_id = tc.id
     WHERE 1=1
   `;
 
@@ -159,7 +161,7 @@ export default async function AdminTransfersPage({ searchParams }: AdminTransfer
                     <TableCell>{formattedCreatedAt}</TableCell>
                     <TableCell>{tr.source_company_name}</TableCell>
                     <TableCell>{tr.employee_name}</TableCell>
-                    <TableCell>{tr.target_company_name}</TableCell>
+                    <TableCell>{tr.target_company_name_display}</TableCell>
                     <TableCell>{formattedTransferDate}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold

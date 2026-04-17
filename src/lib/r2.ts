@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID?.trim();
@@ -37,11 +37,6 @@ export async function uploadToR2(
 
         await S3.send(command);
 
-        // Generate a signed URL for downloading (valid for 7 days - 604800 seconds)
-        // Or if the bucket is public, we can just construct the URL.
-        // Assuming private bucket for security, so we use signed URL.
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        
         let downloadLink = '';
         
         if (process.env.R2_PUBLIC_DOMAIN) {
@@ -63,15 +58,11 @@ export async function uploadToR2(
 }
 
 export async function getR2DownloadLink(fileKey: string): Promise<string> {
-    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-    
-    // Fallback to signed URL (note: this requires GetObject permission)
     const getCmd = new GetObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: fileKey
     });
     
-    // Generate signed URL for 7 days
     return await getSignedUrl(S3, getCmd, { expiresIn: 604800 });
 }
 

@@ -32,8 +32,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const fileUrl = await getR2DownloadLink(attachment.storage_path);
     return NextResponse.redirect(fileUrl);
-  } catch (error) {
-    console.error(error);
-    return new NextResponse('Error reading file', { status: 500 });
+  } catch (error: any) {
+    console.error('Download error:', error);
+    return new NextResponse(`Error reading file: ${error.message || String(error)}`, { status: 500 });
   }
 }

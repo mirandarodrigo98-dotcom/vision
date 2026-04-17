@@ -569,9 +569,12 @@ export async function getTransfer(id: string) {
     if (!session) return null;
 
     const transfer = (await db.query(`
-        SELECT tr.*, cc.nome as source_company_name
+        SELECT tr.*, 
+               COALESCE(cc.razao_social, cc.nome) as source_company_name,
+               COALESCE(tc.razao_social, tc.nome, tr.target_company_name) as target_company_name
         FROM transfer_requests tr
         JOIN client_companies cc ON tr.source_company_id = cc.id
+        LEFT JOIN client_companies tc ON tr.target_company_id = tc.id
         WHERE tr.id = $1
     `, [id])).rows[0] as any;
 

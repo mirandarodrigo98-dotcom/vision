@@ -37,8 +37,8 @@ export default async function TransfersListPage() {
 
   const transfers = (await db.query(`
     SELECT t.id, t.employee_name, t.status, t.protocol_number, t.created_at,
-           c.nome as source_company_name,
-           tc.nome as target_company_name,
+           COALESCE(c.razao_social, c.nome) as source_company_name,
+           COALESCE(tc.razao_social, tc.nome, t.target_company_name) as target_company_name,
            to_char(t.transfer_date::date, 'YYYY-MM-DD') as transfer_date
     FROM transfer_requests t
     JOIN client_companies c ON t.source_company_id = c.id
