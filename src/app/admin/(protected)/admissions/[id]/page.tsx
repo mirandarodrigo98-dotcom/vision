@@ -16,10 +16,9 @@ export default async function AdmissionDetailPage({ params }: { params: Promise<
   const { id } = await params;
   
   let query = `
-    SELECT a.*, COALESCE(c.razao_social, c.nome) as company_name, aa.id as attachment_id, aa.original_name
+    SELECT a.*, COALESCE(c.razao_social, c.nome) as company_name
     FROM admission_requests a
     JOIN client_companies c ON a.company_id = c.id
-    LEFT JOIN admission_attachments aa ON a.id = aa.admission_id
     WHERE a.id = $1
   `;
   const queryParams: any[] = [id];
@@ -37,6 +36,8 @@ export default async function AdmissionDetailPage({ params }: { params: Promise<
   if (!admission) {
     return <div>Admissão não encontrada ou permissão negada.</div>;
   }
+
+  const attachments = (await db.query('SELECT id as attachment_id, original_name FROM admission_attachments WHERE admission_id = $1', [id])).rows;
 
   return (
     <div className="space-y-6">
@@ -107,13 +108,17 @@ export default async function AdmissionDetailPage({ params }: { params: Promise<
         <Card>
             <CardHeader><CardTitle>Anexos</CardTitle></CardHeader>
             <CardContent>
-                {admission.attachment_id ? (
-                    <a href={`/api/download/${admission.attachment_id}`} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" className="w-full justify-start gap-2">
-                            <Download className="h-4 w-4" />
-                            {admission.original_name}
-                        </Button>
-                    </a>
+                {attachments.length > 0 ? (
+                    <div className="space-y-2">
+                        {attachments.map((att: any) => (
+                            <a key={att.attachment_id} href={`/api/download/${att.attachment_id}`} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" className="w-full justify-start gap-2 mb-2">
+                                    <Download className="h-4 w-4" />
+                                    {att.original_name}
+                                </Button>
+                            </a>
+                        ))}
+                    </div>
                 ) : (
                     <p className="text-muted-foreground">Nenhum anexo encontrado.</p>
                 )}

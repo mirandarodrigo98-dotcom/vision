@@ -133,6 +133,19 @@ export async function createAdmission(formData: FormData) {
 
         if (!userCompanyData) return { error: 'Você não tem permissão para esta empresa' };
 
+        // Prevenir duplicações
+        const duplicateCheck = await db.query(`
+            SELECT 1 FROM admission_requests 
+            WHERE company_id = $1 
+            AND employee_full_name ILIKE $2 
+            AND status != 'CANCELLED'
+            LIMIT 1
+        `, [companyId, employeeFullName]);
+
+        if (duplicateCheck.rows.length > 0) {
+            return { error: 'Já existe uma solicitação de admissão ativa para este funcionário nesta empresa.' };
+        }
+
         // Get User Info
         const userData = (await db.query(`SELECT name, email FROM users WHERE id = $1`, [session.user_id])).rows[0] as { name: string, email: string };
         
@@ -237,6 +250,8 @@ export async function createAdmission(formData: FormData) {
         // Send Email
         const user = (await db.query(`SELECT name, email FROM users WHERE id = $1`, [session.user_id])).rows[0] as any;
         
+        const admissionDateFormatted = admissionDate ? format(new Date(admissionDate), 'dd/MM/yyyy') : 'Não informada';
+
         let emailSuccess = false;
         if (pdfBuffer) {
             const emailResult = await sendAdmissionNotification('NEW', {
@@ -245,7 +260,7 @@ export async function createAdmission(formData: FormData) {
                 userName: user?.name || session.name || 'Usuário',
                 senderEmail: user?.email || session.email,
                 employeeName: employeeFullName,
-                admissionDate: format(new Date(admissionDate), 'dd/MM/yyyy'),
+                admissionDate: admissionDateFormatted,
                 pdfBuffer: pdfBuffer,
                 downloadLink: finalDownloadLink || undefined
             });

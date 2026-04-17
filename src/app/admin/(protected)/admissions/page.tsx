@@ -39,10 +39,9 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
     SELECT 
       ar.*,
       COALESCE(cc.razao_social, cc.nome) as company_name,
-      aa.storage_path as file_path
+      (SELECT storage_path FROM admission_attachments WHERE admission_id = ar.id LIMIT 1) as file_path
     FROM admission_requests ar
     JOIN client_companies cc ON ar.company_id = cc.id
-    LEFT JOIN admission_attachments aa ON ar.id = aa.admission_id
     WHERE 1=1
   `;
 
