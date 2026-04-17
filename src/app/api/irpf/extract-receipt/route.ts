@@ -171,9 +171,12 @@ export async function POST(req: NextRequest) {
       if (matchQuotaVal) quotaValue = matchQuotaVal[1];
 
       // Tentar pegar banco se for debito automatico
-      const matchBanco = cleanText.match(/BANCO:\s*(\d+).*?AG[EÊ]NCIA:\s*(\S+).*?CONTA:\s*(\S+)/);
-      if (matchBanco) {
-        bankInfo = `Banco ${matchBanco[1]} Ag ${matchBanco[2]} Cc ${matchBanco[3]}`;
+      const matchBanco = cleanText.match(/BANCO[\s:]*(\d{3})/);
+      const matchAgencia = cleanText.match(/AG[EÊ]NCIA[\s:]*([\d-X]+)/);
+      const matchConta = cleanText.match(/CONTA[\s:]*([\d-X]+)/);
+
+      if (matchBanco || matchAgencia || matchConta) {
+        bankInfo = `Banco ${matchBanco?.[1] || ''} Ag ${matchAgencia?.[1] || ''} Cc ${matchConta?.[1] || ''}`.trim();
       }
     }
 

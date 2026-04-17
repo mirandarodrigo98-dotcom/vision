@@ -186,14 +186,10 @@ export async function createAdmission(formData: FormData) {
                     ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
                 `, [randomUUID(), admissionId, fileData.originalName, fileData.fileType, fileData.fileSize, fileData.fileKey]);
 
-                // Get download link for the first file to include in email, or handle all?
-                // The email can just link to the admission details page.
+                // Link to the admission zip download page
                 if (!finalDownloadLink) {
-                    try {
-                        finalDownloadLink = await getR2DownloadLink(fileData.fileKey);
-                    } catch (e) {
-                        console.error('Failed to generate download link for email:', e);
-                    }
+                    const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://vision.nzdcontabilidade.com.br';
+                    finalDownloadLink = `${domain}/api/download/admission-zip/${admissionId}`;
                 }
             }
         } else {

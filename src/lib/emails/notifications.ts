@@ -141,6 +141,7 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
     let subject = '';
     let html = '';
     const attachments: any[] = [];
+    const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://vision.nzdcontabilidade.com.br';
 
     // Button Style
     const btnStyle = "display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;";
@@ -150,8 +151,14 @@ export async function sendAdmissionNotification(type: 'NEW' | 'UPDATE' | 'CANCEL
         html = `
             <p>Você está recebendo uma solicitação de admissão da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong> enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
             <p>A data de admissão é <strong>“${data.admissionDate}”</strong>.</p>
-            <p>Segue anexado o relatório de admissão bem como o link para download da documentação do funcionário.</p>
-            ${data.downloadLink ? `<p><a href="${data.downloadLink}" style="${btnStyle}">Baixar Arquivo Anexo (ZIP/RAR)</a></p>` : '<p style="color: orange;"><em>Link do arquivo anexo não disponível (verifique o armazenamento R2).</em></p>'}
+            <p>Segue anexado o relatório de admissão. Clique nos botões abaixo para acessar o sistema ou baixar todos os documentos anexados em um arquivo ZIP.</p>
+            ${data.downloadLink ? `
+            <div style="margin-top: 20px;">
+                <a href="${data.downloadLink}" style="${btnStyle}">Baixar Anexos (ZIP)</a>
+                <span style="display: inline-block; width: 10px;"></span>
+                <a href="${domain}/admin/admissions" style="background-color: #4b5563; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-family: sans-serif; font-size: 14px; display: inline-block; text-align: center;">Acessar Sistema</a>
+            </div>
+            ` : ''}
         `;
         if (data.pdfBuffer) {
             attachments.push({ filename: 'Relatorio_Admissao.pdf', content: data.pdfBuffer });
