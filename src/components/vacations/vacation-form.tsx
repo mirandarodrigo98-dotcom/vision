@@ -32,14 +32,17 @@ interface VacationFormProps {
     readOnly?: boolean;
 }
 
-const parseDate = (dateStr: string) => {
+const parseDate = (dateStr: any) => {
     if (!dateStr) return undefined;
-    const cleanDate = dateStr.trim().split('T')[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-        const [y, m, d] = cleanDate.split('-').map(Number);
-        return new Date(y, m - 1, d);
+    if (typeof dateStr === 'string') {
+        const cleanDate = dateStr.trim().split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+            const [y, m, d] = cleanDate.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
     }
-    return new Date(dateStr);
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? undefined : d;
 };
 
 export function VacationForm({ companies, activeCompanyId, initialData, isEditing = false, redirectPath = '/admin/vacations', readOnly = false }: VacationFormProps) {

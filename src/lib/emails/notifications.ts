@@ -334,7 +334,8 @@ export async function sendTransferNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
         from: FROM_EMAIL,
         to: [to],
         subject,
-        html: await wrapHtml(html)
+        html: await wrapHtml(html),
+        attachments: attachments.length > 0 ? attachments : undefined
     });
 }
 

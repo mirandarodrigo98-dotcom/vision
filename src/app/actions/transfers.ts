@@ -88,7 +88,7 @@ export async function createTransfer(formData: FormData) {
         }
 
         // Validate target company exists, is active (and get name for redundancy/legacy)
-        const targetCompany = (await db.query(`SELECT nome, is_active FROM client_companies WHERE id = $1`, [targetCompanyId])).rows[0] as { nome: string, is_active: number };
+        const targetCompany = (await db.query(`SELECT COALESCE(razao_social, nome) as nome, is_active FROM client_companies WHERE id = $1`, [targetCompanyId])).rows[0] as { nome: string, is_active: number };
         if (!targetCompany) {
              return { error: 'Empresa destino inválida.' };
         }
@@ -195,7 +195,7 @@ export async function updateTransfer(id: string, formData: FormData) {
         // Let's assume the same here.
 
         // Validate target company exists
-        const targetCompany = (await db.query(`SELECT nome FROM client_companies WHERE id = $1`, [targetCompanyId])).rows[0] as { nome: string };
+        const targetCompany = (await db.query(`SELECT COALESCE(razao_social, nome) as nome FROM client_companies WHERE id = $1`, [targetCompanyId])).rows[0] as { nome: string };
         if (!targetCompany) {
              return { error: 'Empresa destino inválida.' };
         }

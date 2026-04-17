@@ -45,15 +45,18 @@ const LEAVE_TYPES = [
     'Serviço Militar'
 ];
 
-const parseDate = (dateStr: string) => {
+const parseDate = (dateStr: any) => {
     if (!dateStr) return undefined;
-    const cleanDate = dateStr.trim().split('T')[0];
-    // Handle YYYY-MM-DD explicitly to avoid timezone shifts (treat as local date)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-        const [y, m, d] = cleanDate.split('-').map(Number);
-        return new Date(y, m - 1, d);
+    if (typeof dateStr === 'string') {
+        const cleanDate = dateStr.trim().split('T')[0];
+        // Handle YYYY-MM-DD explicitly to avoid timezone shifts (treat as local date)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+            const [y, m, d] = cleanDate.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
     }
-    return new Date(dateStr);
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? undefined : d;
 };
 
 export function LeaveForm({ companies, activeCompanyId, initialData, isEditing = false, redirectPath = '/app/leaves', readOnly = false }: LeaveFormProps) {

@@ -172,10 +172,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Tentar pegar banco para restituição ou débito automático
-    // Ampliando a tolerância: pode ter texto entre a palavra-chave e o número, limitando a 50 caracteres para não buscar longe demais
-    const matchBanco = cleanText.match(/(?:BANCO|BCO\.?)[^\d]{0,50}?(\d{1,4})/i);
-    const matchAgencia = cleanText.match(/(?:AG[EÊ]NCIA|AG\.?)[^\d]{0,50}?([\d][\d\s-]*[xX\d]?)/i);
-    const matchConta = cleanText.match(/(?:CONTA|CTA\.?|C\/C|C\.C\.)[^\d]{0,50}?([\d][\d\s-]*[xX\d]?)/i);
+    // Ampliando a tolerância para suportar layouts muito espaçados
+    const matchBanco = cleanText.match(/(?:BANCO|BCO\.?)[^\d]{0,150}?(\d{1,4})/i);
+    const matchAgencia = cleanText.match(/(?:AG[EÊ]NCIA|AG\.?)[^\d]{0,150}?([\d][\d\s-]*[xX\d]?)/i);
+    const matchConta = cleanText.match(/(?:CONTA|CTA\.?|C\/C|C\.C\.)[^\d]{0,150}?([\d][\d\s-]*[xX\d]?)/i);
 
     if (matchBanco || matchAgencia || matchConta) {
       const b = matchBanco?.[1] || '';

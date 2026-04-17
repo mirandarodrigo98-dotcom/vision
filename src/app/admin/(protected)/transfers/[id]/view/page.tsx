@@ -12,7 +12,7 @@ export default async function AdminViewTransferPage({ params }: { params: Promis
     const { id } = await params;
 
     let transferQuery = `
-        SELECT tr.*, cc.nome as source_company_name
+        SELECT tr.*, COALESCE(cc.razao_social, cc.nome) as source_company_name
         FROM transfer_requests tr
         LEFT JOIN client_companies cc ON tr.source_company_id = cc.id
         WHERE tr.id = $1
@@ -20,7 +20,7 @@ export default async function AdminViewTransferPage({ params }: { params: Promis
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        transferQuery += ` AND (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+        transferQuery += ` AND (tr.source_company_id IS NULL OR tr.source_company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2))`;
         queryParams.push(session.user_id);
     }
 
@@ -33,14 +33,14 @@ export default async function AdminViewTransferPage({ params }: { params: Promis
     let companies = [];
     if (session.role === 'operator') {
         companies = (await db.query(`
-            SELECT id, nome, cnpj 
+            SELECT id, COALESCE(razao_social, nome) as nome, cnpj 
             FROM client_companies 
             WHERE id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)
             ORDER BY nome
         `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     } else {
         companies = (await db.query(`
-            SELECT id, nome, cnpj 
+            SELECT id, COALESCE(razao_social, nome) as nome, cnpj 
             FROM client_companies 
             ORDER BY nome
           `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;

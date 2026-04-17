@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import path from 'path';
-import fs from 'fs/promises';
+import { getR2DownloadLink } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,18 +29,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
   }
 
-  const filePath = path.join(process.cwd(), 'uploads', attachment.storage_path);
-
   try {
-    const fileBuffer = await fs.readFile(filePath);
-    
-    return new NextResponse(fileBuffer, {
-        headers: {
-            'Content-Disposition': `attachment; filename="${attachment.original_name}"`,
-            'Content-Type': attachment.mime_type,
-            'Content-Length': attachment.size_bytes.toString(),
-        },
-    });
+    const fileUrl = await getR2DownloadLink(attachment.storage_path);
+    return NextResponse.redirect(fileUrl);
   } catch (error) {
     console.error(error);
     return new NextResponse('Error reading file', { status: 500 });
