@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     // Fallback forte para PDFs "quebrados": busca por proximidade de linha.
     // Em muitos recibos o rótulo e o valor são separados em linhas/colunas diferentes.
-    const collectByLineProximity = (lineKeywords: string[], lookAhead = 6) => {
+    const collectByLineProximity = (lineKeywords: string[], lookAhead = 2) => {
       const values: string[] = [];
       const moneyRegex = /([\d.\s]+[.,]\d{2})/g;
 
@@ -136,30 +136,31 @@ export async function POST(req: NextRequest) {
     let quotaValue = '';
     let bankInfo = '';
 
-    // Coleta todos os valores candidatos e prioriza o primeiro não-zero.
+    // Coleta todos os valores candidatos e prioriza o primeiro.
+    // Reduzimos o lookahead de caracteres para não invadir outros campos.
     const restitutionCandidates = collectMoneyValues([
-      /IMPOSTO A RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
-      /VALOR DA RESTITUI[CÇ][AÃ]O.{0,250}?([\d.\s]+[.,]\d{2})/g,
-      /RESTITUIR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+      /IMPOSTO A RESTITUIR.{0,80}?([\d.\s]+[.,]\d{2})/g,
+      /VALOR DA RESTITUI[CÇ][AÃ]O.{0,80}?([\d.\s]+[.,]\d{2})/g,
+      /RESTITUIR.{0,80}?([\d.\s]+[.,]\d{2})/g,
     ]);
     const restitutionLineCandidates = collectByLineProximity([
       'IMPOSTO A RESTITUIR',
       'VALOR DA RESTITUI',
       'RESTITUIR',
-    ]);
-    restitutionValue = pickPreferredMoney([...restitutionCandidates, ...restitutionLineCandidates]);
+    ], 2);
+    restitutionValue = restitutionCandidates[0] || restitutionLineCandidates[0] || '';
 
     const taxToPayCandidates = collectMoneyValues([
-      /TOTAL DO IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
-      /SALDO DO IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
-      /IMPOSTO A PAGAR.{0,250}?([\d.\s]+[.,]\d{2})/g,
+      /TOTAL DO IMPOSTO A PAGAR.{0,80}?([\d.\s]+[.,]\d{2})/g,
+      /SALDO DO IMPOSTO A PAGAR.{0,80}?([\d.\s]+[.,]\d{2})/g,
+      /IMPOSTO A PAGAR.{0,80}?([\d.\s]+[.,]\d{2})/g,
     ]);
     const taxToPayLineCandidates = collectByLineProximity([
       'TOTAL DO IMPOSTO A PAGAR',
       'SALDO DO IMPOSTO A PAGAR',
       'IMPOSTO A PAGAR',
-    ]);
-    taxToPayValue = pickPreferredMoney([...taxToPayCandidates, ...taxToPayLineCandidates]);
+    ], 2);
+    taxToPayValue = taxToPayCandidates[0] || taxToPayLineCandidates[0] || '';
 
     // Se tiver imposto a pagar, tentar pegar cotas
     if (taxToPayValue && taxToPayValue !== '0,00') {

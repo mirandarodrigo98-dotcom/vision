@@ -25,10 +25,10 @@ export default async function AdmissionDetailPage({ params }: { params: Promise<
   const queryParams: any[] = [id];
 
   if (session.role === 'client_user') {
-    query += ` AND a.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $1)`;
+    query += ` AND a.company_id IN (SELECT company_id FROM user_companies WHERE user_id = $2)`;
     queryParams.push(session.user_id);
   } else if (session.role === 'operator') {
-    query += ` AND (a.company_id IS NULL OR a.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+    query += ` AND (a.company_id IS NULL OR a.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2))`;
     queryParams.push(session.user_id);
   }
 

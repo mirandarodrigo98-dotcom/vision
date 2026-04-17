@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,24 @@ export function IRTransmitidaDialog({ open, onOpenChange, declaration, onSuccess
 
   const hasPhone = !!declaration.phone;
   const hasEmail = !!declaration.email;
+
+  useEffect(() => {
+    if (!open) {
+      setSendWhatsapp(false);
+      setSendEmail(false);
+      setFiles([]);
+      setRestitutionValue('');
+      setTaxToPayValue('');
+      setQuotasCount('');
+      setQuotaValue('');
+      setBankInfo('');
+      setShowRestitutionInput(false);
+      setShowTaxToPayInput(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [open]);
 
   const extractPdfData = async (file: File) => {
     try {

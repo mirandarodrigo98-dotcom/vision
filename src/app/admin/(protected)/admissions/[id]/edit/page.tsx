@@ -16,7 +16,7 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        admissionQuery += ` AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+        admissionQuery += ` AND (company_id IS NULL OR company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2))`;
         queryParams.push(session.user_id);
     }
 

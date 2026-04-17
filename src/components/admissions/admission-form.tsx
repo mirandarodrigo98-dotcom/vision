@@ -46,11 +46,12 @@ const DEFAULT_SCHEDULE = [
 const parseDate = (dateStr: string) => {
     if (!dateStr) return undefined;
     // Handle YYYY-MM-DD explicitly to avoid timezone shifts (treat as local date)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
         const [y, m, d] = dateStr.split('-').map(Number);
         return new Date(y, m - 1, d);
     }
-    return new Date(dateStr);
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? undefined : d;
 };
 
 export function AdmissionForm({ companies, activeCompanyId, initialData, isEditing = false, isAdmin = false, readOnly = false }: AdmissionFormProps) {
