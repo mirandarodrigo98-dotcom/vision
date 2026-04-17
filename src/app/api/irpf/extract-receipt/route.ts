@@ -172,12 +172,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Tentar pegar banco para restituição ou débito automático
-    const matchBanco = cleanText.match(/BANCO[\s:.-]*(\d{3})/i);
-    const matchAgencia = cleanText.match(/AG[EÊ]NCIA[\s:.-]*([\d\-X]+)/i);
-    const matchConta = cleanText.match(/CONTA[\s:.-]*([\d\-X]+)/i);
+    // Ampliando a tolerância: pode ter texto entre a palavra-chave e o número, limitando a 50 caracteres para não buscar longe demais
+    const matchBanco = cleanText.match(/(?:BANCO|BCO\.?)[^\d]{0,50}?(\d{1,4})/i);
+    const matchAgencia = cleanText.match(/(?:AG[EÊ]NCIA|AG\.?)[^\d]{0,50}?([\d][\d\s-]*[xX\d]?)/i);
+    const matchConta = cleanText.match(/(?:CONTA|CTA\.?|C\/C|C\.C\.)[^\d]{0,50}?([\d][\d\s-]*[xX\d]?)/i);
 
     if (matchBanco || matchAgencia || matchConta) {
-      bankInfo = `Banco ${matchBanco?.[1] || ''} Ag ${matchAgencia?.[1] || ''} Cc ${matchConta?.[1] || ''}`.trim();
+      const b = matchBanco?.[1] || '';
+      const a = (matchAgencia?.[1] || '').replace(/\s+/g, '').replace(/-+$/, '');
+      const c = (matchConta?.[1] || '').replace(/\s+/g, '').replace(/-+$/, '');
+      bankInfo = `Banco ${b} Ag ${a} Cc ${c}`.trim().replace(/\s{2,}/g, ' ');
     }
 
     return NextResponse.json({
