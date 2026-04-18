@@ -22,7 +22,7 @@ export default function NovoRendimentoPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/admin/pessoa-fisica/carne-leao">
+          <Link href="/app/carne-leao">
             <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-[#1b5fcc] text-white hover:bg-[#154ca3] hover:text-white border-0">
               <ChevronLeft className="h-6 w-6" />
             </Button>

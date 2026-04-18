@@ -40,6 +40,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         cell_phone: '',
         notification_email: false,
         notification_whatsapp: false,
+        carne_leao_access: false,
     });
     const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
@@ -58,6 +59,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                     cell_phone: initialData.cell_phone || initialData.phone || '',
                     notification_email: !!initialData.notification_email,
                     notification_whatsapp: !!initialData.notification_whatsapp,
+                    carne_leao_access: !!initialData.carne_leao_access,
                 });
                 
                 // Fetch permissions for edit
@@ -137,6 +139,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
             cell_phone: userData.cell_phone,
             notification_email: userData.notification_email,
             notification_whatsapp: userData.notification_whatsapp,
+            carne_leao_access: userData.carne_leao_access,
             company_ids: selectedCompanyIds,
             permissions: selectedPermissions,
         };
@@ -330,6 +333,17 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                                         id="notif_whatsapp"
                                         checked={userData.notification_whatsapp}
                                         onCheckedChange={(checked) => setUserData({ ...userData, notification_whatsapp: checked })}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between border-t pt-4">
+                                    <Label htmlFor="carne_leao" className="flex flex-col">
+                                        <span className="font-semibold">Acesso ao Carnê Leão</span>
+                                        <span className="font-normal text-xs text-muted-foreground">Habilita o módulo de Pessoa Física / Carnê Leão para este usuário</span>
+                                    </Label>
+                                    <Switch
+                                        id="carne_leao"
+                                        checked={userData.carne_leao_access}
+                                        onCheckedChange={(checked) => setUserData({ ...userData, carne_leao_access: checked })}
                                     />
                                 </div>
                             </div>

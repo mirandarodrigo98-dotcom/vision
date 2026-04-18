@@ -52,10 +52,23 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function ClientNav() {
+export function ClientNav({ carneLeaoAccess }: { carneLeaoAccess?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['Pessoal']);
+
+  const navItemsList: NavItem[] = [
+    ...navItems,
+    ...(carneLeaoAccess ? [
+      {
+        label: 'Pessoa Física',
+        icon: User,
+        children: [
+          { href: '/app/carne-leao', label: 'Carnê Leão', icon: FileText }
+        ]
+      }
+    ] : [])
+  ];
 
   async function handleLogout() {
     await logout();
@@ -143,7 +156,7 @@ export function ClientNav() {
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
-        {navItems.map(renderNavItem)}
+        {navItemsList.map(renderNavItem)}
       </nav>
     </div>
   );

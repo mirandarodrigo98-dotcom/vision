@@ -22,7 +22,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   let query = `
     SELECT u.id, u.name, u.email, u.phone, u.cell_phone, u.is_active,
-           u.notification_email, u.notification_whatsapp,
+           u.notification_email, u.notification_whatsapp, u.carne_leao_access,
            STRING_AGG(c.id::text, ',') as company_ids,
            STRING_AGG(c.nome, ', ') as company_names
     FROM users u

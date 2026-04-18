@@ -34,7 +34,7 @@ export default async function ClientLayout({
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <ClientNav />
+      <ClientNav carneLeaoAccess={session.carne_leao_access} />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <ClientHeader 
           user={{ name: session.name, email: session.email, avatar_url: session.avatar_path }} 

@@ -149,7 +149,7 @@ export async function saveClientUser(data: SaveClientUserPayload) {
     return { error: 'Unauthorized' };
   }
 
-  const { id, name, email, cell_phone, notification_email, notification_whatsapp, company_ids, permissions } = data;
+  const { id, name, email, cell_phone, notification_email, notification_whatsapp, carne_leao_access, company_ids, permissions } = data;
 
   if (!name || !email || company_ids.length === 0) {
     return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
@@ -188,9 +188,9 @@ export async function saveClientUser(data: SaveClientUserPayload) {
             // Update
             await db.query(`
                 UPDATE users 
-                SET name = $1, email = $2, cell_phone = $3, notification_email = $4, notification_whatsapp = $5, updated_at = NOW()
-                WHERE id = $6
-            `, [name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, userId]);
+                SET name = $1, email = $2, cell_phone = $3, notification_email = $4, notification_whatsapp = $5, carne_leao_access = $6, updated_at = NOW()
+                WHERE id = $7
+            `, [name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, carne_leao_access ? 1 : 0, userId]);
 
             // Clear existing relations
             await db.query(`DELETE FROM user_companies WHERE user_id = $1`, [userId]);
@@ -203,9 +203,9 @@ export async function saveClientUser(data: SaveClientUserPayload) {
             const hashedPassword = await hashPassword(tempPassword);
 
             await db.query(`
-                INSERT INTO users (id, name, email, cell_phone, notification_email, notification_whatsapp, role, is_active, password_hash, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, 'client_user', 1, $7, NOW())
-            `, [userId, name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, hashedPassword]);
+                INSERT INTO users (id, name, email, cell_phone, notification_email, notification_whatsapp, carne_leao_access, role, is_active, password_hash, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, 'client_user', 1, $8, NOW())
+            `, [userId, name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, carne_leao_access ? 1 : 0, hashedPassword]);
 
             // Send welcome email
              await sendEmail({

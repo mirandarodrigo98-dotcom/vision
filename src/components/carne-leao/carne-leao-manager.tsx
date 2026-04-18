@@ -35,7 +35,7 @@ export function CarneLeaoManager() {
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
             <CardTitle className="text-2xl font-normal">Rendimentos</CardTitle>
             <div className="flex items-center gap-2">
-              <Link href="/admin/pessoa-fisica/carne-leao/novo-rendimento">
+              <Link href="/app/carne-leao/novo-rendimento">
                 <Button className="bg-[#1b5fcc] hover:bg-[#154ca3] text-white rounded-full px-6">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   RENDIMENTO
@@ -96,7 +96,7 @@ export function CarneLeaoManager() {
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
             <CardTitle className="text-2xl font-normal">Pagamentos</CardTitle>
             <div className="flex items-center gap-2">
-              <Link href="/admin/pessoa-fisica/carne-leao/novo-pagamento">
+              <Link href="/app/carne-leao/novo-pagamento">
                 <Button className="bg-[#1b5fcc] hover:bg-[#154ca3] text-white rounded-full px-6">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   PAGAMENTO
