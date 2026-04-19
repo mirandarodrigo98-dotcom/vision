@@ -41,6 +41,7 @@ export async function getSession(updateLastSeen = true) {
       u.avatar_path,
       u.active_company_id,
       u.department_id,
+      u.carne_leao_access,
       c.razao_social as company_name,
       c.cnpj as company_cnpj
     FROM sessions s

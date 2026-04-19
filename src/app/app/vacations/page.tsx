@@ -13,7 +13,7 @@ import { redirect } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { hasPermission } from '@/lib/rbac';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ClientVacationsPageProps {
@@ -24,7 +24,13 @@ export default async function ClientVacationsPage({ searchParams }: ClientVacati
   const session = await getSession();
   if (!session || session.role !== 'client_user') redirect('/login');
 
-  const canCreate = await hasPermission(session.role, 'vacations.create');
+  const permissions = await getUserPermissions();
+  const canView = permissions.includes('vacations.view');
+  const canCreate = permissions.includes('vacations.create');
+
+  if (!canView && session.role === 'client_user') {
+      redirect('/app');
+  }
 
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';

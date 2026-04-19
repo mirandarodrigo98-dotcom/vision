@@ -12,7 +12,7 @@ import { redirect } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { hasPermission } from '@/lib/rbac';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ClientDismissalsPageProps {
@@ -23,7 +23,13 @@ export default async function ClientDismissalsPage({ searchParams }: ClientDismi
   const session = await getSession();
   if (!session || session.role !== 'client_user') redirect('/login');
 
-  const canCreate = await hasPermission(session.role, 'dismissals.create');
+  const permissions = await getUserPermissions();
+  const canView = permissions.includes('dismissals.view');
+  const canCreate = permissions.includes('dismissals.create');
+
+  if (!canView && session.role === 'client_user') {
+      redirect('/app');
+  }
 
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';

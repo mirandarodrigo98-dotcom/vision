@@ -10,12 +10,20 @@ import { format } from 'date-fns';
 import { redirect } from 'next/navigation';
 import { TransferActions } from '@/components/transfers/transfer-actions';
 import { Badge } from '@/components/ui/badge';
-import { hasPermission } from '@/lib/rbac';
+import { getUserPermissions } from '@/app/actions/permissions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default async function TransfersListPage() {
   const session = await getSession();
   if (!session) redirect('/login');
+
+  const permissions = await getUserPermissions();
+  const canView = permissions.includes('transfers.view');
+  const hasCreatePermission = permissions.includes('transfers.create');
+
+  if (!canView && session.role === 'client_user') {
+      redirect('/app');
+  }
 
   if (session.role === 'admin' || session.role === 'operator') {
     redirect('/admin/dashboard');
@@ -31,7 +39,6 @@ export default async function TransfersListPage() {
   const activeCompanyId = session.active_company_id;
   if (!activeCompanyId) return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa.</div>;
 
-  const hasCreatePermission = await hasPermission(session.role, 'transfers.create');
   const hasMultipleCompanies = userCompanies.length > 1;
   const canCreate = hasCreatePermission && hasMultipleCompanies;
 

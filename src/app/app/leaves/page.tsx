@@ -10,10 +10,19 @@ import { format } from 'date-fns';
 import { redirect } from 'next/navigation';
 import { LeaveActions } from '@/components/leaves/leave-actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export default async function LeavesListPage() {
   const session = await getSession();
   if (!session) redirect('/login');
+
+  const permissions = await getUserPermissions();
+  const canView = permissions.includes('leaves.view');
+  const canCreate = permissions.includes('leaves.create');
+
+  if (!canView && session.role === 'client_user') {
+      redirect('/app');
+  }
 
   if (session.role === 'admin' || session.role === 'operator') {
     redirect('/admin/dashboard');

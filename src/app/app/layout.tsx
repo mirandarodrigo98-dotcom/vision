@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 import { ClientNav } from '@/components/client-nav';
 import { ClientHeader } from '@/components/client-header';
 import { getUserCompanies } from '@/app/actions/client-users';
+import { getUserPermissions } from '@/app/actions/permissions';
 import db from '@/lib/db';
 
 export default async function ClientLayout({
@@ -21,6 +22,8 @@ export default async function ClientLayout({
   }
 
   const companies = await getUserCompanies();
+  const permissions = await getUserPermissions();
+
   let activeCompany = session.active_company_id 
     ? { id: session.active_company_id, name: session.company_name, cnpj: session.company_cnpj }
     : null;
@@ -34,7 +37,7 @@ export default async function ClientLayout({
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <ClientNav carneLeaoAccess={session.carne_leao_access} />
+      <ClientNav carneLeaoAccess={session.carne_leao_access} permissions={permissions} />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <ClientHeader 
           user={{ name: session.name, email: session.email, avatar_url: session.avatar_path }} 

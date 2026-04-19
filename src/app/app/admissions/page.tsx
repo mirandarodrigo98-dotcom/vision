@@ -10,14 +10,20 @@ import { format } from 'date-fns';
 import { redirect } from 'next/navigation';
 
 import { AdmissionActions } from '@/components/admissions/admission-actions';
-import { hasPermission } from '@/lib/rbac';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export default async function AdmissionsListPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const canCreate = await hasPermission(session.role, 'admissions.create');
+  const permissions = await getUserPermissions();
+  const canView = permissions.includes('admissions.view');
+  const canCreate = permissions.includes('admissions.create');
+
+  if (!canView && session.role === 'client_user') {
+      redirect('/app');
+  }
 
   if (session.role === 'admin' || session.role === 'operator') {
     redirect('/admin/dashboard');

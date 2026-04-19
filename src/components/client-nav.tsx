@@ -27,6 +27,7 @@ type NavItem = {
   href?: string;
   label: string;
   icon: any;
+  permission?: string;
   children?: NavItem[];
 };
 
@@ -36,28 +37,42 @@ const navItems: NavItem[] = [
     label: 'Pessoal', 
     icon: Users,
     children: [
-      { href: '/app/admissions', label: 'Admissões', icon: FileText },
-      { href: '/app/dismissals', label: 'Demissões', icon: UserMinus },
-      { href: '/app/vacations', label: 'Férias', icon: Plane },
-      { href: '/app/transfers', label: 'Transferências', icon: ArrowRightLeft },
-      { href: '/app/leaves', label: 'Afastamentos', icon: Stethoscope },
+      { href: '/app/admissions', label: 'Admissões', icon: FileText, permission: 'admissions.view' },
+      { href: '/app/dismissals', label: 'Demissões', icon: UserMinus, permission: 'dismissals.view' },
+      { href: '/app/vacations', label: 'Férias', icon: Plane, permission: 'vacations.view' },
+      { href: '/app/transfers', label: 'Transferências', icon: ArrowRightLeft, permission: 'transfers.view' },
+      { href: '/app/leaves', label: 'Afastamentos', icon: Stethoscope, permission: 'leaves.view' },
       { 
         label: 'Relatórios', 
         icon: FileBarChart,
         children: [
-            { href: '/api/reports/ethnic-racial', label: 'Autodeclaração Étnico-Racial', icon: FileText },
+            { href: '/api/reports/ethnic-racial', label: 'Autodeclaração Étnico-Racial', icon: FileText, permission: 'admissions.view' },
         ]
       },
     ]
   },
 ];
 
-export function ClientNav({ carneLeaoAccess }: { carneLeaoAccess?: boolean }) {
+export function ClientNav({ carneLeaoAccess, permissions = [] }: { carneLeaoAccess?: boolean, permissions?: string[] }) {
   const pathname = usePathname();
   const router = useRouter();
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['Pessoal']);
 
-  const navItemsList: NavItem[] = [
+  const filterNavItems = (items: NavItem[]): NavItem[] => {
+    return items.map(item => {
+      if (item.children) {
+        const filteredChildren = filterNavItems(item.children);
+        if (filteredChildren.length === 0) return null;
+        return { ...item, children: filteredChildren };
+      }
+      if (item.permission && !permissions.includes(item.permission)) {
+        return null;
+      }
+      return item;
+    }).filter(Boolean) as NavItem[];
+  };
+
+  const navItemsList: NavItem[] = filterNavItems([
     ...navItems,
     ...(carneLeaoAccess ? [
       {
@@ -68,7 +83,7 @@ export function ClientNav({ carneLeaoAccess }: { carneLeaoAccess?: boolean }) {
         ]
       }
     ] : [])
-  ];
+  ]);
 
   async function handleLogout() {
     await logout();
