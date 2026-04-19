@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import { redirect } from 'next/navigation';
 import { getDashboardMetrics } from '@/app/actions/dashboard';
 import { HRMetricsSection } from '@/components/dashboard/hr-metrics-section';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export default async function ClientDashboard() {
   const session = await getSession();
@@ -13,6 +14,19 @@ export default async function ClientDashboard() {
 
   if (session.role === 'admin' || session.role === 'operator') {
     redirect('/admin/dashboard');
+  }
+
+  const permissions = await getUserPermissions();
+  
+  if (!permissions.includes('client_dashboard.view')) {
+      return (
+          <div className="p-8 flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
+              <h2 className="text-2xl font-bold text-slate-800">Bem-vindo(a) ao VISION Client!</h2>
+              <p className="text-muted-foreground max-w-md">
+                  Utilize o menu lateral para navegar pelos módulos que estão disponíveis para o seu usuário.
+              </p>
+          </div>
+      );
   }
 
   // Get User Companies to check access

@@ -32,7 +32,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: '/app', label: 'Painel', icon: LayoutDashboard },
+  { href: '/app', label: 'Painel', icon: LayoutDashboard, permission: 'client_dashboard.view' },
   { 
     label: 'Pessoal', 
     icon: Users,

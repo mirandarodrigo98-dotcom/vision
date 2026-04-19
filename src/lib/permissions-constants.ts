@@ -111,7 +111,8 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'audit_logs.view', label: 'Visualizar Logs de Auditoria', category: 'Segurança', module: 'ADM' },
 
     // --- Gráficos ---
-    { code: 'dashboard.view', label: 'Visualizar Dashboard', category: 'Geral', module: 'Gráficos' },
+    { code: 'dashboard.view', label: 'Visualizar Dashboard Admin', category: 'Geral', module: 'Gráficos' },
+    { code: 'client_dashboard.view', label: 'Visualizar Dashboard Cliente', category: 'Geral', module: 'Gráficos' },
 
     // --- Configurações ---
     { code: 'settings.view', label: 'Acessar Configurações', category: 'Configurações', module: 'Configurações' },
