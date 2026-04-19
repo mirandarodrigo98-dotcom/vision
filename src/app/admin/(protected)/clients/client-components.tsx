@@ -128,7 +128,7 @@ export function CompanyList({ companies }: { companies: Company[] }) {
                 <ColumnHeader column="razao_social" title="Razão Social" />
               </TableHead>
               <TableHead>
-                <ColumnHeader column="cnpj" title="CNPJ" />
+                <ColumnHeader column="cnpj" title="CNPJ/CPF" />
               </TableHead>
               <TableHead>
                 <ColumnHeader column="email_contato" title="Email" />

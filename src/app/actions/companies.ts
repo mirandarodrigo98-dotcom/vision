@@ -274,6 +274,7 @@ export async function createCompany(data: FormData) {
   const municipio = data.get('municipio') as string;
   const uf = data.get('uf') as string;
   const data_abertura = data.get('data_abertura') as string;
+  const data_nascimento = data.get('data_nascimento') as string;
   const address_type = data.get('address_type') as string;
   const address_street = data.get('address_street') as string;
   const address_number = data.get('address_number') as string;
@@ -291,10 +292,10 @@ export async function createCompany(data: FormData) {
     const id = uuidv4();
     await db.query(`
       INSERT INTO client_companies (
-        id, nome, razao_social, cnpj, telefone, email_contato, code, filial, municipio, uf, data_abertura, capital_social_centavos,
+        id, nome, razao_social, cnpj, telefone, email_contato, code, filial, municipio, uf, data_abertura, data_nascimento, capital_social_centavos,
         address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code, is_active, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 1, NOW(), NOW())
-    `, [id, nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null]);
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, 1, NOW(), NOW())
+    `, [id, nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, data_nascimento || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null]);
 
     // Socios
     const socios = extractSociosFromForm(data);
@@ -355,6 +356,7 @@ export async function updateCompany(companyId: string, data: FormData) {
   const municipio = data.get('municipio') as string;
   const uf = data.get('uf') as string;
   const data_abertura = data.get('data_abertura') as string;
+  const data_nascimento = data.get('data_nascimento') as string;
   const address_type = data.get('address_type') as string;
   const address_street = data.get('address_street') as string;
   const address_number = data.get('address_number') as string;
@@ -367,10 +369,10 @@ export async function updateCompany(companyId: string, data: FormData) {
   try {
     await db.query(`
       UPDATE client_companies SET
-        nome = $1, razao_social = $2, cnpj = $3, telefone = $4, email_contato = $5, code = $6, filial = $7, municipio = $8, uf = $9, data_abertura = $10, capital_social_centavos = $11,
-        address_type = $12, address_street = $13, address_number = $14, address_complement = $15, address_neighborhood = $16, address_zip_code = $17, updated_at = NOW()
-      WHERE id = $18
-    `, [nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null, companyId]);
+        nome = $1, razao_social = $2, cnpj = $3, telefone = $4, email_contato = $5, code = $6, filial = $7, municipio = $8, uf = $9, data_abertura = $10, data_nascimento = $11, capital_social_centavos = $12,
+        address_type = $13, address_street = $14, address_number = $15, address_complement = $16, address_neighborhood = $17, address_zip_code = $18, updated_at = NOW()
+      WHERE id = $19
+    `, [nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, data_nascimento || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null, companyId]);
 
     // Socios
     const socios = extractSociosFromForm(data);

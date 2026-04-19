@@ -8,7 +8,7 @@ import { createCompany, updateCompany } from '@/app/actions/companies';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { validateCNPJ } from '@/lib/validators';
+import { validateCNPJ, validateCPF } from '@/lib/validators';
 import { parseQuestorNumber, extractQuestorField } from '@/lib/utils';
 import { CompanyDataTab } from './tabs/CompanyDataTab';
 import { LegalRepresentativeTab } from './tabs/LegalRepresentativeTab';
@@ -25,6 +25,7 @@ interface Company {
   municipio: string | null;
   uf: string | null;
   data_abertura: string | null;
+  data_nascimento?: string | null;
   telefone: string;
   email_contato: string;
   address_type: string | null;
@@ -91,6 +92,9 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
   const [cepLoading, setCepLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(
     company?.data_abertura ? new Date(company.data_abertura + 'T12:00:00') : undefined
+  );
+  const [dataNascimento, setDataNascimento] = useState<Date | undefined>(
+    company?.data_nascimento ? new Date(company.data_nascimento + 'T12:00:00') : undefined
   );
   
   // Refs for address auto-fill
@@ -248,10 +252,18 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
    const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 14) value = value.slice(0, 14);
-    if (value.length > 12) value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    else if (value.length > 8) value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
-    else if (value.length > 5) value = value.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
-    else if (value.length > 2) value = value.replace(/^(\d{2})(\d{0,3})/, '$1.$2');
+
+    if (value.length <= 11) {
+      // CPF Mask
+      if (value.length > 9) value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+      else if (value.length > 6) value = value.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+      else if (value.length > 3) value = value.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+    } else {
+      // CNPJ Mask
+      if (value.length > 12) value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      else if (value.length > 8) value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+      else value = value.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    }
     
     setCnpjValue(value);
     if (cnpjError) setCnpjError('');
@@ -259,8 +271,15 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
 
   const handleCnpjBlur = () => {
     if (cnpjValue.length > 0) {
-      const isValid = validateCNPJ(cnpjValue);
-      if (!isValid) setCnpjError('CNPJ inválido');
+      const cleanValue = cnpjValue.replace(/\D/g, '');
+      let isValid = false;
+      if (cleanValue.length === 11) {
+         isValid = validateCPF(cleanValue);
+      } else if (cleanValue.length === 14) {
+         isValid = validateCNPJ(cleanValue);
+      }
+      
+      if (!isValid) setCnpjError('CNPJ/CPF inválido');
       else setCnpjError('');
     }
   };
@@ -301,10 +320,17 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
   };
 
   async function handleSubmit(formData: FormData) {
-    if (cnpjValue && !validateCNPJ(cnpjValue)) {
-      setCnpjError('CNPJ inválido');
-      toast.error('CNPJ inválido. Verifique o número digitado.');
-      return;
+    if (cnpjValue) {
+      const cleanValue = cnpjValue.replace(/\D/g, '');
+      let isValid = false;
+      if (cleanValue.length === 11) isValid = validateCPF(cleanValue);
+      else if (cleanValue.length === 14) isValid = validateCNPJ(cleanValue);
+
+      if (!isValid) {
+        setCnpjError('CNPJ/CPF inválido');
+        toast.error('CNPJ/CPF inválido. Verifique o número digitado.');
+        return;
+      }
     }
 
     if (socios.length > 0 && totalParticipacao !== 100) {
@@ -373,9 +399,11 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
                 cnpjError={cnpjError}
                 handleCnpjChange={handleCnpjChange}
                 handleCnpjBlur={handleCnpjBlur}
-                date={date}
-                setDate={setDate}
-                typeRef={typeRef}
+              date={date}
+              setDate={setDate}
+              dataNascimento={dataNascimento}
+              setDataNascimento={setDataNascimento}
+              typeRef={typeRef}
                 streetRef={streetRef}
                 complementRef={complementRef}
                 neighborhoodRef={neighborhoodRef}

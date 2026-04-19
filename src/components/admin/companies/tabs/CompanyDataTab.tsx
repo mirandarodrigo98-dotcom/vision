@@ -13,6 +13,8 @@ interface CompanyDataTabProps {
   handleCnpjBlur: () => void;
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
+  dataNascimento: Date | undefined;
+  setDataNascimento: (date: Date | undefined) => void;
   typeRef: React.RefObject<HTMLInputElement | null>;
   streetRef: React.RefObject<HTMLInputElement | null>;
   complementRef: React.RefObject<HTMLInputElement | null>;
@@ -35,6 +37,8 @@ export function CompanyDataTab({
   handleCnpjBlur,
   date,
   setDate,
+  dataNascimento,
+  setDataNascimento,
   typeRef,
   streetRef,
   complementRef,
@@ -63,6 +67,8 @@ export function CompanyDataTab({
   const [razaoSocial, setRazaoSocial] = useState(company?.razao_social || '');
   const [filial, setFilial] = useState(company?.filial || '');
   const [code, setCode] = useState(company?.code || '');
+
+  const isCpf = cnpjValue.replace(/\D/g, '').length === 11;
 
   useEffect(() => {
     if (company?.capital_social_centavos !== undefined && company?.capital_social_centavos !== null) {
@@ -137,22 +143,22 @@ export function CompanyDataTab({
         />
       </div>
 
-      {/* CNPJ */}
+      {/* CNPJ / CPF */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className="text-sm font-medium">CNPJ *</label>
+        <label className="text-sm font-medium">CNPJ/CPF *</label>
         <div className="space-y-1">
           <Input 
             name="cnpj" 
             value={cnpjValue} 
             onChange={handleCnpjChange}
             onBlur={handleCnpjBlur}
-            placeholder="00.000.000/0000-00"
+            placeholder="00.000.000/0000-00 ou 000.000.000-00"
             maxLength={18}
             required 
-            className={`w-[22ch] ${cnpjError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+            className={`w-[25ch] ${cnpjError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             disabled={hasLinkedRecords}
           />
-          {hasLinkedRecords && <p className="text-xs text-yellow-600 mt-1">CNPJ não pode ser alterado pois existem registros vinculados.</p>}
+          {hasLinkedRecords && <p className="text-xs text-yellow-600 mt-1">CNPJ/CPF não pode ser alterado pois existem registros vinculados.</p>}
           {cnpjError && <p className="text-xs text-red-500 mt-1">{cnpjError}</p>}
         </div>
       </div>
@@ -195,7 +201,7 @@ export function CompanyDataTab({
 
       {/* Capital Social */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className="text-sm font-medium">Capital Social</label>
+        <label className={`text-sm font-medium ${isCpf ? 'text-muted-foreground' : ''}`}>Capital Social</label>
         <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
             <Input 
@@ -203,8 +209,23 @@ export function CompanyDataTab({
               placeholder="0,00"
               value={capitalSocialDisplay}
               onChange={handleCapitalSocialChange}
+              disabled={isCpf}
             />
-            <input type="hidden" name="capital_social_centavos" value={capitalSocialCentavos} />
+            <input type="hidden" name="capital_social_centavos" value={isCpf ? '0' : capitalSocialCentavos} />
+        </div>
+      </div>
+
+      {/* Data de Nascimento (Somente CPF) */}
+      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
+        <label className={`text-sm font-medium ${!isCpf ? 'text-muted-foreground' : ''}`}>Data de Nascimento</label>
+        <div className="w-[18ch]">
+          <DatePicker 
+            date={dataNascimento} 
+            setDate={setDataNascimento} 
+            placeholder="Selecione..." 
+            disabled={!isCpf}
+          />
+          <input type="hidden" name="data_nascimento" value={isCpf && dataNascimento ? format(dataNascimento, 'yyyy-MM-dd') : ''} />
         </div>
       </div>
 

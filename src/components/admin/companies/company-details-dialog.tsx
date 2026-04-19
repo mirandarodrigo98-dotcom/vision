@@ -74,7 +74,7 @@ export function CompanyDetailsDialog({ company }: CompanyDetailsDialogProps) {
           </div>
 
           <div className="space-y-1">
-            <span className="text-sm font-medium text-muted-foreground">CNPJ</span>
+            <span className="text-sm font-medium text-muted-foreground">CNPJ/CPF</span>
             <p className="text-sm font-mono">{company.cnpj}</p>
           </div>
           <div className="space-y-1">
