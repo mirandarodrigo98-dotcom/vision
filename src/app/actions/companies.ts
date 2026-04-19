@@ -284,8 +284,18 @@ export async function createCompany(data: FormData) {
   const capitalStr = (data.get('capital_social_centavos') as string) || '';
   const capital_social_centavos = capitalStr ? Number(capitalStr) : null;
 
-  if (!nome || !cnpj || !code || !filial) {
-    return { error: 'Nome, CNPJ, Código e Filial são obrigatórios.' };
+  const isCpf = cnpj.replace(/\D/g, '').length === 11;
+
+  if (!cnpj || !code || !filial) {
+    return { error: 'CNPJ/CPF, Código e Filial são obrigatórios.' };
+  }
+
+  if (!isCpf && !nome) {
+    return { error: 'Nome Fantasia é obrigatório para empresas.' };
+  }
+
+  if (!razao_social) {
+    return { error: 'Razão Social é obrigatória.' };
   }
 
   try {
@@ -295,7 +305,7 @@ export async function createCompany(data: FormData) {
         id, nome, razao_social, cnpj, telefone, email_contato, code, filial, municipio, uf, data_abertura, data_nascimento, capital_social_centavos,
         address_type, address_street, address_number, address_complement, address_neighborhood, address_zip_code, is_active, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, 1, NOW(), NOW())
-    `, [id, nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, data_nascimento || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null]);
+    `, [id, nome || razao_social, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, data_nascimento || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null]);
 
     // Socios
     const socios = extractSociosFromForm(data);
@@ -366,13 +376,27 @@ export async function updateCompany(companyId: string, data: FormData) {
   const capitalStr = (data.get('capital_social_centavos') as string) || '';
   const capital_social_centavos = capitalStr ? Number(capitalStr) : null;
 
+  const isCpf = cnpj.replace(/\D/g, '').length === 11;
+
+  if (!cnpj || !code || !filial) {
+    return { error: 'CNPJ/CPF, Código e Filial são obrigatórios.' };
+  }
+
+  if (!isCpf && !nome) {
+    return { error: 'Nome Fantasia é obrigatório para empresas.' };
+  }
+
+  if (!razao_social) {
+    return { error: 'Razão Social é obrigatória.' };
+  }
+
   try {
     await db.query(`
       UPDATE client_companies SET
         nome = $1, razao_social = $2, cnpj = $3, telefone = $4, email_contato = $5, code = $6, filial = $7, municipio = $8, uf = $9, data_abertura = $10, data_nascimento = $11, capital_social_centavos = $12,
         address_type = $13, address_street = $14, address_number = $15, address_complement = $16, address_neighborhood = $17, address_zip_code = $18, updated_at = NOW()
       WHERE id = $19
-    `, [nome, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, data_nascimento || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null, companyId]);
+    `, [nome || razao_social, razao_social || null, cnpj, telefone || null, email_contato || null, code, filial, municipio || null, uf || null, data_abertura || null, data_nascimento || null, capital_social_centavos, address_type || null, address_street || null, address_number || null, address_complement || null, address_neighborhood || null, address_zip_code || null, companyId]);
 
     // Socios
     const socios = extractSociosFromForm(data);
