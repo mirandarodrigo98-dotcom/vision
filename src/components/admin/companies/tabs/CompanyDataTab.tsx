@@ -165,36 +165,39 @@ export function CompanyDataTab({
 
       {/* Data de Abertura */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className="text-sm font-medium">Data de Abertura</label>
+        <label className={`text-sm font-medium ${isCpf ? 'text-muted-foreground' : ''}`}>Data de Abertura</label>
         <div className="w-[18ch]">
           <DatePicker 
             date={date} 
             setDate={setDate} 
             placeholder="Selecione..." 
+            disabled={isCpf}
           />
-          <input type="hidden" name="data_abertura" value={date ? format(date, 'yyyy-MM-dd') : ''} />
+          <input type="hidden" name="data_abertura" value={!isCpf && date ? format(date, 'yyyy-MM-dd') : ''} />
         </div>
       </div>
 
       {/* Razão Social */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className="text-sm font-medium">Razão Social</label>
+        <label className="text-sm font-medium">Razão Social *</label>
         <Input 
             name="razao_social" 
             value={razaoSocial} 
             onChange={(e) => setRazaoSocial(e.target.value)}
+            required
             className="w-[80ch]" 
         />
       </div>
 
       {/* Nome Fantasia */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className="text-sm font-medium">Nome Fantasia *</label>
+        <label className={`text-sm font-medium ${isCpf ? 'text-muted-foreground' : ''}`}>Nome Fantasia {!isCpf && '*'}</label>
         <Input 
             name="nome" 
             value={nome} 
             onChange={(e) => setNome(e.target.value)}
-            required 
+            required={!isCpf} 
+            disabled={isCpf}
             className="w-[20ch]" 
         />
       </div>
@@ -217,7 +220,7 @@ export function CompanyDataTab({
 
       {/* Data de Nascimento (Somente CPF) */}
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
-        <label className={`text-sm font-medium ${!isCpf ? 'text-muted-foreground' : ''}`}>Data de Nascimento</label>
+        <label className={`text-sm font-medium ${!isCpf ? 'text-muted-foreground' : ''}`}>Data de Nascimento {isCpf && '*'}</label>
         <div className="w-[18ch]">
           <DatePicker 
             date={dataNascimento} 
@@ -225,7 +228,7 @@ export function CompanyDataTab({
             placeholder="Selecione..." 
             disabled={!isCpf}
           />
-          <input type="hidden" name="data_nascimento" value={isCpf && dataNascimento ? format(dataNascimento, 'yyyy-MM-dd') : ''} />
+          <input type="hidden" name="data_nascimento" value={isCpf && dataNascimento ? format(dataNascimento, 'yyyy-MM-dd') : ''} required={isCpf} />
         </div>
       </div>
 
@@ -234,12 +237,13 @@ export function CompanyDataTab({
         
         {/* CEP */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">CEP</label>
+          <label className="text-sm font-medium">CEP {isCpf && '*'}</label>
           <div className="flex gap-2 items-center">
             <Input 
               name="address_zip_code" 
               value={cepValue} 
               onChange={handleCepChange}
+              required={isCpf}
               placeholder="00000-000"
               maxLength={9}
               className="w-[12ch]"
@@ -257,36 +261,39 @@ export function CompanyDataTab({
 
         {/* Tipo Logradouro */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">Tipo Logradouro</label>
+          <label className="text-sm font-medium">Tipo Logradouro {isCpf && '*'}</label>
           <Input 
             ref={typeRef as React.RefObject<HTMLInputElement>} 
             name="address_type" 
             placeholder="Ex: Rua, Av, Alameda" 
             value={addressType} 
             onChange={(e) => setAddressType(e.target.value)}
+            required={isCpf}
             className="w-[16ch]" 
           />
         </div>
 
         {/* Logradouro */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">Logradouro</label>
+          <label className="text-sm font-medium">Logradouro {isCpf && '*'}</label>
           <Input 
             ref={streetRef as React.RefObject<HTMLInputElement>} 
             name="address_street" 
             value={addressStreet} 
             onChange={(e) => setAddressStreet(e.target.value)}
+            required={isCpf}
             className="w-[80ch]" 
           />
         </div>
 
         {/* Número */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">Número</label>
+          <label className="text-sm font-medium">Número {isCpf && '*'}</label>
           <Input 
             name="address_number" 
             value={addressNumber} 
             onChange={(e) => setAddressNumber(e.target.value)}
+            required={isCpf}
             className="w-[12ch]" 
           />
         </div>
@@ -305,36 +312,39 @@ export function CompanyDataTab({
 
         {/* Bairro */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">Bairro</label>
+          <label className="text-sm font-medium">Bairro {isCpf && '*'}</label>
           <Input 
             ref={neighborhoodRef as React.RefObject<HTMLInputElement>} 
             name="address_neighborhood" 
             value={addressNeighborhood} 
             onChange={(e) => setAddressNeighborhood(e.target.value)}
+            required={isCpf}
             className="w-[30ch]" 
           />
         </div>
 
         {/* Município */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">Município</label>
+          <label className="text-sm font-medium">Município {isCpf && '*'}</label>
           <Input 
             ref={municipalityRef as React.RefObject<HTMLInputElement>} 
             name="municipio" 
             value={municipality} 
             onChange={(e) => setMunicipality(e.target.value)}
+            required={isCpf}
             className="w-[30ch]" 
           />
         </div>
 
         {/* UF */}
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4 mb-4">
-          <label className="text-sm font-medium">UF</label>
+          <label className="text-sm font-medium">UF {isCpf && '*'}</label>
           <Input 
             ref={ufRef as React.RefObject<HTMLInputElement>} 
             name="uf" 
             value={uf} 
             onChange={(e) => setUf(e.target.value)}
+            required={isCpf}
             maxLength={2} 
             className="w-[6ch] uppercase" 
           />

@@ -269,7 +269,7 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
     if (cnpjError) setCnpjError('');
   };
 
-  const handleCnpjBlur = () => {
+  const handleCnpjBlur = async () => {
     if (cnpjValue.length > 0) {
       const cleanValue = cnpjValue.replace(/\D/g, '');
       let isValid = false;
@@ -280,7 +280,30 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
       }
       
       if (!isValid) setCnpjError('CNPJ/CPF inválido');
-      else setCnpjError('');
+      else {
+        setCnpjError('');
+        // Se for CPF válido, busca o nome na Receita Federal (simulado se não houver API oficial)
+        if (cleanValue.length === 11) {
+            try {
+                // Tentativa de buscar os dados do sócio/contribuinte caso já exista no banco
+                const res = await fetch(`/api/cpf?cpf=${cleanValue}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.nome) {
+                        // Vamos enviar um evento de input para o campo razao_social
+                        const razaoSocialInput = document.querySelector('input[name="razao_social"]') as HTMLInputElement;
+                        if (razaoSocialInput) {
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                            nativeInputValueSetter?.call(razaoSocialInput, data.nome);
+                            razaoSocialInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignora erros silenciosamente caso não encontre
+            }
+        }
+      }
     }
   };
 
@@ -302,12 +325,26 @@ export function CompanyForm({ company, hasLinkedRecords = false, initialSocios =
       const res = await fetch(`/api/cep?cep=${digits}`);
       const data = await res.json();
       if (data && !data.error) {
-        if (typeRef.current) typeRef.current.value = data.tipo || '';
-        if (streetRef.current) streetRef.current.value = data.nome ? `${data.tipo ? data.tipo + ' ' : ''}${data.nome}` : (data.logradouro || '');
-        if (complementRef.current) complementRef.current.value = data.complemento || '';
-        if (neighborhoodRef.current) neighborhoodRef.current.value = data.bairro || '';
-        if (municipalityRef.current) municipalityRef.current.value = data.localidade || '';
-        if (ufRef.current) ufRef.current.value = data.uf || '';
+        // Find inputs directly by name since we are dealing with controlled inputs in a sub-component that might not react well to ref changes
+        // Wait, the safest way is to update the state. Since the state is in CompanyDataTab, we can either move the state here, or pass a callback.
+        // But since we are using refs in the parent, we must dispatch an input event to trigger the onChange of the controlled inputs.
+        
+        const setInputValue = (ref: React.RefObject<HTMLInputElement>, value: string) => {
+            if (ref.current) {
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                nativeInputValueSetter?.call(ref.current, value);
+                const ev = new Event('input', { bubbles: true });
+                ref.current.dispatchEvent(ev);
+            }
+        };
+
+        setInputValue(typeRef as React.RefObject<HTMLInputElement>, data.tipo || '');
+        setInputValue(streetRef as React.RefObject<HTMLInputElement>, data.nome ? `${data.tipo ? data.tipo + ' ' : ''}${data.nome}` : (data.logradouro || ''));
+        setInputValue(complementRef as React.RefObject<HTMLInputElement>, data.complemento || '');
+        setInputValue(neighborhoodRef as React.RefObject<HTMLInputElement>, data.bairro || '');
+        setInputValue(municipalityRef as React.RefObject<HTMLInputElement>, data.localidade || '');
+        setInputValue(ufRef as React.RefObject<HTMLInputElement>, data.uf || '');
+        
         toast.success('Endereço preenchido pelo CEP');
       } else {
         toast.error(data?.error || 'CEP não encontrado');
