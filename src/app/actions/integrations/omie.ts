@@ -551,24 +551,29 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
       return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
     }
 
-    // 1. Encontrar o cliente localmente
+    let phone: { number: string, name: string } | null = null;
+    let clientName = conta.nome_cliente || '';
+
+    // 1. Tentar encontrar na tabela de empresas
     const company = (await db.query(`SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = $1`, [cleanCnpj])).rows[0] as any;
 
-    if (!company) {
-      return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
+    if (company) {
+      clientName = company.razao_social;
+      const phoneRow = (await db.query(`
+        SELECT p.number, p.name
+        FROM company_phones p
+        JOIN contact_categories c ON p.category_id = c.id
+        WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
+        LIMIT 1
+      `, [company.id])).rows[0] as any;
+
+      if (phoneRow && phoneRow.number) {
+        phone = { number: phoneRow.number, name: phoneRow.name || clientName };
+      }
     }
 
-    // 2. Encontrar o contato Financeiro
-    let phone = (await db.query(`
-      SELECT p.number, p.name
-      FROM company_phones p
-      JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
-      LIMIT 1
-    `, [company.id])).rows[0] as any;
-
-    if (!phone || !phone.number) {
-      // Fallback: buscar telefone no módulo Imposto de Renda (ir_declarations) usando o CPF/CNPJ
+    // 2. Se não encontrou (ou não existe empresa ou não tem telefone financeiro), tentar no IRPF
+    if (!phone) {
       const irpfPhone = (await db.query(`
         SELECT phone, name
         FROM ir_declarations 
@@ -579,10 +584,13 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
       `, [cleanCnpj])).rows[0] as any;
 
       if (irpfPhone && irpfPhone.phone) {
-        phone = { number: irpfPhone.phone, name: irpfPhone.name || company.razao_social };
-      } else {
-        return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}, e também não foi encontrado no Imposto de Renda.` };
+        phone = { number: irpfPhone.phone, name: irpfPhone.name || clientName };
+        clientName = irpfPhone.name || clientName;
       }
+    }
+
+    if (!phone) {
+      return { error: `Nenhum telefone encontrado para o CPF/CNPJ ${cnpjRaw} no cadastro de empresas ou no Imposto de Renda.` };
     }
 
     // 3. Pegar URL do PDF do Boleto
@@ -620,7 +628,7 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
     const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
     const vencimento = conta.data_vencimento || '';
 
-    const messageBody = `_Essa é uma mensagem automática_\n\nPrezado(a) *${phone.name}*.\nVocê está recebendo o boleto de Honorários Contábeis da empresa *${company.razao_social}* *${cnpjRaw}* no valor de *${valor}* com vencimento em *${vencimento}*.\nQualquer dúvida estamos à disposição através da Central de Atendimento (24) 3026-5648.\n\nDepartamento Financeiro`;
+    const messageBody = `_Essa é uma mensagem automática_\n\nPrezado(a) *${phone.name}*.\nVocê está recebendo o boleto de Honorários Contábeis da empresa *${clientName}* *${cnpjRaw}* no valor de *${valor}* com vencimento em *${vencimento}*.\nQualquer dúvida estamos à disposição através da Central de Atendimento (24) 3026-5648.\n\nDepartamento Financeiro`;
 
     const configDigisac = await getDigisacConfig();
     if (!configDigisac || !configDigisac.is_active || !configDigisac.connection_phone) {
@@ -667,22 +675,27 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
       return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
     }
 
+    let phone: { number: string, name: string } | null = null;
+    let clientName = conta.nome_cliente || '';
+
     const company = (await db.query(`SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = $1`, [cleanCnpj])).rows[0] as any;
 
-    if (!company) {
-      return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
+    if (company) {
+      clientName = company.razao_social;
+      const phoneRow = (await db.query(`
+        SELECT p.number, p.name
+        FROM company_phones p
+        JOIN contact_categories c ON p.category_id = c.id
+        WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
+        LIMIT 1
+      `, [company.id])).rows[0] as any;
+
+      if (phoneRow && phoneRow.number) {
+        phone = { number: phoneRow.number, name: phoneRow.name || clientName };
+      }
     }
 
-    let phone = (await db.query(`
-      SELECT p.number, p.name
-      FROM company_phones p
-      JOIN contact_categories c ON p.category_id = c.id
-      WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
-      LIMIT 1
-    `, [company.id])).rows[0] as any;
-
-    if (!phone || !phone.number) {
-      // Fallback: buscar telefone no módulo Imposto de Renda (ir_declarations) usando o CPF/CNPJ
+    if (!phone) {
       const irpfPhone = (await db.query(`
         SELECT phone, name
         FROM ir_declarations 
@@ -693,10 +706,13 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
       `, [cleanCnpj])).rows[0] as any;
 
       if (irpfPhone && irpfPhone.phone) {
-        phone = { number: irpfPhone.phone, name: irpfPhone.name || company.razao_social };
-      } else {
-        return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}, e também não foi encontrado no Imposto de Renda.` };
+        phone = { number: irpfPhone.phone, name: irpfPhone.name || clientName };
+        clientName = irpfPhone.name || clientName;
       }
+    }
+
+    if (!phone) {
+      return { error: `Nenhum telefone encontrado para o CPF/CNPJ ${cnpjRaw} no cadastro de empresas ou no Imposto de Renda.` };
     }
 
     // 3. Pegar URL do PDF do Boleto
@@ -729,7 +745,7 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
 
 Olá *${phone.name}*.
 Como vai? Esperamos que esteja bem!
-Nosso sistema identificou que consta em aberto o boleto da empresa *${company.razao_social} - ${cnpjRaw}* no valor de *${valor}* vencido em *${vencimento}*.
+Nosso sistema identificou que consta em aberto o boleto da empresa *${clientName} - ${cnpjRaw}* no valor de *${valor}* vencido em *${vencimento}*.
 Sabemos que imprevistos acontecem mas se o valor já tiver sido pago desconsidere essa mensagem.
 Se precisar de nossa ajuda não hesite em nos contatar através da nossa Central de Atendimento (24) 3026-5648.
 
