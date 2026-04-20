@@ -59,7 +59,7 @@ const navigation: NavigationItem[] = [
   { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view'] },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
   { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permissions: ['contabilidade.view', 'contabilidade.faturamento.view'] },
-  { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permission: 'financeiro.cobranca.view' },
+  { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permissions: ['financeiro.cobranca.contabilidade.view', 'financeiro.cobranca.consultoria.view', 'financeiro.dashboard.contabilidade', 'financeiro.dashboard.consultoria'] },
   { name: 'Pessoa Física', href: '/admin/pessoa-fisica', icon: UserIcon },
   { name: 'Permissões', href: '/admin/permissions', icon: LockClosedIcon, permission: 'permissions.view' },
   { name: 'Logs de Auditoria', href: '/admin/audit-logs', icon: DocumentTextIcon, permission: 'audit_logs.view' },
@@ -84,6 +84,7 @@ interface AdminDashboardProps {
     name: string;
     email: string;
     avatar_path: string | null;
+    role?: string;
   };
   permissions?: string[];
 }
@@ -100,6 +101,9 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
 
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => navigation.map(item => {
+    // Admin always sees everything
+    if (user?.role === 'admin') return item;
+
     const hasPerm = (perm?: string, perms?: string[]) => {
       if (!perm && (!perms || perms.length === 0)) return true;
       if (perm && permissions.includes(perm)) return true;
@@ -128,7 +132,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
     }
     
     return item;
-  }).filter(Boolean) as NavigationItem[], [permissions]);
+  }).filter(Boolean) as NavigationItem[], [permissions, user]);
 
   useEffect(() => {
     // Expand menu if current path is a child
