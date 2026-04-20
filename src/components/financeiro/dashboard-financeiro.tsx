@@ -8,12 +8,12 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export function DashboardFinanceiro() {
+export function DashboardFinanceiro({ defaultCompanyId = '0' }: { defaultCompanyId?: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [companyId, setCompanyId] = useState<string>('0');
+  const [companyId, setCompanyId] = useState<string>(defaultCompanyId);
 
   const fetchData = async (forceRefresh = false, fullRefresh = false, selectedCompanyId = companyId) => {
     if (forceRefresh) setRefreshing(true);

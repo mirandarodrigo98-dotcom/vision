@@ -134,7 +134,24 @@ const CustomFloatingFilter = (props: any) => {
 
 import { getUserPermissions } from '@/app/actions/permissions';
 
-export default function CobrancaPage() {
+export default async function CobrancaPage() {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  const permissions = await getUserPermissions();
+  if (!permissions.includes('financeiro.cobranca.contabilidade.view')) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
+        <p className="text-gray-500">Você não tem permissão para acessar este módulo.</p>
+      </div>
+    );
+  }
+
+  return <CobrancaClient permissions={permissions} />;
+}
+
+function CobrancaClient({ permissions }: { permissions: string[] }) {
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
   const [loading, setLoading] = useState(false);
@@ -164,14 +181,11 @@ export default function CobrancaPage() {
   const [isSendingDigisac, setIsSendingDigisac] = useState(false);
   const [isSendingCobranca, setIsSendingCobranca] = useState(false);
 
-  const [userPermissions, setUserPermissions] = useState<string[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userPermissions, setUserPermissions] = useState<string[]>(permissions);
+  const [isAdmin, setIsAdmin] = useState(permissions.includes('all_permissions') || permissions.length > 100);
 
   useEffect(() => {
-    getUserPermissions().then(perms => {
-      setUserPermissions(perms);
-      setIsAdmin(perms.includes('all_permissions') || perms.length > 100); // Admin typically has all permissions
-    });
+    // Permissoes ja carregadas via props
   }, []);
 
   const formatNumber = (value: number) => {
@@ -1183,7 +1197,7 @@ export default function CobrancaPage() {
               <Button 
                 className="bg-[#8cc63f] hover:bg-green-600 text-white disabled:opacity-50" 
                 disabled={
-                  (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber.cancelar')) || 
+                  (!isAdmin && !userPermissions.includes('financeiro.cobranca.contabilidade.receber.cancelar')) || 
                   isCarregandoDetalhes || 
                   !detalheConta ||
                   (() => {
@@ -1230,7 +1244,7 @@ export default function CobrancaPage() {
               <Button 
                 className="bg-[#d2e4b5] hover:bg-[#b3d482] text-gray-700 disabled:opacity-50" 
                 disabled={
-                  (!isAdmin && !userPermissions.includes('financeiro.cobranca.receber')) || 
+                  (!isAdmin && !userPermissions.includes('financeiro.cobranca.contabilidade.receber')) || 
                   isCarregandoDetalhes || 
                   !detalheConta || 
                   ((detalheConta.valor_documento || 0) - (detalheConta.resumo?.valor_pago || detalheConta.valor_pago || selectedRows[0]?.valor_pago_calculado || 0) <= 0.01)

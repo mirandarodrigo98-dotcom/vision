@@ -11,7 +11,12 @@ export default async function FinanceiroPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  if (!permissions.includes('financeiro.cobranca.view')) {
+  const canViewContabilidade = permissions.includes('financeiro.cobranca.contabilidade.view');
+  const canViewConsultoria = permissions.includes('financeiro.cobranca.consultoria.view');
+  const canViewDashContabilidade = permissions.includes('financeiro.dashboard.contabilidade');
+  const canViewDashConsultoria = permissions.includes('financeiro.dashboard.consultoria');
+
+  if (!canViewContabilidade && !canViewConsultoria && !canViewDashContabilidade && !canViewDashConsultoria) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
@@ -30,14 +35,16 @@ export default async function FinanceiroPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        
+        {canViewDashContabilidade && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ChartBarIcon className="h-5 w-5" />
-              Dashboard Financeiro
+              Dashboard Contabilidade
             </CardTitle>
             <CardDescription>
-              Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie.
+              Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie (Contabilidade).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -46,7 +53,28 @@ export default async function FinanceiroPage() {
             </Link>
           </CardContent>
         </Card>
+        )}
 
+        {canViewDashConsultoria && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ChartBarIcon className="h-5 w-5" />
+              Dashboard Consultoria
+            </CardTitle>
+            <CardDescription>
+              Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie (Consultoria).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/financeiro/dashboard-consultoria">
+              <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white">Acessar Dashboard</Button>
+            </Link>
+          </CardContent>
+        </Card>
+        )}
+
+        {canViewContabilidade && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -63,7 +91,9 @@ export default async function FinanceiroPage() {
             </Link>
           </CardContent>
         </Card>
+        )}
 
+        {canViewConsultoria && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -80,6 +110,7 @@ export default async function FinanceiroPage() {
             </Link>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

@@ -82,12 +82,21 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'contabilidade.faturamento.view', label: 'Faturamento Contábil', category: 'Contabilidade', module: 'Módulo Fiscal' },
 
     // --- Módulo Financeiro ---
-    { code: 'financeiro.cobranca.view', label: 'Acessar Cobrança', category: 'Financeiro', module: 'Módulo Financeiro' },
-    { code: 'financeiro.cobranca.detalhar', label: 'Detalhar Título', category: 'Financeiro', module: 'Módulo Financeiro' },
-    { code: 'financeiro.cobranca.receber', label: 'Registrar Recebimento', category: 'Financeiro', module: 'Módulo Financeiro' },
-    { code: 'financeiro.cobranca.receber.cancelar', label: 'Cancelar Recebimento', category: 'Financeiro', module: 'Módulo Financeiro' },
-    { code: 'financeiro.cobranca.boleto', label: 'Visualizar Boleto', category: 'Financeiro', module: 'Módulo Financeiro' },
-    { code: 'financeiro.cobranca.digisac', label: 'Enviar Boleto via Digisac', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.dashboard.contabilidade', label: 'Dashboard NZD Contabilidade', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.contabilidade.view', label: 'Acessar Cobrança (Contabilidade)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.contabilidade.detalhar', label: 'Detalhar Título (Contabilidade)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.contabilidade.receber', label: 'Registrar Recebimento (Contabilidade)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.contabilidade.receber.cancelar', label: 'Cancelar Recebimento (Contabilidade)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.contabilidade.boleto', label: 'Visualizar Boleto (Contabilidade)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.contabilidade.digisac', label: 'Enviar Boleto via Digisac (Contabilidade)', category: 'Financeiro', module: 'Módulo Financeiro' },
+
+    { code: 'financeiro.dashboard.consultoria', label: 'Dashboard NZD Consultoria', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.consultoria.view', label: 'Acessar Cobrança (Consultoria)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.consultoria.detalhar', label: 'Detalhar Título (Consultoria)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.consultoria.receber', label: 'Registrar Recebimento (Consultoria)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.consultoria.receber.cancelar', label: 'Cancelar Recebimento (Consultoria)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.consultoria.boleto', label: 'Visualizar Boleto (Consultoria)', category: 'Financeiro', module: 'Módulo Financeiro' },
+    { code: 'financeiro.cobranca.consultoria.digisac', label: 'Enviar Boleto via Digisac (Consultoria)', category: 'Financeiro', module: 'Módulo Financeiro' },
 
     // --- Módulo Integrações ---
     { code: 'integrations.view', label: 'Acessar Integrações', category: 'Integrações', module: 'Módulo Integrações' },
