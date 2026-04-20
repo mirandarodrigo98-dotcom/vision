@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getProcessesFiltered } from '@/app/actions/societario-processes';
 import { ProcessFilters } from '@/components/societario/processes-filters';
 import { ProcessActions } from '@/components/societario/process-actions';
+import { ArrowRightIcon, BuildingOfficeIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -44,6 +45,46 @@ export default async function SocietarioPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Societário</h1>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Link href="/admin/societario/contratos" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <DocumentTextIcon className="h-5 w-5" />
+                  Contratos
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardContent className="px-0 pb-0 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Controle e emissão de contratos de prestação de serviços.
+                </p>
+              </CardContent>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/admin/societario/processos" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <BuildingOfficeIcon className="h-5 w-5" />
+                  Processos Societários
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardContent className="px-0 pb-0 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Acompanhamento de aberturas, alterações e baixas.
+                </p>
+              </CardContent>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
 
       <Tabs defaultValue={activeTab} className="w-full">

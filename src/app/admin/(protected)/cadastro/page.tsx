@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BuildingOfficeIcon, UserGroupIcon, UsersIcon, IdentificationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, BuildingOfficeIcon, UserGroupIcon, UsersIcon, IdentificationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function CadastroPage() {
@@ -39,107 +39,107 @@ export default async function CadastroPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BuildingOfficeIcon className="h-5 w-5" />
-              Empresas
-            </CardTitle>
-            <CardDescription>
-              Gestão de empresas clientes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/clients">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/clients" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <BuildingOfficeIcon className="h-5 w-5" />
+                  Empresas
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Gestão de empresas clientes.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserGroupIcon className="h-5 w-5" />
-              Sócios
-            </CardTitle>
-            <CardDescription>
-              Quadro societário e informações dos sócios.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/socios">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/socios" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <UserGroupIcon className="h-5 w-5" />
+                  Sócios
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Quadro societário e informações dos sócios.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <IdentificationIcon className="h-5 w-5" />
-              Contadores
-            </CardTitle>
-            <CardDescription>
-              Cadastro de contadores parceiros.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/accountants">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/accountants" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <IdentificationIcon className="h-5 w-5" />
+                  Contadores
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Cadastro de contadores parceiros.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BuildingStorefrontIcon className="h-5 w-5" />
-              Departamentos
-            </CardTitle>
-            <CardDescription>
-              Estrutura de departamentos do escritório.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/registrations/departments">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/registrations/departments" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <BuildingStorefrontIcon className="h-5 w-5" />
+                  Departamentos
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Estrutura de departamentos do escritório.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5" />
-              Usuário do Cliente
-            </CardTitle>
-            <CardDescription>
-              Gestão de acessos para usuários clientes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/client-users">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/client-users" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <UsersIcon className="h-5 w-5" />
+                  Usuário do Cliente
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Gestão de acessos para usuários clientes.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5" />
-              Usuários do Escritório
-            </CardTitle>
-            <CardDescription>
-              Membros da equipe interna e operadores.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/team">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/team" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <UsersIcon className="h-5 w-5" />
+                  Usuários do Escritório
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Membros da equipe interna e operadores.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   );

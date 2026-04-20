@@ -1,9 +1,9 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalculatorIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ContabilidadePage() {
@@ -30,39 +30,39 @@ export default async function ContabilidadePage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalculatorIcon className="h-5 w-5" />
-              Faturamento
-            </CardTitle>
-            <CardDescription>
-              Acompanhamento do faturamento das empresas de Lucro Presumido e Lucro Real.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/contabilidade/faturamento">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/contabilidade/faturamento" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <CalculatorIcon className="h-5 w-5" />
+                  Faturamento
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Acompanhamento do faturamento das empresas de Lucro Presumido e Lucro Real.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DocumentTextIcon className="h-5 w-5" />
-              Faturamento SN
-            </CardTitle>
-            <CardDescription>
-              Faturamento das empresas enquadradas no Simples Nacional.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/contabilidade/faturamento-sn">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/contabilidade/faturamento-sn" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <DocumentTextIcon className="h-5 w-5" />
+                  Faturamento SN
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Faturamento das empresas enquadradas no Simples Nacional.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   );

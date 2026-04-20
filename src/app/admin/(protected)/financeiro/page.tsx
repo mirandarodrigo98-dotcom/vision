@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CurrencyDollarIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, CurrencyDollarIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function FinanceiroPage() {
@@ -38,79 +38,79 @@ export default async function FinanceiroPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         
         {canViewDashContabilidade && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ChartBarIcon className="h-5 w-5" />
-              Dashboard Contabilidade
-            </CardTitle>
-            <CardDescription>
-              Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie (Contabilidade).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/financeiro/dashboard">
-              <Button className="w-full bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white">Acessar Dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/financeiro/dashboard" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <ChartBarIcon className="h-5 w-5" />
+                  Dashboard Contabilidade
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie (Contabilidade).
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         )}
 
         {canViewDashConsultoria && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ChartBarIcon className="h-5 w-5" />
-              Dashboard Consultoria
-            </CardTitle>
-            <CardDescription>
-              Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie (Consultoria).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/financeiro/dashboard-consultoria">
-              <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white">Acessar Dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/financeiro/dashboard-consultoria" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <ChartBarIcon className="h-5 w-5" />
+                  Dashboard Consultoria
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Métricas e indicadores em tempo real das receitas, ticket médio e clientes baseados no Omie (Consultoria).
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         )}
 
         {canViewContabilidade && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CurrencyDollarIcon className="h-5 w-5" />
-              Contas a Receber (NZD Contabilidade)
-            </CardTitle>
-            <CardDescription>
-              Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos via Omie.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/financeiro/cobranca">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/financeiro/cobranca" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <CurrencyDollarIcon className="h-5 w-5" />
+                  Contas a Receber (NZD Contabilidade)
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos via Omie.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         )}
 
         {canViewConsultoria && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CurrencyDollarIcon className="h-5 w-5" />
-              Contas a Receber (NZD Consultoria)
-            </CardTitle>
-            <CardDescription>
-              Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos da Consultoria.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/financeiro/cobranca-consultoria">
-              <Button className="w-full">Acessar Módulo</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Link href="/admin/financeiro/cobranca-consultoria" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <CurrencyDollarIcon className="h-5 w-5" />
+                  Contas a Receber (NZD Consultoria)
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Consulte e acompanhe boletos recebidos, inadimplência e integrações de recebimentos da Consultoria.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
         )}
       </div>
     </div>
