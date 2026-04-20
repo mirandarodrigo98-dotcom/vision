@@ -141,7 +141,8 @@ export default async function CobrancaPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  if (!permissions.includes('financeiro.cobranca.consultoria.view')) {
+  const isAdmin = session.role === 'admin';
+  if (!isAdmin && !permissions.includes('financeiro.cobranca.consultoria.view')) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
@@ -150,10 +151,10 @@ export default async function CobrancaPage() {
     );
   }
 
-  return <CobrancaClient permissions={permissions} />;
+  return <CobrancaClient permissions={permissions} isAdminRole={isAdmin} />;
 }
 
-function CobrancaClient({ permissions }: { permissions: string[] }) {
+function CobrancaClient({ permissions, isAdminRole = false }: { permissions: string[], isAdminRole?: boolean }) {
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
   const [loading, setLoading] = useState(false);
@@ -184,7 +185,7 @@ function CobrancaClient({ permissions }: { permissions: string[] }) {
   const [isSendingCobranca, setIsSendingCobranca] = useState(false);
 
   const [userPermissions, setUserPermissions] = useState<string[]>(permissions);
-  const [isAdmin, setIsAdmin] = useState(permissions.includes('all_permissions') || permissions.length > 100);
+  const [isAdmin, setIsAdmin] = useState(isAdminRole || permissions.includes('all_permissions') || permissions.length > 100);
 
   useEffect(() => {
     // Permissoes ja carregadas

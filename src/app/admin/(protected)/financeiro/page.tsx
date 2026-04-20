@@ -11,10 +11,11 @@ export default async function FinanceiroPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  const canViewContabilidade = permissions.includes('financeiro.cobranca.contabilidade.view');
-  const canViewConsultoria = permissions.includes('financeiro.cobranca.consultoria.view');
-  const canViewDashContabilidade = permissions.includes('financeiro.dashboard.contabilidade');
-  const canViewDashConsultoria = permissions.includes('financeiro.dashboard.consultoria');
+  const isAdmin = session.role === 'admin';
+  const canViewContabilidade = isAdmin || permissions.includes('financeiro.cobranca.contabilidade.view');
+  const canViewConsultoria = isAdmin || permissions.includes('financeiro.cobranca.consultoria.view');
+  const canViewDashContabilidade = isAdmin || permissions.includes('financeiro.dashboard.contabilidade');
+  const canViewDashConsultoria = isAdmin || permissions.includes('financeiro.dashboard.consultoria');
 
   if (!canViewContabilidade && !canViewConsultoria && !canViewDashContabilidade && !canViewDashConsultoria) {
     return (

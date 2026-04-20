@@ -8,7 +8,8 @@ export default async function DashboardConsultoriaPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  if (!permissions.includes('financeiro.dashboard.consultoria')) {
+  const isAdmin = session.role === 'admin';
+  if (!isAdmin && !permissions.includes('financeiro.dashboard.consultoria')) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>

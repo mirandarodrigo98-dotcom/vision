@@ -14,7 +14,8 @@ export default async function DashboardFinanceiroPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  if (!permissions.includes('financeiro.dashboard.contabilidade')) {
+  const isAdmin = session.role === 'admin';
+  if (!isAdmin && !permissions.includes('financeiro.dashboard.contabilidade')) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
