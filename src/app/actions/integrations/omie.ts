@@ -559,7 +559,7 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
     }
 
     // 2. Encontrar o contato Financeiro
-    const phone = (await db.query(`
+    let phone = (await db.query(`
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
@@ -568,7 +568,21 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
     `, [company.id])).rows[0] as any;
 
     if (!phone || !phone.number) {
-      return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };
+      // Fallback: buscar telefone no módulo Imposto de Renda (ir_declarations) usando o CPF/CNPJ
+      const irpfPhone = (await db.query(`
+        SELECT phone, name
+        FROM ir_declarations 
+        WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), '/', '') = $1 
+          AND phone IS NOT NULL AND phone != ''
+        ORDER BY year DESC 
+        LIMIT 1
+      `, [cleanCnpj])).rows[0] as any;
+
+      if (irpfPhone && irpfPhone.phone) {
+        phone = { number: irpfPhone.phone, name: irpfPhone.name || company.razao_social };
+      } else {
+        return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}, e também não foi encontrado no Imposto de Renda.` };
+      }
     }
 
     // 3. Pegar URL do PDF do Boleto
@@ -659,7 +673,7 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
       return { error: `Cliente não encontrado no cadastro de empresas do Vision para o CNPJ/CPF ${cnpjRaw}.` };
     }
 
-    const phone = (await db.query(`
+    let phone = (await db.query(`
       SELECT p.number, p.name
       FROM company_phones p
       JOIN contact_categories c ON p.category_id = c.id
@@ -668,7 +682,21 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
     `, [company.id])).rows[0] as any;
 
     if (!phone || !phone.number) {
-      return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}.` };
+      // Fallback: buscar telefone no módulo Imposto de Renda (ir_declarations) usando o CPF/CNPJ
+      const irpfPhone = (await db.query(`
+        SELECT phone, name
+        FROM ir_declarations 
+        WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), '/', '') = $1 
+          AND phone IS NOT NULL AND phone != ''
+        ORDER BY year DESC 
+        LIMIT 1
+      `, [cleanCnpj])).rows[0] as any;
+
+      if (irpfPhone && irpfPhone.phone) {
+        phone = { number: irpfPhone.phone, name: irpfPhone.name || company.razao_social };
+      } else {
+        return { error: `Nenhum telefone com a categoria "Financeiro" ou "Todas" cadastrado para a empresa ${company.razao_social}, e também não foi encontrado no Imposto de Renda.` };
+      }
     }
 
     // 3. Pegar URL do PDF do Boleto
