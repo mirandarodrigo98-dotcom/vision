@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface CompanyDataTabProps {
   company: any;
@@ -68,6 +71,8 @@ export function CompanyDataTab({
   const [filial, setFilial] = useState(company?.filial || '');
   const [code, setCode] = useState(company?.code || '');
 
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+
   const isCpf = cnpjValue.replace(/\D/g, '').length === 11;
 
   useEffect(() => {
@@ -105,6 +110,66 @@ export function CompanyDataTab({
     // Format for display
     const display = (centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     setCapitalSocialDisplay(display);
+  };
+
+  const lookupCnpj = async () => {
+    const cleanCnpj = cnpjValue.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) {
+      toast.error('CNPJ inválido para busca.');
+      return;
+    }
+
+    setCnpjLoading(true);
+    try {
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do CNPJ.');
+      }
+      
+      const data = await response.json();
+      
+      setRazaoSocial(data.razao_social || '');
+      setNome(data.nome_fantasia || '');
+      
+      if (data.data_inicio_atividade) {
+        setDate(new Date(data.data_inicio_atividade + 'T12:00:00'));
+      }
+      
+      if (data.cep) {
+        const cleanCep = data.cep.replace(/\D/g, '');
+        setCepValue(cleanCep.replace(/(\d{5})(\d{3})/, '$1-$2'));
+      }
+
+      setAddressStreet(data.logradouro || '');
+      setAddressNumber(data.numero || '');
+      setAddressComplement(data.complemento || '');
+      setAddressNeighborhood(data.bairro || '');
+      setMunicipality(data.municipio || '');
+      setUf(data.uf || '');
+      
+      if (streetRef.current) { streetRef.current.value = data.logradouro || ''; streetRef.current.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (neighborhoodRef.current) { neighborhoodRef.current.value = data.bairro || ''; neighborhoodRef.current.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (municipalityRef.current) { municipalityRef.current.value = data.municipio || ''; municipalityRef.current.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (ufRef.current) { ufRef.current.value = data.uf || ''; ufRef.current.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (complementRef.current) { complementRef.current.value = data.complemento || ''; complementRef.current.dispatchEvent(new Event('input', { bubbles: true })); }
+      
+      if (data.ddd_telefone_1) {
+        setTelefone(data.ddd_telefone_1);
+      }
+      if (data.ddd_telefone_2) {
+        setTelefone(prev => prev ? `${prev} / ${data.ddd_telefone_2}` : data.ddd_telefone_2);
+      }
+      
+      if (data.email) {
+        setEmail(data.email);
+      }
+
+      toast.success('Dados do CNPJ importados com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao buscar CNPJ. Verifique se o número está correto.');
+    } finally {
+      setCnpjLoading(false);
+    }
   };
 
   return (
@@ -147,17 +212,29 @@ export function CompanyDataTab({
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-4">
         <label className="text-sm font-medium">CNPJ/CPF *</label>
         <div className="space-y-1">
-          <Input 
-            name="cnpj" 
-            value={cnpjValue} 
-            onChange={handleCnpjChange}
-            onBlur={handleCnpjBlur}
-            placeholder="00.000.000/0000-00 ou 000.000.000-00"
-            maxLength={18}
-            required 
-            className={`w-[25ch] ${cnpjError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-            disabled={hasLinkedRecords}
-          />
+          <div className="flex gap-2">
+            <Input 
+              name="cnpj" 
+              value={cnpjValue} 
+              onChange={handleCnpjChange}
+              onBlur={handleCnpjBlur}
+              placeholder="00.000.000/0000-00 ou 000.000.000-00"
+              maxLength={18}
+              required 
+              className={`w-[25ch] ${cnpjError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              disabled={hasLinkedRecords}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={isCpf || hasLinkedRecords || cnpjLoading}
+              onClick={lookupCnpj}
+              title={isCpf ? "Busca disponível apenas para CNPJ" : "Buscar dados na Receita Federal"}
+            >
+              <Search className={`h-4 w-4 ${cnpjLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
           {hasLinkedRecords && <p className="text-xs text-yellow-600 mt-1">CNPJ/CPF não pode ser alterado pois existem registros vinculados.</p>}
           {cnpjError && <p className="text-xs text-red-500 mt-1">{cnpjError}</p>}
         </div>
