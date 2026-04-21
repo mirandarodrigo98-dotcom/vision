@@ -49,6 +49,7 @@ export function CompanyDataTab({
   municipalityRef,
   ufRef,
   cepValue,
+  setCepValue,
   handleCepChange,
   lookupCep,
   cepLoading,
