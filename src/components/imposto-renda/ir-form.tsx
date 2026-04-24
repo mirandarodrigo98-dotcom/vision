@@ -318,30 +318,15 @@ export function IRForm() {
                 placeholder="0,00" 
                 value={serviceValue}
                 onChange={e => {
-                  const raw = e.target.value;
-                  const digits = raw.replace(/\D/g, '');
-                  if (!digits) {
+                  let val = e.target.value.replace(/\D/g, '');
+                  if (!val) {
                     setServiceValue('');
                     return;
                   }
-                  
-                  // Parse para número para remover zeros à esquerda indesejados
-                  const numericValue = parseInt(digits, 10);
-                  if (isNaN(numericValue)) {
-                    setServiceValue('');
-                    return;
-                  }
-                  
-                  // Transforma de volta para string sem zeros à esquerda
-                  const cleanDigits = numericValue.toString();
-                  
-                  // Se tiver menos de 3 dígitos, precisa preencher com zeros para os centavos
-                  const paddedDigits = cleanDigits.padStart(3, '0');
-                  
-                  const int = paddedDigits.slice(0, paddedDigits.length - 2);
-                  const dec = paddedDigits.slice(paddedDigits.length - 2);
-                  const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                  setServiceValue(`${intFmt || '0'},${dec}`);
+                  val = (parseInt(val, 10) / 100).toFixed(2);
+                  val = val.replace('.', ',');
+                  val = val.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                  setServiceValue(val);
                 }}
               />
               <p className="text-xs text-muted-foreground">

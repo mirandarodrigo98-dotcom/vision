@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF, IRFile, deleteIRFile, resendIRDeclaration } from '@/app/actions/imposto-renda';
+import { IRDeclaration, updateIRStatus, addIRComment, registerIRReceipt, IRStatus, updateIRIndication, updateIRPriority, deleteIRReceipt, updateIRContributor, getCompanyForReceipt, saveIRReceiptPDF, IRFile, IRReceipt, deleteIRFile, resendIRDeclaration } from '@/app/actions/imposto-renda';
 import { getActiveUsersForSelect } from '@/app/actions/team';
 import { getIRPartners } from '@/app/actions/ir-partners';
 import { getCompaniesForSelect } from '@/app/actions/companies';
@@ -41,11 +41,23 @@ interface IRDetailsProps {
   declaration: IRDeclaration;
   interactions: any[];
   files: IRFile[];
+  receipts: IRReceipt[];
   isAdmin?: boolean;
 }
 
-export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetailsProps) {
+export function IRDetails({ declaration, interactions, files, receipts, isAdmin }: IRDetailsProps) {
   const router = useRouter();
+  const hasBeenInitiated = interactions.some(
+    (interaction) => interaction?.type === 'status_change' && interaction?.new_status === 'Iniciado'
+  );
+  const canDeleteDeclaration = Boolean(isAdmin && declaration.status === 'Cancelada' && !hasBeenInitiated);
+  const serviceValue = Number(declaration.service_value || 0);
+  const totalReceived = receipts.reduce((acc, receipt) => acc + Number(receipt.receipt_value || 0), 0);
+  // Se for legado e marcado como recebido mas não tem recibos parciais, o remaining é 0
+  const isLegacyReceived = declaration.is_received && receipts.length === 0;
+  const remainingValue = isLegacyReceived ? 0 : Math.max(serviceValue - totalReceived, 0);
+  const fullyReceived = isLegacyReceived ? true : (serviceValue > 0 ? remainingValue <= 0 : declaration.is_received);
+  const latestReceipt = receipts[0] || null;
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [justificationDialog, setJustificationDialog] = useState<{isOpen: boolean, targetStatus: IRStatus | null}>({ isOpen: false, targetStatus: null });
@@ -373,6 +385,22 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
       toast.error('Data, forma de pagamento e conta são obrigatórios');
       return;
     }
+    if (!receiptData.value) {
+      toast.error('Informe o valor recebido');
+      return;
+    }
+
+    const receiptValueNum = parseFloat(receiptData.value.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(receiptValueNum) || receiptValueNum <= 0) {
+      toast.error('Informe um valor de recebimento válido');
+      return;
+    }
+    if (serviceValue > 0 && receiptValueNum > remainingValue) {
+      const formattedRemaining = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingValue);
+      toast.error(`Valor excede o saldo pendente (${formattedRemaining})`);
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
@@ -389,6 +417,8 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
       await registerIRReceipt(declaration.id, formData);
       toast.success('Pagamento registrado com sucesso!');
       setReceiptDialog(false);
+      setReceiptData(prev => ({ ...prev, value: '', attachment: null, attachmentName: '' }));
+      router.refresh();
     } catch (error: any) {
       toast.error(error.message || 'Erro ao registrar pagamento');
     } finally {
@@ -473,6 +503,15 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
         <div className="flex items-center gap-3">
           {isAdmin && (
             <Button variant="destructive" size="sm" className="gap-2" onClick={async () => {
+              if (!canDeleteDeclaration) {
+                if (declaration.status !== 'Cancelada') {
+                  toast.error('Só é permitido excluir declarações com status Cancelada.');
+                } else if (hasBeenInitiated) {
+                  toast.error('Declarações que já foram iniciadas não podem ser excluídas.');
+                }
+                return;
+              }
+
               if (confirm('Tem certeza que deseja excluir esta declaração? Esta ação não pode ser desfeita.')) {
                 try {
                   setLoading(true);
@@ -485,7 +524,7 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
                   setLoading(false);
                 }
               }
-            }} disabled={loading}>
+            }} disabled={loading || !canDeleteDeclaration}>
               <Trash2 className="w-4 h-4" />
               <span className="hidden sm:inline">Excluir</span>
             </Button>
@@ -507,7 +546,7 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
               </SelectContent>
             </Select>
           </div>
-          {declaration.is_received ? (
+          {fullyReceived ? (
             <Badge variant="outline" className="text-green-600 border-green-600 px-3 py-1 flex items-center gap-1">
               <CheckCircleIcon className="h-4 w-4" /> Recebido
             </Badge>
@@ -616,76 +655,84 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
             </CardContent>
           </Card>
 
-          {declaration.is_received && (
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Dados de Recebimento</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <BanknotesIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Forma de Pagamento:</p>
-                    <p className="text-sm text-muted-foreground">{declaration.receipt_method}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <BuildingOfficeIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Conta:</p>
-                    <p className="text-sm text-muted-foreground">{declaration.receipt_account}</p>
-                  </div>
-                </div>
-                {declaration.receipt_date && (
-                  <div className="flex items-start gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Data do Recebimento:</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDateSafe(declaration.receipt_date)}
-                      </p>
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Recebimentos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+                <p className="text-sm">
+                  <span className="font-medium">Valor do Serviço:</span>{' '}
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(serviceValue || 0)}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Total Recebido:</span>{' '}
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceived)}
+                </p>
+                <p className={`text-sm font-medium ${fullyReceived ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  Saldo Pendente:{' '}
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingValue)}
+                </p>
+              </div>
+
+              {receipts.length === 0 ? (
+                <div className="text-sm text-muted-foreground italic">Nenhum recebimento registrado.</div>
+              ) : (
+                <div className="space-y-3">
+                  {receipts.map((receipt) => (
+                    <div key={receipt.id} className="border rounded-md p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receipt.receipt_value || 0))}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateSafe(receipt.receipt_date)} via {receipt.receipt_method} - {receipt.receipt_account}
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={loading}
+                          onClick={async () => {
+                            setLoading(true);
+                            try {
+                              await deleteIRReceipt(declaration.id, receipt.id);
+                              toast.success('Recebimento excluído');
+                              router.refresh();
+                            } catch {
+                              toast.error('Erro ao excluir recebimento');
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+
+                      {receipt.receipt_attachment_url && (
+                        <a
+                          href={receipt.receipt_attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <PaperClipIcon className="h-4 w-4" /> Ver Comprovante
+                        </a>
+                      )}
                     </div>
-                  </div>
-                )}
-                {declaration.receipt_attachment_url && (
-                  <div className="pt-2">
-                    <a 
-                      href={declaration.receipt_attachment_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <PaperClipIcon className="h-4 w-4" /> Ver Comprovante
-                    </a>
-                  </div>
-                )}
-                <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="destructive" 
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        await deleteIRReceipt(declaration.id);
-                        toast.success('Recebimento excluído');
-                      } catch {
-                        toast.error('Erro ao excluir recebimento');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                  >
-                    Excluir Recebimento
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setReceiptToolsDialog(true)}
-                  >
-                    Gerar Recibo
-                  </Button>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+
+              {receipts.length > 0 && (
+                <Button variant="outline" onClick={() => setReceiptToolsDialog(true)}>
+                  Gerar Recibo
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="pb-4">
@@ -716,9 +763,21 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
                 })}
               </div>
 
-              {!declaration.is_received && (
+              {!fullyReceived && (
                 <div className="pt-4 mt-4 border-t">
-                  <Button onClick={() => setReceiptDialog(true)} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Button
+                    onClick={() => {
+                      setReceiptData(prev => ({
+                        ...prev,
+                        value: remainingValue > 0
+                          ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(remainingValue)
+                          : ''
+                      }));
+                      setReceiptDialog(true);
+                    }}
+                    disabled={loading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
                     <BanknotesIcon className="h-5 w-5 mr-2" /> Registrar Recebimento
                   </Button>
                 </div>
@@ -861,7 +920,10 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
           <DialogHeader>
             <DialogTitle>Registrar Recebimento</DialogTitle>
             <DialogDescription>
-              Informe os dados do pagamento recebido.
+              Informe os dados do pagamento recebido. Saldo pendente atual:{' '}
+              <strong className="text-foreground">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingValue)}
+              </strong>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -964,7 +1026,7 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
             <Button variant="outline" onClick={() => setReceiptDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleReceive} disabled={loading || !receiptData.method || !receiptData.account || !receiptData.date}>
+            <Button onClick={handleReceive} disabled={loading || !receiptData.method || !receiptData.account || !receiptData.date || !receiptData.value}>
               Confirmar Recebimento
             </Button>
           </DialogFooter>
@@ -1046,9 +1108,9 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
                   const lines = [
                     `Recebemos de: ${declaration.name} (CPF ${fmtCpf(declaration.cpf || '')})`,
                     `Referente à: Serviços de Declaração de Imposto de Renda - Exercício ${declaration.year}`,
-                    `Forma de Pagamento: ${declaration.receipt_method || ''} | Conta: ${declaration.receipt_account || ''}`,
-                    `Data do Recebimento: ${fmtDate(declaration.receipt_date || '')}`,
-                    `Valor: ${fmtMoney(declaration.service_value)}`
+                    `Forma de Pagamento: ${latestReceipt?.receipt_method || ''} | Conta: ${latestReceipt?.receipt_account || ''}`,
+                    `Data do Recebimento: ${fmtDate(latestReceipt?.receipt_date || '')}`,
+                    `Valor Recebido Acumulado: ${fmtMoney(totalReceived)}`
                   ];
                   let y = 78;
                   for (const ln of lines) {
@@ -1101,16 +1163,15 @@ export function IRDetails({ declaration, interactions, files, isAdmin }: IRDetai
                   placeholder="0,00"
                   value={indicationData.serviceValue}
                   onChange={(e) => {
-                    const raw = e.target.value;
-                    const digits = raw.replace(/\D/g, '');
-                    if (!digits) {
+                    let val = e.target.value.replace(/\D/g, '');
+                    if (!val) {
                       setIndicationData(prev => ({ ...prev, serviceValue: '' }));
                       return;
                     }
-                    const int = digits.slice(0, Math.max(0, digits.length - 2));
-                    const dec = digits.slice(Math.max(0, digits.length - 2)).padStart(2, '0');
-                    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                    setIndicationData(prev => ({ ...prev, serviceValue: `${intFmt || '0'},${dec}` }));
+                    val = (parseInt(val, 10) / 100).toFixed(2);
+                    val = val.replace('.', ',');
+                    val = val.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                    setIndicationData(prev => ({ ...prev, serviceValue: val }));
                   }}
                 />
             </div>

@@ -8,6 +8,22 @@ import { v4 as uuidv4 } from 'uuid';
 import { createNotification } from './notifications';
 import { sendIRUpdateEmail } from '@/lib/emails/notifications';
 
+async function ensureIRReceiptsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ir_receipts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+      declaration_id TEXT NOT NULL REFERENCES ir_declarations(id) ON DELETE CASCADE,
+      receipt_date DATE NOT NULL,
+      receipt_method TEXT NOT NULL,
+      receipt_account TEXT NOT NULL,
+      receipt_value NUMERIC(14,2) NOT NULL,
+      receipt_attachment_url TEXT,
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
 async function notifyIRUpdate(declarationId: string, declarationName: string, actionDesc: string) {
   const session = await getSession();
   if (!session) return;
@@ -108,13 +124,45 @@ export interface IRDeclaration {
   receipt_value?: number | null;
 }
 
+export interface IRReceipt {
+  id: string;
+  declaration_id: string;
+  receipt_date: string;
+  receipt_method: string;
+  receipt_account: string;
+  receipt_value: number;
+  receipt_attachment_url: string | null;
+  created_by: string | null;
+  created_at: string;
+  created_by_name?: string | null;
+}
+
 export async function getIRDeclarations(): Promise<IRDeclaration[]> {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
+  await ensureIRReceiptsTable();
 
   const sql = `
     SELECT 
       ir.*,
+      CASE 
+        WHEN ir.is_received = true AND (SELECT COUNT(*) FROM ir_receipts r WHERE r.declaration_id = ir.id) = 0 THEN true
+        WHEN COALESCE(ir.service_value, 0) > 0 
+          THEN COALESCE((
+            SELECT SUM(r.receipt_value)
+            FROM ir_receipts r
+            WHERE r.declaration_id = ir.id
+          ), 0) >= ir.service_value
+        ELSE ir.is_received
+      END AS is_received,
+      CASE
+        WHEN ir.is_received = true AND (SELECT COUNT(*) FROM ir_receipts r WHERE r.declaration_id = ir.id) = 0 THEN GREATEST(COALESCE(ir.service_value, 0), COALESCE(ir.receipt_value, 0))
+        ELSE COALESCE((
+          SELECT SUM(r.receipt_value)
+          FROM ir_receipts r
+          WHERE r.declaration_id = ir.id
+        ), COALESCE(ir.receipt_value, 0))
+      END AS receipt_value,
       c.razao_social as company_name,
       c.cnpj as company_cnpj
     FROM ir_declarations ir
@@ -142,17 +190,25 @@ export async function getIRStats() {
 
 export async function getIRReceiptStats() {
   const declarations = await getIRDeclarations();
-  const receivedDecls = declarations.filter(d => d.is_received);
-  const notReceivedDecls = declarations.filter(d => !d.is_received);
-  
-  const receivedCount = receivedDecls.length;
-  const notReceivedCount = notReceivedDecls.length;
-  
-  // Received value uses the actual receipt value (or fallback to service value if missing)
-  const receivedValue = receivedDecls.reduce((sum, d) => sum + (Number(d.receipt_value) || Number(d.service_value) || 0), 0);
-  
-  // Not received value uses the service value
-  const notReceivedValue = notReceivedDecls.reduce((sum, d) => sum + (Number(d.service_value) || 0), 0);
+
+  const normalized = declarations.map((d) => {
+    const serviceValue = Number(d.service_value || 0);
+    const receivedRaw = Number(d.receipt_value || 0);
+    const receivedValue = serviceValue > 0 ? Math.min(receivedRaw, serviceValue) : receivedRaw;
+    const pendingValue = serviceValue > 0 ? Math.max(serviceValue - receivedValue, 0) : 0;
+    const isFullyReceived = serviceValue > 0 ? pendingValue === 0 : Boolean(d.is_received || receivedValue > 0);
+
+    return {
+      isFullyReceived,
+      receivedValue,
+      pendingValue
+    };
+  });
+
+  const receivedCount = normalized.filter((d) => d.isFullyReceived).length;
+  const notReceivedCount = normalized.length - receivedCount;
+  const receivedValue = normalized.reduce((sum, d) => sum + d.receivedValue, 0);
+  const notReceivedValue = normalized.reduce((sum, d) => sum + d.pendingValue, 0);
 
   return [
     { name: 'Recebidas', value: receivedCount, moneyValue: Number(receivedValue) },
@@ -167,7 +223,41 @@ export async function deleteIRDeclaration(id: string) {
       throw new Error('Apenas administradores podem excluir declarações');
     }
 
+    const declaration = (await db.query(`
+      SELECT
+        d.id,
+        d.name,
+        d.status,
+        EXISTS (
+          SELECT 1
+          FROM ir_interactions i
+          WHERE i.declaration_id = d.id
+            AND i.type = 'status_change'
+            AND i.new_status = 'Iniciado'
+        ) AS has_been_initiated
+      FROM ir_declarations d
+      WHERE d.id = $1
+    `, [id])).rows[0];
+
+    if (!declaration) {
+      throw new Error('Declaração não encontrada');
+    }
+
+    if (declaration.status !== 'Cancelada') {
+      throw new Error('Só é permitido excluir declarações com status Cancelada');
+    }
+
+    if (declaration.has_been_initiated) {
+      throw new Error('Declarações que já foram iniciadas não podem ser excluídas');
+    }
+
+    // Notificar antes de excluir para conseguir buscar os dados do criador
+    await notifyIRUpdate(id, declaration.name || 'Declaração Excluída', 'excluiu uma declaração de IR');
+
     await db.transaction(async () => {
+      // Deletar arquivos anexados no banco de dados
+      await db.query('DELETE FROM ir_files WHERE declaration_id = $1', [id]);
+
       // Deletar anexos de interações desta declaração
       await db.query(`
         DELETE FROM ir_attachments 
@@ -191,8 +281,6 @@ export async function deleteIRDeclaration(id: string) {
     // NOTA: A revalidação pode falhar se a página atual (/.../[id]) não existir mais
     // Então revalidamos apenas a lista principal aqui
     revalidatePath('/admin/pessoa-fisica/imposto-renda');
-    
-    await notifyIRUpdate(id, 'Declaração Excluída', 'excluiu uma declaração de IR');
 
     return { success: true };
   } catch (error: any) {
@@ -283,6 +371,7 @@ export async function createIRDeclaration(data: {
 export async function getIRDeclarationById(id: string): Promise<IRDeclaration | undefined> {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
+  await ensureIRReceiptsTable();
 
   const sql = `
     SELECT 
@@ -304,6 +393,39 @@ export async function getIRDeclarationById(id: string): Promise<IRDeclaration | 
   if (!row) return undefined;
   
   const declaration = JSON.parse(JSON.stringify(row));
+
+  const summary = (await db.query(`
+    SELECT COALESCE(SUM(receipt_value), 0) AS total_received, COUNT(*) as count
+    FROM ir_receipts
+    WHERE declaration_id = $1
+  `, [id])).rows[0];
+  const totalReceived = Number(summary?.total_received || 0);
+  const receiptsCount = Number(summary?.count || 0);
+  const serviceValue = Number(declaration.service_value || 0);
+  
+  if (declaration.is_received && receiptsCount === 0) {
+    // Legacy: marked as received but no partial receipts yet
+    declaration.receipt_value = Math.max(serviceValue, Number(declaration.receipt_value || 0));
+    declaration.is_received = true;
+  } else {
+    declaration.receipt_value = totalReceived;
+    declaration.is_received = serviceValue > 0 ? totalReceived >= serviceValue : declaration.is_received;
+  }
+
+  const latestReceipt = (await db.query(`
+    SELECT receipt_date, receipt_method, receipt_account, receipt_attachment_url
+    FROM ir_receipts
+    WHERE declaration_id = $1
+    ORDER BY receipt_date DESC, created_at DESC
+    LIMIT 1
+  `, [id])).rows[0];
+
+  if (latestReceipt) {
+    declaration.receipt_date = latestReceipt.receipt_date;
+    declaration.receipt_method = latestReceipt.receipt_method;
+    declaration.receipt_account = latestReceipt.receipt_account;
+    declaration.receipt_attachment_url = latestReceipt.receipt_attachment_url;
+  }
   
   if (declaration.receipt_attachment_url && !declaration.receipt_attachment_url.startsWith('http')) {
     if (process.env.R2_PUBLIC_DOMAIN) {
@@ -458,7 +580,7 @@ export async function getIRFiles(declarationId: string): Promise<IRFile[]> {
       WHERE f.declaration_id = $1
       ORDER BY f.created_at DESC
     `, [declarationId])).rows;
-    return res as IRFile[];
+    return JSON.parse(JSON.stringify(res));
   } catch (error) {
     console.error('Error fetching IR files:', error);
     return [];
@@ -836,13 +958,44 @@ export async function getIRInteractions(id: string) {
 export async function registerIRReceipt(id: string, formData: FormData) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
+  await ensureIRReceiptsTable();
 
   const receipt_date = formData.get('receipt_date') as string;
   const receipt_method = formData.get('receipt_method') as string;
   const receipt_account = formData.get('receipt_account') as string;
   const receipt_value_str = formData.get('receipt_value') as string;
-  const receipt_value = receipt_value_str ? parseFloat(receipt_value_str.replace(/\./g, '').replace(',', '.')) : null;
+  const receipt_value = receipt_value_str ? parseFloat(receipt_value_str.replace(/\./g, '').replace(',', '.')) : 0;
   const file = formData.get('attachment') as File | null;
+
+  if (!receipt_date || !receipt_method || !receipt_account) {
+    throw new Error('Data, forma de pagamento e conta são obrigatórios');
+  }
+  if (!receipt_value || receipt_value <= 0) {
+    throw new Error('Informe um valor de recebimento válido');
+  }
+
+  const declaration = (await db.query(`
+    SELECT id, name, service_value
+    FROM ir_declarations
+    WHERE id = $1
+  `, [id])).rows[0];
+  if (!declaration) {
+    throw new Error('Declaração não encontrada');
+  }
+
+  const currentTotalRow = (await db.query(`
+    SELECT COALESCE(SUM(receipt_value), 0) AS total_received
+    FROM ir_receipts
+    WHERE declaration_id = $1
+  `, [id])).rows[0];
+  const currentTotal = Number(currentTotalRow?.total_received || 0);
+  const serviceValue = Number(declaration.service_value || 0);
+  const remaining = Math.max(serviceValue - currentTotal, 0);
+
+  if (serviceValue > 0 && receipt_value > remaining) {
+    const formattedRemaining = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remaining);
+    throw new Error(`Valor excede o saldo pendente (${formattedRemaining})`);
+  }
 
   let attachment_url: string | null = null;
 
@@ -862,23 +1015,44 @@ export async function registerIRReceipt(id: string, formData: FormData) {
 
   await db.transaction(async () => {
     await db.query(`
+      INSERT INTO ir_receipts (
+        declaration_id,
+        receipt_date,
+        receipt_method,
+        receipt_account,
+        receipt_value,
+        receipt_attachment_url,
+        created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [id, receipt_date, receipt_method, receipt_account, receipt_value, attachment_url, session.user_id]);
+
+    const totalRow = (await db.query(`
+      SELECT COALESCE(SUM(receipt_value), 0) AS total_received
+      FROM ir_receipts
+      WHERE declaration_id = $1
+    `, [id])).rows[0];
+    const totalReceived = Number(totalRow?.total_received || 0);
+    const fullyReceived = serviceValue > 0 ? totalReceived >= serviceValue : true;
+
+    await db.query(`
       UPDATE ir_declarations 
       SET 
-        is_received = true, 
-        receipt_date = $1, 
-        receipt_method = $2, 
-        receipt_account = $3, 
-        receipt_attachment_url = $4,
-        receipt_value = $5,
+        is_received = $1, 
+        receipt_date = $2, 
+        receipt_method = $3,
+        receipt_account = $4,
+        receipt_attachment_url = $5,
+        receipt_value = $6,
         updated_at = NOW() 
-      WHERE id = $6
-    `, [receipt_date, receipt_method, receipt_account, attachment_url, receipt_value, id]);
+      WHERE id = $7
+    `, [fullyReceived, receipt_date, receipt_method, receipt_account, attachment_url, totalReceived, id]);
 
     const formattedVal = receipt_value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(receipt_value) : '';
     await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', $3)
-    `, [id, session.user_id, `Pagamento ${formattedVal ? `de ${formattedVal} ` : ''}recebido via ${receipt_method} na conta ${receipt_account}`]);
+    `, [id, session.user_id, `Recebimento parcial ${formattedVal ? `de ${formattedVal} ` : ''}registrado via ${receipt_method} na conta ${receipt_account}`]);
   })();
 
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
@@ -912,36 +1086,121 @@ export async function markIRAsReceived(id: string) {
   }
 }
 
-export async function deleteIRReceipt(id: string) {
+export async function deleteIRReceipt(declarationId: string, receiptId?: string) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
+  await ensureIRReceiptsTable();
+
+  const declaration = (await db.query(`
+    SELECT id, name, service_value
+    FROM ir_declarations
+    WHERE id = $1
+  `, [declarationId])).rows[0];
+  if (!declaration) {
+    throw new Error('Declaração não encontrada');
+  }
+
   await db.transaction(async () => {
+    if (receiptId) {
+      await db.query(`
+        DELETE FROM ir_receipts
+        WHERE id = $1 AND declaration_id = $2
+      `, [receiptId, declarationId]);
+    } else {
+      await db.query(`
+        DELETE FROM ir_receipts
+        WHERE declaration_id = $1
+      `, [declarationId]);
+    }
+
+    const totalRow = (await db.query(`
+      SELECT COALESCE(SUM(receipt_value), 0) AS total_received
+      FROM ir_receipts
+      WHERE declaration_id = $1
+    `, [declarationId])).rows[0];
+    const totalReceived = Number(totalRow?.total_received || 0);
+    const serviceValue = Number(declaration.service_value || 0);
+    const fullyReceived = serviceValue > 0 ? totalReceived >= serviceValue : false;
+
+    const latestReceipt = (await db.query(`
+      SELECT receipt_date, receipt_method, receipt_account, receipt_attachment_url
+      FROM ir_receipts
+      WHERE declaration_id = $1
+      ORDER BY receipt_date DESC, created_at DESC
+      LIMIT 1
+    `, [declarationId])).rows[0];
+
     await db.query(`
       UPDATE ir_declarations 
       SET 
-        is_received = false, 
-        receipt_date = NULL, 
-        receipt_method = NULL, 
-        receipt_account = NULL, 
-        receipt_attachment_url = NULL,
-        receipt_value = NULL,
+        is_received = $1,
+        receipt_date = $2,
+        receipt_method = $3,
+        receipt_account = $4,
+        receipt_attachment_url = $5,
+        receipt_value = $6,
         updated_at = NOW()
-      WHERE id = $1
-    `, [id]);
+      WHERE id = $7
+    `, [
+      fullyReceived,
+      latestReceipt?.receipt_date || null,
+      latestReceipt?.receipt_method || null,
+      latestReceipt?.receipt_account || null,
+      latestReceipt?.receipt_attachment_url || null,
+      totalReceived > 0 ? totalReceived : null,
+      declarationId
+    ]);
     await db.query(`
       INSERT INTO ir_interactions (declaration_id, user_id, type, content)
       VALUES ($1, $2, 'comment', 'Recebimento excluído')
-    `, [id, session.user_id]);
+    `, [declarationId, session.user_id]);
   })();
   revalidatePath('/admin/pessoa-fisica/imposto-renda');
-  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${id}`);
+  revalidatePath(`/admin/pessoa-fisica/imposto-renda/${declarationId}`);
 
-  const decl = await getIRDeclarationById(id);
+  const decl = await getIRDeclarationById(declarationId);
   if (decl) {
-    await notifyIRUpdate(id, decl.name, 'excluiu um recebimento');
+    await notifyIRUpdate(declarationId, decl.name, 'excluiu um recebimento');
   }
 
   return { success: true };
+}
+
+export async function getIRReceipts(declarationId: string): Promise<IRReceipt[]> {
+  const session = await getSession();
+  if (!session) throw new Error('Unauthorized');
+  await ensureIRReceiptsTable();
+
+  const rows = (await db.query(`
+    SELECT
+      r.*,
+      u.name AS created_by_name
+    FROM ir_receipts r
+    LEFT JOIN users u ON u.id = r.created_by
+    WHERE r.declaration_id = $1
+    ORDER BY r.receipt_date DESC, r.created_at DESC
+  `, [declarationId])).rows;
+
+  const normalized = await Promise.all(rows.map(async (row: any) => {
+    let attachmentUrl = row.receipt_attachment_url;
+    if (attachmentUrl && !attachmentUrl.startsWith('http')) {
+      try {
+        attachmentUrl = process.env.R2_PUBLIC_DOMAIN
+          ? `${process.env.R2_PUBLIC_DOMAIN}/${attachmentUrl}`
+          : await getR2DownloadLink(attachmentUrl);
+      } catch (e) {
+        console.error('Error generating receipt attachment link', e);
+      }
+    }
+
+    return {
+      ...row,
+      receipt_value: Number(row.receipt_value || 0),
+      receipt_attachment_url: attachmentUrl || null
+    };
+  }));
+
+  return JSON.parse(JSON.stringify(normalized));
 }
 
 export async function getCompanyForReceipt(companyName: string) {

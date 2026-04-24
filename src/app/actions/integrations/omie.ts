@@ -298,6 +298,33 @@ export async function lancarRecebimentoOmie(payloadData: any, companyId: number 
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
   }
   try {
+    // Verificar o título original para ver se o valor pago é menor que o total
+    // Se for, devemos passar a flag para não baixar totalmente o título
+    try {
+      const payloadConsulta = {
+        call: "ConsultarContaReceber",
+        app_key: config.app_key,
+        app_secret: config.app_secret,
+        param: [{ codigo_lancamento_omie: Number(payloadData.codigo_lancamento) }]
+      };
+      
+      const resCons = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadConsulta, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const tituloConsultado = resCons.data;
+      
+      if (tituloConsultado && tituloConsultado.valor_documento) {
+        // Se o valor recebido for menor que o valor do documento, diz para não baixar
+        // O valor total a ser considerado é valor + desconto
+        const valorTotalRecebido = Number(payloadData.valor) + Number(payloadData.desconto || 0);
+        if (valorTotalRecebido < tituloConsultado.valor_documento) {
+          payloadData.baixar_documento = 'N';
+        }
+      }
+    } catch (e) {
+      console.warn("Não foi possível consultar o título antes do recebimento para validar baixa parcial", e);
+    }
+
     const payload = {
       call: "LancarRecebimento",
       app_key: config.app_key,
@@ -551,7 +578,7 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
       return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
     }
 
-    let phone: { number: string, name: string } | null = null;
+    let phones: { number: string, name: string }[] = [];
     let clientName = conta.nome_cliente || '';
 
     // 1. Tentar encontrar na tabela de empresas
@@ -559,21 +586,20 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
 
     if (company) {
       clientName = company.razao_social;
-      const phoneRow = (await db.query(`
+      const phoneRows = (await db.query(`
         SELECT p.number, p.name
         FROM company_phones p
         JOIN contact_categories c ON p.category_id = c.id
         WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
-        LIMIT 1
-      `, [company.id])).rows[0] as any;
+      `, [company.id])).rows as any[];
 
-      if (phoneRow && phoneRow.number) {
-        phone = { number: phoneRow.number, name: phoneRow.name || clientName };
+      if (phoneRows && phoneRows.length > 0) {
+        phones = phoneRows.map(row => ({ number: row.number, name: row.name || clientName }));
       }
     }
 
     // 2. Se não encontrou (ou não existe empresa ou não tem telefone financeiro), tentar no IRPF
-    if (!phone) {
+    if (phones.length === 0) {
       const irpfPhone = (await db.query(`
         SELECT phone, name
         FROM ir_declarations 
@@ -584,12 +610,12 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
       `, [cleanCnpj])).rows[0] as any;
 
       if (irpfPhone && irpfPhone.phone) {
-        phone = { number: irpfPhone.phone, name: irpfPhone.name || clientName };
+        phones.push({ number: irpfPhone.phone, name: irpfPhone.name || clientName });
         clientName = irpfPhone.name || clientName;
       }
     }
 
-    if (!phone) {
+    if (phones.length === 0) {
       return { error: `Nenhum telefone encontrado para o CPF/CNPJ ${cnpjRaw} no cadastro de empresas ou no Imposto de Renda.` };
     }
 
@@ -628,38 +654,64 @@ export async function enviarBoletoDigisacOmie(conta: any, companyId: number = 1)
     const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_documento || 0);
     const vencimento = conta.data_vencimento || '';
 
-    const messageBody = `_Essa é uma mensagem automática_\n\nPrezado(a) *${phone.name}*.\nVocê está recebendo o boleto de Honorários Contábeis da empresa *${clientName}* *${cnpjRaw}* no valor de *${valor}* com vencimento em *${vencimento}*.\nQualquer dúvida estamos à disposição através da Central de Atendimento (24) 3026-5648.\n\nDepartamento Financeiro`;
-
     const configDigisac = await getDigisacConfig();
     if (!configDigisac || !configDigisac.is_active || !configDigisac.connection_phone) {
       return { error: 'Integração Digisac inativa ou número de conexão não configurado.' };
     }
 
-    // 5. Enviar via Digisac
-    const result = await sendDigisacMessage({
-      number: phone.number,
-      serviceId: configDigisac.connection_phone,
-      contactName: phone.name,
-      body: null, // Separar o corpo para não dar 500 no Digisac
-      base64File: base64File,
-      fileName: fileName
-    });
+    let successCount = 0;
+    let errors: string[] = [];
 
-    if (!result.success) {
-      return { error: result.error || 'Erro ao enviar boleto (PDF) via Digisac.' };
+    // 5. Enviar via Digisac para todos os contatos com delay para não sobrecarregar
+    for (let i = 0; i < phones.length; i++) {
+      const phone = phones[i];
+      const messageBody = `_Essa é uma mensagem automática_\n\nPrezado(a) *${phone.name}*.\nVocê está recebendo o boleto de Honorários Contábeis da empresa *${clientName}* *${cnpjRaw}* no valor de *${valor}* com vencimento em *${vencimento}*.\nQualquer dúvida estamos à disposição através da Central de Atendimento (24) 3026-5648.\n\nDepartamento Financeiro`;
+
+      try {
+        const result = await sendDigisacMessage({
+          number: phone.number,
+          serviceId: configDigisac.connection_phone,
+          contactName: phone.name,
+          body: null, // Separar o corpo para não dar 500 no Digisac
+          base64File: base64File,
+          fileName: fileName
+        });
+
+        if (!result.success) {
+          errors.push(`Erro ao enviar PDF para ${phone.name}: ${result.error}`);
+          continue;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const resultMsg = await sendDigisacMessage({
+          number: phone.number,
+          serviceId: configDigisac.connection_phone,
+          body: messageBody
+        });
+
+        if (!resultMsg.success) {
+          errors.push(`Erro ao enviar texto para ${phone.name}: ${resultMsg.error}`);
+        } else {
+          successCount++;
+        }
+      } catch (err: any) {
+        errors.push(`Falha no envio para ${phone.name}: ${err.message || String(err)}`);
+      }
+
+      if (i < phones.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
 
-    const resultMsg = await sendDigisacMessage({
-      number: phone.number,
-      serviceId: configDigisac.connection_phone,
-      body: messageBody
-    });
-
-    if (!resultMsg.success) {
-      return { error: resultMsg.error || 'Erro ao enviar mensagem via Digisac.' };
+    if (successCount === 0 && errors.length > 0) {
+      return { error: errors.join('\n') };
     }
 
-    return { success: true };
+    return { 
+      success: true, 
+      warning: errors.length > 0 ? `Boleto enviado, mas houve erros:\n${errors.join('\n')}` : undefined 
+    };
   } catch (error: any) {
     console.error('Erro ao enviar boleto via Digisac:', error);
     return { error: `Falha interna: ${error.message || String(error)}` };
@@ -675,27 +727,26 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
       return { error: 'CNPJ/CPF do cliente não encontrado no título.' };
     }
 
-    let phone: { number: string, name: string } | null = null;
+    let phones: { number: string, name: string }[] = [];
     let clientName = conta.nome_cliente || '';
 
     const company = (await db.query(`SELECT id, razao_social FROM client_companies WHERE REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = $1`, [cleanCnpj])).rows[0] as any;
 
     if (company) {
       clientName = company.razao_social;
-      const phoneRow = (await db.query(`
+      const phoneRows = (await db.query(`
         SELECT p.number, p.name
         FROM company_phones p
         JOIN contact_categories c ON p.category_id = c.id
         WHERE p.company_id = $1 AND (c.name ILIKE '%Financeiro%' OR c.name ILIKE '%Todas%')
-        LIMIT 1
-      `, [company.id])).rows[0] as any;
+      `, [company.id])).rows as any[];
 
-      if (phoneRow && phoneRow.number) {
-        phone = { number: phoneRow.number, name: phoneRow.name || clientName };
+      if (phoneRows && phoneRows.length > 0) {
+        phones = phoneRows.map(row => ({ number: row.number, name: row.name || clientName }));
       }
     }
 
-    if (!phone) {
+    if (phones.length === 0) {
       const irpfPhone = (await db.query(`
         SELECT phone, name
         FROM ir_declarations 
@@ -706,12 +757,12 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
       `, [cleanCnpj])).rows[0] as any;
 
       if (irpfPhone && irpfPhone.phone) {
-        phone = { number: irpfPhone.phone, name: irpfPhone.name || clientName };
+        phones.push({ number: irpfPhone.phone, name: irpfPhone.name || clientName });
         clientName = irpfPhone.name || clientName;
       }
     }
 
-    if (!phone) {
+    if (phones.length === 0) {
       return { error: `Nenhum telefone encontrado para o CPF/CNPJ ${cnpjRaw} no cadastro de empresas ou no Imposto de Renda.` };
     }
 
@@ -741,7 +792,18 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
       }
     }
 
-    let messageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
+    // Fazer o download do PDF em Base64 para garantir envio no Digisac
+    const pdfData = await downloadBoletoPdfServer(pdfUrl);
+    
+    let successCount = 0;
+    let errors: string[] = [];
+
+    for (let i = 0; i < phones.length; i++) {
+      const phone = phones[i];
+      let currentMessageBody = messageBody.replace(/\$\{phone\.name\}/g, phone.name); // though we already interpolated phone.name above, wait, messageBody uses phone.name.
+
+      // We need to re-interpolate messageBody for each phone!
+      currentMessageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
 
 Olá *${phone.name}*.
 Como vai? Esperamos que esteja bem!
@@ -753,70 +815,86 @@ Atenciosamente
 *NZD Contabilidade*
 Departamento Financeiro`;
 
-    // Fazer o download do PDF em Base64 para garantir envio no Digisac
-    const pdfData = await downloadBoletoPdfServer(pdfUrl);
-    
-    // Se não conseguimos o PDF em binário, enviamos apenas a mensagem de texto com o link.
-    if (pdfData.error && pdfData.fallbackUrl) {
-       messageBody += `\n\nAcesse o seu boleto através deste link: ${pdfData.fallbackUrl}`;
-       
-       const resultMsg = await sendDigisacMessage({
-         number: phone.number,
-         serviceId: configDigisac.connection_phone,
-         body: messageBody
-       });
+      try {
+        // Se não conseguimos o PDF em binário, enviamos apenas a mensagem de texto com o link.
+        if (pdfData.error && pdfData.fallbackUrl) {
+           currentMessageBody += `\n\nAcesse o seu boleto através deste link: ${pdfData.fallbackUrl}`;
+           
+           const resultMsg = await sendDigisacMessage({
+             number: phone.number,
+             serviceId: configDigisac.connection_phone,
+             body: currentMessageBody
+           });
 
-       if (!resultMsg.success) {
-         return { error: resultMsg.error || 'Erro ao enviar a cobrança via Digisac.' };
-       }
+           if (!resultMsg.success) {
+             errors.push(`Erro ao enviar cobrança (link) para ${phone.name}: ${resultMsg.error}`);
+           } else {
+             successCount++;
+           }
+        } else if (pdfData.error || !pdfData.base64) {
+          errors.push(`Não foi possível fazer o download do boleto para envio a ${phone.name}: ${pdfData.error}`);
+        } else {
+          const base64File = `data:application/pdf;base64,${pdfData.base64}`;
+          let fileName = 'boleto.pdf';
+          try {
+            const urlObj = new URL(pdfUrl);
+            const pathParts = urlObj.pathname.split('/');
+            const extracted = pathParts[pathParts.length - 1];
+            if (extracted && extracted.endsWith('.pdf')) {
+              fileName = extracted;
+            } else {
+              fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+            }
+          } catch (e) {
+            fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
+          }
 
-       return { success: true, warning: 'Boleto enviado como link, pois o banco bloqueou o download do arquivo PDF direto.' };
-    } else if (pdfData.error || !pdfData.base64) {
-      return { error: pdfData.error || 'Não foi possível fazer o download do boleto para envio.' };
+          // Enviar via Digisac (Primeiro o arquivo sem texto, depois a mensagem - mais seguro)
+          const resultFile = await sendDigisacMessage({
+            number: phone.number,
+            serviceId: configDigisac.connection_phone,
+            contactName: phone.name,
+            body: null, // Força a mensagem ser separada
+            base64File: base64File,
+            fileName: fileName
+          });
+
+          if (!resultFile.success) {
+            errors.push(`Erro ao anexar o PDF da cobrança para ${phone.name}: ${resultFile.error}`);
+            continue;
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          const resultMsg = await sendDigisacMessage({
+            number: phone.number,
+            serviceId: configDigisac.connection_phone,
+            body: currentMessageBody
+          });
+
+          if (!resultMsg.success) {
+            errors.push(`Erro ao enviar o texto da cobrança para ${phone.name}: ${resultMsg.error}`);
+          } else {
+            successCount++;
+          }
+        }
+      } catch (err: any) {
+        errors.push(`Falha no envio para ${phone.name}: ${err.message || String(err)}`);
+      }
+
+      if (i < phones.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
 
-    const base64File = `data:application/pdf;base64,${pdfData.base64}`;
- 
-     let fileName = 'boleto.pdf';
-     try {
-       const urlObj = new URL(pdfUrl);
-       const pathParts = urlObj.pathname.split('/');
-       const extracted = pathParts[pathParts.length - 1];
-       if (extracted && extracted.endsWith('.pdf')) {
-         fileName = extracted;
-       } else {
-         fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
-       }
-     } catch (e) {
-       fileName = `boleto_atrasado_${conta.codigo_lancamento_omie}.pdf`;
-     }
-
-     // Enviar via Digisac (Primeiro o arquivo sem texto, depois a mensagem - mais seguro)
-    // A API Digisac dá 500 às vezes quando junta "file" grande e "text" longo
-    const resultFile = await sendDigisacMessage({
-      number: phone.number,
-      serviceId: configDigisac.connection_phone,
-      contactName: phone.name,
-      body: null, // Força a mensagem ser separada
-      base64File: base64File,
-      fileName: fileName
-    });
-
-    if (!resultFile.success) {
-      return { error: resultFile.error || 'Erro ao anexar o PDF da cobrança via Digisac.' };
+    if (successCount === 0 && errors.length > 0) {
+      return { error: errors.join('\n') };
     }
 
-    const resultMsg = await sendDigisacMessage({
-      number: phone.number,
-      serviceId: configDigisac.connection_phone,
-      body: messageBody
-    });
-
-    if (!resultMsg.success) {
-      return { error: resultMsg.error || 'Erro ao enviar o texto da cobrança via Digisac.' };
-    }
-
-    return { success: true };
+    return { 
+      success: true, 
+      warning: errors.length > 0 ? `Cobrança enviada, mas houve erros:\n${errors.join('\n')}` : undefined 
+    };
   } catch (error: any) {
     console.error('Erro ao enviar cobrança via Digisac:', error);
     return { error: `Falha interna: ${error.message || String(error)}` };

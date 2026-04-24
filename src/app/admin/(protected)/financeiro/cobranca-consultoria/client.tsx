@@ -167,6 +167,13 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
   const [isSendingDigisac, setIsSendingDigisac] = useState(false);
   const [isSendingCobranca, setIsSendingCobranca] = useState(false);
 
+  // Lote Boleto State
+  const [isLoteOpen, setIsLoteOpen] = useState(false);
+  const [loteProgress, setLoteProgress] = useState(0);
+  const [loteResults, setLoteResults] = useState<any[]>([]);
+  const [isSendingLote, setIsSendingLote] = useState(false);
+  const [loteFinished, setLoteFinished] = useState(false);
+
   const [userPermissions, setUserPermissions] = useState<string[]>(permissions);
   const [isAdmin, setIsAdmin] = useState(isAdminRole || permissions.includes('all_permissions') || permissions.length > 100);
 
@@ -425,26 +432,35 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
         toast.success('Recebimento registrado com sucesso!');
         setIsReceberOpen(false);
         
-        // Atualização pontual na grid para não depender de reload demorado
-        const refresh = await consultarContaReceberOmie(conta.codigo_lancamento_omie, COMPANY_ID);
-        if (!refresh.error && refresh.data) {
-          setContas(prev => prev.map(c => {
-            if (c.codigo_lancamento_omie === conta.codigo_lancamento_omie) {
-              const valorPagoAtualizado = refresh.data.resumo?.valor_pago || refresh.data.valor_pago || (c.valor_pago_calculado || 0) + Number(recValor);
-              const dataPagamentoAtualizada = refresh.data.resumo?.data_pagamento || refresh.data.data_pagamento || recData.split('-').reverse().join('/');
-              return { 
-                ...c, 
-                ...refresh.data, 
-                valor_pago_calculado: valorPagoAtualizado,
-                data_pagamento_calculada: dataPagamentoAtualizada,
-                status_titulo: (valorPagoAtualizado >= (c.valor_documento || 0)) ? 'RECEBIDO' : c.status_titulo 
-              };
-            }
-            return c;
-          }));
-        } else {
-          // Fallback se falhar a consulta pontual
+        const valorTotalRecebido = Number(recValor) + Number(recDesconto);
+        const valorRestante = (conta.valor_documento || 0) - valorTotalRecebido;
+        
+        // Se for baixa parcial, o Omie cria um novo título e liquida o atual.
+        // Precisamos forçar o recarregamento da grid para exibir o novo título gerado pelo Omie.
+        if (valorRestante > 0.01) {
           handleSearch(new Event('submit') as any);
+        } else {
+          // Atualização pontual na grid para baixa total
+          const refresh = await consultarContaReceberOmie(conta.codigo_lancamento_omie, COMPANY_ID);
+          if (!refresh.error && refresh.data) {
+            setContas(prev => prev.map(c => {
+              if (c.codigo_lancamento_omie === conta.codigo_lancamento_omie) {
+                const valorPagoAtualizado = refresh.data.resumo?.valor_pago || refresh.data.valor_pago || (c.valor_pago_calculado || 0) + Number(recValor);
+                const dataPagamentoAtualizada = refresh.data.resumo?.data_pagamento || refresh.data.data_pagamento || recData.split('-').reverse().join('/');
+                return { 
+                  ...c, 
+                  ...refresh.data, 
+                  valor_pago_calculado: valorPagoAtualizado,
+                  data_pagamento_calculada: dataPagamentoAtualizada,
+                  status_titulo: (valorPagoAtualizado >= (c.valor_documento || 0)) ? 'RECEBIDO' : c.status_titulo 
+                };
+              }
+              return c;
+            }));
+          } else {
+            // Fallback se falhar a consulta pontual
+            handleSearch(new Event('submit') as any);
+          }
         }
       }
     } catch (error) {
@@ -538,6 +554,60 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
     } finally {
       setIsSendingDigisac(false);
     }
+  };
+
+  const handleEnviarDigisacLote = async () => {
+    if (selectedRows.length === 0) return;
+    
+    // Filtrar apenas os que não estão recebidos ou liquidados, se desejado
+    const boletosParaEnviar = selectedRows.filter(r => r.status_titulo !== 'RECEBIDO' && r.status_titulo !== 'LIQUIDADO');
+    
+    if (boletosParaEnviar.length === 0) {
+      toast.error('Nenhum boleto válido para envio selecionado (títulos recebidos são ignorados).');
+      return;
+    }
+
+    if (!confirm(`Atenção! Serão enviados ${boletosParaEnviar.length} boletos via Digisac. Você confirma a operação?`)) {
+      return;
+    }
+
+    setIsLoteOpen(true);
+    setLoteProgress(0);
+    setLoteResults([]);
+    setIsSendingLote(true);
+    setLoteFinished(false);
+
+    const results = [];
+    for (let i = 0; i < boletosParaEnviar.length; i++) {
+      const conta = boletosParaEnviar[i];
+      try {
+        const res = await enviarBoletoDigisacOmie(conta, COMPANY_ID);
+        results.push({
+          cliente: conta.nome_cliente,
+          numero_boleto: conta.numero_boleto || conta.codigo_lancamento_omie,
+          sucesso: !res.error,
+          mensagem: res.error || res.warning || 'Enviado com sucesso'
+        });
+      } catch (error: any) {
+        results.push({
+          cliente: conta.nome_cliente,
+          numero_boleto: conta.numero_boleto || conta.codigo_lancamento_omie,
+          sucesso: false,
+          mensagem: error.message || 'Erro inesperado'
+        });
+      }
+      
+      setLoteProgress(Math.round(((i + 1) / boletosParaEnviar.length) * 100));
+      setLoteResults([...results]);
+      
+      // Pequeno delay extra de segurança entre contas diferentes
+      if (i < boletosParaEnviar.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    setIsSendingLote(false);
+    setLoteFinished(true);
   };
 
   const handleEnviarCobranca = async () => {
@@ -860,6 +930,14 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
             >
               <DocumentArrowDownIcon className="h-4 w-4" />
               Visualizar Boleto {selectedRows.length > 0 ? `(${selectedRows.length})` : ''}
+            </Button>
+            <Button 
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={selectedRows.length === 0 || isSendingLote} 
+              onClick={handleEnviarDigisacLote}
+            >
+              <PaperAirplaneIcon className="h-4 w-4" />
+              Boleto em Lote {selectedRows.length > 0 ? `(${selectedRows.length})` : ''}
             </Button>
           </div>
         </CardHeader>
@@ -1244,6 +1322,70 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
                 Registrar Recebimento
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lote Dialog */}
+      <Dialog open={isLoteOpen} onOpenChange={isSendingLote ? undefined : setIsLoteOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Envio de Boletos em Lote</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium text-gray-700">Progresso de envio</span>
+                <span className="text-sm font-medium text-gray-700">{loteProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: `${loteProgress}%` }}></div>
+              </div>
+            </div>
+
+            {loteResults.length > 0 && (
+              <div className="mt-6 border rounded-md max-h-[400px] overflow-y-auto bg-gray-50">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2">Cliente</th>
+                      <th className="px-4 py-2">Boleto</th>
+                      <th className="px-4 py-2">Status</th>
+                      <th className="px-4 py-2">Detalhe</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loteResults.map((res, idx) => (
+                      <tr key={idx} className="border-b">
+                        <td className="px-4 py-2 font-medium">{res.cliente}</td>
+                        <td className="px-4 py-2">{res.numero_boleto}</td>
+                        <td className="px-4 py-2">
+                          {res.sucesso ? (
+                            <span className="text-green-600 font-semibold flex items-center gap-1">
+                              <CheckCircleIcon className="w-4 h-4" /> Sucesso
+                            </span>
+                          ) : (
+                            <span className="text-red-600 font-semibold flex items-center gap-1">
+                              <XMarkIcon className="w-4 h-4" /> Erro
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-xs">{res.mensagem}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setIsLoteOpen(false)}
+              disabled={isSendingLote}
+              className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+            >
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
