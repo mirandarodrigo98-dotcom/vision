@@ -390,9 +390,9 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             const analiseParams = {
                 pCodigoEmpresa: company.code.toString(),
                 pFilial: company.filial ? company.filial.toString() : '1',
-                pCompetInicial: format(startDate, 'dd/MM/yyyy'),
-                pCompetFinal: format(endDate, 'dd/MM/yyyy'),
-                pRegimeSSimples: '2', // Caixa/Competência depending on Questor configuration (user expects it to work)
+                pCompetInicial: format(startDate, 'MM/yyyy'),
+                pCompetFinal: format(endDate, 'MM/yyyy'),
+                pRegimeSSimples: '1', // 1 para Caixa (Pagamento), conforme exigido para bater com o Questor
                 pDetalhar: '0',
                 pOcultar: '1'
             };
@@ -458,14 +458,36 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                         }
                         processedData.sort((a, b) => a.competence.localeCompare(b.competence));
                     } else {
-                        // Update existing entries
-                        for (const item of processedData) {
-                            if (item.rpa_accumulated === 0 && item.payroll_12_months === 0) {
-                                if (analiseData[item.competence] !== undefined) {
-                                    item.rpa_accumulated = analiseData[item.competence];
+                        // Update existing entries or add missing ones
+                        for (const [comp, total] of Object.entries(analiseData)) {
+                            const existingItem = processedData.find(item => item.competence === comp);
+                            if (existingItem) {
+                                if (existingItem.rpa_accumulated === 0 && existingItem.payroll_12_months === 0) {
+                                    existingItem.rpa_accumulated = total;
                                 }
+                            } else {
+                                // Add missing month from analiseData
+                                processedData.push({
+                                    competence: comp,
+                                    description: 'Receita Normal',
+                                    current_month_billing: 0,
+                                    billing_12_months: 0,
+                                    rbt12: 0,
+                                    export_current_month: 0,
+                                    export_12_months: 0,
+                                    internal_market: 0,
+                                    external_market: 0,
+                                    total_billing: 0,
+                                    irpj: 0, csll: 0, cofins: 0, pis: 0,
+                                    inss: 0, icms: 0, ipi: 0, iss: 0,
+                                    total_taxes: 0,
+                                    value: 0,
+                                    rpa_accumulated: total,
+                                    payroll_12_months: 0
+                                });
                             }
                         }
+                        processedData.sort((a, b) => a.competence.localeCompare(b.competence));
                     }
                 } catch (e) {
                     console.error('[Simples Nacional] Error parsing fallback report:', e);
