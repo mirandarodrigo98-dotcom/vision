@@ -363,11 +363,6 @@ export function SimplesNacionalFatorRManager() {
                 value={referenceCompetence} 
                 onValueChange={setReferenceCompetence} 
               />
-              {lastSyncDate && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  Última sincronização com Questor: {format(lastSyncDate, "dd/MM/yyyy 'às' HH:mm")}
-                </div>
-              )}
             </div>
             
             <div className="flex space-x-2">
@@ -388,6 +383,12 @@ export function SimplesNacionalFatorRManager() {
               </Button>
             </div>
           </div>
+          
+          {lastSyncDate && (
+            <div className="mt-4 text-xs text-muted-foreground flex justify-end">
+              Última sincronização com Questor: {format(lastSyncDate, "dd/MM/yyyy 'às' HH:mm")}
+            </div>
+          )}
         </CardContent>
       </Card>
 

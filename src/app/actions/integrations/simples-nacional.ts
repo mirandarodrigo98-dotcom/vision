@@ -390,9 +390,9 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
             const analiseParams = {
                 pCodigoEmpresa: company.code.toString(),
                 pFilial: company.filial ? company.filial.toString() : '1',
-                pCompetInicial: format(startDate, 'dd/MM/yyyy'),
-                pCompetFinal: format(endDate, 'dd/MM/yyyy'),
-                pRegimeSSimples: '2', // 2 para Competência (Vencimento), conforme exigido
+                pCompetInicial: format(startDate, '01/MM/yyyy'), // Exatamente o dia 01
+                pCompetFinal: format(endDate, '01/MM/yyyy'), // Exatamente o dia 01
+                pRegimeSSimples: '3', // 3 para Pagamento (Vencimento), conforme exigido
                 pDetalhar: '0',
                 pOcultar: '1'
             };
