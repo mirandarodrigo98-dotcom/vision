@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.6.7'; // Patch increment para correção do alinhamento visual e ajuste do parâmetro RegimeSSimples para 3
+export const APP_VERSION = '1.6.8'; // Patch increment para corrigir alinhamento UI e acionamento do fallback de Fator R

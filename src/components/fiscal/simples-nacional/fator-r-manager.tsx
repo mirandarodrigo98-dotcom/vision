@@ -385,7 +385,7 @@ export function SimplesNacionalFatorRManager() {
           </div>
           
           {lastSyncDate && (
-            <div className="mt-4 text-xs text-muted-foreground flex justify-end">
+            <div className="mt-4 text-xs text-muted-foreground flex justify-start">
               Última sincronização com Questor: {format(lastSyncDate, "dd/MM/yyyy 'às' HH:mm")}
             </div>
           )}

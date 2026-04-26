@@ -385,8 +385,10 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
 
     // FALLBACK: If missing Folha data, try the report nFisRRAnaliseSuperSimples
         const missingFolhaMonths = processedData.filter(d => d.rpa_accumulated === 0 && d.payroll_12_months === 0);
-        if (missingFolhaMonths.length > 0 || processedData.length === 0) {
-            console.log('[Simples Nacional] Missing Folha data. Executing report nFisRRAnaliseSuperSimples as fallback.');
+        const hasEndComp = processedData.some(d => d.competence === params.endCompetence);
+        
+        if (missingFolhaMonths.length > 0 || processedData.length === 0 || !hasEndComp) {
+            console.log('[Simples Nacional] Missing Folha data or end competence. Executing report nFisRRAnaliseSuperSimples as fallback.');
             const analiseParams = {
                 pCodigoEmpresa: company.code.toString(),
                 pFilial: company.filial ? company.filial.toString() : '1',
