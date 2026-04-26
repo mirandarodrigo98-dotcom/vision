@@ -1,7 +1,7 @@
 'use server';
 
 import db from '@/lib/db';
-import { executeQuestorProcess } from './questor-syn';
+import { executeQuestorProcess, executeQuestorReport } from './questor-syn';
 import Papa from 'papaparse';
 import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
 import crypto from 'crypto';
@@ -383,37 +383,95 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         return { success: false, error: processedData.error };
     }
 
-    // FALLBACK: If missing Folha data, try TnFisDPAnaliseSSimples
-    const missingFolhaMonths = processedData.filter(d => d.rpa_accumulated === 0 && d.payroll_12_months === 0);
-    if (missingFolhaMonths.length > 0 || processedData.length === 0) {
-        const analiseParams = {
-            pCodigoEmpresa: company.code.toString(),
-            pFilial: company.filial ? company.filial.toString() : '1',
-            pCompetInicial: format(startDate, 'dd/MM/yyyy'),
-            pCompetFinal: format(endDate, 'dd/MM/yyyy'),
-            pDetalhar: '0',
-            pOcultar: '1'
-        };
-        const resultAnalise = await executeQuestorProcess('TnFisDPAnaliseSSimples', analiseParams);
-        if (!resultAnalise.error && resultAnalise.data) {
-            const analiseData = parseQuestorSimplesGrid(resultAnalise, params);
-            if (Array.isArray(analiseData)) {
-                if (processedData.length === 0) {
-                    processedData = analiseData;
-                } else {
-                    for (const item of processedData) {
-                        if (item.rpa_accumulated === 0 && item.payroll_12_months === 0) {
-                            const analiseItem = analiseData.find(a => a.competence === item.competence);
-                            if (analiseItem) {
-                                item.rpa_accumulated = analiseItem.rpa_accumulated;
-                                item.payroll_12_months = analiseItem.payroll_12_months;
+    // FALLBACK: If missing Folha data, try the report nFisRRAnaliseSuperSimples
+        const missingFolhaMonths = processedData.filter(d => d.rpa_accumulated === 0 && d.payroll_12_months === 0);
+        if (missingFolhaMonths.length > 0 || processedData.length === 0) {
+            console.log('[Simples Nacional] Missing Folha data. Executing report nFisRRAnaliseSuperSimples as fallback.');
+            const analiseParams = {
+                pCodigoEmpresa: company.code.toString(),
+                pFilial: company.filial ? company.filial.toString() : '1',
+                pCompetInicial: format(startDate, 'dd/MM/yyyy'),
+                pCompetFinal: format(endDate, 'dd/MM/yyyy'),
+                pRegimeSSimples: '2', // Caixa/Competência depending on Questor configuration (user expects it to work)
+                pDetalhar: '0',
+                pOcultar: '1'
+            };
+            const resultAnalise = await executeQuestorReport('nFisRRAnaliseSuperSimples', analiseParams, 'nrwexCSV');
+            if (!resultAnalise.error && resultAnalise.data) {
+                try {
+                    const parsed = Papa.parse(resultAnalise.data.trim(), { skipEmptyLines: true, delimiter: ';' });
+                    const rows = parsed.data as string[][];
+                    let isDataSection = false;
+                    const analiseData: Record<string, number> = {};
+                    
+                    for (const row of rows) {
+                        if (row.length > 0 && row[0].includes('Competência')) {
+                            isDataSection = true;
+                            continue;
+                        }
+                        
+                        if (isDataSection && row.length > 0) {
+                            const comp = row[0].trim().replace(/"/g, '');
+                            if (comp.startsWith('_') || comp === '' || comp.length < 7) continue;
+                            
+                            const nonEmptyValues = row.filter(v => v.trim() !== '');
+                            const totalStr = nonEmptyValues.length > 1 ? nonEmptyValues[nonEmptyValues.length - 1] : '0';
+                            let total = 0;
+                            if (totalStr) {
+                                const cleanTotalStr = totalStr.replace(/"/g, '').trim();
+                                // e.g. 30.538,72 -> 30538.72
+                                total = parseFloat(cleanTotalStr.replace(/\./g, '').replace(',', '.')) || 0;
+                            }
+                            
+                            // Format from MM/yyyy to yyyy-MM
+                            const [month, year] = comp.split('/');
+                            if (month && year && year.length === 4) {
+                                const formattedComp = `${year}-${month.padStart(2, '0')}`;
+                                analiseData[formattedComp] = total;
                             }
                         }
                     }
+                    
+                    console.log('[Simples Nacional] Parsed fallback report data:', analiseData);
+                    
+                    if (processedData.length === 0) {
+                        // If no data at all, just create entries for the fetched months
+                        for (const [comp, total] of Object.entries(analiseData)) {
+                            processedData.push({
+                                competence: comp,
+                                description: 'Receita Normal',
+                                current_month_billing: 0,
+                                billing_12_months: 0,
+                                rbt12: 0,
+                                export_current_month: 0,
+                                export_12_months: 0,
+                                internal_market: 0,
+                                external_market: 0,
+                                total_billing: 0,
+                                irpj: 0, csll: 0, cofins: 0, pis: 0,
+                                inss: 0, icms: 0, ipi: 0, iss: 0,
+                                total_taxes: 0,
+                                value: 0,
+                                rpa_accumulated: total, // We only care about Folha here
+                                payroll_12_months: 0
+                            });
+                        }
+                        processedData.sort((a, b) => a.competence.localeCompare(b.competence));
+                    } else {
+                        // Update existing entries
+                        for (const item of processedData) {
+                            if (item.rpa_accumulated === 0 && item.payroll_12_months === 0) {
+                                if (analiseData[item.competence] !== undefined) {
+                                    item.rpa_accumulated = analiseData[item.competence];
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('[Simples Nacional] Error parsing fallback report:', e);
                 }
             }
         }
-    }
 
     if (processedData.length > 0) {
         // Use a transaction to batch insert/update
