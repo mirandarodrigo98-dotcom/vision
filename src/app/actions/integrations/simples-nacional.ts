@@ -235,8 +235,6 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
         const colRbaa = findKey('RBAA');
         const colAliquotaEfetiva = findKey('Alíquota') || findKey('Aliquota') || findKey('Aliq Efetiva');
 
-        const flatData: {[competence: string]: Partial<SimplesNacionalBillingData>} = {};
-
         for (const row of rows) {
             if (!row[colCompetence]) continue;
             // Parse Competence
@@ -257,46 +255,20 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
 
             if (!competence || competence < params.startCompetence || competence > params.endCompetence) continue;
 
-            if (!flatData[competence]) {
-                flatData[competence] = {
-                    company_id: params.companyId,
-                    competence,
-                    rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0, payroll_12_months: 0, recebimento: 0, aliquota_efetiva: 0
-                };
-            }
-
-            flatData[competence].rpa_competence = parseValue(colRpaCompetence ? row[colRpaCompetence] : '0');
-            flatData[competence].recebimento = parseValue(colRecebimento ? row[colRecebimento] : '0');
-            flatData[competence].rpa_cash = parseValue(colRpaCash ? row[colRpaCash] : '0');
-            flatData[competence].rbt12 = parseValue(colRbt12 ? row[colRbt12] : '0');
-            flatData[competence].rba = parseValue(colRba ? row[colRba] : '0');
-            flatData[competence].rbaa = parseValue(colRbaa ? row[colRbaa] : '0');
-            flatData[competence].aliquota_efetiva = parseValue(colAliquotaEfetiva ? row[colAliquotaEfetiva] : '0');
-
-            // Shift rpa_accumulated and payroll_12_months to the next month
-            const [yStr, mStr] = competence.split('-');
-            let yNum = parseInt(yStr, 10);
-            let mNum = parseInt(mStr, 10);
-            mNum += 1;
-            if (mNum > 12) {
-                mNum = 1;
-                yNum += 1;
-            }
-            const targetCompetence = `${yNum}-${mNum.toString().padStart(2, '0')}`;
-
-            if (!flatData[targetCompetence]) {
-                flatData[targetCompetence] = {
-                    company_id: params.companyId,
-                    competence: targetCompetence,
-                    rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0, payroll_12_months: 0, recebimento: 0, aliquota_efetiva: 0
-                };
-            }
-
-            flatData[targetCompetence].rpa_accumulated = parseValue(colRpaAccumulated ? row[colRpaAccumulated] : '0');
-            // payroll_12_months not standard in flat, but leaving 0 is fine
+            processedData.push({
+                company_id: params.companyId,
+                competence,
+                rpa_competence: parseValue(colRpaCompetence ? row[colRpaCompetence] : '0'),
+                recebimento: parseValue(colRecebimento ? row[colRecebimento] : '0'),
+                rpa_cash: parseValue(colRpaCash ? row[colRpaCash] : '0'),
+                rpa_accumulated: parseValue(colRpaAccumulated ? row[colRpaAccumulated] : '0'),
+                rbt12: parseValue(colRbt12 ? row[colRbt12] : '0'),
+                rba: parseValue(colRba ? row[colRba] : '0'),
+                rbaa: parseValue(colRbaa ? row[colRbaa] : '0'),
+                aliquota_efetiva: parseValue(colAliquotaEfetiva ? row[colAliquotaEfetiva] : '0'),
+                payroll_12_months: 0 // Will need to be fetched/updated separately if not available
+            });
         }
-        
-        Object.values(flatData).forEach(d => processedData.push(d as SimplesNacionalBillingData));
     } else {
         console.log('Detected PIVOT layout (Demonstrativo) or fallback');
         // Rows are categories, Columns are Months (Jan2024, Fev2024...)
@@ -451,28 +423,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                     if (!monthsMap[mStr]) continue;
                     const competence = `${yStr}-${monthsMap[mStr]}`;
                     
-                    let targetCompetence = competence;
-                    if (targetField === 'rpa_accumulated' || targetField === 'payroll_12_months') {
-                        let yNum = parseInt(yStr, 10);
-                        let mNum = parseInt(monthsMap[mStr], 10);
-                        mNum += 1;
-                        if (mNum > 12) {
-                            mNum = 1;
-                            yNum += 1;
-                        }
-                        targetCompetence = `${yNum}-${mNum.toString().padStart(2, '0')}`;
-                        
-                        if (!monthData[targetCompetence]) {
-                            monthData[targetCompetence] = {
-                                company_id: params.companyId,
-                                competence: targetCompetence,
-                                rpa_competence: 0, rpa_cash: 0, rpa_accumulated: 0, rbt12: 0, rba: 0, rbaa: 0, payroll_12_months: 0, recebimento: 0, aliquota_efetiva: 0,
-                                _aliquotas: []
-                            };
-                        }
-                    }
-                    
-                    if (monthData[competence] || monthData[targetCompetence]) {
+                    if (monthData[competence]) {
                         // Determine which column holds the value for this prefix
                         // Based on logs: "JAN2024_BASE", "JAN2024_ALIQUOTA", "JAN2024_SIMPLES"
                         
@@ -539,19 +490,19 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                              // console.log(`[Questor Parsing] Found Value String: "${valStr}" for ${targetField}`);
                              const val = parseValue(valStr);
                              
-                             const currentVal = (monthData[targetCompetence] as any)[targetField] || 0;
+                             const currentVal = (monthData[competence] as any)[targetField] || 0;
                              
                              // If it's a new value > 0, we sum it up to handle multiple rows (e.g. different Anexos) mapping to the same field
                              if (val > 0) {
                                  if (currentVal > 0) {
-                                     console.warn(`[Questor Accumulate] Field ${targetField} for ${targetCompetence} being accumulated! Old: ${currentVal}, Adding: ${val}. Row: ${desc}`);
+                                     console.warn(`[Questor Accumulate] Field ${targetField} for ${competence} being accumulated! Old: ${currentVal}, Adding: ${val}. Row: ${desc}`);
                                  } else {
-                                     console.log(`[Questor Success] Found ${targetField} for ${targetCompetence} (from ${competence}): ${val} (Row: ${desc})`);
+                                     console.log(`[Questor Success] Found ${targetField} for ${competence}: ${val} (Row: ${desc})`);
                                  }
-                                 (monthData[targetCompetence] as any)[targetField] = currentVal + val;
+                                 (monthData[competence] as any)[targetField] = currentVal + val;
                              } else if (currentVal === 0) {
                                  // If the new value is 0 and we don't have a value yet, set it to 0
-                                 (monthData[targetCompetence] as any)[targetField] = 0;
+                                 (monthData[competence] as any)[targetField] = 0;
                              }
                         } else if (targetField === 'recebimento') {
                              console.warn(`[Questor Missing] Could not find value for ${targetField} in ${competence} (Row: ${desc}). Checked keys:`, headerKeys.filter(k => k.startsWith(mPrefix)));
