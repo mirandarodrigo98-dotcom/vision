@@ -61,7 +61,7 @@ export function SimplesNacionalFatorRManager() {
     if (!refComp || refComp.length !== 7) return null;
     const refDate = parseISO(`${refComp}-01`);
     const startCompDate = subMonths(refDate, 12);
-    const endCompDate = subMonths(refDate, 1);
+    const endCompDate = refDate; // Fetch including the simulation month
     return {
       startCompetence: format(startCompDate, 'yyyy-MM'),
       endCompetence: format(endCompDate, 'yyyy-MM')
@@ -209,19 +209,21 @@ export function SimplesNacionalFatorRManager() {
   // Build Simulation Rows
   const simRows = [];
   if (referenceCompetence && referenceCompetence.length === 7 && data.length > 0) {
-    const fullTimeline = [...data];
+    const fullTimeline = data.map(d => ({ ...d }));
     const refDate = parseISO(`${referenceCompetence}-01`);
 
     for (let i = 0; i < 3; i++) {
       const simDate = addMonths(refDate, i);
       const compStr = format(simDate, 'yyyy-MM');
       const prevYearCompStr = format(subMonths(simDate, 12), 'yyyy-MM');
+      const prevMonthCompStr = format(subMonths(simDate, 1), 'yyyy-MM');
       
-      const last12 = fullTimeline.slice(-12);
-      const avgRpa = last12.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0) / 12;
-      const avgFolha = last12.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0) / 12;
-      const avgRecebimento = last12.reduce((acc, curr) => acc + Number(curr.recebimento || 0), 0) / 12;
-      const avgAliquota = last12.reduce((acc, curr) => acc + Number(curr.aliquota_efetiva || 0), 0) / 12;
+      // Para o cálculo da média (e folha 12m) excluímos o mês de simulação atual (se estiver na timeline)
+      const last12ForAvg = fullTimeline.filter(d => d.competence < compStr).slice(-12);
+      const avgRpa = last12ForAvg.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0) / 12;
+      const avgFolha = last12ForAvg.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0) / 12;
+      const avgRecebimento = last12ForAvg.reduce((acc, curr) => acc + Number(curr.recebimento || 0), 0) / 12;
+      const avgAliquota = last12ForAvg.reduce((acc, curr) => acc + Number(curr.aliquota_efetiva || 0), 0) / 12;
 
       const prevYearData = fullTimeline.find(d => d.competence === prevYearCompStr);
       const prevYearRpa = prevYearData ? Number(prevYearData.rpa_competence || 0) : 0;
@@ -236,8 +238,12 @@ export function SimplesNacionalFatorRManager() {
       const customRpaVal = custom.rpa !== undefined ? parseFormattedNumber(custom.rpa) : suggestedRpa;
       
       let customFolhaVal = custom.folha !== undefined ? parseFormattedNumber(custom.folha) : suggestedFolha;
-      if (i === 0) {
-        customFolhaVal = totalFolhaEncargos;
+      
+      const simMonthData = data.find(d => d.competence === compStr);
+      let initialFolha = (simMonthData && simMonthData.rpa_accumulated > 0) ? simMonthData.rpa_accumulated : totalFolhaEncargos;
+
+      if (i === 0 && custom.folha === undefined) {
+        customFolhaVal = initialFolha;
       }
 
       const customRecebimentoVal = custom.recebimento !== undefined ? parseFormattedNumber(custom.recebimento) : suggestedRecebimento;
@@ -245,6 +251,15 @@ export function SimplesNacionalFatorRManager() {
       const finalRpa = customRpaVal;
       const finalFolha = customFolhaVal;
       const finalRecebimento = customRecebimentoVal;
+
+      // Update the previous month in fullTimeline with finalFolha (since Folha+Enc column represents the previous month's Folha)
+      // Se estamos no i=0 (04/2026), e informamos Folha=X, isso significa que a folha do mês anterior (03/2026) foi X
+      const prevMonthData = fullTimeline.find(d => d.competence === prevMonthCompStr);
+      if (prevMonthData) {
+        prevMonthData.rpa_accumulated = finalFolha;
+      }
+
+      const last12 = fullTimeline.filter(d => d.competence <= prevMonthCompStr).slice(-12);
 
       const rbt12 = last12.reduce((acc, curr) => acc + Number(curr.rpa_competence || 0), 0);
       const folha12 = last12.reduce((acc, curr) => acc + Number(curr.rpa_accumulated || 0), 0);
@@ -267,22 +282,31 @@ export function SimplesNacionalFatorRManager() {
         customRecebimentoStr: custom.recebimento,
         isCustomRpa: custom.rpa !== undefined,
         isCustomFolha: custom.folha !== undefined,
-        isCustomRecebimento: custom.recebimento !== undefined
+        isCustomRecebimento: custom.recebimento !== undefined,
+        originalFolha: initialFolha
       });
 
-      fullTimeline.push({
-        company_id: '',
-        competence: compStr,
-        rpa_competence: finalRpa,
-        rpa_accumulated: finalFolha,
-        rbt12: rbt12, 
-        rpa_cash: 0, 
-        rba: 0, 
-        rbaa: 0, 
-        payroll_12_months: folha12,
-        recebimento: finalRecebimento,
-        aliquota_efetiva: avgAliquota
-      });
+      // Update or Add the simulation month to fullTimeline for the next iteration
+      const existingSimMonth = fullTimeline.find(d => d.competence === compStr);
+      if (existingSimMonth) {
+        existingSimMonth.rpa_competence = finalRpa;
+        existingSimMonth.rpa_accumulated = finalFolha;
+        existingSimMonth.recebimento = finalRecebimento;
+      } else {
+        fullTimeline.push({
+          company_id: '',
+          competence: compStr,
+          rpa_competence: finalRpa,
+          rpa_accumulated: finalFolha,
+          rbt12: rbt12, 
+          rpa_cash: 0, 
+          rba: 0, 
+          rbaa: 0, 
+          payroll_12_months: folha12,
+          recebimento: finalRecebimento,
+          aliquota_efetiva: avgAliquota
+        });
+      }
     }
   }
 
@@ -372,7 +396,7 @@ export function SimplesNacionalFatorRManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.map((row) => {
+                    {data.filter(row => row.competence < referenceCompetence).map((row) => {
                       const fatorR = row.rbt12 > 0 ? (row.payroll_12_months / row.rbt12) * 100 : 0;
                       const anexoText = fatorR >= 28 ? 'Anexo III' : 'Anexo V';
                       const anexoColor = fatorR >= 28 ? 'text-green-600' : 'text-red-600';
@@ -470,22 +494,19 @@ export function SimplesNacionalFatorRManager() {
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Input 
-                              className={cn("w-28 text-right h-8", row.isCustomFolha && "border-primary", i === 0 && "bg-muted font-medium")}
-                              value={i === 0 ? formatNumber(totalFolhaEncargos) : (row.isCustomFolha ? row.customFolhaStr : formatNumber(row.suggestedFolha))}
-                              onChange={(e) => i !== 0 && handleCustomChange(row.competence, 'folha', e.target.value)}
-                              readOnly={i === 0}
+                              className={cn("w-28 text-right h-8", row.isCustomFolha && "border-primary")}
+                              value={row.isCustomFolha ? row.customFolhaStr : (i === 0 ? formatNumber(row.originalFolha) : formatNumber(row.suggestedFolha))}
+                              onChange={(e) => handleCustomChange(row.competence, 'folha', e.target.value)}
                             />
-                            {i !== 0 && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                onClick={() => restoreCustom(row.competence, 'folha')}
-                                title="Restaurar Média"
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => restoreCustom(row.competence, 'folha')}
+                              title="Restaurar Média/Original"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{formatNumber(row.payroll_12_months)}</TableCell>
