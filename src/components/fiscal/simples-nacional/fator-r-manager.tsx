@@ -36,12 +36,14 @@ interface SimplesNacionalBillingData {
   rba: number;
   rbaa: number;
   aliquota_efetiva: number;
+  updated_at?: string | Date;
 }
 
 export function SimplesNacionalFatorRManager() {
   const [loading, setLoading] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
   const [data, setData] = React.useState<SimplesNacionalBillingData[]>([]);
+  const [lastSyncDate, setLastSyncDate] = React.useState<Date | null>(null);
   
   // Filters
   const [referenceCompetence, setReferenceCompetence] = React.useState(''); // YYYY-MM
@@ -90,6 +92,19 @@ export function SimplesNacionalFatorRManager() {
       // Sort older to newer
       fetchedData.sort((a, b) => a.competence.localeCompare(b.competence));
       setData(fetchedData);
+      
+      // Calculate last sync date
+      let maxDate = null;
+      for (const item of fetchedData) {
+        if (item.updated_at) {
+          const itemDate = new Date(item.updated_at);
+          if (!maxDate || itemDate > maxDate) {
+            maxDate = itemDate;
+          }
+        }
+      }
+      setLastSyncDate(maxDate);
+
       // Reset simulations when loading new data
       setCustomSims({});
       setProLaboreStr('');
@@ -348,6 +363,11 @@ export function SimplesNacionalFatorRManager() {
                 value={referenceCompetence} 
                 onValueChange={setReferenceCompetence} 
               />
+              {lastSyncDate && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Última sincronização com Questor: {format(lastSyncDate, "dd/MM/yyyy 'às' HH:mm")}
+                </div>
+              )}
             </div>
             
             <div className="flex space-x-2">

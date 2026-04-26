@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.6.5'; // Patch increment para correção do relatório nFisRRAnaliseSuperSimples no Fator R
+export const APP_VERSION = '1.6.6'; // Patch increment para correção de parâmetro e exibição de última atualização no Fator R
