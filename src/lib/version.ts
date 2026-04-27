@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.6.8'; // Patch increment para corrigir alinhamento UI e acionamento do fallback de Fator R
+export const APP_VERSION = '1.6.10'; // Patch increment para correção do agendamento diário (cron job) do dashboard financeiro

@@ -384,7 +384,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
     }
 
     // FALLBACK: If missing Folha data, try the report nFisRRAnaliseSuperSimples
-        const missingFolhaMonths = processedData.filter(d => d.rpa_accumulated === 0 && d.payroll_12_months === 0);
+        const missingFolhaMonths = processedData.filter(d => d.rpa_accumulated === 0);
         const hasEndComp = processedData.some(d => d.competence === params.endCompetence);
         
         if (missingFolhaMonths.length > 0 || processedData.length === 0 || !hasEndComp) {
@@ -394,7 +394,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                 pFilial: company.filial ? company.filial.toString() : '1',
                 pCompetInicial: format(startDate, '01/MM/yyyy'), // Exatamente o dia 01
                 pCompetFinal: format(endDate, '01/MM/yyyy'), // Exatamente o dia 01
-                pRegimeSSimples: '3', // 3 para Pagamento (Vencimento), conforme exigido
+                pRegimeSSimples: '1', // 1 para Competência (Folha é sempre competência)
                 pDetalhar: '0',
                 pOcultar: '1'
             };
@@ -464,7 +464,7 @@ export async function fetchSimplesNacionalBilling(params: SimplesNacionalParams)
                         for (const [comp, total] of Object.entries(analiseData)) {
                             const existingItem = processedData.find(item => item.competence === comp);
                             if (existingItem) {
-                                if (existingItem.rpa_accumulated === 0 && existingItem.payroll_12_months === 0) {
+                                if (existingItem.rpa_accumulated === 0) {
                                     existingItem.rpa_accumulated = total;
                                 }
                             } else {

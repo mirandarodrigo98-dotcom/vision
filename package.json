@@ -1,6 +1,6 @@
 {
   "name": "vision",
-  "version": "1.6.8",
+  "version": "1.6.10",
   "private": true,
   "engines": {
     "node": ">=18.0.0"
@@ -90,6 +90,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/xml2js": "^0.4.14",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "postcss": "^8",
