@@ -85,8 +85,9 @@ export function IRGrid({ declarations }: IRGridProps) {
   // Ordenação
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
-  // Limite de registros
+  // Limite de registros e paginação
   const [pageSize, setPageSize] = useState<string>('50');
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const handleFilter = () => {
     setAppliedFilters({
@@ -97,6 +98,7 @@ export function IRGrid({ declarations }: IRGridProps) {
       status: statusFilter,
       received: receivedFilter
     });
+    setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
@@ -114,6 +116,7 @@ export function IRGrid({ declarations }: IRGridProps) {
       status: [],
       received: []
     });
+    setCurrentPage(1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -140,6 +143,20 @@ export function IRGrid({ declarations }: IRGridProps) {
     const d = s.replace(/\D/g, '');
     if (d.length !== 11) return s;
     return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*$/, '$1.$2.$3-$4');
+  };
+
+  const formatPhone = (p?: string | null) => {
+    if (!p) return '—';
+    const str = p.trim();
+    if (str.startsWith('+55')) {
+      const digits = str.replace('+55', '').replace(/\D/g, '');
+      if (digits.length === 11) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+      } else if (digits.length === 10) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+      }
+    }
+    return str;
   };
 
   const formatMoney = (val?: number | null) => {
@@ -224,7 +241,7 @@ export function IRGrid({ declarations }: IRGridProps) {
             decls.map((decl) => (
               <tr key={decl.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-3 font-medium text-left">{decl.name}</td>
-                <td className="px-4 py-3">{decl.phone || '—'}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{formatPhone(decl.phone)}</td>
                 <td className="px-4 py-3">{formatCpf(decl.cpf)}</td>
                 <td className="px-4 py-3">{decl.priority || 'Média'}</td>
                 <td className="px-4 py-3">{decl.type}</td>
@@ -265,7 +282,7 @@ export function IRGrid({ declarations }: IRGridProps) {
         {declarations.length === 0 ? (
           renderTable([])
         ) : (
-          <Tabs defaultValue={years[0].toString()} className="w-full">
+          <Tabs defaultValue={years[0].toString()} className="w-full" onValueChange={() => setCurrentPage(1)}>
             <TabsList className="mb-4">
               {years.map(year => (
                 <TabsTrigger key={year} value={year.toString()}>
@@ -333,15 +350,19 @@ export function IRGrid({ declarations }: IRGridProps) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Registros</Label>
-                <Select value={pageSize} onValueChange={setPageSize}>
+                <Select value={pageSize} onValueChange={(val) => { setPageSize(val); setCurrentPage(1); }}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="50" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="30">30</SelectItem>
                     <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="80">80</SelectItem>
                     <SelectItem value="100">100</SelectItem>
                     <SelectItem value="200">200</SelectItem>
-                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="400">400</SelectItem>
+                    <SelectItem value="800">800</SelectItem>
                     <SelectItem value="1000">1000</SelectItem>
                   </SelectContent>
                 </Select>
@@ -356,26 +377,78 @@ export function IRGrid({ declarations }: IRGridProps) {
               </div>
             </div>
 
-            {years.map(year => (
-              <TabsContent key={year} value={year.toString()}>
-                {renderTable(
-                  sortData(
-                    declarations
-                      .filter(d => d.year === year)
-                      .filter(d => appliedFilters.name ? d.name.toLowerCase().includes(appliedFilters.name.toLowerCase()) : true)
-                      .filter(d => appliedFilters.cpf ? d.cpf.replace(/\D/g, '').includes(appliedFilters.cpf.replace(/\D/g, '')) : true)
-                      .filter(d => appliedFilters.priority.length === 0 ? true : appliedFilters.priority.includes(d.priority || 'Média'))
-                      .filter(d => appliedFilters.type.length === 0 ? true : appliedFilters.type.includes(d.type))
-                      .filter(d => appliedFilters.status.length === 0 ? true : appliedFilters.status.includes(d.status))
-                      .filter(d => {
-                        if (appliedFilters.received.length === 0) return true;
-                        const r = d.is_received ? 'Sim' : 'Não';
-                        return appliedFilters.received.includes(r);
-                      })
-                  ).slice(0, parseInt(pageSize, 10))
-                )}
-              </TabsContent>
-            ))}
+            {years.map(year => {
+              const filteredData = sortData(
+                declarations
+                  .filter(d => d.year === year)
+                  .filter(d => appliedFilters.name ? d.name.toLowerCase().includes(appliedFilters.name.toLowerCase()) : true)
+                  .filter(d => appliedFilters.cpf ? d.cpf.replace(/\D/g, '').includes(appliedFilters.cpf.replace(/\D/g, '')) : true)
+                  .filter(d => appliedFilters.priority.length === 0 ? true : appliedFilters.priority.includes(d.priority || 'Média'))
+                  .filter(d => appliedFilters.type.length === 0 ? true : appliedFilters.type.includes(d.type))
+                  .filter(d => appliedFilters.status.length === 0 ? true : appliedFilters.status.includes(d.status))
+                  .filter(d => {
+                    if (appliedFilters.received.length === 0) return true;
+                    const r = d.is_received ? 'Sim' : 'Não';
+                    return appliedFilters.received.includes(r);
+                  })
+              );
+
+              const totalItems = filteredData.length;
+              const size = parseInt(pageSize, 10);
+              const totalPages = Math.ceil(totalItems / size);
+              const paginatedData = filteredData.slice((currentPage - 1) * size, currentPage * size);
+
+              const renderPagination = () => {
+                if (totalPages <= 1) return null;
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                  if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+                    pages.push(i);
+                  } else if (pages[pages.length - 1] !== '...') {
+                    pages.push('...');
+                  }
+                }
+
+                return (
+                  <div className="flex items-center justify-end space-x-1 mt-4">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                      {'<<'}
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                      {'<'}
+                    </Button>
+                    {pages.map((p, i) => (
+                      p === '...' ? (
+                        <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={`page-${p}-${i}`}
+                          variant={currentPage === p ? 'default' : 'outline'}
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setCurrentPage(p as number)}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    ))}
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                      {'>'}
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                      {'>>'}
+                    </Button>
+                  </div>
+                );
+              };
+
+              return (
+                <TabsContent key={year} value={year.toString()}>
+                  {renderTable(paginatedData)}
+                  {renderPagination()}
+                </TabsContent>
+              );
+            })}
           </Tabs>
         )}
       </CardContent>
