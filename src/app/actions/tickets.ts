@@ -46,7 +46,7 @@ async function getUserEmail(userId: string) {
 async function createTicketsSequencesTable() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS tickets_sequences (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       year INTEGER NOT NULL,
       month INTEGER NOT NULL,
       current_number INTEGER NOT NULL DEFAULT 1,

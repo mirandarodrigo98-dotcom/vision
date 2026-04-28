@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.7.2'; // Patch increment para melhorias no grid de Imposto de Renda (paginação, formatação de telefone e seletor de registros)
+export const APP_VERSION = '1.7.3'; // Patch increment para correção de bug na criação de chamados (AUTOINCREMENT -> SERIAL)
