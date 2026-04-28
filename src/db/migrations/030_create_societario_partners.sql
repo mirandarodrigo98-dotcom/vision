@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS societario_socios (
   bairro TEXT,
   municipio TEXT,
   uf TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS societario_socio_history (
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS societario_socio_history (
   bairro TEXT,
   municipio TEXT,
   uf TEXT,
-  snapshot_at TEXT DEFAULT (datetime('now')),
+  snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   source TEXT,
   FOREIGN KEY (socio_id) REFERENCES societario_socios(id)
 );
@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS societario_company_socios (
   company_id TEXT NOT NULL,
   socio_id TEXT NOT NULL,
   participacao_percent REAL NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (company_id) REFERENCES client_companies(id),
   FOREIGN KEY (socio_id) REFERENCES societario_socios(id)
 );
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS societario_company_history (
   data_abertura TEXT,
   status TEXT,
   capital_social_centavos INTEGER,
-  snapshot_at TEXT DEFAULT (datetime('now')),
+  snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   source TEXT,
   FOREIGN KEY (company_id) REFERENCES client_companies(id)
 );

@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS societario_contracts (
   title TEXT NOT NULL,
   content TEXT NOT NULL,
   created_by_user_id TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );
 
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS societario_processes (
   compl_municipio TEXT,
   compl_uf TEXT,
   created_by_user_id TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (company_id) REFERENCES client_companies(id),
   FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );

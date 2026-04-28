@@ -11,8 +11,8 @@ CREATE TABLE users_new (
     is_active INTEGER DEFAULT 1,
     deleted_at TEXT,
     last_login_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO users_new SELECT * FROM users;

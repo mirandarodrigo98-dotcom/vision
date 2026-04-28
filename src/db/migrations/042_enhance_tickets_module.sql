@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS ticket_categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    active BOOLEAN DEFAULT 1,
+    active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     link TEXT,
-    read BOOLEAN DEFAULT 0,
+    read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );

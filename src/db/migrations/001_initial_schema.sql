@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     is_active INTEGER DEFAULT 1,
     deleted_at TEXT,
     last_login_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS client_companies (
@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS client_companies (
     email_contato TEXT,
     is_active INTEGER DEFAULT 1,
     deleted_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS user_companies (
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS admin_allowed_emails (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     is_active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS otp_tokens (
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS otp_tokens (
     token_hash TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     used_at TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     user_id TEXT NOT NULL,
     role TEXT NOT NULL,
     expires_at TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    last_seen_at TEXT DEFAULT (datetime('now')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS admission_requests (
     protocol_number TEXT UNIQUE,
     submitted_at TEXT,
     emailed_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (company_id) REFERENCES client_companies(id),
     FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );
@@ -101,13 +101,13 @@ CREATE TABLE IF NOT EXISTS admission_attachments (
     mime_type TEXT,
     size_bytes INTEGER,
     storage_path TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admission_id) REFERENCES admission_requests(id)
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id TEXT PRIMARY KEY,
-    timestamp TEXT DEFAULT (datetime('now')),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     actor_user_id TEXT,
     actor_email TEXT,
     role TEXT,

@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS societario_profiles (
     endereco TEXT,
     telefone TEXT,
     status TEXT DEFAULT 'EM_REGISTRO' CHECK(status IN ('EM_REGISTRO','ATIVA','INATIVA')),
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (company_id) REFERENCES client_companies(id)
 );
 
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS societario_logs (
     valor_novo TEXT,
     motivo TEXT,
     actor_user_id TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (company_id) REFERENCES client_companies(id),
     FOREIGN KEY (actor_user_id) REFERENCES users(id)
 );

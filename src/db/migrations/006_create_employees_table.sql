@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS employees (
     pis TEXT,
     cpf TEXT UNIQUE,
     esocial_registration TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (company_id) REFERENCES client_companies(id)
 );
