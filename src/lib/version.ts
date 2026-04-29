@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.7.7'; // Patch increment: Adiciona chave mestre para ativar/desativar todas as permissões de uma categoria no cliente
+export const APP_VERSION = '1.7.8'; // Patch increment: Tratamento de exceção no acesso ao localStorage (evita Application Error no login para usuários com restrições de cookies)
