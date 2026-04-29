@@ -17,13 +17,15 @@ import { RELEASE_NOTES, shouldShowReleaseNotes, getNotesToShow, ReleaseNote } fr
 
 const STORAGE_KEY = 'vision_last_seen_version';
 
-export function ReleaseNotesDialog() {
+export function ReleaseNotesDialog({ userId }: { userId?: string }) {
   const [open, setOpen] = useState(false);
   const [notesToShow, setNotesToShow] = useState<ReleaseNote[]>([]);
 
+  const getStorageKey = () => userId ? `vision_last_seen_version_${userId}` : 'vision_last_seen_version';
+
   useEffect(() => {
     // Only run on client side
-    const lastSeen = localStorage.getItem(STORAGE_KEY);
+    const lastSeen = localStorage.getItem(getStorageKey());
     
     if (shouldShowReleaseNotes(APP_VERSION, lastSeen)) {
       // Se lastSeen for null (primeiro acesso com essa feature), mostra apenas a versão atual para não encher a tela
@@ -33,10 +35,10 @@ export function ReleaseNotesDialog() {
       setNotesToShow(notes);
       setOpen(true);
     }
-  }, []);
+  }, [userId]);
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, APP_VERSION);
+    localStorage.setItem(getStorageKey(), APP_VERSION);
     setOpen(false);
   };
 

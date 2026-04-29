@@ -522,7 +522,23 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                     leaveTo="transform opacity-0 scale-95"
                   >
                     <Menu.Items className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
-                      {userNavigation.map((item) => (
+                      <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => {
+                                      localStorage.removeItem(`vision_last_seen_version_${user?.email}`);
+                                      window.location.reload();
+                                    }}
+                                    className={classNames(
+                                      active ? 'bg-gray-50' : '',
+                                      'block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 cursor-pointer'
+                                    )}
+                                  >
+                                    🚀 Novidades do Sistema
+                                  </button>
+                                )}
+                              </Menu.Item>
+                              {userNavigation.map((item) => (
                         <Menu.Item key={item.name}>
                           {({ active }) => (
                             <a

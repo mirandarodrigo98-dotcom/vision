@@ -27,7 +27,7 @@ export default async function AdminLayout({
   return (
     <AdminDashboard user={session} permissions={permissions}>
       {children}
-      <ReleaseNotesDialog />
+      <ReleaseNotesDialog userId={session.email} />
     </AdminDashboard>
   );
 }
