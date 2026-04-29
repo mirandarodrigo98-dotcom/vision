@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.0'; // Minor increment: Novo Módulo de Vale Transporte no Pessoal
+export const APP_VERSION = '1.8.1'; // Patch increment: Correção na exibição e liberação das permissões de Vale Transporte no painel do cliente

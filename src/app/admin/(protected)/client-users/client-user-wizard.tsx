@@ -195,6 +195,9 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         // Global block for DELETE permissions (Clients generally shouldn't delete records)
         if (p.code.includes('.delete')) return false;
 
+        // Block specific VT admin permissions from client
+        if (p.code === 'vt.approve' || p.code === 'vt.cancel') return false;
+
         return true;
     });
 
