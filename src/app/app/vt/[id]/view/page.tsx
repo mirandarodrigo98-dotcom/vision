@@ -39,7 +39,7 @@ export default async function ClientVTViewPage({ params }: { params: Promise<{ i
                 </div>
                 {vt.status === 'DRAFT' && permissions.includes('vt.create') && (
                     <div className="flex gap-2">
-                        <Link href={\`/app/vt/\${vt.id}/edit\`}>
+                        <Link href={`/app/vt/${vt.id}/edit`}>
                             <Button variant="outline">
                                 <Edit className="h-4 w-4 mr-2" /> Editar Rascunho
                             </Button>
@@ -60,12 +60,12 @@ export default async function ClientVTViewPage({ params }: { params: Promise<{ i
                         </div>
                         <div>
                             <span className="block text-muted-foreground font-semibold">Status</span>
-                            <span className={\`px-2 py-1 rounded-full text-xs font-semibold
-                                \${vt.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
-                                \${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                                \${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
-                                \${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
-                            \`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                                ${vt.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
+                                ${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
+                                ${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
+                                ${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
+                            `}>
                                 {vt.status === 'DRAFT' ? 'Rascunho' : vt.status === 'PENDING' ? 'Enviado/Aguardando' : vt.status === 'COMPLETED' ? 'Concluído' : vt.status === 'CANCELLED' ? 'Cancelado' : vt.status}
                             </span>
                         </div>

@@ -96,7 +96,7 @@ export default async function AdminVTPage({ searchParams }: { searchParams: Prom
             ) : (
                 vts.map((vt) => {
                 const formattedCreatedAt = vt.created_at ? format(new Date(vt.created_at), 'dd/MM/yyyy HH:mm') : '-';
-                const ref = \`\${vt.reference_month.toString().padStart(2, '0')}/\${vt.reference_year}\`;
+                const ref = `${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}`;
 
                 return (
                 <TableRow key={vt.id}>
@@ -105,11 +105,11 @@ export default async function AdminVTPage({ searchParams }: { searchParams: Prom
                     <TableCell>{formattedCreatedAt}</TableCell>
                     <TableCell>{vt.total_employees}</TableCell>
                     <TableCell>
-                      <span className={\`px-2 py-1 rounded-full text-xs font-semibold
-                        \${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        \${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
-                        \${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
-                      \`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                        ${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
+                        ${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
+                      `}>
                         {
                           vt.status === 'PENDING' ? 'Aguardando' :
                           vt.status === 'COMPLETED' ? 'Concluído' :
@@ -120,7 +120,7 @@ export default async function AdminVTPage({ searchParams }: { searchParams: Prom
                     </TableCell>
                     <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                            <Link href={\`/admin/vt/\${vt.id}\`}>
+                            <Link href={`/admin/vt/${vt.id}`}>
                                 <Button variant="outline" size="sm" title="Analisar">
                                     <Eye className="h-4 w-4" />
                                 </Button>

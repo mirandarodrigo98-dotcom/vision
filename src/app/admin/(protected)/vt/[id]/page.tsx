@@ -41,25 +41,21 @@ export default async function AdminVTViewPage({ params }: { params: Promise<{ id
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Detalhes do Pedido - {vt.company_name}</CardTitle>
+                    <CardTitle>Pedido de {vt.company_name} - Ref. {vt.reference_month.toString().padStart(2, '0')}/{vt.reference_year}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-slate-50 p-4 rounded border">
-                        <div>
-                            <span className="block text-muted-foreground font-semibold">Mês/Ano</span>
-                            {vt.reference_month.toString().padStart(2, '0')}/{vt.reference_year}
-                        </div>
                         <div>
                             <span className="block text-muted-foreground font-semibold">Data da Solicitação</span>
                             {format(new Date(vt.created_at), 'dd/MM/yyyy HH:mm')}
                         </div>
                         <div>
                             <span className="block text-muted-foreground font-semibold">Status</span>
-                            <span className={\`px-2 py-1 rounded-full text-xs font-semibold
-                                \${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                                \${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
-                                \${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
-                            \`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                                ${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
+                                ${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
+                                ${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
+                            `}>
                                 {vt.status === 'PENDING' ? 'Aguardando' : vt.status === 'COMPLETED' ? 'Concluído' : vt.status === 'CANCELLED' ? 'Cancelado' : vt.status}
                             </span>
                         </div>
