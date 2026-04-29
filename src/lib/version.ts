@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.7.5'; // Patch increment: Oculta categorias internas (ex: Usuários do Escritório e Financeiro) nas permissões de cliente
+export const APP_VERSION = '1.7.6'; // Patch increment: Oculta Chamados, IR e Dashboard Admin das permissões de cliente

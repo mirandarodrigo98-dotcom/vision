@@ -168,6 +168,11 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         if (p.module === 'Módulo Societário') return false;
         if (p.module === 'Módulo Fiscal') return false; // Covers Fiscal and Contabilidade
         if (p.module === 'Módulo Financeiro') return false; // Exclude internal financial module
+        if (p.module === 'Módulo de Chamados') return false; // Exclude Tickets module
+        if (p.module === 'Módulo IR') return false; // Exclude Income Tax module
+
+        // Exclude Admin Dashboard permission specifically
+        if (p.code === 'dashboard.view') return false;
 
         // Exclude specific categories in Cadastros that are admin/internal only
         if (p.category === 'Equipe Interna') return false;
