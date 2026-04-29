@@ -201,6 +201,17 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         return true;
     });
 
+    // Sort categories to ensure 'Geral' is always at the end, and others are alphabetical
+    const groupedPermissions = Object.values(clientPermissions.reduce((acc, perm) => {
+        if (!acc[perm.category]) acc[perm.category] = [];
+        acc[perm.category].push(perm);
+        return acc;
+    }, {} as Record<string, Permission[]>)).sort((a, b) => {
+        if (a[0].category === 'Geral') return 1;
+        if (b[0].category === 'Geral') return -1;
+        return a[0].category.localeCompare(b[0].category);
+    });
+
     const filteredCompanies = companies.filter(c => {
         const searchLower = companySearch.toLowerCase();
         const razaoMatch = c.razao_social ? c.razao_social.toLowerCase().includes(searchLower) : false;
@@ -361,11 +372,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium">Permissões de Acesso</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto border p-4 rounded-md">
-                                    {Object.values(clientPermissions.reduce((acc, perm) => {
-                                        if (!acc[perm.category]) acc[perm.category] = [];
-                                        acc[perm.category].push(perm);
-                                        return acc;
-                                    }, {} as Record<string, Permission[]>)).map((group) => {
+                                    {groupedPermissions.map((group) => {
                                         const category = group[0].category;
                                         const allCodes = group.map(p => p.code);
                                         const isAllSelected = allCodes.every(code => selectedPermissions.includes(code));
