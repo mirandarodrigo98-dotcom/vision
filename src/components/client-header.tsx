@@ -82,7 +82,11 @@ export function ClientHeader({ user, activeCompany, companies }: ClientHeaderPro
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => {
             // Force open release notes by removing the local storage key and reloading
-            localStorage.removeItem(`vision_last_seen_version_${user.email}`);
+            try {
+              localStorage.removeItem(`vision_last_seen_version_${user.email}`);
+            } catch (error) {
+              console.warn('localStorage is not available', error);
+            }
             window.location.reload();
           }} className="cursor-pointer">
             <span className="mr-2">🚀</span>

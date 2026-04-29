@@ -526,7 +526,11 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                                 {({ active }) => (
                                   <button
                                     onClick={() => {
-                                      localStorage.removeItem(`vision_last_seen_version_${user?.email}`);
+                                      try {
+                                        localStorage.removeItem(`vision_last_seen_version_${user?.email}`);
+                                      } catch (error) {
+                                        console.warn('localStorage is not available', error);
+                                      }
                                       window.location.reload();
                                     }}
                                     className={classNames(

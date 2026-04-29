@@ -25,20 +25,28 @@ export function ReleaseNotesDialog({ userId }: { userId?: string }) {
 
   useEffect(() => {
     // Only run on client side
-    const lastSeen = localStorage.getItem(getStorageKey());
-    
-    if (shouldShowReleaseNotes(APP_VERSION, lastSeen)) {
-      // Se lastSeen for null (primeiro acesso com essa feature), mostra apenas a versão atual para não encher a tela
-      const notes = getNotesToShow(lastSeen);
+    try {
+      const lastSeen = localStorage.getItem(getStorageKey());
       
-      // Group by module
-      setNotesToShow(notes);
-      setOpen(true);
+      if (shouldShowReleaseNotes(APP_VERSION, lastSeen)) {
+        // Se lastSeen for null (primeiro acesso com essa feature), mostra apenas a versão atual para não encher a tela
+        const notes = getNotesToShow(lastSeen);
+        
+        // Group by module
+        setNotesToShow(notes);
+        setOpen(true);
+      }
+    } catch (error) {
+      console.warn('localStorage is not available', error);
     }
   }, [userId]);
 
   const handleDismiss = () => {
-    localStorage.setItem(getStorageKey(), APP_VERSION);
+    try {
+      localStorage.setItem(getStorageKey(), APP_VERSION);
+    } catch (error) {
+      console.warn('localStorage is not available', error);
+    }
     setOpen(false);
   };
 
