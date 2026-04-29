@@ -362,9 +362,26 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                                         if (!acc[perm.category]) acc[perm.category] = [];
                                         acc[perm.category].push(perm);
                                         return acc;
-                                    }, {} as Record<string, Permission[]>)).map((group) => (
-                                        <div key={group[0].category} className="space-y-2 mb-4">
-                                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">{group[0].category}</h4>
+                                    }, {} as Record<string, Permission[]>)).map((group) => {
+                                        const category = group[0].category;
+                                        const allCodes = group.map(p => p.code);
+                                        const isAllSelected = allCodes.every(code => selectedPermissions.includes(code));
+                                        
+                                        return (
+                                        <div key={category} className="space-y-2 mb-4">
+                                            <div className="flex items-center justify-between border-b pb-1">
+                                                <h4 className="font-semibold text-sm text-muted-foreground">{category}</h4>
+                                                <Switch
+                                                    checked={isAllSelected}
+                                                    onCheckedChange={(checked) => {
+                                                        if (checked) {
+                                                            setSelectedPermissions(prev => Array.from(new Set([...prev, ...allCodes])));
+                                                        } else {
+                                                            setSelectedPermissions(prev => prev.filter(p => !allCodes.includes(p)));
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
                                             {group.map(perm => (
                                                 <div key={perm.code} className="flex items-center justify-between">
                                                     <Label htmlFor={`perm-${perm.code}`} className="text-sm cursor-pointer flex-1">
@@ -382,7 +399,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                                                 </div>
                                             ))}
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             </div>
                         </div>
