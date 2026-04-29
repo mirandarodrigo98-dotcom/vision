@@ -167,9 +167,11 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         if (p.module === 'Módulo Integrações') return false;
         if (p.module === 'Módulo Societário') return false;
         if (p.module === 'Módulo Fiscal') return false; // Covers Fiscal and Contabilidade
+        if (p.module === 'Módulo Financeiro') return false; // Exclude internal financial module
 
         // Exclude specific categories in Cadastros that are admin/internal only
         if (p.category === 'Equipe Interna') return false;
+        if (p.category === 'Usuários do Escritório') return false;
         if (p.category === 'Departamentos') return false;
         if (p.category === 'Usuários de Cliente') return false; // Client shouldn't manage other users
         if (p.category === 'Segurança') return false;
