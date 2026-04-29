@@ -120,7 +120,7 @@ export default async function ClientVTPage({ searchParams }: { searchParams: Pro
             ) : (
                 vts.map((vt) => {
                 const formattedCreatedAt = vt.created_at ? format(new Date(vt.created_at), 'dd/MM/yyyy HH:mm') : '-';
-                const ref = \`\${vt.reference_month.toString().padStart(2, '0')}/\${vt.reference_year}\`;
+                const ref = `${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}`;
 
                 return (
                 <TableRow key={vt.id}>
@@ -128,12 +128,12 @@ export default async function ClientVTPage({ searchParams }: { searchParams: Pro
                     <TableCell>{formattedCreatedAt}</TableCell>
                     <TableCell>{vt.total_employees}</TableCell>
                     <TableCell>
-                      <span className={\`px-2 py-1 rounded-full text-xs font-semibold
-                        \${vt.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
-                        \${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        \${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
-                        \${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
-                      \`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                        ${vt.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : ''}
+                        ${vt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${vt.status === 'COMPLETED' ? 'bg-primary/10 text-primary' : ''}
+                        ${vt.status === 'CANCELLED' ? 'bg-red-200 text-red-900' : ''}
+                      `}>
                         {
                           vt.status === 'DRAFT' ? 'Rascunho' : 
                           vt.status === 'PENDING' ? 'Aguardando' :
@@ -145,13 +145,13 @@ export default async function ClientVTPage({ searchParams }: { searchParams: Pro
                     </TableCell>
                     <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                            <Link href={\`/app/vt/\${vt.id}/view\`}>
+                            <Link href={`/app/vt/${vt.id}/view`}>
                                 <Button variant="outline" size="sm" title="Visualizar">
                                     <Eye className="h-4 w-4" />
                                 </Button>
                             </Link>
                             {vt.status === 'DRAFT' && canCreate && (
-                                <Link href={\`/app/vt/\${vt.id}/edit\`}>
+                                <Link href={`/app/vt/${vt.id}/edit`}>
                                     <Button variant="outline" size="sm" title="Editar Rascunho">
                                         <Edit className="h-4 w-4" />
                                     </Button>
