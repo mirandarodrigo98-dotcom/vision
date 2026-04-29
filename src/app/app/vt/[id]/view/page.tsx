@@ -50,7 +50,7 @@ export default async function ClientVTViewPage({ params }: { params: Promise<{ i
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Pedido Referência {vt.reference_month.toString().padStart(2, '0')}/{vt.reference_year}</CardTitle>
+                    <CardTitle>Pedido Referência {String(vt.reference_month).padStart(2, '0')}/{vt.reference_year}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-slate-50 p-4 rounded border">

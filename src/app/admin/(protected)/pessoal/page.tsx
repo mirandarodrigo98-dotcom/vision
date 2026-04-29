@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRightIcon, UserGroupIcon, DocumentPlusIcon, DocumentMinusIcon, SunIcon, ArrowsRightLeftIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, UserGroupIcon, DocumentPlusIcon, DocumentMinusIcon, SunIcon, ArrowsRightLeftIcon, ExclamationTriangleIcon, TruckIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function PessoalPage() {
@@ -137,7 +137,7 @@ export default async function PessoalPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
                 <div className="flex items-center gap-2">
-                  <ArrowsRightLeftIcon className="h-5 w-5" />
+                  <TruckIcon className="h-5 w-5" />
                   Vale Transporte
                 </div>
                 <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />

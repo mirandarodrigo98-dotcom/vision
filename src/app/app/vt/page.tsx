@@ -120,7 +120,7 @@ export default async function ClientVTPage({ searchParams }: { searchParams: Pro
             ) : (
                 vts.map((vt) => {
                 const formattedCreatedAt = vt.created_at ? format(new Date(vt.created_at), 'dd/MM/yyyy HH:mm') : '-';
-                const ref = `${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}`;
+                const ref = `${String(vt.reference_month).padStart(2, '0')}/${vt.reference_year}`;
 
                 return (
                 <TableRow key={vt.id}>

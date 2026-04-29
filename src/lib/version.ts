@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.4'; // Patch increment: Correção final de sintaxe (template strings com escape) nos arquivos de listagem e view do módulo Vale Transporte
+export const APP_VERSION = '1.8.5'; // Patch increment: Troca de ícones do módulo de Vale Transporte e correção do cast string na listagem
