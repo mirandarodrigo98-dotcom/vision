@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
       { href: '/app/vacations', label: 'Férias', icon: Plane, permission: 'vacations.view' },
       { href: '/app/transfers', label: 'Transferências', icon: ArrowRightLeft, permission: 'transfers.view' },
       { href: '/app/leaves', label: 'Afastamentos', icon: Stethoscope, permission: 'leaves.view' },
+      { href: '/app/vt', label: 'Vale Transporte', icon: Plane, permission: 'vt.view' },
       { 
         label: 'Relatórios', 
         icon: FileBarChart,

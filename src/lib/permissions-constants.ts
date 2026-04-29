@@ -66,6 +66,11 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'leaves.edit', label: 'Editar Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
     { code: 'leaves.delete', label: 'Excluir Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
 
+    { code: 'vt.view', label: 'Visualizar Vale Transporte', category: 'Vale Transporte', module: 'Módulo Pessoal' },
+    { code: 'vt.create', label: 'Solicitar Vale Transporte', category: 'Vale Transporte', module: 'Módulo Pessoal' },
+    { code: 'vt.approve', label: 'Concluir Vale Transporte', category: 'Vale Transporte', module: 'Módulo Pessoal' },
+    { code: 'vt.cancel', label: 'Cancelar Vale Transporte', category: 'Vale Transporte', module: 'Módulo Pessoal' },
+
     // --- Módulo Societário ---
     { code: 'societario.view', label: 'Acessar Módulo Societário', category: 'Societário', module: 'Módulo Societário' },
     { code: 'societario.processes.view', label: 'Visualizar Processos', category: 'Societário', module: 'Módulo Societário' },

@@ -632,3 +632,53 @@ Por ser verdade as informações acima, firmo o presente, para todos os fins de 
     
     return Buffer.from(doc.output('arraybuffer'));
 }
+
+export async function generateTransportVoucherPDF(vt: any): Promise<Buffer> {
+    const doc = new jsPDF();
+    const yStart = await addLogo(doc);
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PEDIDO DE VALE TRANSPORTE', 105, yStart, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Empresa: ${vt.company_name}`, 14, yStart + 10);
+    doc.text(`CNPJ: ${vt.company_cnpj}`, 14, yStart + 16);
+    doc.text(`Referência: ${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}`, 14, yStart + 22);
+
+    let y = yStart + 30;
+
+    const tableData = vt.employees.map((emp: any) => [
+        emp.employee_code || '-',
+        emp.employee_name || '-',
+        emp.employee_cpf || '-',
+        emp.quantity.toString(),
+        `R$ ${Number(emp.value).toFixed(2).replace('.', ',')}`,
+        `R$ ${Number(emp.total).toFixed(2).replace('.', ',')}`,
+        emp.line || '-',
+        emp.observation || '-'
+    ]);
+
+    autoTable(doc, {
+        startY: y,
+        head: [['Cód.', 'Nome', 'CPF', 'Qtd', 'Valor Unit.', 'Total', 'Linha', 'Obs']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+        styles: { fontSize: 8, cellPadding: 2 },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || y;
+
+    if (vt.notes) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Observações do Pedido:', 14, finalY + 10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(vt.notes, 14, finalY + 16, { maxWidth: 180 });
+    }
+
+    const arrayBuffer = doc.output('arraybuffer');
+    return Buffer.from(arrayBuffer);
+}

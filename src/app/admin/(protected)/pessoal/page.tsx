@@ -126,7 +126,24 @@ export default async function PessoalPage() {
                 <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardTitle>
               <CardDescription>
-                Licenças médicas e outras ausências.
+                Controle de licenças e atestados.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/admin/vt" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <ArrowsRightLeftIcon className="h-5 w-5" />
+                  Vale Transporte
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Pedidos e rascunhos de Vale Transporte.
               </CardDescription>
             </CardHeader>
           </Card>

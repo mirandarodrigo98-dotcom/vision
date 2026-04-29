@@ -25,6 +25,7 @@ const navItems = [
   { href: '/admin/clients', label: 'Empresas', icon: Building2 },
   { href: '/admin/employees', label: 'Funcionários', icon: Briefcase },
   { href: '/admin/tickets', label: 'Chamados', icon: Ticket },
+  { href: '/admin/vt', label: 'Vale Transporte', icon: Briefcase },
   { href: '/admin/client-users', label: 'Usuários', icon: Users },
 
   { href: '/admin/admissions', label: 'Admissões', icon: FileText },

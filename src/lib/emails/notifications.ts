@@ -95,6 +95,80 @@ function formatField(label: string, value: string, key: string, changes: string[
     return `<p><strong>${label}:</strong> <span style="${style}">${value}</span></p>`;
 }
 
+// --- VALE TRANSPORTE ---
+
+export async function sendTransportVoucherCreatedEmail(vt: any, pdfBuffer: Buffer) {
+    const destEmail = await getDestEmail();
+    if (!destEmail) return;
+
+    const htmlContent = `
+        <h2 style="color: #333;">Novo Pedido de Vale Transporte Solicitado</h2>
+        <p>A empresa <strong>${vt.company_name}</strong> solicitou um pedido de Vale Transporte para a referência <strong>${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}</strong>.</p>
+        <p><strong>Total de Colaboradores:</strong> ${vt.employees.length}</p>
+        <p>Acesse o sistema VISION para conferir os detalhes do pedido.</p>
+    `;
+
+    const finalHtml = await wrapHtml(htmlContent);
+
+    try {
+        await resend.emails.send({
+            from: FROM_EMAIL,
+            to: destEmail,
+            subject: `VISION - Novo Pedido de Vale Transporte: ${vt.company_name}`,
+            html: finalHtml,
+            attachments: [
+                {
+                    filename: `vale_transporte_${vt.reference_month}_${vt.reference_year}.pdf`,
+                    content: pdfBuffer,
+                }
+            ]
+        });
+    } catch (error) {
+        console.error('Error sending transport voucher created email:', error);
+    }
+}
+
+export async function sendTransportVoucherStatusEmail(vt: any, status: string, reason?: string) {
+    // Buscar emails do cliente que solicitou (se houver created_by_user_id)
+    // Para simplificar, mandamos para o admin, mas o ideal seria notificar o cliente
+    // Aqui usamos o padrão existente: o sistema tem `sendEmail` genérico. 
+    // Vou enviar um email para o usuário que criou.
+    if (!vt.created_by_user_id) return;
+    
+    const user = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [vt.created_by_user_id])).rows[0] as { email: string, name: string };
+    if (!user) return;
+
+    const statusMap: any = {
+        'COMPLETED': 'Concluído/Aprovado',
+        'CANCELLED': 'Cancelado'
+    };
+
+    let msg = `O status do seu pedido de Vale Transporte (Referência: ${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}) foi alterado para <strong>${statusMap[status] || status}</strong>.`;
+
+    if (status === 'CANCELLED' && reason) {
+        msg += `<p><strong>Motivo do cancelamento:</strong> ${reason}</p>`;
+    }
+
+    const htmlContent = `
+        <h2 style="color: #333;">Atualização no Pedido de Vale Transporte</h2>
+        <p>Olá, ${user.name}.</p>
+        <p>${msg}</p>
+    `;
+
+    const finalHtml = await wrapHtml(htmlContent);
+
+    try {
+        await resend.emails.send({
+            from: FROM_EMAIL,
+            to: user.email,
+            subject: `VISION - Status do Pedido de VT Atualizado`,
+            html: finalHtml,
+        });
+    } catch (error) {
+        console.error('Error sending VT status email:', error);
+    }
+}
+
 // --- ADMISSION ---
 
 interface AdmissionEmailData {

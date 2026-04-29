@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.7.8'; // Patch increment: Tratamento de exceção no acesso ao localStorage (evita Application Error no login para usuários com restrições de cookies)
+export const APP_VERSION = '1.8.0'; // Minor increment: Novo Módulo de Vale Transporte no Pessoal
