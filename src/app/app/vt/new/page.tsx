@@ -17,10 +17,10 @@ export default async function NewVTPage() {
     if (!companyId) redirect('/app/vt');
 
     const employees = (await db.query(`
-        SELECT id, codigo, nome, cpf
+        SELECT id, code as codigo, name as nome, cpf
         FROM employees
         WHERE company_id = $1 AND is_active = 1
-        ORDER BY nome ASC
+        ORDER BY name ASC
     `, [companyId])).rows as any[];
 
     return <VTForm employees={employees} companyId={companyId} />;
