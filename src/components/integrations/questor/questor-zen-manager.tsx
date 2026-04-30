@@ -13,8 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { saveQuestorZenConfig, QuestorZenConfig } from '@/app/actions/integrations/questor-zen';
 
 const questorZenConfigSchema = z.object({
-  client_domain: z.string().url('O domínio do cliente deve ser uma URL válida').min(1, 'O domínio do cliente é obrigatório'),
-  access_token: z.string().min(1, 'O token de acesso é obrigatório'),
+  base_url: z.string().url('O domínio do cliente deve ser uma URL válida').min(1, 'O domínio do cliente é obrigatório'),
+  api_token: z.string().min(1, 'O token de acesso é obrigatório'),
 });
 
 type FormData = z.infer<typeof questorZenConfigSchema>;
@@ -29,8 +29,8 @@ export function QuestorZenManager({ initialConfig }: QuestorZenManagerProps) {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(questorZenConfigSchema),
     defaultValues: {
-      client_domain: initialConfig?.client_domain || 'https://nzdcontabilidade.app.questorpublico.com.br/',
-      access_token: initialConfig?.access_token || '',
+      base_url: initialConfig?.base_url || 'https://nzdcontabilidade.app.questorpublico.com.br/',
+      api_token: initialConfig?.api_token || '',
     },
   });
 
@@ -63,27 +63,27 @@ export function QuestorZenManager({ initialConfig }: QuestorZenManagerProps) {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
             <div className="space-y-2">
-              <Label htmlFor="client_domain">Domínio do Cliente</Label>
+              <Label htmlFor="base_url">Domínio do Cliente</Label>
               <Input
-                id="client_domain"
+                id="base_url"
                 placeholder="https://suaempresa.app.questorpublico.com.br"
-                {...register('client_domain')}
+                {...register('base_url')}
               />
-              {errors.client_domain && (
-                <p className="text-sm text-red-500">{errors.client_domain.message}</p>
+              {errors.base_url && (
+                <p className="text-sm text-red-500">{errors.base_url.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="access_token">Token de Acesso</Label>
+              <Label htmlFor="api_token">Token de Acesso</Label>
               <Input
-                id="access_token"
+                id="api_token"
                 type="password"
                 placeholder="d8e725c9da835d85e1f980575c2a9629..."
-                {...register('access_token')}
+                {...register('api_token')}
               />
-              {errors.access_token && (
-                <p className="text-sm text-red-500">{errors.access_token.message}</p>
+              {errors.api_token && (
+                <p className="text-sm text-red-500">{errors.api_token.message}</p>
               )}
             </div>
 
