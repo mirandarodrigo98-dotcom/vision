@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { getCompanies } from '@/app/actions/companies';
 import { getQuestorConfig } from '@/app/actions/integrations/questor';
 import { getQuestorSynConfig, getQuestorSynRoutines } from '@/app/actions/integrations/questor-syn';
+import { getQuestorZenConfig } from '@/app/actions/integrations/questor-zen';
 import db from '@/lib/db';
 import { QuestorManager } from '@/components/integrations/questor/questor-manager';
 import { QuestorSynManager } from '@/components/integrations/questor/questor-syn-manager';
@@ -20,12 +21,13 @@ async function getQuestorAuths() {
 }
 
 export default async function QuestorIntegrationPage() {
-  const [companiesResult, config, auths, synConfig, synRoutines] = await Promise.all([
+  const [companiesResult, config, auths, synConfig, synRoutines, zenConfig] = await Promise.all([
     getCompanies(),
     getQuestorConfig(),
     getQuestorAuths(),
     getQuestorSynConfig(),
     getQuestorSynRoutines(),
+    getQuestorZenConfig(),
   ]);
 
   const companies = companiesResult || [];
@@ -42,6 +44,7 @@ export default async function QuestorIntegrationPage() {
         config={config}
         companies={companies}
         auths={auths}
+        zenConfig={zenConfig}
       />
     </div>
   );
