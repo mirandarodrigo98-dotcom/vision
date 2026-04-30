@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
-  FilePlus, 
   LogOut,
   User,
   Users,
@@ -18,7 +17,8 @@ import {
   Stethoscope,
   ChevronDown,
   ChevronRight,
-  FileBarChart
+  FileBarChart,
+  FilePlus
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
