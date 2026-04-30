@@ -162,7 +162,7 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[300px] overflow-x-hidden [&>[data-radix-scroll-area-viewport]]:overflow-x-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-20 text-sm text-muted-foreground">
               Carregando...
@@ -173,24 +173,24 @@ export function NotificationBell() {
               <p className="text-sm">Nenhuma notificação</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y w-full overflow-x-hidden">
               {notifications.map((notification) => (
                 <div 
                   key={notification.id}
                   className={`
-                    relative p-4 text-sm hover:bg-muted/50 transition-colors 
+                    relative p-4 text-sm hover:bg-muted/50 transition-colors w-full
                     ${!notification.read ? 'bg-blue-50/50' : ''}
                   `}
                 >
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 w-full">
                     <div 
-                      className="flex-1 space-y-1 cursor-pointer overflow-hidden"
+                      className="flex-1 space-y-1 cursor-pointer overflow-hidden min-w-0"
                       onClick={() => handleMarkAsRead(notification.id, notification.link)}
                     >
-                      <p className={`font-medium leading-none break-words whitespace-normal ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
+                      <p className={`font-medium leading-tight break-words ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-muted-foreground line-clamp-2 text-xs break-words whitespace-normal">
+                      <p className="text-muted-foreground text-xs break-words line-clamp-3">
                         {notification.message}
                       </p>
                       <p className="text-[10px] text-muted-foreground pt-1">
