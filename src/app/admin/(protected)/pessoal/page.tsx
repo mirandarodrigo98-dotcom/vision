@@ -148,6 +148,23 @@ export default async function PessoalPage() {
             </CardHeader>
           </Card>
         </Link>
+
+        <Link href="/admin/payroll-variables" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <DocumentPlusIcon className="h-5 w-5" />
+                  Variáveis da Folha
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Lançamentos de eventos e variáveis da folha.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   );

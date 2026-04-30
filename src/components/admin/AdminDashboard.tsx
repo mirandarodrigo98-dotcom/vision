@@ -56,7 +56,7 @@ const navigation: NavigationItem[] = [
   { name: 'Chamados', href: '/admin/tickets', icon: TicketIcon },
   { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permissions: ['companies.view', 'employees.view', 'socios.view', 'client_users.view', 'team.view', 'departments.view'] },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
-  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view'] },
+  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view', 'payroll_variables.view'] },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
   { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permissions: ['contabilidade.view', 'contabilidade.faturamento.view'] },
   { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permissions: ['financeiro.cobranca.contabilidade.view', 'financeiro.cobranca.consultoria.view', 'financeiro.dashboard.contabilidade', 'financeiro.dashboard.consultoria'] },
