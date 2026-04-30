@@ -184,13 +184,13 @@ export function NotificationBell() {
                 >
                   <div className="flex gap-3">
                     <div 
-                      className="flex-1 space-y-1 cursor-pointer"
+                      className="flex-1 space-y-1 cursor-pointer overflow-hidden"
                       onClick={() => handleMarkAsRead(notification.id, notification.link)}
                     >
-                      <p className={`font-medium leading-none ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
+                      <p className={`font-medium leading-none break-words whitespace-normal ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-muted-foreground line-clamp-2 text-xs">
+                      <p className="text-muted-foreground line-clamp-2 text-xs break-words whitespace-normal">
                         {notification.message}
                       </p>
                       <p className="text-[10px] text-muted-foreground pt-1">

@@ -43,6 +43,30 @@ async function getUserEmail(userId: string) {
   }
 }
 
+async function getUsersToNotify(requesterId: string, assigneeId: string | null, excludeUserId: string) {
+  try {
+    const query = `
+      SELECT DISTINCT u.id, u.email, u.name 
+      FROM users u
+      LEFT JOIN users req ON req.id = $1
+      LEFT JOIN users ass ON ass.id = $2
+      WHERE u.deleted_at IS NULL 
+      AND u.id != $3
+      AND (
+        u.id = $1 OR 
+        u.id = $2 OR 
+        (u.department_id IS NOT NULL AND req.department_id IS NOT NULL AND u.department_id = req.department_id) OR
+        (u.department_id IS NOT NULL AND ass.department_id IS NOT NULL AND u.department_id = ass.department_id)
+      )
+    `;
+    const users = (await db.query(query, [requesterId, assigneeId, excludeUserId])).rows;
+    return users as { id: string, email: string, name: string }[];
+  } catch (error) {
+    console.error('Error fetching users to notify:', error);
+    return [];
+  }
+}
+
 async function createTicketsSequencesTable() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS tickets_sequences (
@@ -198,43 +222,43 @@ export async function createTicket(prevState: any, formData: FormData) {
       }
     }
 
-    // Notificar Assignee se houver
+    // Notificar Assignee e outros se houver
     if (assignee_id) {
       try {
         const assignee = await getUserEmail(assignee_id);
         if (assignee) {
-          // Notificação Desktop/App
-          await createNotification(
-            assignee_id,
-            'Novo Chamado Atribuído',
-            `Você foi atribuído ao chamado: ${title}`,
-            `/admin/tickets/${ticketId}`
-          );
+          const usersToNotify = await getUsersToNotify(session.user_id, assignee_id, session.user_id);
+          for (const userToNotify of usersToNotify) {
+            await createNotification(
+              userToNotify.id,
+              'Novo Chamado Atribuído',
+              `Um chamado foi aberto e atribuído: ${title}`,
+              `/admin/tickets/${ticketId}`
+            );
 
-          // Email
-          const ticketData = {
-            id: ticketId,
-            protocol,
-            title,
-            description,
-            priority,
-            category,
-            due_date,
-            status: 'open'
-          };
+            if (userToNotify.id === assignee_id) {
+              await sendTicketCreatedEmail({
+                ticket: { id: ticketId, protocol, title, description, priority, category, due_date, status: 'open' },
+                creator: { name: session.name || 'Usuário', email: session.email || '' },
+                assignee: { name: assignee.name, email: assignee.email }
+              });
+            } else {
+              await sendTicketStatusChangedEmail({
+                ticket: { id: ticketId, protocol, title, description, priority, category, due_date, status: 'open' },
+                oldStatus: 'open',
+                newStatus: 'open',
+                updater: { name: session.name || 'Atendente' },
+                recipient: { name: userToNotify.name, email: userToNotify.email }
+              });
+            }
 
-          await sendTicketCreatedEmail({
-            ticket: ticketData,
-            creator: { name: session.name || 'Usuário', email: session.email || '' },
-            assignee: { name: assignee.name, email: assignee.email }
-          });
-
-          await sendTicketDigisacNotification({
-            userId: assignee.id,
-            ticketTitle: title,
-            requesterName: session.name || 'Usuário',
-            type: 'abertura'
-          });
+            await sendTicketDigisacNotification({
+              userId: userToNotify.id,
+              ticketTitle: title,
+              requesterName: session.name || 'Usuário',
+              type: 'abertura'
+            });
+          }
         }
       } catch (notifyError) {
          console.error('Error sending notifications:', notifyError);
@@ -278,22 +302,22 @@ export async function returnTicket(ticketId: string, reason: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, `Chamado devolvido pelo motivo: ${reason}`]);
 
-    // Notify requester
-    const requester = await getUserEmail(ticket.requester_id);
-    if (requester) {
+    // Notify users
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, ticket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
       await createNotification(
-        ticket.requester_id,
+        userToNotify.id,
         'Chamado Devolvido',
         `Seu chamado "${ticket.title}" foi devolvido para ajustes. Motivo: ${reason}`,
         `/admin/tickets/${ticketId}`
       );
 
       await sendEmail({
-        to: requester.email,
+        to: userToNotify.email,
         subject: `[VISION] Chamado Devolvido: ${ticket.title}`,
         html: `
-          <h2>Olá ${requester.name},</h2>
-          <p>Seu chamado foi devolvido para ajustes.</p>
+          <h2>Olá ${userToNotify.name},</h2>
+          <p>O chamado <strong>${ticket.title}</strong> foi devolvido para ajustes.</p>
           <p><strong>Status:</strong> ${translateStatus('returned')}</p>
           <p><strong>Motivo:</strong> ${reason}</p>
           <p>Por favor, acesse o chamado, faça os ajustes necessários e clique em "Reenviar".</p>
@@ -303,7 +327,7 @@ export async function returnTicket(ticketId: string, reason: string) {
       });
 
       await sendTicketDigisacNotification({
-        userId: ticket.requester_id,
+        userId: userToNotify.id,
         ticketTitle: ticket.title,
         requesterName: session.name || 'Atendente',
         type: 'devolucao',
@@ -348,33 +372,31 @@ export async function resubmitTicket(ticketId: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, `Chamado reenviado após ajustes.`]);
 
-    // Notify assignee
-    if (ticket.assignee_id) {
-      const assignee = await getUserEmail(ticket.assignee_id);
-      if (assignee) {
-        await createNotification(
-          ticket.assignee_id,
-          'Chamado Reenviado',
-          `O chamado "${ticket.title}" foi reenviado pelo solicitante.`,
-          `/admin/tickets/${ticketId}`
-        );
+    // Notify users
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, ticket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
+      await createNotification(
+        userToNotify.id,
+        'Chamado Reenviado',
+        `O chamado "${ticket.title}" foi reenviado pelo solicitante.`,
+        `/admin/tickets/${ticketId}`
+      );
 
-        await sendTicketStatusChangedEmail({
-          ticket,
-          oldStatus: 'returned',
-          newStatus: 'open',
-          updater: { name: session.name || 'Solicitante' },
-          recipient: { name: assignee.name, email: assignee.email }
-        });
+      await sendTicketStatusChangedEmail({
+        ticket,
+        oldStatus: 'returned',
+        newStatus: 'open',
+        updater: { name: session.name || 'Solicitante' },
+        recipient: { name: userToNotify.name, email: userToNotify.email }
+      });
 
-        await sendTicketDigisacNotification({
-          userId: ticket.assignee_id,
-          ticketTitle: ticket.title,
-          requesterName: session.name || 'Solicitante',
-          type: 'movimentacao',
-          customText: 'Chamado reenviado após ajustes.'
-        });
-      }
+      await sendTicketDigisacNotification({
+        userId: userToNotify.id,
+        ticketTitle: ticket.title,
+        requesterName: session.name || 'Solicitante',
+        type: 'movimentacao',
+        customText: 'Chamado reenviado após ajustes.'
+      });
     }
     
     revalidatePath(`/admin/tickets/${ticketId}`);
@@ -430,13 +452,13 @@ export async function acceptTicket(ticketId: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, isUnassigned ? 'Chamado aceito e assumido' : 'Chamado aceito e em andamento']);
 
-    // Notify requester
-    const requester = await getUserEmail(ticket.requester_id);
-    if (requester) {
+    // Notify users
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, newAssigneeId, session.user_id);
+    for (const userToNotify of usersToNotify) {
       await createNotification(
-        ticket.requester_id,
+        userToNotify.id,
         'Chamado em Andamento',
-        `Seu chamado "${ticket.title}" foi aceito e está em andamento.`,
+        `O chamado "${ticket.title}" foi aceito e está em andamento.`,
         `/admin/tickets/${ticketId}`
       );
 
@@ -444,8 +466,8 @@ export async function acceptTicket(ticketId: string) {
         ticket,
         oldStatus: 'open',
         newStatus: 'in_progress',
-        updater: { name: session.name || 'Atendente' }, // Assuming session has user_name or fetch it
-        recipient: { name: requester.name, email: requester.email }
+        updater: { name: session.name || 'Atendente' },
+        recipient: { name: userToNotify.name, email: userToNotify.email }
       });
     }
 
@@ -490,22 +512,22 @@ export async function resolveTicket(ticketId: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, 'Chamado resolvido']);
 
-    // Notify requester
-    const requester = await getUserEmail(ticket.requester_id);
-    if (requester) {
+    // Notify users
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, ticket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
       await createNotification(
-        ticket.requester_id,
+        userToNotify.id,
         'Chamado Resolvido',
-        `Seu chamado "${ticket.title}" foi marcado como resolvido.`,
+        `O chamado "${ticket.title}" foi marcado como resolvido.`,
         `/admin/tickets/${ticketId}`
       );
 
       await sendEmail({
-        to: requester.email,
+        to: userToNotify.email,
         subject: `[VISION] Chamado Resolvido: ${ticket.title}`,
         html: `
-          <h2>Olá ${requester.name},</h2>
-          <p>Seu chamado foi marcado como <strong>${translateStatus('resolved')}</strong>.</p>
+          <h2>Olá ${userToNotify.name},</h2>
+          <p>O chamado <strong>${ticket.title}</strong> foi marcado como <strong>${translateStatus('resolved')}</strong>.</p>
           <p><strong>Status:</strong> ${translateStatus('resolved')}</p>
           <p>Se o problema persistir, você pode reabrir o chamado em até 15 dias.</p>
           <p><a href="https://vision.nzdcontabilidade.com.br/admin/tickets/${ticketId}">Acessar Chamado</a></p>
@@ -514,7 +536,7 @@ export async function resolveTicket(ticketId: string) {
       });
 
       await sendTicketDigisacNotification({
-        userId: ticket.requester_id,
+        userId: userToNotify.id,
         ticketTitle: ticket.title,
         requesterName: session.name || 'Atendente',
         type: 'finalizacao'
@@ -574,33 +596,31 @@ export async function reopenTicket(ticketId: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, 'Chamado reaberto pelo solicitante']);
 
-    // Notify assignee
-    if (ticket.assignee_id) {
-      const assignee = await getUserEmail(ticket.assignee_id);
-      if (assignee) {
-        await createNotification(
-          ticket.assignee_id,
-          'Chamado Reaberto',
-          `O chamado "${ticket.title}" foi reaberto.`,
-          `/admin/tickets/${ticketId}`
-        );
+    // Notify users
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, ticket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
+      await createNotification(
+        userToNotify.id,
+        'Chamado Reaberto',
+        `O chamado "${ticket.title}" foi reaberto.`,
+        `/admin/tickets/${ticketId}`
+      );
 
-        await sendTicketStatusChangedEmail({
-          ticket,
-          oldStatus: 'resolved',
-          newStatus: 'open',
-          updater: { name: session.name || 'Solicitante' },
-          recipient: { name: assignee.name, email: assignee.email }
-        });
+      await sendTicketStatusChangedEmail({
+        ticket,
+        oldStatus: 'resolved',
+        newStatus: 'open',
+        updater: { name: session.name || 'Solicitante' },
+        recipient: { name: userToNotify.name, email: userToNotify.email }
+      });
 
-        await sendTicketDigisacNotification({
-          userId: ticket.assignee_id,
-          ticketTitle: ticket.title,
-          requesterName: session.name || 'Solicitante',
-          type: 'movimentacao',
-          customText: 'Chamado reaberto pelo solicitante'
-        });
-      }
+      await sendTicketDigisacNotification({
+        userId: userToNotify.id,
+        ticketTitle: ticket.title,
+        requesterName: session.name || 'Solicitante',
+        type: 'movimentacao',
+        customText: 'Chamado reaberto pelo solicitante'
+      });
     }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
@@ -640,13 +660,13 @@ export async function cancelTicket(ticketId: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, 'Chamado cancelado']);
 
-    // Notify requester
-    const requester = await getUserEmail(ticket.requester_id);
-    if (requester) {
+    // Notify users
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, ticket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
       await createNotification(
-        ticket.requester_id,
+        userToNotify.id,
         'Chamado Cancelado',
-        `Seu chamado "${ticket.title}" foi cancelado.`,
+        `O chamado "${ticket.title}" foi cancelado.`,
         `/admin/tickets/${ticketId}`
       );
 
@@ -655,29 +675,8 @@ export async function cancelTicket(ticketId: string) {
         oldStatus: ticket.status,
         newStatus: 'cancelled',
         updater: { name: session.name || 'Atendente' },
-        recipient: { name: requester.name, email: requester.email }
+        recipient: { name: userToNotify.name, email: userToNotify.email }
       });
-    }
-
-    // Notify assignee if not the one canceling
-    if (ticket.assignee_id && ticket.assignee_id !== session.user_id) {
-        const assignee = await getUserEmail(ticket.assignee_id);
-        if (assignee) {
-             await createNotification(
-                ticket.assignee_id,
-                'Chamado Cancelado',
-                `O chamado "${ticket.title}" foi cancelado.`,
-                `/admin/tickets/${ticketId}`
-              );
-
-              await sendTicketStatusChangedEmail({
-                ticket,
-                oldStatus: ticket.status,
-                newStatus: 'cancelled',
-                updater: { name: session.name || 'Atendente' },
-                recipient: { name: assignee.name, email: assignee.email }
-              });
-        }
     }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
@@ -718,13 +717,13 @@ export async function updateTicketStatus(ticketId: string, status: string) {
       VALUES ($1, $2, $3, 'status_change', $4)
     `, [uuidv4(), ticketId, session.user_id, `Status alterado de ${translateStatus(currentTicket.status)} para ${translateStatus(status)}`]);
 
-    // Notify requester of status change
-    const requester = await getUserEmail(currentTicket.requester_id);
-    if (requester && currentTicket.requester_id !== session.user_id) {
+    // Notify users
+    const usersToNotify = await getUsersToNotify(currentTicket.requester_id, currentTicket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
       await createNotification(
-        currentTicket.requester_id,
+        userToNotify.id,
         'Chamado Atualizado',
-        `Seu chamado "${currentTicket.title}" foi alterado para: ${translateStatus(status)}`,
+        `O chamado "${currentTicket.title}" foi alterado para: ${translateStatus(status)}`,
         `/admin/tickets/${ticketId}`
       );
 
@@ -733,44 +732,16 @@ export async function updateTicketStatus(ticketId: string, status: string) {
         oldStatus: currentTicket.status,
         newStatus: status,
         updater: { name: session.name || 'Atendente' },
-        recipient: { name: requester.name, email: requester.email }
+        recipient: { name: userToNotify.name, email: userToNotify.email }
       });
 
       await sendTicketDigisacNotification({
-        userId: currentTicket.requester_id,
+        userId: userToNotify.id,
         ticketTitle: currentTicket.title,
         requesterName: session.name || 'Atendente',
-        type: 'finalizacao'
+        type: 'movimentacao',
+        customText: `O status do chamado foi alterado para: ${translateStatus(status)}`
       });
-    }
-
-    // Notify assignee if someone else changed it
-    if (currentTicket.assignee_id && currentTicket.assignee_id !== session.user_id) {
-      const assignee = await getUserEmail(currentTicket.assignee_id);
-      if (assignee) {
-        await createNotification(
-          currentTicket.assignee_id,
-          'Chamado Atualizado',
-          `O chamado "${currentTicket.title}" foi alterado para: ${translateStatus(status)}`,
-          `/admin/tickets/${ticketId}`
-        );
-
-        await sendTicketStatusChangedEmail({
-          ticket: currentTicket,
-          oldStatus: currentTicket.status,
-          newStatus: status,
-          updater: { name: session.name || 'Atendente' },
-          recipient: { name: assignee.name, email: assignee.email }
-        });
-
-        await sendTicketDigisacNotification({
-          userId: currentTicket.assignee_id,
-          ticketTitle: currentTicket.title,
-          requesterName: session.name || 'Atendente',
-          type: 'movimentacao',
-          customText: `O status do chamado foi alterado para: ${translateStatus(status)}`
-        });
-      }
     }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
@@ -812,58 +783,39 @@ export async function updateTicketAssignee(ticketId: string, assigneeId: string 
       const assigneeName = assignee?.name || 'Desconhecido';
       logMessage = `Atribuído a ${assigneeName}`;
 
-      // Notify new assignee (if different from old and not the user themselves)
-      if (assigneeId !== ticketInfo.assignee_id && assigneeId !== session.user_id) {
-         await createNotification(
-          assigneeId,
+      // Notify users
+      const usersToNotify = await getUsersToNotify(ticketInfo.requester_id, assigneeId, session.user_id);
+      for (const userToNotify of usersToNotify) {
+        await createNotification(
+          userToNotify.id,
           'Chamado Atribuído',
-          `Você foi atribuído ao chamado: ${ticketInfo.title}`,
+          `O chamado "${ticketInfo.title}" foi atribuído para ${assigneeName}.`,
           `/admin/tickets/${ticketId}`
         );
 
-        if (assignee?.email) {
+        if (userToNotify.id === assigneeId && assignee?.email) {
           await sendTicketCreatedEmail({
             ticket: ticketInfo,
             creator: { name: session.name || 'Usuário', email: session.email || '' },
             assignee: { name: assigneeName, email: assignee.email }
           });
-
-          await sendTicketDigisacNotification({
-            userId: assigneeId,
-            ticketTitle: ticketInfo.title,
-            requesterName: session.name || 'Usuário',
-            type: 'abertura'
-          });
-        }
-      }
-      
-      // Notify requester about new assignee
-      if (assigneeId !== ticketInfo.assignee_id && ticketInfo.requester_id !== session.user_id) {
-        const requester = await getUserEmail(ticketInfo.requester_id);
-        if (requester) {
-          await createNotification(
-            ticketInfo.requester_id,
-            'Chamado Atribuído',
-            `O chamado "${ticketInfo.title}" foi atribuído para ${assigneeName}.`,
-            `/admin/tickets/${ticketId}`
-          );
-
+        } else {
           await sendTicketStatusChangedEmail({
             ticket: ticketInfo,
             oldStatus: 'open',
             newStatus: 'open', // Status doesn't change, just using the template
             updater: { name: session.name || 'Atendente' },
-            recipient: { name: requester.name, email: requester.email }
-          });
-
-          await sendTicketDigisacNotification({
-            userId: ticketInfo.requester_id,
-            ticketTitle: ticketInfo.title,
-            requesterName: session.name || 'Atendente',
-            type: 'movimentacao',
-            customText: `O chamado foi atribuído para: ${assigneeName}`
+            recipient: { name: userToNotify.name, email: userToNotify.email }
           });
         }
+
+        await sendTicketDigisacNotification({
+          userId: userToNotify.id,
+          ticketTitle: ticketInfo.title,
+          requesterName: session.name || 'Atendente',
+          type: 'movimentacao',
+          customText: `O chamado foi atribuído para: ${assigneeName}`
+        });
       }
     } else {
         logMessage = 'Atribuição removida';
@@ -943,115 +895,29 @@ export async function addTicketComment(ticketId: string, formData: FormData) {
     const sender = await getUserEmail(session.user_id);
     const senderName = sender?.name || 'Usuário';
 
-    // Se o remetente é o solicitante, notifica o responsável
-    if (session.user_id === ticket.requester_id && ticket.assignee_id) {
-        const assignee = await getUserEmail(ticket.assignee_id);
-        if (assignee) {
-            await createNotification(
-                ticket.assignee_id,
-                'Nova Mensagem',
-                `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-                `/admin/tickets/${ticketId}`
-            );
+    const usersToNotify = await getUsersToNotify(ticket.requester_id, ticket.assignee_id, session.user_id);
+    for (const userToNotify of usersToNotify) {
+      await createNotification(
+        userToNotify.id,
+        'Nova Mensagem',
+        `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+        `/admin/tickets/${ticketId}`
+      );
 
-            await sendTicketCommentEmail({
-                ticket,
-                comment: content,
-                author: { name: senderName },
-                recipient: { name: assignee.name, email: assignee.email }
-            });
+      await sendTicketCommentEmail({
+        ticket,
+        comment: content,
+        author: { name: senderName },
+        recipient: { name: userToNotify.name, email: userToNotify.email }
+      });
 
-            await sendTicketDigisacNotification({
-                userId: ticket.assignee_id,
-                ticketTitle: ticket.title,
-                requesterName: senderName,
-                type: 'movimentacao',
-                customText: content
-            });
-        }
-    } 
-    // Se o remetente é o responsável, notifica o solicitante
-    else if (session.user_id === ticket.assignee_id) {
-        const requester = await getUserEmail(ticket.requester_id);
-        if (requester) {
-             await createNotification(
-                ticket.requester_id,
-                'Nova Mensagem',
-                `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-                `/admin/tickets/${ticketId}`
-            );
-
-            await sendTicketCommentEmail({
-                ticket,
-                comment: content,
-                author: { name: senderName },
-                recipient: { name: requester.name, email: requester.email }
-            });
-
-            await sendTicketDigisacNotification({
-                userId: ticket.requester_id,
-                ticketTitle: ticket.title,
-                requesterName: senderName,
-                type: 'movimentacao',
-                customText: content
-            });
-        }
-    }
-    // Se for um terceiro (ex: admin que não é nem solicitante nem responsável)
-    else {
-        // Notifica solicitante
-        const requester = await getUserEmail(ticket.requester_id);
-        if (requester && requester.id !== session.user_id) {
-             await createNotification(
-                ticket.requester_id,
-                'Nova Mensagem',
-                `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-                `/admin/tickets/${ticketId}`
-            );
-
-            await sendTicketCommentEmail({
-                ticket,
-                comment: content,
-                author: { name: senderName },
-                recipient: { name: requester.name, email: requester.email }
-            });
-
-            await sendTicketDigisacNotification({
-                userId: ticket.requester_id,
-                ticketTitle: ticket.title,
-                requesterName: senderName,
-                type: 'movimentacao',
-                customText: content
-            });
-        }
-
-        // Notifica responsável
-        if (ticket.assignee_id && ticket.assignee_id !== session.user_id) {
-            const assignee = await getUserEmail(ticket.assignee_id);
-            if (assignee) {
-                await createNotification(
-                    ticket.assignee_id,
-                    'Nova Mensagem',
-                    `Nova mensagem no chamado "${ticket.title}": ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-                    `/admin/tickets/${ticketId}`
-                );
-
-                await sendTicketCommentEmail({
-                    ticket,
-                    comment: content,
-                    author: { name: senderName },
-                    recipient: { name: assignee.name, email: assignee.email }
-                });
-
-                await sendTicketDigisacNotification({
-                    userId: ticket.assignee_id,
-                    ticketTitle: ticket.title,
-                    requesterName: senderName,
-                    type: 'movimentacao',
-                    customText: content
-                });
-            }
-        }
+      await sendTicketDigisacNotification({
+        userId: userToNotify.id,
+        ticketTitle: ticket.title,
+        requesterName: senderName,
+        type: 'movimentacao',
+        customText: content
+      });
     }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
