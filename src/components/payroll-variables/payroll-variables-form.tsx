@@ -1,16 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2, ArrowRightIcon, SaveIcon, SendIcon, ArrowLeftIcon, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
@@ -23,8 +19,6 @@ import {
 
 import { getPayrollEvents, getCompanyEmployees, savePayrollVariables, PayrollEvent } from '@/app/actions/payroll-variables';
 import { formatCPF } from '@/lib/validators';
-
-const monthSchema = z.string().regex(/^\d{4}-\d{2}$/, 'Formato deve ser YYYY-MM');
 
 interface PayrollVariablesFormProps {
   companyId: string;
@@ -55,7 +49,8 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
         getCompanyEmployees(companyId)
       ]);
       
-      if (eventsRes.data) setAvailableEvents(eventsRes.data);
+      if (eventsRes?.data) setAvailableEvents(eventsRes.data);
+      if (eventsRes?.error) toast.error(eventsRes.error);
       if (employeesRes.data) setEmployees(employeesRes.data);
       
       const now = new Date();
@@ -98,11 +93,6 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
   };
 
   const handleSave = async (isDraft: boolean) => {
-    if (!monthReference) {
-      toast.error('Informe o mês de referência.');
-      return;
-    }
-
     setSubmitting(true);
     
     // Prepare payload
@@ -111,7 +101,7 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
       employeeValues: values
     };
 
-    const result = await savePayrollVariables(companyId, monthReference, payload, isDraft);
+    const result = await savePayrollVariables(companyId, monthReference || '0000-00', payload, isDraft);
     
     if (result.error) {
       toast.error(result.error);
@@ -145,21 +135,6 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
 
   return (
     <div className="space-y-6">
-      {/* Header Info */}
-      <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <Label className="text-blue-800">Mês/Ano Referência</Label>
-            <Input 
-              type="month" 
-              value={monthReference}
-              onChange={(e) => setMonthReference(e.target.value)}
-              className="w-48 bg-white"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* STEP 1: Select Events */}
       {step === 1 && (
         <div className="border rounded-md">
@@ -186,6 +161,13 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {availableEvents.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      Nenhum evento liberado para a empresa ativa no Questor.
+                    </TableCell>
+                  </TableRow>
+                )}
                 {availableEvents.map(event => (
                   <TableRow key={event.codigo}>
                     <TableCell>

@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { getQuestorSynRoutineBySystemCode, executeQuestorProcess } from './integrations/questor-syn';
+import { executeQuestorProcess } from './integrations/questor-syn';
 
 export type PayrollEvent = {
   codigo: string;
@@ -20,10 +20,7 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    // 1. Buscar a rotina configurada no Questor SYN local (fallback opcional)
-    const routine = await getQuestorSynRoutineBySystemCode('EVENTOS_FOLHA');
-    
-    // Buscar código da empresa no Questor (caso a consulta exija, passamos por precaução, mas a nova rotina não exige)
+    // Buscar código da empresa no Questor (empresa ativa do cliente)
     const company = (await db.query(`SELECT integration_code, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0];
     if (!company) return { error: 'Empresa não encontrada' };
     
@@ -46,23 +43,15 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
         if (events.length > 0) {
           return { data: events };
         }
+        return { data: [] };
     } else {
         console.warn('[Payroll] Custom query EventosZen failed or empty:', result.error);
+        return { data: [] }; // No events found for this company
     }
   } catch (error: any) {
     console.error('Erro ao buscar eventos:', error);
+    return { error: 'Erro ao buscar eventos no Questor.' };
   }
-
-  // Fallback / Mock temporário caso a rotina não esteja configurada ou retorne vazio
-  return {
-    data: [
-      { codigo: '35', descricao: 'HORAS EXTRAS 50% DIURNAS', referencia: 'Hora', tipo: 'Provento' },
-      { codigo: '88', descricao: 'GRATIFICAÇÃO VALOR', referencia: 'Valor', tipo: 'Provento' },
-      { codigo: '98', descricao: 'PRÊMIOS', referencia: 'Valor', tipo: 'Provento' },
-      { codigo: '381', descricao: 'HORAS FALTAS DIA', referencia: 'Dia', tipo: 'Desconto' },
-      { codigo: '507', descricao: 'VALE ADIANTAMENTO', referencia: 'Valor', tipo: 'Desconto' },
-    ]
-  };
 }
 
 export async function getCompanyEmployees(companyId: string) {
