@@ -28,14 +28,21 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
     const fallbackCompanyCode = cnpjDigits ? String(parseInt(cnpjDigits.substring(0, 8), 10)) : '';
     const companyCode = String(company.code || fallbackCompanyCode || '');
 
-    // Consulta principal sem parâmetros (como configurado pelo usuário no Questor).
-    let result = await executeQuestorProcess('EventosZen', {} as Record<string, string>);
-
-    // Fallback opcional caso a consulta passe a exigir empresa no futuro.
-    if (result.error && companyCode) {
-      console.warn('[Payroll] EventosZen sem parâmetros falhou; tentando com E.CODIGOEMPRESA...');
-      result = await executeQuestorProcess('EventosZen', { 'E.CODIGOEMPRESA': companyCode });
+    if (!companyCode) {
+      console.warn('[Payroll] Código da empresa não encontrado para busca de eventos.');
+      return { data: [] };
     }
+
+    console.log(`[Payroll] Buscando eventos para a empresa ${companyCode} (EventosZen)`);
+    
+    // Passando o código da empresa em vários formatos possíveis de parâmetro
+    // pois consultas personalizadas no Questor podem variar o nome da variável.
+    const result = await executeQuestorProcess('EventosZen', { 
+      'CODIGOEMPRESA': companyCode,
+      'E.CODIGOEMPRESA': companyCode,
+      'pCodigoEmpresa': companyCode,
+      'EMPRESA': companyCode
+    });
 
     if (!result.error && result.data && Array.isArray(result.data)) {
         const events = result.data.map((item: any) => ({
