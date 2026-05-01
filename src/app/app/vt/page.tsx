@@ -37,7 +37,7 @@ export default async function ClientVTPage({ searchParams }: { searchParams: Pro
   let query = `
     SELECT 
       vt.*,
-      cc.nome as company_name,
+      cc.razao_social as company_name,
       (SELECT COUNT(*) FROM transport_voucher_employees WHERE transport_voucher_id = vt.id) as total_employees
     FROM transport_vouchers vt
     JOIN client_companies cc ON vt.company_id = cc.id

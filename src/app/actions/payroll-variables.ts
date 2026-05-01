@@ -47,12 +47,12 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
     });
 
     if (!result.error && result.data && Array.isArray(result.data)) {
-        const events = result.data.map((item: any) => ({
-          codigo: String(item.CODIGO || item.CODIGOEVENTO || item.EVENTO || item.codigo || item.codigo_evento || item.evento || ''),
-          descricao: String(item.DESCRICAO || item.NOME || item.descricao || item.nome || item.DESCREVENTO || 'Evento sem descrição'),
-          referencia: (item.REFERENCIA || item.TIPO_REFERENCIA || item.referencia || 'Valor').toString().includes('Hora') ? 'Hora' : (item.REFERENCIA || '').toString().includes('Dia') ? 'Dia' : 'Valor',
-          tipo: (item.TIPO || item.TIPO_EVENTO || item.tipo || 'Provento').toString().toUpperCase().includes('DESC') ? 'Desconto' : 'Provento'
-        })).filter(e => e.codigo);
+          const events = result.data.map((item: any) => ({
+            codigo: String(item.CODIGO || item.CODIGOEVENTO || item.EVENTO || item.codigo || item.codigo_evento || item.evento || ''),
+            descricao: String(item.DESCRICAO || item.NOME || item.descricao || item.nome || item.DESCREVENTO || 'Evento sem descrição').replace(/&nbsp;?/gi, ' ').replace(/;/g, '').replace(/\s+/g, ' ').trim(),
+            referencia: (item.REFERENCIA || item.TIPO_REFERENCIA || item.referencia || 'Valor').toString().includes('Hora') ? 'Hora' : (item.REFERENCIA || '').toString().includes('Dia') ? 'Dia' : 'Valor',
+            tipo: (item.TIPO || item.TIPO_EVENTO || item.tipo || 'Provento').toString().toUpperCase().includes('DESC') ? 'Desconto' : 'Provento'
+          })).filter(e => e.codigo);
         
         if (events.length > 0) {
           return { data: events };

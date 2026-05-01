@@ -27,7 +27,7 @@ export default async function PayrollVariablesPage() {
   }
 
   let query = `
-    SELECT pv.*, cc.nome as company_name, u.name as created_by_name
+    SELECT pv.*, cc.razao_social as company_name, u.name as created_by_name
     FROM payroll_variables pv
     JOIN client_companies cc ON pv.company_id = cc.id
     LEFT JOIN users u ON pv.created_by_user_id = u.id

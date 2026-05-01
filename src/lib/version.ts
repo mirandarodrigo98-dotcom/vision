@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.23'; // Hotfix: Restore VT and Variáveis modules, fix EventosZen integration
+export const APP_VERSION = '1.8.24'; // Fix: resolver application error de client-side (razao_social vs nome) e fixar regex do &nbsp;
