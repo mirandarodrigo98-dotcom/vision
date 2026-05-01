@@ -20,18 +20,23 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    // Buscar código da empresa no Questor (empresa ativa do cliente)
-    const company = (await db.query(`SELECT integration_code, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0];
+    // Estrutura real atual de client_companies não possui integration_code.
+    const company = (await db.query(`SELECT code, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0];
     if (!company) return { error: 'Empresa não encontrada' };
-    
-    const companyCode = company.integration_code || parseInt(company.cnpj.replace(/\D/g, '').substring(0, 8), 10).toString();
 
-    // 2. Tentar executar a consulta personalizada 'EventosZen' criada pelo usuário diretamente
-    console.log('[Payroll] Executing custom query EventosZen...');
-    const result = await executeQuestorProcess('EventosZen', {
-       "E.CODIGOEMPRESA": companyCode // Passamos o código por precaução, caso a query mude futuramente
-    });
-    
+    const cnpjDigits = String(company.cnpj || '').replace(/\D/g, '');
+    const fallbackCompanyCode = cnpjDigits ? String(parseInt(cnpjDigits.substring(0, 8), 10)) : '';
+    const companyCode = String(company.code || fallbackCompanyCode || '');
+
+    // Consulta principal sem parâmetros (como configurado pelo usuário no Questor).
+    let result = await executeQuestorProcess('EventosZen', {} as Record<string, string>);
+
+    // Fallback opcional caso a consulta passe a exigir empresa no futuro.
+    if (result.error && companyCode) {
+      console.warn('[Payroll] EventosZen sem parâmetros falhou; tentando com E.CODIGOEMPRESA...');
+      result = await executeQuestorProcess('EventosZen', { 'E.CODIGOEMPRESA': companyCode });
+    }
+
     if (!result.error && result.data && Array.isArray(result.data)) {
         const events = result.data.map((item: any) => ({
           codigo: String(item.CODIGO || item.CODIGOEVENTO || item.EVENTO || item.codigo || item.codigo_evento || item.evento || ''),
@@ -50,7 +55,8 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
     }
   } catch (error: any) {
     console.error('Erro ao buscar eventos:', error);
-    return { error: 'Erro ao buscar eventos no Questor.' };
+    // Não quebrar a tela do cliente por erro de integração.
+    return { data: [] };
   }
 }
 
