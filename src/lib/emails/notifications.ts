@@ -101,11 +101,11 @@ export async function sendTransportVoucherCreatedEmail(vt: any, pdfBuffer: Buffe
     const destEmail = await getDestEmail();
     if (!destEmail) return;
 
+    // A action precisa passar vt.created_by_name para o usuário
+    const userName = vt.created_by_name || 'Usuário';
+
     const htmlContent = `
-        <h2 style="color: #333;">Novo Pedido de Vale Transporte Solicitado</h2>
-        <p>A empresa <strong>${vt.company_name}</strong> solicitou um pedido de Vale Transporte para a referência <strong>${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}</strong>.</p>
-        <p><strong>Total de Colaboradores:</strong> ${vt.employees.length}</p>
-        <p>Acesse o sistema VISION para conferir os detalhes do pedido.</p>
+        <p>Você está recebendo um pedido de vale transporte da empresa <strong>“${vt.company_name}”</strong>, CNPJ <strong>“${vt.company_cnpj}”</strong> enviada pelo usuário <strong>“${userName}”</strong>.</p>
     `;
 
     const finalHtml = await wrapHtml(htmlContent);
@@ -129,43 +129,51 @@ export async function sendTransportVoucherCreatedEmail(vt: any, pdfBuffer: Buffe
 }
 
 export async function sendTransportVoucherStatusEmail(vt: any, status: string, reason?: string) {
-    // Buscar emails do cliente que solicitou (se houver created_by_user_id)
-    // Para simplificar, mandamos para o admin, mas o ideal seria notificar o cliente
-    // Aqui usamos o padrão existente: o sistema tem `sendEmail` genérico. 
-    // Vou enviar um email para o usuário que criou.
     if (!vt.created_by_user_id) return;
     
     const user = (await db.query(`SELECT email, name FROM users WHERE id = $1`, [vt.created_by_user_id])).rows[0] as { email: string, name: string };
     if (!user) return;
 
-    const statusMap: any = {
-        'COMPLETED': 'Concluído/Aprovado',
-        'CANCELLED': 'Cancelado'
-    };
+    if (status === 'COMPLETED') {
+        const htmlContent = `
+            <p>O pedido de vale transporte da empresa <strong>“${vt.company_name}”</strong>, CNPJ <strong>“${vt.company_cnpj}”</strong> foi CONCLUÍDO.</p>
+            <p>A documentação de vale transporte bem como as orientações serão enviadas pelo Portal do Cliente.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
+        `;
 
-    let msg = `O status do seu pedido de Vale Transporte (Referência: ${vt.reference_month.toString().padStart(2, '0')}/${vt.reference_year}) foi alterado para <strong>${statusMap[status] || status}</strong>.`;
+        const finalHtml = await wrapHtml(htmlContent);
 
-    if (status === 'CANCELLED' && reason) {
-        msg += `<p><strong>Motivo do cancelamento:</strong> ${reason}</p>`;
-    }
+        try {
+            await resend.emails.send({
+                from: FROM_EMAIL,
+                to: user.email,
+                subject: `Pedido de Vale Transporte Concluído`,
+                html: finalHtml,
+            });
+        } catch (error) {
+            console.error('Error sending VT status email:', error);
+        }
+    } else if (status === 'CANCELLED') {
+        const htmlContent = `
+            <p>O pedido de vale transporte da empresa <strong>“${vt.company_name}”</strong>, CNPJ <strong>“${vt.company_cnpj}”</strong> foi CANCELADO.</p>
+            ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ''}
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
+        `;
 
-    const htmlContent = `
-        <h2 style="color: #333;">Atualização no Pedido de Vale Transporte</h2>
-        <p>Olá, ${user.name}.</p>
-        <p>${msg}</p>
-    `;
+        const finalHtml = await wrapHtml(htmlContent);
 
-    const finalHtml = await wrapHtml(htmlContent);
-
-    try {
-        await resend.emails.send({
-            from: FROM_EMAIL,
-            to: user.email,
-            subject: `VISION - Status do Pedido de VT Atualizado`,
-            html: finalHtml,
-        });
-    } catch (error) {
-        console.error('Error sending VT status email:', error);
+        try {
+            await resend.emails.send({
+                from: FROM_EMAIL,
+                to: user.email,
+                subject: `Pedido de Vale Transporte Cancelado`,
+                html: finalHtml,
+            });
+        } catch (error) {
+            console.error('Error sending VT status email:', error);
+        }
     }
 }
 
