@@ -7,6 +7,35 @@ import { randomUUID } from 'crypto';
 import { sendTransportVoucherCreatedEmail, sendTransportVoucherStatusEmail } from '@/lib/emails/notifications';
 import { generateTransportVoucherPDF } from '@/lib/pdf-generator';
 import { logAudit } from '@/lib/audit';
+import { createNotification } from '@/app/actions/notifications';
+
+async function notifyAdminsAndOperatorsAboutVT(vtId: string, companyId: string, companyName: string, referenceMonth: number, referenceYear: number) {
+    const recipients = (await db.query(`
+        SELECT u.id
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND (
+            u.role = 'admin'
+            OR (
+              u.role = 'operator'
+              AND NOT EXISTS (
+                SELECT 1
+                FROM user_restricted_companies urc
+                WHERE urc.user_id = u.id
+                  AND urc.company_id = $1
+              )
+            )
+          )
+    `, [companyId])).rows as { id: string }[];
+
+    const title = 'Novo pedido de Vale Transporte';
+    const message = `${companyName} enviou pedido VT (${String(referenceMonth).padStart(2, '0')}/${referenceYear}).`;
+    const link = `/admin/vt/${vtId}`;
+
+    for (const recipient of recipients) {
+        await createNotification(recipient.id, title, message, link, 'info');
+    }
+}
 
 export async function getTransportVouchers(companyId?: string) {
     const session = await getSession();
@@ -72,7 +101,7 @@ export async function createTransportVoucher(data: { company_id: string, referen
     const status = isDraft ? 'DRAFT' : 'PENDING';
 
     try {
-        await db.transaction(async () => {
+        const saveTransaction = db.transaction(async () => {
             await db.query(`
                 INSERT INTO transport_vouchers (id, company_id, reference_month, reference_year, status, notes, created_by_user_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -85,12 +114,14 @@ export async function createTransportVoucher(data: { company_id: string, referen
                 `, [randomUUID(), vtId, emp.employee_id, emp.quantity, emp.value, emp.total, emp.line || null, emp.observation || null]);
             }
         });
+        await saveTransaction();
 
         if (!isDraft) {
             const vt = await getTransportVoucherById(vtId);
             if (vt) {
                 const pdfBuffer = await generateTransportVoucherPDF(vt);
                 await sendTransportVoucherCreatedEmail(vt, pdfBuffer);
+                await notifyAdminsAndOperatorsAboutVT(vt.id, vt.company_id, vt.company_name, vt.reference_month, vt.reference_year);
             }
         }
 
@@ -115,7 +146,7 @@ export async function updateTransportVoucher(id: string, data: { reference_month
 
         const newStatus = isDraft ? 'DRAFT' : 'PENDING';
 
-        await db.transaction(async () => {
+        const updateTransaction = db.transaction(async () => {
             await db.query(`
                 UPDATE transport_vouchers 
                 SET reference_month = $1, reference_year = $2, notes = $3, status = $4, updated_at = CURRENT_TIMESTAMP
@@ -131,12 +162,14 @@ export async function updateTransportVoucher(id: string, data: { reference_month
                 `, [randomUUID(), id, emp.employee_id, emp.quantity, emp.value, emp.total, emp.line || null, emp.observation || null]);
             }
         });
+        await updateTransaction();
 
         if (!isDraft) {
             const vt = await getTransportVoucherById(id);
             if (vt) {
                 const pdfBuffer = await generateTransportVoucherPDF(vt);
                 await sendTransportVoucherCreatedEmail(vt, pdfBuffer);
+                await notifyAdminsAndOperatorsAboutVT(vt.id, vt.company_id, vt.company_name, vt.reference_month, vt.reference_year);
             }
         }
 
