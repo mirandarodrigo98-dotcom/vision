@@ -42,7 +42,8 @@ export async function getTransportVouchers(companyId?: string) {
     if (!session) throw new Error('Unauthorized');
 
     let query = `
-        SELECT vt.*, c.razao_social as company_name, c.cnpj as company_cnpj, u.name as created_by_name
+        SELECT vt.*, c.razao_social as company_name, c.cnpj as company_cnpj, u.name as created_by_name,
+        (SELECT COUNT(*) FROM transport_voucher_employees vte WHERE vte.transport_voucher_id = vt.id) as total_employees
         FROM transport_vouchers vt
         JOIN client_companies c ON vt.company_id = c.id
         LEFT JOIN users u ON vt.created_by_user_id = u.id
@@ -83,11 +84,11 @@ export async function getTransportVoucherById(id: string) {
     if (!vt) return null;
 
     const employees = (await db.query(`
-        SELECT vte.*, e.nome as employee_name, e.cpf as employee_cpf, e.codigo as employee_code
+        SELECT vte.*, e.name as employee_name, e.cpf as employee_cpf, e.code as employee_code
         FROM transport_voucher_employees vte
         JOIN employees e ON vte.employee_id = e.id
         WHERE vte.transport_voucher_id = $1
-        ORDER BY e.nome ASC
+        ORDER BY e.name ASC
     `, [id])).rows as any[];
 
     return { ...vt, employees };
@@ -129,8 +130,8 @@ export async function createTransportVoucher(data: { company_id: string, referen
         revalidatePath('/admin/vt');
         return { success: true, id: vtId };
     } catch (error: any) {
-        console.error('Error creating VT:', error);
-        return { error: 'Erro ao criar pedido de Vale Transporte.' };
+        console.error('Error creating VT (detailed):', error, error.stack);
+        return { error: 'Erro ao criar pedido de Vale Transporte: ' + (error.message || 'Erro desconhecido') };
     }
 }
 

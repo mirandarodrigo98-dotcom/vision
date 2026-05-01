@@ -41,6 +41,8 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
       'CODIGOEMPRESA': companyCode,
       'E.CODIGOEMPRESA': companyCode,
       'pCodigoEmpresa': companyCode,
+      'z.CodigoEmpresa': companyCode,
+      'z.codigoempresa': companyCode,
       'EMPRESA': companyCode
     });
 
