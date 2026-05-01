@@ -40,6 +40,14 @@ export function validateCNPJ(cnpj: string): boolean {
   return true;
 }
 
+export function formatCPF(cpf: any): string {
+  if (!cpf) return '';
+  if (typeof cpf !== 'string') cpf = String(cpf);
+  const cleaned = cpf.replace(/[^\d]/g, '');
+  if (cleaned.length !== 11) return cpf;
+  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
 export function validateCPF(cpf: string): boolean {
   cpf = cpf.replace(/[^\d]+/g, '');
 

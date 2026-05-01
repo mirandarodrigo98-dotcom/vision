@@ -80,6 +80,18 @@ export function ClientHeader({ user, activeCompany, companies }: ClientHeaderPro
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => {
+            // Force open release notes by removing the local storage key and reloading
+            try {
+              localStorage.removeItem(`vision_last_seen_version_${user.email}`);
+            } catch (error) {
+              console.warn('localStorage is not available', error);
+            }
+            window.location.reload();
+          }} className="cursor-pointer">
+            <span className="mr-2">🚀</span>
+            <span>Novidades do Sistema</span>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link href="/app/profile">
               <User className="mr-2 h-4 w-4" />

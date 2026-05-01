@@ -15,7 +15,9 @@ import {
   Briefcase,
   Lock,
   Blocks,
-  Ticket
+  Ticket,
+  Bus,
+  FilePlus
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -25,6 +27,8 @@ const navItems = [
   { href: '/admin/clients', label: 'Empresas', icon: Building2 },
   { href: '/admin/employees', label: 'Funcionários', icon: Briefcase },
   { href: '/admin/tickets', label: 'Chamados', icon: Ticket },
+  { href: '/admin/vt', label: 'Vale Transporte', icon: Bus },
+  { href: '/admin/payroll-variables', label: 'Variáveis da Folha', icon: FilePlus },
   { href: '/admin/client-users', label: 'Usuários', icon: Users },
 
   { href: '/admin/admissions', label: 'Admissões', icon: FileText },

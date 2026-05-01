@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS access_schedules (
     name TEXT NOT NULL,
     description TEXT,
     notification_minutes INTEGER DEFAULT 5,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS access_schedule_items (
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS access_schedule_items (
     day_of_week INTEGER NOT NULL, -- 0=Sunday, 1=Monday, ..., 6=Saturday
     start_time TEXT NOT NULL, -- HH:MM
     end_time TEXT NOT NULL, -- HH:MM
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (schedule_id) REFERENCES access_schedules(id) ON DELETE CASCADE
 );
 

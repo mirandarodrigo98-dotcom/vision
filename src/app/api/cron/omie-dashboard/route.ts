@@ -12,7 +12,8 @@ export async function GET(request: Request) {
       // Allowing without auth for now to avoid setup issues if CRON_SECRET is missing
     }
     
-    await getDashboardFinanceiroData(true, false); // forceRefresh = true, fullRefresh = false (incremental para não dar timeout)
+    // O primeiro parâmetro é o companyId. Passamos undefined para atualizar todas as empresas.
+    await getDashboardFinanceiroData(undefined, true, false); // forceRefresh = true, fullRefresh = false (incremental para não dar timeout)
     return NextResponse.json({ success: true, message: 'Dashboard financeiro atualizado com sucesso' });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

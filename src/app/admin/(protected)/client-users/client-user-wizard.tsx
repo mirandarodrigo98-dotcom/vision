@@ -167,9 +167,16 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         if (p.module === 'Módulo Integrações') return false;
         if (p.module === 'Módulo Societário') return false;
         if (p.module === 'Módulo Fiscal') return false; // Covers Fiscal and Contabilidade
+        if (p.module === 'Módulo Financeiro') return false; // Exclude internal financial module
+        if (p.module === 'Módulo de Chamados') return false; // Exclude Tickets module
+        if (p.module === 'Módulo IR') return false; // Exclude Income Tax module
+
+        // Exclude Admin Dashboard permission specifically
+        if (p.code === 'dashboard.view') return false;
 
         // Exclude specific categories in Cadastros that are admin/internal only
         if (p.category === 'Equipe Interna') return false;
+        if (p.category === 'Usuários do Escritório') return false;
         if (p.category === 'Departamentos') return false;
         if (p.category === 'Usuários de Cliente') return false; // Client shouldn't manage other users
         if (p.category === 'Segurança') return false;
@@ -188,7 +195,21 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         // Global block for DELETE permissions (Clients generally shouldn't delete records)
         if (p.code.includes('.delete')) return false;
 
+        // Block specific VT admin permissions from client
+        if (p.code === 'vt.approve' || p.code === 'vt.cancel') return false;
+
         return true;
+    });
+
+    // Sort categories to ensure 'Geral' is always at the end, and others are alphabetical
+    const groupedPermissions = Object.values(clientPermissions.reduce((acc, perm) => {
+        if (!acc[perm.category]) acc[perm.category] = [];
+        acc[perm.category].push(perm);
+        return acc;
+    }, {} as Record<string, Permission[]>)).sort((a, b) => {
+        if (a[0].category === 'Geral') return 1;
+        if (b[0].category === 'Geral') return -1;
+        return a[0].category.localeCompare(b[0].category);
     });
 
     const filteredCompanies = companies.filter(c => {
@@ -351,13 +372,26 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium">Permissões de Acesso</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto border p-4 rounded-md">
-                                    {Object.values(clientPermissions.reduce((acc, perm) => {
-                                        if (!acc[perm.category]) acc[perm.category] = [];
-                                        acc[perm.category].push(perm);
-                                        return acc;
-                                    }, {} as Record<string, Permission[]>)).map((group) => (
-                                        <div key={group[0].category} className="space-y-2 mb-4">
-                                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">{group[0].category}</h4>
+                                    {groupedPermissions.map((group) => {
+                                        const category = group[0].category;
+                                        const allCodes = group.map(p => p.code);
+                                        const isAllSelected = allCodes.every(code => selectedPermissions.includes(code));
+                                        
+                                        return (
+                                        <div key={category} className="space-y-2 mb-4">
+                                            <div className="flex items-center justify-between border-b pb-1">
+                                                <h4 className="font-semibold text-sm text-muted-foreground">{category}</h4>
+                                                <Switch
+                                                    checked={isAllSelected}
+                                                    onCheckedChange={(checked) => {
+                                                        if (checked) {
+                                                            setSelectedPermissions(prev => Array.from(new Set([...prev, ...allCodes])));
+                                                        } else {
+                                                            setSelectedPermissions(prev => prev.filter(p => !allCodes.includes(p)));
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
                                             {group.map(perm => (
                                                 <div key={perm.code} className="flex items-center justify-between">
                                                     <Label htmlFor={`perm-${perm.code}`} className="text-sm cursor-pointer flex-1">
@@ -375,7 +409,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
                                                 </div>
                                             ))}
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             </div>
                         </div>

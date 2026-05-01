@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS role_permissions (
     role TEXT NOT NULL, -- 'operator', 'client'
     permission TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (role, permission)
 );
 

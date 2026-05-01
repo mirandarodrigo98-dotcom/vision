@@ -49,8 +49,7 @@ export async function ensureMigrations() {
     // Migration 025: Create Eklesia tables
     try {
       console.log('Applying migration 025 (Create Eklesia tables)...');
-      // Split by semicolon because db.prepare might only run one statement at a time depending on adapter implementation
-      // But better-sqlite3/pg might handle multiple. Let's try splitting to be safe.
+      // Split by semicolon because db.query might only run one statement at a time depending on adapter implementation
       const statements = MIGRATION_025.split(';').map(s => s.trim()).filter(s => s.length > 0);
       for (const stmt of statements) {
           await db.query(stmt, []);

@@ -53,10 +53,8 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
   const canDeleteDeclaration = Boolean(isAdmin && declaration.status === 'Cancelada' && !hasBeenInitiated);
   const serviceValue = Number(declaration.service_value || 0);
   const totalReceived = receipts.reduce((acc, receipt) => acc + Number(receipt.receipt_value || 0), 0);
-  // Se for legado e marcado como recebido mas não tem recibos parciais, o remaining é 0
-  const isLegacyReceived = declaration.is_received && receipts.length === 0;
-  const remainingValue = isLegacyReceived ? 0 : Math.max(serviceValue - totalReceived, 0);
-  const fullyReceived = isLegacyReceived ? true : (serviceValue > 0 ? remainingValue <= 0 : declaration.is_received);
+  const remainingValue = Math.max(serviceValue - totalReceived, 0);
+  const fullyReceived = serviceValue > 0 ? remainingValue <= 0 : declaration.is_received;
   const latestReceipt = receipts[0] || null;
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);

@@ -146,7 +146,6 @@ export async function getIRDeclarations(): Promise<IRDeclaration[]> {
     SELECT 
       ir.*,
       CASE 
-        WHEN ir.is_received = true AND (SELECT COUNT(*) FROM ir_receipts r WHERE r.declaration_id = ir.id) = 0 THEN true
         WHEN COALESCE(ir.service_value, 0) > 0 
           THEN COALESCE((
             SELECT SUM(r.receipt_value)
@@ -155,14 +154,11 @@ export async function getIRDeclarations(): Promise<IRDeclaration[]> {
           ), 0) >= ir.service_value
         ELSE ir.is_received
       END AS is_received,
-      CASE
-        WHEN ir.is_received = true AND (SELECT COUNT(*) FROM ir_receipts r WHERE r.declaration_id = ir.id) = 0 THEN GREATEST(COALESCE(ir.service_value, 0), COALESCE(ir.receipt_value, 0))
-        ELSE COALESCE((
-          SELECT SUM(r.receipt_value)
-          FROM ir_receipts r
-          WHERE r.declaration_id = ir.id
-        ), COALESCE(ir.receipt_value, 0))
-      END AS receipt_value,
+      COALESCE((
+        SELECT SUM(r.receipt_value)
+        FROM ir_receipts r
+        WHERE r.declaration_id = ir.id
+      ), 0) AS receipt_value,
       c.razao_social as company_name,
       c.cnpj as company_cnpj
     FROM ir_declarations ir
@@ -403,14 +399,8 @@ export async function getIRDeclarationById(id: string): Promise<IRDeclaration | 
   const receiptsCount = Number(summary?.count || 0);
   const serviceValue = Number(declaration.service_value || 0);
   
-  if (declaration.is_received && receiptsCount === 0) {
-    // Legacy: marked as received but no partial receipts yet
-    declaration.receipt_value = Math.max(serviceValue, Number(declaration.receipt_value || 0));
-    declaration.is_received = true;
-  } else {
-    declaration.receipt_value = totalReceived;
-    declaration.is_received = serviceValue > 0 ? totalReceived >= serviceValue : declaration.is_received;
-  }
+  declaration.receipt_value = totalReceived;
+  declaration.is_received = serviceValue > 0 ? totalReceived >= serviceValue : declaration.is_received;
 
   const latestReceipt = (await db.query(`
     SELECT receipt_date, receipt_method, receipt_account, receipt_attachment_url

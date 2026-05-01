@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS ticket_attachments (
     original_name TEXT NOT NULL,
     content_type TEXT,
     size INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
 );
 

@@ -162,7 +162,7 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="h-[300px]">
+        <div className="h-[300px] w-full border-t overflow-y-auto overflow-x-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-20 text-sm text-muted-foreground">
               Carregando...
@@ -173,33 +173,33 @@ export function NotificationBell() {
               <p className="text-sm">Nenhuma notificação</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="flex flex-col w-full divide-y">
               {notifications.map((notification) => (
                 <div 
                   key={notification.id}
                   className={`
-                    relative p-4 text-sm hover:bg-muted/50 transition-colors 
+                    relative flex w-full p-4 pr-2 text-sm hover:bg-muted/50 transition-colors 
                     ${!notification.read ? 'bg-blue-50/50' : ''}
                   `}
                 >
-                  <div className="flex gap-3">
+                  <div className="flex w-full gap-3 overflow-hidden">
                     <div 
-                      className="flex-1 space-y-1 cursor-pointer"
+                      className="flex-1 space-y-1 cursor-pointer min-w-0"
                       onClick={() => handleMarkAsRead(notification.id, notification.link)}
                     >
-                      <p className={`font-medium leading-none ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
+                      <p className={`font-medium leading-tight break-words whitespace-normal ${!notification.read ? 'text-primary' : 'text-foreground'}`} style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                         {notification.title}
                       </p>
-                      <p className="text-muted-foreground line-clamp-2 text-xs">
+                      <p className="text-muted-foreground text-xs break-words whitespace-normal line-clamp-3" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                         {notification.message}
                       </p>
-                      <p className="text-[10px] text-muted-foreground pt-1">
+                      <p className="text-[10px] text-muted-foreground pt-1 truncate">
                         {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
                       </p>
                     </div>
                     {!notification.read && (
-                      <div className="flex flex-col items-center gap-2 pt-1">
-                        <span className="flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                      <div className="flex flex-col items-center gap-2 pt-1 flex-shrink-0">
+                        <span className="flex h-2 w-2 rounded-full bg-blue-600" />
                         <Button
                           variant="ghost"
                           size="icon"
@@ -219,7 +219,7 @@ export function NotificationBell() {
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
         <div className="border-t p-2 text-center">
           <Button variant="ghost" size="sm" className="w-full text-xs h-8" onClick={() => setIsOpen(false)}>
             Fechar
