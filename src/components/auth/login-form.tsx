@@ -25,31 +25,27 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
 
   // Restore state logic (simplified for unification)
   useEffect(() => {
-    try {
-        const storedEmail = localStorage.getItem('login_email');
-        const storedStep = localStorage.getItem('login_step');
-        const storedTime = localStorage.getItem('login_time');
+    const storedEmail = localStorage.getItem('login_email');
+    const storedStep = localStorage.getItem('login_step');
+    const storedTime = localStorage.getItem('login_time');
 
-        if (storedEmail && storedStep && storedTime) {
-            const elapsed = Date.now() - parseInt(storedTime, 10);
-            if (elapsed < 10 * 60 * 1000) { // 10 minutes
-                setEmail(storedEmail);
-                // If stored step was OTP, restore it. Otherwise default to login.
-                if (storedStep === 'otp') {
-                    setStep('otp');
-                    const secondsPassed = Math.floor(elapsed / 1000);
-                    if (secondsPassed < 60) {
-                        setTimeLeft(60 - secondsPassed);
-                    } else {
-                        setTimeLeft(0);
-                    }
+    if (storedEmail && storedStep && storedTime) {
+        const elapsed = Date.now() - parseInt(storedTime, 10);
+        if (elapsed < 10 * 60 * 1000) { // 10 minutes
+            setEmail(storedEmail);
+            // If stored step was OTP, restore it. Otherwise default to login.
+            if (storedStep === 'otp') {
+                setStep('otp');
+                const secondsPassed = Math.floor(elapsed / 1000);
+                if (secondsPassed < 60) {
+                    setTimeLeft(60 - secondsPassed);
+                } else {
+                    setTimeLeft(0);
                 }
-            } else {
-                clearStorage();
             }
+        } else {
+            clearStorage();
         }
-    } catch (err) {
-        console.warn('localStorage is not available', err);
     }
   }, []);
 
@@ -61,21 +57,17 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
   }, [timeLeft]);
 
   const clearStorage = () => {
-      try {
-          localStorage.removeItem('login_email');
-          localStorage.removeItem('login_step');
-          localStorage.removeItem('login_time');
-          localStorage.removeItem('login_type');
-      } catch (err) {}
+      localStorage.removeItem('login_email');
+      localStorage.removeItem('login_step');
+      localStorage.removeItem('login_time');
+      localStorage.removeItem('login_type');
   };
 
   const persistState = (currentEmail: string, newStep: string, type?: string) => {
-      try {
-          localStorage.setItem('login_email', currentEmail);
-          localStorage.setItem('login_step', newStep);
-          localStorage.setItem('login_time', Date.now().toString());
-          if (type) localStorage.setItem('login_type', type);
-      } catch (err) {}
+      localStorage.setItem('login_email', currentEmail);
+      localStorage.setItem('login_step', newStep);
+      localStorage.setItem('login_time', Date.now().toString());
+      if (type) localStorage.setItem('login_type', type);
   };
 
   async function handleLogin(e: React.FormEvent) {

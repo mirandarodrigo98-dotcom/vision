@@ -59,7 +59,6 @@ export function DismissalHistory({ dismissalId }: { dismissalId: string }) {
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="inline-block">
                         <DialogTrigger asChild>
                             <Button 
                                 variant="outline" 
@@ -69,7 +68,6 @@ export function DismissalHistory({ dismissalId }: { dismissalId: string }) {
                                 <History className="h-4 w-4" />
                             </Button>
                         </DialogTrigger>
-                      </div>
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Histórico de Movimentações</p>

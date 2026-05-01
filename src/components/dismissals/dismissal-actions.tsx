@@ -138,7 +138,6 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
             <AlertDialog>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="inline-block">
                       <AlertDialogTrigger asChild>
                           <Button 
                             variant="outline" 
@@ -149,7 +148,6 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                             {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
                       </AlertDialogTrigger>
-                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Concluir/Aprovar Rescisão</p>
@@ -244,7 +242,6 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
              <AlertDialog>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="inline-block">
                         <AlertDialogTrigger asChild>
                             <Button 
                                 variant="outline" 
@@ -255,7 +252,6 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                                 {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                             </Button>
                         </AlertDialogTrigger>
-                      </div>
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Cancelar Rescisão</p>

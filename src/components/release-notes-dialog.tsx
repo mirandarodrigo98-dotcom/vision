@@ -17,36 +17,26 @@ import { RELEASE_NOTES, shouldShowReleaseNotes, getNotesToShow, ReleaseNote } fr
 
 const STORAGE_KEY = 'vision_last_seen_version';
 
-export function ReleaseNotesDialog({ userId }: { userId?: string }) {
+export function ReleaseNotesDialog() {
   const [open, setOpen] = useState(false);
   const [notesToShow, setNotesToShow] = useState<ReleaseNote[]>([]);
 
-  const getStorageKey = () => userId ? `vision_last_seen_version_${userId}` : 'vision_last_seen_version';
-
   useEffect(() => {
     // Only run on client side
-    try {
-      const lastSeen = localStorage.getItem(getStorageKey());
+    const lastSeen = localStorage.getItem(STORAGE_KEY);
+    
+    if (shouldShowReleaseNotes(APP_VERSION, lastSeen)) {
+      // Se lastSeen for null (primeiro acesso com essa feature), mostra apenas a versão atual para não encher a tela
+      const notes = getNotesToShow(lastSeen);
       
-      if (shouldShowReleaseNotes(APP_VERSION, lastSeen)) {
-        // Se lastSeen for null (primeiro acesso com essa feature), mostra apenas a versão atual para não encher a tela
-        const notes = getNotesToShow(lastSeen);
-        
-        // Group by module
-        setNotesToShow(notes);
-        setOpen(true);
-      }
-    } catch (error) {
-      console.warn('localStorage is not available', error);
+      // Group by module
+      setNotesToShow(notes);
+      setOpen(true);
     }
-  }, [userId]);
+  }, []);
 
   const handleDismiss = () => {
-    try {
-      localStorage.setItem(getStorageKey(), APP_VERSION);
-    } catch (error) {
-      console.warn('localStorage is not available', error);
-    }
+    localStorage.setItem(STORAGE_KEY, APP_VERSION);
     setOpen(false);
   };
 

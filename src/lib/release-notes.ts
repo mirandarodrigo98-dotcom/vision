@@ -11,18 +11,6 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: '1.8.0',
-    date: '2026-04-29',
-    notes: [
-      { module: 'Vale Transporte', description: 'Novo módulo de Vale Transporte! Agora clientes podem solicitar e gerenciar vales de transporte diretamente pelo sistema (em Pessoal > Vale Transporte).' },
-      { module: 'Vale Transporte', description: 'Criação de interface para acompanhamento de vales aprovados e cancelados.' },
-      { module: 'Vale Transporte', description: 'Disparo automático de e-mails com resumo em PDF dos pedidos criados para acompanhamento e controle.' },
-      { module: 'Permissões', description: 'Adicionada chave mestre ("selecionar todos") no assistente de clientes para ativar/desativar todas as permissões de uma categoria com apenas um clique.' },
-      { module: 'Sistema', description: 'Remoção definitiva de resquícios do banco de dados SQLite, melhorando o desempenho e evitando problemas de sintaxe no servidor.' },
-      { module: 'Sistema', description: 'Correção de segurança no login: Resolvido o "Application error" causado por bloqueios de cookies ou localStorage restrito nos navegadores.' }
-    ]
-  },
-  {
     version: '1.3.38',
     date: '2026-04-09',
     notes: [
@@ -318,7 +306,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
 
 // Helper to determine if we should show notes
 export function shouldShowReleaseNotes(currentVersion: string, lastSeenVersion: string | null): boolean {
-  if (!lastSeenVersion || typeof lastSeenVersion !== 'string') return true;
+  if (!lastSeenVersion) return true;
   
   const [currMajor, currMinor] = currentVersion.split('.').map(Number);
   const [seenMajor, seenMinor] = lastSeenVersion.split('.').map(Number);
@@ -331,7 +319,7 @@ export function shouldShowReleaseNotes(currentVersion: string, lastSeenVersion: 
 
 // Helper to get notes to show
 export function getNotesToShow(lastSeenVersion: string | null): ReleaseNote[] {
-  if (!lastSeenVersion || typeof lastSeenVersion !== 'string') return RELEASE_NOTES;
+  if (!lastSeenVersion) return RELEASE_NOTES;
   
   const [seenMajor, seenMinor] = lastSeenVersion.split('.').map(Number);
   

@@ -56,7 +56,7 @@ const navigation: NavigationItem[] = [
   { name: 'Chamados', href: '/admin/tickets', icon: TicketIcon },
   { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permissions: ['companies.view', 'employees.view', 'socios.view', 'client_users.view', 'team.view', 'departments.view'] },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
-  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view', 'payroll_variables.view'] },
+  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view'] },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
   { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permissions: ['contabilidade.view', 'contabilidade.faturamento.view'] },
   { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permissions: ['financeiro.cobranca.contabilidade.view', 'financeiro.cobranca.consultoria.view', 'financeiro.dashboard.contabilidade', 'financeiro.dashboard.consultoria'] },
@@ -522,27 +522,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                     leaveTo="transform opacity-0 scale-95"
                   >
                     <Menu.Items className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
-                      <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    onClick={() => {
-                                      try {
-                                        localStorage.removeItem(`vision_last_seen_version_${user?.email}`);
-                                      } catch (error) {
-                                        console.warn('localStorage is not available', error);
-                                      }
-                                      window.location.reload();
-                                    }}
-                                    className={classNames(
-                                      active ? 'bg-gray-50' : '',
-                                      'block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 cursor-pointer'
-                                    )}
-                                  >
-                                    🚀 Novidades do Sistema
-                                  </button>
-                                )}
-                              </Menu.Item>
-                              {userNavigation.map((item) => (
+                      {userNavigation.map((item) => (
                         <Menu.Item key={item.name}>
                           {({ active }) => (
                             <a

@@ -50,7 +50,7 @@ export default async function ClientLayout({
           </div>
         </main>
       </div>
-      <ReleaseNotesDialog userId={session.email} />
+      <ReleaseNotesDialog />
     </div>
   );
 }
