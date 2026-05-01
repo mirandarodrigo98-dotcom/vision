@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.24'; // Fix: resolver application error de client-side (razao_social vs nome) e fixar regex do &nbsp;
+export const APP_VERSION = '1.8.25'; // Fix: critical client-side crash in payroll-variables-form (missing Label import)
