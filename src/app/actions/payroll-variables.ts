@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { getQuestorSynRoutineBySystemCode, executeQuestorSynRoutine } from './integrations/questor-syn';
+import { getQuestorSynRoutineBySystemCode, executeQuestorProcess } from './integrations/questor-syn';
 
 export type PayrollEvent = {
   codigo: string;
@@ -20,32 +20,25 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
   if (!session) return { error: 'Unauthorized' };
 
   try {
-    // Buscar a rotina configurada no Questor SYN
+    // 1. Buscar a rotina configurada no Questor SYN local (fallback opcional)
     const routine = await getQuestorSynRoutineBySystemCode('EVENTOS_FOLHA');
     
-    if (routine) {
-      // Buscar código da empresa no Questor
-      const company = (await db.query(`SELECT integration_code, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0];
-      if (!company) return { error: 'Empresa não encontrada' };
-      
-      const companyCode = company.integration_code || parseInt(company.cnpj.replace(/\D/g, '').substring(0, 8), 10).toString(); // Fallback se não tiver integration_code
-      
-      // Executar a rotina no Questor SYN
-      const result = await executeQuestorSynRoutine(routine.id!, {
-        empresa: companyCode,
-        codigoEmpresa: companyCode
-      });
-      
-      if (result.error) {
-        console.error('Erro ao buscar eventos da folha:', result.error);
-        return { error: `Erro na integração Questor SYN: ${result.error}` };
-      }
-      
-      if (result.data && Array.isArray(result.data)) {
-        // Mapear os dados retornados pela rotina
+    // Buscar código da empresa no Questor (caso a consulta exija, passamos por precaução, mas a nova rotina não exige)
+    const company = (await db.query(`SELECT integration_code, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0];
+    if (!company) return { error: 'Empresa não encontrada' };
+    
+    const companyCode = company.integration_code || parseInt(company.cnpj.replace(/\D/g, '').substring(0, 8), 10).toString();
+
+    // 2. Tentar executar a consulta personalizada 'EventosZen' criada pelo usuário diretamente
+    console.log('[Payroll] Executing custom query EventosZen...');
+    const result = await executeQuestorProcess('EventosZen', {
+       "E.CODIGOEMPRESA": companyCode // Passamos o código por precaução, caso a query mude futuramente
+    });
+    
+    if (!result.error && result.data && Array.isArray(result.data)) {
         const events = result.data.map((item: any) => ({
           codigo: String(item.CODIGO || item.CODIGOEVENTO || item.EVENTO || item.codigo || item.codigo_evento || item.evento || ''),
-          descricao: String(item.DESCRICAO || item.NOME || item.descricao || item.nome || 'Evento sem descrição'),
+          descricao: String(item.DESCRICAO || item.NOME || item.descricao || item.nome || item.DESCREVENTO || 'Evento sem descrição'),
           referencia: (item.REFERENCIA || item.TIPO_REFERENCIA || item.referencia || 'Valor').toString().includes('Hora') ? 'Hora' : (item.REFERENCIA || '').toString().includes('Dia') ? 'Dia' : 'Valor',
           tipo: (item.TIPO || item.TIPO_EVENTO || item.tipo || 'Provento').toString().toUpperCase().includes('DESC') ? 'Desconto' : 'Provento'
         })).filter(e => e.codigo);
@@ -53,7 +46,8 @@ export async function getPayrollEvents(companyId: string): Promise<{ data?: Payr
         if (events.length > 0) {
           return { data: events };
         }
-      }
+    } else {
+        console.warn('[Payroll] Custom query EventosZen failed or empty:', result.error);
     }
   } catch (error: any) {
     console.error('Erro ao buscar eventos:', error);
