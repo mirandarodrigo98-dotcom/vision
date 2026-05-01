@@ -53,12 +53,14 @@ export default async function PayrollVariablesPage() {
             Histórico de eventos e variáveis enviadas para a folha de pagamento.
           </p>
         </div>
-        <Link href={isAdmin ? "/admin/payroll-variables/new" : "/app/payroll-variables/new"}>
-          <Button className="gap-2">
-            <PlusIcon className="h-4 w-4" />
-            Lançar Variáveis
-          </Button>
-        </Link>
+        {!isAdmin && (
+          <Link href="/app/payroll-variables/new">
+            <Button className="gap-2">
+              <PlusIcon className="h-4 w-4" />
+              Lançar Variáveis
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="border rounded-md bg-white">

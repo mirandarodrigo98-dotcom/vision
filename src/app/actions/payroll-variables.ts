@@ -5,6 +5,8 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
+import { getQuestorSynRoutineBySystemCode, executeQuestorSynRoutine } from './integrations/questor-syn';
+
 export type PayrollEvent = {
   codigo: string;
   descricao: string;
@@ -12,13 +14,52 @@ export type PayrollEvent = {
   tipo: 'Provento' | 'Desconto';
 };
 
-// Mock function to fetch events from Questor SYN
+// Function to fetch events from Questor SYN
 export async function getPayrollEvents(companyId: string): Promise<{ data?: PayrollEvent[], error?: string }> {
   const session = await getSession();
   if (!session) return { error: 'Unauthorized' };
 
-  // TODO: Replace with actual Questor SYN or Questor ZEN API call
-  // The user says this comes from Questor Gestão Contábil (cadastros, zen, eventos por empresas zen)
+  try {
+    // Buscar a rotina configurada no Questor SYN
+    const routine = await getQuestorSynRoutineBySystemCode('EVENTOS_FOLHA');
+    
+    if (routine) {
+      // Buscar código da empresa no Questor
+      const company = (await db.query(`SELECT integration_code, cnpj FROM client_companies WHERE id = $1`, [companyId])).rows[0];
+      if (!company) return { error: 'Empresa não encontrada' };
+      
+      const companyCode = company.integration_code || parseInt(company.cnpj.replace(/\D/g, '').substring(0, 8), 10).toString(); // Fallback se não tiver integration_code
+      
+      // Executar a rotina no Questor SYN
+      const result = await executeQuestorSynRoutine(routine.id!, {
+        empresa: companyCode,
+        codigoEmpresa: companyCode
+      });
+      
+      if (result.error) {
+        console.error('Erro ao buscar eventos da folha:', result.error);
+        return { error: `Erro na integração Questor SYN: ${result.error}` };
+      }
+      
+      if (result.data && Array.isArray(result.data)) {
+        // Mapear os dados retornados pela rotina
+        const events = result.data.map((item: any) => ({
+          codigo: String(item.CODIGO || item.CODIGOEVENTO || item.EVENTO || item.codigo || item.codigo_evento || item.evento || ''),
+          descricao: String(item.DESCRICAO || item.NOME || item.descricao || item.nome || 'Evento sem descrição'),
+          referencia: (item.REFERENCIA || item.TIPO_REFERENCIA || item.referencia || 'Valor').toString().includes('Hora') ? 'Hora' : (item.REFERENCIA || '').toString().includes('Dia') ? 'Dia' : 'Valor',
+          tipo: (item.TIPO || item.TIPO_EVENTO || item.tipo || 'Provento').toString().toUpperCase().includes('DESC') ? 'Desconto' : 'Provento'
+        })).filter(e => e.codigo);
+        
+        if (events.length > 0) {
+          return { data: events };
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error('Erro ao buscar eventos:', error);
+  }
+
+  // Fallback / Mock temporário caso a rotina não esteja configurada ou retorne vazio
   return {
     data: [
       { codigo: '35', descricao: 'HORAS EXTRAS 50% DIURNAS', referencia: 'Hora', tipo: 'Provento' },

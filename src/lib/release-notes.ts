@@ -318,7 +318,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
 
 // Helper to determine if we should show notes
 export function shouldShowReleaseNotes(currentVersion: string, lastSeenVersion: string | null): boolean {
-  if (!lastSeenVersion) return true;
+  if (!lastSeenVersion || typeof lastSeenVersion !== 'string') return true;
   
   const [currMajor, currMinor] = currentVersion.split('.').map(Number);
   const [seenMajor, seenMinor] = lastSeenVersion.split('.').map(Number);
@@ -331,7 +331,7 @@ export function shouldShowReleaseNotes(currentVersion: string, lastSeenVersion: 
 
 // Helper to get notes to show
 export function getNotesToShow(lastSeenVersion: string | null): ReleaseNote[] {
-  if (!lastSeenVersion) return RELEASE_NOTES;
+  if (!lastSeenVersion || typeof lastSeenVersion !== 'string') return RELEASE_NOTES;
   
   const [seenMajor, seenMinor] = lastSeenVersion.split('.').map(Number);
   

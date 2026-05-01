@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.14'; // Patch increment: Correção de importação ausente formatCPF na tela Variáveis da Folha
+export const APP_VERSION = '1.8.15'; // Patch increment: Correção de client-side exception no login e restrição de lançamento de variáveis para admin

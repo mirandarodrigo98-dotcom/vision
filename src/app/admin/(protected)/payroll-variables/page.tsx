@@ -42,12 +42,6 @@ export default async function AdminPayrollVariablesPage() {
             Gestão e acompanhamento de variáveis enviadas pelos clientes para a folha de pagamento.
           </p>
         </div>
-        <Link href="/admin/payroll-variables/new">
-          <Button className="gap-2">
-            <PlusIcon className="h-4 w-4" />
-            Lançar Variáveis
-          </Button>
-        </Link>
       </div>
 
       <div className="border rounded-md bg-white">
