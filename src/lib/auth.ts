@@ -43,27 +43,32 @@ export async function getSession(updateLastSeen = true) {
       u.department_id,
       u.carne_leao_access,
       c.razao_social as company_name,
-      c.cnpj as company_cnpj
+      c.cnpj as company_cnpj,
+      (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) - EXTRACT(EPOCH FROM COALESCE(s.last_seen_at, s.created_at))) as inactivity_seconds
     FROM sessions s
     JOIN users u ON s.user_id = u.id
     LEFT JOIN client_companies c ON u.active_company_id = c.id
-    WHERE s.id = $1 AND s.expires_at > NOW()
+    WHERE s.id = $1
   `, [sessionId])).rows[0] as any;
 
   if (!session) return null;
 
-  // Check for inactivity
-  const lastSeen = new Date(session.last_seen_at || session.created_at || Date.now()).getTime();
-  const now = Date.now();
-  
-  if (now - lastSeen > INACTIVITY_TIMEOUT_MS) {
+  // Check expiration via JS to avoid DB timezone issues
+  if (new Date(session.expires_at) < new Date()) {
+    await db.query(`DELETE FROM sessions WHERE id = $1`, [sessionId]);
+    return null;
+  }
+
+  // Check for inactivity (INACTIVITY_TIMEOUT_MS is in ms, inactivity_seconds is in seconds)
+  const inactivitySeconds = parseFloat(session.inactivity_seconds || '0');
+  if (inactivitySeconds > (INACTIVITY_TIMEOUT_MS / 1000)) {
     await db.query(`DELETE FROM sessions WHERE id = $1`, [sessionId]);
     return null;
   }
 
   // Atualizar last_seen apenas se solicitado (padrão true)
   if (updateLastSeen) {
-    await db.query(`UPDATE sessions SET last_seen_at = NOW() WHERE id = $1`, [sessionId]);
+    await db.query(`UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = $1`, [sessionId]);
   }
 
   return session;
