@@ -90,7 +90,7 @@ export function ClientNav({ carneLeaoAccess, permissions = [] }: { carneLeaoAcce
 
   async function handleLogout() {
     await logout();
-    router.push('/login');
+    window.location.replace('/login');
   }
 
   const toggleGroup = (label: string) => {

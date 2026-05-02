@@ -22,7 +22,7 @@ export function SessionMonitor() {
              toast.error(result.reason || 'Sessão expirada.');
           }
           await logout();
-          router.push('/login');
+          window.location.replace('/login');
           return;
         }
 
@@ -58,7 +58,7 @@ export function SessionMonitor() {
       // Logout time reached
       if (timeLeft <= 0) {
         toast.error('Seu turno encerrou.');
-        logout().then(() => router.push('/login'));
+        logout().then(() => window.location.replace('/login'));
       }
     };
 

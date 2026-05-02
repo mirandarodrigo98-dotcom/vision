@@ -162,7 +162,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
 
   const handleLogout = async () => {
     await logout()
-    router.push('/login')
+    window.location.replace('/login')
   }
 
   return (

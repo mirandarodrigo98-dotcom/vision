@@ -41,7 +41,7 @@ export function ClientHeader({ user, activeCompany, companies }: ClientHeaderPro
 
   async function handleLogout() {
     await logout();
-    router.push('/login');
+    window.location.replace('/login');
   }
 
   return (

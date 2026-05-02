@@ -45,7 +45,7 @@ export function AdminNav() {
 
   async function handleLogout() {
     await logout();
-    router.push('/login');
+    window.location.replace('/login');
   }
 
   return (
