@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { requestOtp, verifyOtp, loginClient, checkUserType } from '@/app/actions/auth';
 import { APP_VERSION } from '@/lib/version';
+import { toast } from 'sonner';
 
 interface LoginFormProps {
     logoUrl?: string | null;
@@ -242,7 +243,7 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
                 />
               </div>
               <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? 'Entrar' : 'Entrar'}
+                {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
           )}
