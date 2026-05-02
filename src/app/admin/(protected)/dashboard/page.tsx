@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
-export default async function AdminDashboard() {
+export default async function AdminDashboardPage() {
   const stats = await getDashboardData();
 
   return (

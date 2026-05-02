@@ -3,6 +3,7 @@
 import { useState, Fragment, useEffect, useMemo } from 'react'
 import { Dialog, Transition, Menu } from '@headlessui/react'
 import { NotificationBell } from '@/components/admin/notification-bell'
+import { useTheme } from 'next-themes'
 import {
   Bars3Icon,
   Cog6ToothIcon,
@@ -95,10 +96,17 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
   const [isHovering, setIsHovering] = useState(false)
   const [ignoreHover, setIgnoreHover] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
+  const { setTheme, theme } = useTheme()
+
+  const [mounted, setMounted] = useState(false)
 
   const isExpanded = !collapsed || (isHovering && !ignoreHover)
   const pathname = usePathname()
   const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => navigation.map(item => {
@@ -524,6 +532,19 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                     leaveTo="transform opacity-0 scale-95"
                   >
                     <Menu.Items className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+                      <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                    className={classNames(
+                                      active ? 'bg-gray-50' : '',
+                                      'block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 cursor-pointer'
+                                    )}
+                                  >
+                                    {mounted && theme === 'dark' ? '🌞 Modo Claro' : '🌙 Modo Escuro'}
+                                  </button>
+                                )}
+                              </Menu.Item>
                       <Menu.Item>
                                 {({ active }) => (
                                   <button
