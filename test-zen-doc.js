@@ -15,14 +15,12 @@ async function run() {
     let url = `${config.base_url.replace(/\/$/, '')}/api/v1/${config.api_token}/documentos`;
     
     const payload = {
-        "CodigoCategoria": "64b6d631273adf21d4750e10", // Documentos
-        "CodigoCliente": "", // Empty?
-        "CodigoArquivo": fileId,
-        "Titulo": "Variaveis_da_Folha.csv",
-        "Observacao": "Lançamento via VISION",
-        "Atributo": {
-            "DataCompetencia": "202401",
-        }
+      CodigoCategoria: "64b6d631273adf21d4750e10",
+      CodigoCliente: "64b984f78bcddd1320ab4e7e",
+      CodigoArquivo: fileId,
+      Titulo: `Variaveis da Folha (Reenvio Manual)`,
+      Observacao: 'Arquivo reenviado automaticamente pelo Vision para corrigir protocolo de testes.',
+      Atributo: { "DataCompetencia": "05/2026" }
     };
 
     const response = await fetch(url, { 

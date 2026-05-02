@@ -171,7 +171,10 @@ export async function savePayrollVariables(
         throw new Error('Falha ao realizar o upload do arquivo para o Questor Zen.');
       }
 
-      const zenCompetencia = monthReference.replace('-', ''); // YYYY-MM -> YYYYMM
+      // O Questor Zen exige a competência no formato MM/YYYY. Ex: 2026-05 -> 05/2026
+      const [yyyy, mm] = monthReference.split('-');
+      const zenCompetencia = `${mm}/${yyyy}`;
+      
       const docResult = await sendDocumentToZen({
         CodigoCategoria: categoryId,
         CodigoCliente: clientId,
