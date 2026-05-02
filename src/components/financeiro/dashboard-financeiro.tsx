@@ -7,6 +7,9 @@ import { getDashboardFinanceiroData } from '@/app/actions/integrations/omie-dash
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { PieChart, Pie, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 export function DashboardFinanceiro({ defaultCompanyId = '0' }: { defaultCompanyId?: string }) {
   const [data, setData] = useState<any>(null);
