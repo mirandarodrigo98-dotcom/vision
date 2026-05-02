@@ -1,6 +1,6 @@
 {
   "name": "vision",
-  "version": "1.8.28",
+  "version": "1.8.29",
   "private": true,
   "engines": {
     "node": ">=18.0.0"

@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { requestOtp, verifyOtp, loginClient, checkUserType } from '@/app/actions/auth';
 import { APP_VERSION } from '@/lib/version';
-import { toast } from 'sonner';
 
 interface LoginFormProps {
     logoUrl?: string | null;
@@ -16,12 +15,17 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
+  const [mounted, setMounted] = useState(false);
   
   // Steps: 'login' (email+password) -> 'otp'
   const [step, setStep] = useState<'login' | 'otp' | 'password'>('login');
   
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Restore state logic (simplified for unification)
   useEffect(() => {
@@ -335,7 +339,7 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
 
       <div className="mt-8 text-center text-xs text-gray-400 font-mono">
         <p>v{APP_VERSION}</p>
-        <p className="mt-1">© {new Date().getFullYear()} Vision Sistemas. Todos os direitos reservados.</p>
+        <p className="mt-1">© {mounted ? new Date().getFullYear() : '2025'} Vision Sistemas. Todos os direitos reservados.</p>
       </div>
     </div>
   );
