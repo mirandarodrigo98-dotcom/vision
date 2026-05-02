@@ -51,3 +51,138 @@ export async function saveQuestorZenConfig(data: z.infer<typeof questorZenConfig
     return { error: error.message || 'Erro ao salvar configuração do Questor Zen' };
   }
 }
+
+// --- Funções de Integração com a API do Questor Zen ---
+
+function buildUrl(config: QuestorZenConfig, path: string) {
+  const base = config.base_url.replace(/\/$/, '');
+  return `${base}/api/v1/${config.api_token}${path}`;
+}
+
+export async function uploadToZen(filename: string, content: string | Buffer): Promise<string | null> {
+  try {
+    const config = await getQuestorZenConfig();
+    if (!config) throw new Error('Configuração do Questor Zen não encontrada');
+
+    const url = buildUrl(config, `/upload/${encodeURIComponent(filename)}`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: content
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Falha no upload (Status ${response.status}): ${errText}`);
+    }
+
+    const fileId = await response.json();
+    return fileId;
+  } catch (error: any) {
+    console.error('[Questor Zen] Erro em uploadToZen:', error.message);
+    return null;
+  }
+}
+
+export async function getZenClientByCnpj(cnpj: string): Promise<string | null> {
+  try {
+    const config = await getQuestorZenConfig();
+    if (!config) throw new Error('Configuração do Questor Zen não encontrada');
+
+    const cleanCnpj = String(cnpj).replace(/\D/g, '');
+    const url = buildUrl(config, `/clientes/${cleanCnpj}`);
+    
+    const response = await fetch(url, { 
+      method: 'GET', 
+      headers: { 'Content-Type': 'application/json' } 
+    });
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return data?.CodigoCliente || null;
+  } catch (error: any) {
+    console.error('[Questor Zen] Erro em getZenClientByCnpj:', error.message);
+    return null;
+  }
+}
+
+export async function getZenCategories(): Promise<any[]> {
+  try {
+    const config = await getQuestorZenConfig();
+    if (!config) throw new Error('Configuração do Questor Zen não encontrada');
+
+    const url = buildUrl(config, `/categorias`);
+    const response = await fetch(url, { 
+      method: 'GET', 
+      headers: { 'Content-Type': 'application/json' } 
+    });
+
+    if (!response.ok) return [];
+
+    return await response.json();
+  } catch (error: any) {
+    console.error('[Questor Zen] Erro em getZenCategories:', error.message);
+    return [];
+  }
+}
+
+export async function findZenCategoryByNames(moduleName: string, categoryName: string): Promise<string | null> {
+  const categories = await getZenCategories();
+  for (const mod of categories) {
+    if (mod.Descricao?.toLowerCase() === moduleName.toLowerCase() || !moduleName) {
+      for (const cat of mod.Categorias || []) {
+        if (cat.Descricao?.toLowerCase() === categoryName.toLowerCase()) {
+          return cat.Codigo;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+export async function sendDocumentToZen(payload: {
+  CodigoCategoria: string;
+  CodigoCliente: string;
+  CodigoArquivo: string;
+  Titulo: string;
+  Observacao?: string;
+  DataCompetencia: string; // Formato YYYYMM
+}): Promise<{ success: boolean; protocol?: string; error?: string }> {
+  try {
+    const config = await getQuestorZenConfig();
+    if (!config) throw new Error('Configuração do Questor Zen não encontrada');
+
+    const url = buildUrl(config, `/documentos`);
+    
+    const docPayload = {
+      CodigoCategoria: payload.CodigoCategoria,
+      CodigoCliente: payload.CodigoCliente,
+      CodigoArquivo: payload.CodigoArquivo,
+      Titulo: payload.Titulo,
+      Observacao: payload.Observacao || '',
+      Atributo: {
+        DataCompetencia: payload.DataCompetencia
+      }
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(docPayload)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Questor Zen] Erro em sendDocumentToZen:', response.status, errText);
+      return { success: false, error: `Erro ${response.status}: ${errText}` };
+    }
+
+    const docText = await response.text();
+    // A API retorna o ID do documento
+    return { success: true, protocol: docText.replace(/"/g, '') };
+  } catch (error: any) {
+    console.error('[Questor Zen] Erro em sendDocumentToZen:', error.message);
+    return { success: false, error: error.message };
+  }
+}

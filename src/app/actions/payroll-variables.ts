@@ -7,6 +7,8 @@ import { z } from 'zod';
 
 import { executeQuestorProcess } from './integrations/questor-syn';
 
+import { uploadToZen, getZenClientByCnpj, findZenCategoryByNames, sendDocumentToZen } from './integrations/questor-zen';
+
 export type PayrollEvent = {
   codigo: string;
   descricao: string;
@@ -114,16 +116,84 @@ export async function savePayrollVariables(
     const recordId = result.rows[0].id;
 
     if (!isDraft) {
-      // TODO: Send to Questor ZEN (Q-net Documentos Recebidos)
-      // Simulating ZEN API response
-      const fakeProtocol = `ZEN-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}-${Math.floor(Math.random()*10000)}`;
-      
-      await db.query(`UPDATE payroll_variables SET zen_protocol = $1 WHERE id = $2`, [fakeProtocol, recordId]);
+      // 1. Buscar a empresa para pegar o CNPJ
+      const companyRes = await db.query(`SELECT cnpj, name FROM client_companies WHERE id = $1`, [companyId]);
+      if (companyRes.rowCount === 0) throw new Error('Empresa não encontrada');
+      const company = companyRes.rows[0];
+
+      // 2. Resgatar todos os funcionários da empresa para cruzar o ID com o código
+      const employeesRes = await db.query(`SELECT id, code FROM employees WHERE company_id = $1`, [companyId]);
+      const empMap: Record<string, string> = {};
+      employeesRes.rows.forEach(e => {
+        empMap[e.id] = e.code || '';
+      });
+
+      // 3. Gerar o arquivo CSV em memória
+      const payload = eventsData as {
+        selectedEvents: string[];
+        employeeValues: Record<string, Record<string, string>>;
+      };
+
+      let csvContent = 'CodigoEmpregado;CodigoEvento;Valor\n';
+      let hasData = false;
+
+      for (const [empId, events] of Object.entries(payload.employeeValues)) {
+        const empCode = empMap[empId];
+        if (!empCode) continue;
+
+        for (const [evtCode, value] of Object.entries(events)) {
+          if (value && value.trim() !== '') {
+            csvContent += `${empCode};${evtCode};${value}\n`;
+            hasData = true;
+          }
+        }
+      }
+
+      if (!hasData) {
+        throw new Error('Nenhum dado válido para enviar ao Questor Zen.');
+      }
+
+      // 4. Integração com a API do Questor Zen
+      const cnpj = String(company.cnpj).replace(/\D/g, '');
+      const clientId = await getZenClientByCnpj(cnpj);
+      if (!clientId) {
+        throw new Error('Cliente não encontrado no Questor Zen (CNPJ inválido ou não cadastrado).');
+      }
+
+      const categoryId = await findZenCategoryByNames('Departamento Pessoal', 'Documentos');
+      if (!categoryId) {
+        throw new Error('Categoria "Departamento Pessoal > Documentos" não encontrada no Questor Zen.');
+      }
+
+      const filename = `variaveis_folha_${companyId}_${monthReference}_${Date.now()}.csv`;
+      const fileId = await uploadToZen(filename, csvContent);
+      if (!fileId) {
+        throw new Error('Falha ao realizar o upload do arquivo para o Questor Zen.');
+      }
+
+      const zenCompetencia = monthReference.replace('-', ''); // YYYY-MM -> YYYYMM
+      const docResult = await sendDocumentToZen({
+        CodigoCategoria: categoryId,
+        CodigoCliente: clientId,
+        CodigoArquivo: fileId,
+        Titulo: `Variáveis da Folha - ${monthReference}`,
+        Observacao: 'Arquivo gerado automaticamente pelo Vision.',
+        DataCompetencia: zenCompetencia
+      });
+
+      if (!docResult.success || !docResult.protocol) {
+        throw new Error(docResult.error || 'Falha ao vincular o documento no Questor Zen.');
+      }
+
+      const protocol = docResult.protocol;
+
+      // 5. Atualizar o protocolo no banco de dados
+      await db.query(`UPDATE payroll_variables SET zen_protocol = $1 WHERE id = $2`, [protocol, recordId]);
       
       revalidatePath('/app/payroll-variables');
       revalidatePath('/admin/payroll-variables');
       
-      return { success: true, id: recordId, protocol: fakeProtocol, message: 'Lançamento enviado com sucesso para o Questor Zen.' };
+      return { success: true, id: recordId, protocol, message: 'Lançamento enviado com sucesso para o Questor Zen.' };
     }
 
     revalidatePath('/app/payroll-variables');
@@ -133,6 +203,6 @@ export async function savePayrollVariables(
 
   } catch (error: any) {
     console.error('Error saving payroll variables:', error);
-    return { error: 'Erro ao salvar os lançamentos de variáveis.' };
+    return { error: error.message || 'Erro ao salvar os lançamentos de variáveis.' };
   }
 }
