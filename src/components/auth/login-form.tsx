@@ -26,6 +26,7 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
 
   useEffect(() => {
     setMounted(true);
+    toast.error('Teste de toast na tela de login');
   }, []);
 
   // Restore state logic (simplified for unification)
@@ -85,6 +86,7 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    console.log('handleLogin called', { email, password });
     const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail) {
         toast.error('Por favor, digite seu e-mail.');
@@ -93,18 +95,25 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
 
     setLoading(true);
     try {
+        console.log('calling checkUserType');
         // 1. Check user type first
         const check = await checkUserType(cleanEmail);
+        console.log('checkUserType result:', check);
         
         if (check.authMethod === 'password') {
+            console.log('authMethod is password');
             // 2. If password user, try to login directly
             if (!password) {
+                console.log('no password provided');
                 toast.error('Por favor, digite sua senha.');
                 setLoading(false);
                 return;
             }
 
+            console.log('calling loginClient');
             const res = await loginClient(cleanEmail, password);
+            console.log('loginClient result:', res);
+            
             if (res.error) {
                 toast.error(res.error);
             } else {
@@ -133,7 +142,7 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
             toast.error('E-mail não encontrado no sistema.');
         }
     } catch (err) {
-        console.error(err);
+        console.error('Catch error:', err);
         const message = err instanceof Error ? err.message : 'Erro desconhecido';
         toast.error(`Erro ao realizar login: ${message}`);
     } finally {

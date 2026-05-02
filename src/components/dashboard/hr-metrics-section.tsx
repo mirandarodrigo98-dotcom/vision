@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { DashboardMetrics } from '@/app/actions/dashboard';
 
@@ -119,7 +120,13 @@ function MetricPie({ data, title }: MetricPieProps) {
 }
 
 export function HRMetricsSection({ metrics }: { metrics: DashboardMetrics | null }) {
-  if (!metrics) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!metrics || !mounted) return null;
 
   return (
     <div className="space-y-6">

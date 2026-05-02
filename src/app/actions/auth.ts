@@ -28,9 +28,12 @@ async function checkRateLimit(email: string) {
 }
 
 export async function checkUserType(rawEmail: string) {
+  console.log('[checkUserType] Start for email:', rawEmail);
   if (!(await checkRateLimit(rawEmail))) {
+    console.log('[checkUserType] Rate limit failed');
     throw new Error('Muitas tentativas. Tente novamente em 1 minuto.');
   }
+  console.log('[checkUserType] Rate limit passed');
 
   try {
     const email = rawEmail.toLowerCase().trim();

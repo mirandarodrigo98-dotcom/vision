@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.32'; // Fix: Resolve dashboard hydration and ThemeProvider state access on load
+export const APP_VERSION = '1.8.33'; // Fix: Resolve Client Dashboard hydration error caused by Recharts in HRMetricsSection
