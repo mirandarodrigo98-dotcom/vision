@@ -67,12 +67,48 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
     );
   };
 
-  const handleValueChange = (empId: string, eventCode: string, val: string) => {
+  const formatInput = (value: string, ref: string) => {
+    if (!value) return '';
+
+    if (ref === 'Hora') {
+      let numbers = value.replace(/\D/g, '');
+      if (numbers.length === 0) return '';
+      
+      if (numbers.length > 5) numbers = numbers.slice(0, 5);
+      
+      if (numbers.length > 2) {
+        return `${numbers.slice(0, -2)}:${numbers.slice(-2)}`;
+      }
+      return numbers;
+    }
+
+    if (ref === 'Valor') {
+      let numbers = value.replace(/\D/g, '');
+      if (numbers.length === 0) return '';
+      
+      const amount = parseInt(numbers, 10) / 100;
+      
+      return amount.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    if (ref === 'Dia') {
+      return value.replace(/\D/g, '');
+    }
+
+    return value;
+  };
+
+  const handleValueChange = (empId: string, eventCode: string, refType: string, val: string) => {
+    const formattedVal = formatInput(val, refType);
+    
     setValues(prev => ({
       ...prev,
       [empId]: {
         ...(prev[empId] || {}),
-        [eventCode]: val
+        [eventCode]: formattedVal
       }
     }));
   };
@@ -242,8 +278,8 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
                           <Input 
                             className="h-8 text-right"
                             value={values[emp.id]?.[ev.codigo] || ''}
-                            onChange={(e) => handleValueChange(emp.id, ev.codigo, e.target.value)}
-                            placeholder={ev.referencia === 'Hora' ? '00:00' : '0,00'}
+                            onChange={(e) => handleValueChange(emp.id, ev.codigo, ev.referencia, e.target.value)}
+                            placeholder={ev.referencia === 'Hora' ? '00:00' : ev.referencia === 'Valor' ? '0,00' : '0'}
                           />
                         </TableCell>
                       ))}
