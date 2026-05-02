@@ -28,7 +28,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
@@ -98,6 +98,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
 
   const isExpanded = !collapsed || (isHovering && !ignoreHover)
   const pathname = usePathname()
+  const router = useRouter()
 
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => navigation.map(item => {
@@ -161,6 +162,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
 
   const handleLogout = async () => {
     await logout()
+    router.push('/login')
   }
 
   return (

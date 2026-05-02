@@ -8,7 +8,6 @@ import { logAudit } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import rateLimit from '@/lib/rate-limit';
 
 const loginLimiter = rateLimit({
@@ -303,6 +302,13 @@ export async function updatePassword(password: string) {
 }
 
 export async function logout() {
-  (await cookies()).delete('session_id');
-  redirect('/login');
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get('session_id')?.value;
+
+  if (sessionId) {
+    await db.query(`DELETE FROM sessions WHERE id = $1`, [sessionId]);
+  }
+
+  cookieStore.delete('session_id');
+  return { success: true };
 }
