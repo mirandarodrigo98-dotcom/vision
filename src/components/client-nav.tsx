@@ -17,7 +17,7 @@ import {
   Stethoscope,
   ChevronDown,
   ChevronRight,
-  FileBarChart,
+  BarChart2,
   FilePlus
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
       { href: '/app/payroll-variables', label: 'Variáveis da Folha', icon: FilePlus, permission: 'payroll_variables.view' },
       { 
         label: 'Relatórios', 
-        icon: FileBarChart,
+        icon: BarChart2,
         children: [
             { href: '/api/reports/ethnic-racial', label: 'Autodeclaração Étnico-Racial', icon: FileText, permission: 'admissions.view' },
         ]
