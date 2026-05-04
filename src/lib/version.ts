@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.8.37'; // Fix: Correção crítica do formato de DataCompetencia (MM/YYYY) que causava erro 404 na API do Questor Zen
+export const APP_VERSION = '1.8.38'; // Fix: Correção na integração do Omie que impedia a realização de baixa parcial (removida tag BAIXAR_DOCUMENTO inexistente)

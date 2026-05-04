@@ -21,8 +21,7 @@ async function run() {
       desconto: 0,
       juros: 0,
       multa: 0,
-      data: "15/04/2026",
-      baixar_documento: "N"
+      data: "15/04/2026"
     };
 
     console.log('Enviando payload:', payloadData);

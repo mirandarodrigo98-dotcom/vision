@@ -298,33 +298,6 @@ export async function lancarRecebimentoOmie(payloadData: any, companyId: number 
     return { error: 'Credenciais da API Omie não configuradas ou inativas.' };
   }
   try {
-    // Verificar o título original para ver se o valor pago é menor que o total
-    // Se for, devemos passar a flag para não baixar totalmente o título
-    try {
-      const payloadConsulta = {
-        call: "ConsultarContaReceber",
-        app_key: config.app_key,
-        app_secret: config.app_secret,
-        param: [{ codigo_lancamento_omie: Number(payloadData.codigo_lancamento) }]
-      };
-      
-      const resCons = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', payloadConsulta, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const tituloConsultado = resCons.data;
-      
-      if (tituloConsultado && tituloConsultado.valor_documento) {
-        // Se o valor recebido for menor que o valor do documento, diz para não baixar
-        // O valor total a ser considerado é valor + desconto
-        const valorTotalRecebido = Number(payloadData.valor) + Number(payloadData.desconto || 0);
-        if (valorTotalRecebido < tituloConsultado.valor_documento) {
-          payloadData.baixar_documento = 'N';
-        }
-      }
-    } catch (e) {
-      console.warn("Não foi possível consultar o título antes do recebimento para validar baixa parcial", e);
-    }
-
     const payload = {
       call: "LancarRecebimento",
       app_key: config.app_key,
