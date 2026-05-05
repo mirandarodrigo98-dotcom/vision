@@ -1,0 +1,128 @@
+API Zen 2 - V2
+Ctrl+K
+API Zen 2 - V2
+Raiz
+Arquivos
+Insere um anexo de documento no storage.
+POST
+Autenticação
+E-Doc
+Gerenciador de Empresas
+Gerenciador de Usuários
+Q-Colabore
+Q-Drive Documentos Fiscais
+Q-Drive NFS-e
+Esquemas
+Arquivos
+Copiar Página
+Insere um anexo de documento no storage.
+POST
+/v2/Arquivos
+Run in Apidog
+Este endpoint permite a inserção de arquivos. Os arquivos serão compactados em ZIP e armazenados.
+Os arquivos são recebidos em formato multipart e compactados para armazenar no serviço de armazenamento.
+Exemplo de Requisição (FormData):
+{
+    "Arquivos": [
+        {
+            "ContentType": "application/zip",
+            "FileName": "documento1.zip",
+            "Length": 1024
+        }
+    ]
+}
+Exemplo de Resposta de Sucesso (200 - OK):
+ {
+   "dados": {
+    "id": "67ab522b78207849e4be5dfd"
+    },
+    "sucesso": true,
+    "mensagens": "Anexo inserido com sucesso"
+ }
+Respostas:
+200 OK: Retorna o ID do anexo inserido com sucesso.
+400 Bad Request: Se não houver arquivos para processar ou se os arquivos estiverem malformados.
+500 Internal Server Error: Erro interno durante o processo de inserção do anexo.
+Requisição
+Authorization
+API Key
+Adicionar parâmetro em header Authorization
+Exemplo:
+Authorization: ********************
+Parâmetros Bodymultipart/form-data
+Gerar Código
+Arquivos
+array[file]
+Opcional
+Respostas
+🟢200
+OK
+application/json
+Retorna o ID do anexo inserido com sucesso.
+Body
+Gerar Código
+sucesso
+boolean 
+Somente leitura
+Opcional
+mensagens
+string  | 
+null 
+Somente leitura
+Opcional
+dados
+array[object (DownloadArquivoRetornoApiModel)]  | 
+null 
+Somente leitura
+Opcional
+idArquivo
+integer <int64>
+Opcional
+nomeArquivo
+string  | 
+null 
+Opcional
+arquivoBase64
+string  | 
+null 
+Opcional
+mensagemErro
+string  | 
+null 
+Opcional
+🟠400
+Solicitação incorreta
+🔴500
+Erro interno do servidor
+Request Example
+Shell
+JavaScript
+cURL
+cURL-Windows
+Httpie
+wget
+PowerShell
+curl --location --request POST '/v2/Arquivos' \
+--header 'Authorization: <api-key>' \
+--form 'Arquivos=""'
+Response Example
+200 - Exemplo 1
+{
+    "sucesso": true,
+    "mensagens": "string",
+    "dados": [
+        {
+            "idArquivo": 0,
+            "nomeArquivo": "string",
+            "arquivoBase64": "string",
+            "mensagemErro": "string"
+        }
+    ]
+}
+Modificado em há 7 meses
+Próxima página
+Realiza o login de um usuário na API utilizando e-mail e senha.
+LLMs.txt
+Clonar
+Exportar
+Built with

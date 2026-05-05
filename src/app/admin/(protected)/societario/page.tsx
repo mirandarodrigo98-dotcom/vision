@@ -1,22 +1,14 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRightIcon, FileCheck2 } from 'lucide-react';
 import Link from 'next/link';
-import { getContracts } from '@/app/actions/societario-contracts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getProcessesFiltered } from '@/app/actions/societario-processes';
-import { ProcessFilters } from '@/components/societario/processes-filters';
-import { ProcessActions } from '@/components/societario/process-actions';
-import { ArrowRightIcon, BuildingOfficeIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
-interface PageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export default async function SocietarioPage({ searchParams }: PageProps) {
+export default async function SocietarioPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
@@ -30,163 +22,33 @@ export default async function SocietarioPage({ searchParams }: PageProps) {
     );
   }
 
-  const contratos = await getContracts();
-  const params = await searchParams;
-  const activeTab = typeof params.tab === 'string' ? params.tab : 'contratos';
-  const filters = {
-    company: typeof params.company === 'string' ? params.company : undefined,
-    cnpj: typeof params.cnpj === 'string' ? params.cnpj : undefined,
-    type: typeof params.type === 'string' ? params.type : undefined,
-    status: typeof params.status === 'string' ? params.status : undefined,
-  };
-  const processos = await getProcessesFiltered(filters);
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">Societário</h1>
+        <p className="text-muted-foreground mt-2">
+          Gerencie as rotinas, processos e viabilidades societárias.
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Link href="/admin/societario/contratos" className="group">
+        <Link href="/admin/societario/viabilidade" className="group">
           <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
                 <div className="flex items-center gap-2">
-                  <DocumentTextIcon className="h-5 w-5" />
-                  Contratos
+                  <FileCheck2 className="h-5 w-5" />
+                  Viabilidade
                 </div>
                 <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardTitle>
-              <CardContent className="px-0 pb-0 pt-2">
-                <p className="text-sm text-muted-foreground">
-                  Controle e emissão de contratos de prestação de serviços.
-                </p>
-              </CardContent>
-            </CardHeader>
-          </Card>
-        </Link>
-
-        <Link href="/admin/societario/processos" className="group">
-          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
-                <div className="flex items-center gap-2">
-                  <BuildingOfficeIcon className="h-5 w-5" />
-                  Processos Societários
-                </div>
-                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </CardTitle>
-              <CardContent className="px-0 pb-0 pt-2">
-                <p className="text-sm text-muted-foreground">
-                  Acompanhamento de aberturas, alterações e baixas.
-                </p>
-              </CardContent>
+              <CardDescription>
+                Acesse o painel para iniciar um novo processo de Viabilidade de Inscrição ou Alteração.
+              </CardDescription>
             </CardHeader>
           </Card>
         </Link>
       </div>
-
-      <Tabs defaultValue={activeTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:w-auto">
-          <TabsTrigger value="contratos">Contratos</TabsTrigger>
-          <TabsTrigger value="processos">Processos</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="processos" className="mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Processos</h2>
-              <Link href="/admin/societario/processos/new">
-                <Button>Novo processo</Button>
-              </Link>
-            </div>
-            <ProcessFilters />
-            <div className="border rounded-md bg-white">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>Razão Social</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-center">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processos.map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell>{p.company_cnpj || p.cnpj || '-'}</TableCell>
-                      <TableCell className="font-medium">{p.razao_social || p.company_name || '-'}</TableCell>
-                      <TableCell>{p.type}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold
-                            ${p.status === 'NAO_INICIADO' ? 'bg-gray-100 text-gray-800' : ''}
-                            ${p.status === 'EM_ANDAMENTO' ? 'bg-yellow-100 text-yellow-800' : ''}
-                            ${p.status === 'CONCLUIDO' ? 'bg-primary/10 text-primary' : ''}
-                          `}
-                        >
-                          {p.status === 'NAO_INICIADO'
-                            ? 'Não iniciado'
-                            : p.status === 'EM_ANDAMENTO'
-                            ? 'Em andamento'
-                            : p.status === 'CONCLUIDO'
-                            ? 'Concluído'
-                            : p.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <ProcessActions processId={p.id} status={p.status} type={p.type} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {processos.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                        Nenhum processo encontrado com os filtros informados.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="contratos" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Modelos de Contrato</CardTitle>
-              <Link href="/admin/societario/contratos/new">
-                <Button>Novo contrato</Button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-md bg-white">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Título</TableHead>
-                      <TableHead>Autor</TableHead>
-                      <TableHead>Atualizado em</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contratos.map((c: any) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.title}</TableCell>
-                        <TableCell>{c.author_name || '-'}</TableCell>
-                        <TableCell>{new Date(c.updated_at).toLocaleString('pt-BR')}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
