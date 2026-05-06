@@ -37,7 +37,7 @@ export function ViabilidadeWizard() {
 
   const handleBack = () => {
     if (step === 1) {
-      router.push('/admin/societario');
+      router.push('/admin/societario/viabilidade');
     } else {
       setStep(step - 1);
     }

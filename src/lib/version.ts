@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.9.0'; // Feat: Redefinição do módulo Societário e criação do Wizard de Viabilidade (Passo 1 e 2)
+export const APP_VERSION = '1.9.1'; // Feat: Ajuste no fluxo de Viabilidade (criada tela de listagem em grid e movido wizard para /nova)
