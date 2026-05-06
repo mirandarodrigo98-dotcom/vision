@@ -48,8 +48,8 @@ export async function getDashboardData(): Promise<DashboardStats> {
   // 1. ADMIN BLOCK (Admin & Operator)
   // ----------------------------------------------------------------------
   if (isAdmin || session.role === 'operator') {
-    // Active Companies
-    let companiesQuery = 'SELECT COUNT(*) FROM client_companies WHERE is_active = 1';
+    // Active Companies (only CNPJ, ignoring CPF)
+    let companiesQuery = "SELECT COUNT(*) FROM client_companies WHERE is_active = 1 AND LENGTH(REGEXP_REPLACE(cnpj, '\\D', '', 'g')) > 11";
     const companiesParams: any[] = [];
     if (session.role === 'operator') {
        companiesQuery += ' AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)';
