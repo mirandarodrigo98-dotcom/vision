@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.9.3'; // Fix: Correções nos gráficos do Dashboard (permissões de operador e exibição da Razão Social nos quadros TOP 10/TOP 5)
+export const APP_VERSION = '1.9.4'; // Fix: Correção da renderização (CSS/Tailwind) das barras dos gráficos do Dashboard que estavam invisíveis

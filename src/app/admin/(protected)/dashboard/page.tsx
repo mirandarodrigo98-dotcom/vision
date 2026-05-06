@@ -177,7 +177,7 @@ function ChartCard({ title, data }: { title: string, data: { month: string, coun
             data.map((item) => (
               <div key={item.month} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group min-w-0">
                 <div 
-                  className="w-full max-w-[16px] bg-primary/80 rounded-t-sm relative transition-all duration-500 hover:bg-primary min-h-[4px]" 
+                  className="w-full max-w-[16px] bg-primary opacity-80 rounded-t-sm relative transition-all duration-500 hover:opacity-100 min-h-[4px]" 
                   style={{ height: `${(item.count / max) * 100}%` }}
                   suppressHydrationWarning
                 >
