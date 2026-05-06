@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.9.2'; // Fix: Correção de parâmetro SQL ($1 para $2) que causava Server Error na visualização de demissões por operadores
+export const APP_VERSION = '1.9.3'; // Fix: Correções nos gráficos do Dashboard (permissões de operador e exibição da Razão Social nos quadros TOP 10/TOP 5)

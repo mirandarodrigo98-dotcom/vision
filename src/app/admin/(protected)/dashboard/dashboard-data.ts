@@ -45,15 +45,24 @@ export async function getDashboardData(): Promise<DashboardStats> {
   const stats: DashboardStats = {};
 
   // ----------------------------------------------------------------------
-  // 1. ADMIN BLOCK
+  // 1. ADMIN BLOCK (Admin & Operator)
   // ----------------------------------------------------------------------
-  if (isAdmin) {
+  if (isAdmin || session.role === 'operator') {
     // Active Companies
-    const companiesCount = Object.values((await db.query('SELECT COUNT(*) FROM client_companies WHERE is_active = 1')).rows[0] || {})[0];
+    let companiesQuery = 'SELECT COUNT(*) FROM client_companies WHERE is_active = 1';
+    const companiesParams: any[] = [];
+    if (session.role === 'operator') {
+       companiesQuery += ' AND id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1)';
+       companiesParams.push(session.user_id);
+    }
+    const companiesCount = Object.values((await db.query(companiesQuery, companiesParams)).rows[0] || {})[0];
     const companies = Number(companiesCount);
     
     // Active Client Users (changed from Total Clients)
-    const activeClientUsersCount = Object.values((await db.query("SELECT COUNT(*) FROM users WHERE role = 'client_user' AND is_active = 1")).rows[0] || {})[0];
+    let usersQuery = "SELECT COUNT(*) FROM users WHERE role = 'client_user' AND is_active = 1";
+    const usersParams: any[] = [];
+    // Operators might see all active client users, or maybe we don't filter this count for simplicity
+    const activeClientUsersCount = Object.values((await db.query(usersQuery, usersParams)).rows[0] || {})[0];
     const activeClientUsers = Number(activeClientUsersCount);
 
     // Helper for Total Requests (Admissions + Dismissals + Vacations + Transfers)
@@ -63,10 +72,16 @@ export async function getDashboardData(): Promise<DashboardStats> {
     const getCount = async (start: Date, end: Date) => {
       let total = 0;
       for (const table of tables) {
-        const row = (await db.query(`
-          SELECT COUNT(*) as count FROM ${table} 
-          WHERE status = 'COMPLETED' AND created_at >= $1 AND created_at < $2
-        `, [start.toISOString(), end.toISOString()])).rows[0] as any;
+        const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
+        let query = `SELECT COUNT(*) as count FROM ${table} WHERE status = 'COMPLETED' AND created_at >= $1 AND created_at < $2`;
+        const params: any[] = [start.toISOString(), end.toISOString()];
+        
+        if (session.role === 'operator') {
+            query += ` AND (${companyCol} IS NULL OR ${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $3))`;
+            params.push(session.user_id);
+        }
+
+        const row = (await db.query(query, params)).rows[0] as any;
         total += Number(row?.count || 0);
       }
       return total;
@@ -78,12 +93,22 @@ export async function getDashboardData(): Promise<DashboardStats> {
     // Chart: Last 12 Months (All types)
     // We fetch each table grouped by month and aggregate in JS
     const getChartData = async (table: string) => {
-        return (await db.query(`
+        const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
+        let query = `
             SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count 
             FROM ${table} 
             WHERE status = 'COMPLETED' AND created_at >= $1
-            GROUP BY month
-        `, [twelveMonthsAgo.toISOString()])).rows as { month: string, count: number }[];
+        `;
+        const params: any[] = [twelveMonthsAgo.toISOString()];
+
+        if (session.role === 'operator') {
+            query += ` AND (${companyCol} IS NULL OR ${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2))`;
+            params.push(session.user_id);
+        }
+
+        query += ` GROUP BY month`;
+
+        return (await db.query(query, params)).rows as { month: string, count: number }[];
     };
 
     const chartMap = new Map<string, number>();
@@ -116,13 +141,22 @@ export async function getDashboardData(): Promise<DashboardStats> {
     // We need to aggregate by company_id across tables
     const getRankingData = async (table: string) => {
         const companyCol = table === 'transfer_requests' ? 'source_company_id' : 'company_id';
-        return (await db.query(`
-            SELECT cc.nome, COUNT(*) as count 
+        let query = `
+            SELECT COALESCE(cc.razao_social, cc.nome) as nome, COUNT(*) as count 
             FROM ${table} t
             JOIN client_companies cc ON t.${companyCol} = cc.id
             WHERE t.status = 'COMPLETED' AND t.created_at >= $1
-            GROUP BY cc.nome
-        `, [twelveMonthsAgo.toISOString()])).rows as { nome: string, count: number }[];
+        `;
+        const params: any[] = [twelveMonthsAgo.toISOString()];
+
+        if (session.role === 'operator') {
+            query += ` AND (t.${companyCol} IS NULL OR t.${companyCol} NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2))`;
+            params.push(session.user_id);
+        }
+
+        query += ` GROUP BY COALESCE(cc.razao_social, cc.nome)`;
+
+        return (await db.query(query, params)).rows as { nome: string, count: number }[];
     };
 
     const rankingMap = new Map<string, number>();
@@ -218,11 +252,11 @@ export async function getDashboardData(): Promise<DashboardStats> {
     }
 
     const topClientsData = (await db.query(`
-        SELECT cc.nome, COUNT(*) as count 
+        SELECT COALESCE(cc.razao_social, cc.nome) as nome, COUNT(*) as count 
         FROM ${table} t
         JOIN client_companies cc ON t.${companyCol} = cc.id
         ${rankingWhere} AND t.created_at >= $${rankingParams.length + 1}
-        GROUP BY cc.nome
+        GROUP BY COALESCE(cc.razao_social, cc.nome)
         ORDER BY count DESC
         LIMIT 5
     `, [...rankingParams, sixMonthsAgo.toISOString()])).rows as { nome: string, count: number }[];
