@@ -21,7 +21,7 @@ export default async function AdminViewDismissalPage({ params }: { params: Promi
     const queryParams: any[] = [id];
 
     if (session.role === 'operator') {
-        dismissalQuery += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
+        dismissalQuery += ` AND (d.company_id IS NULL OR d.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $2))`;
         queryParams.push(session.user_id);
     }
 
