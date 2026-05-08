@@ -148,6 +148,7 @@ export async function sendDocumentToZen(payload: {
   Titulo: string;
   Observacao?: string;
   DataCompetencia: string; // Formato YYYYMM
+  AtributosAdicionais?: Record<string, string>;
 }): Promise<{ success: boolean; protocol?: string; error?: string }> {
   try {
     const config = await getQuestorZenConfig();
@@ -162,7 +163,8 @@ export async function sendDocumentToZen(payload: {
       Titulo: payload.Titulo,
       Observacao: payload.Observacao || '',
       Atributo: {
-        DataCompetencia: payload.DataCompetencia
+        DataCompetencia: payload.DataCompetencia,
+        ...payload.AtributosAdicionais
       }
     };
 

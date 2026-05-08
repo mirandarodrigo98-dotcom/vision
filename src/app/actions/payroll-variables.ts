@@ -179,9 +179,12 @@ export async function savePayrollVariables(
         CodigoCategoria: categoryId,
         CodigoCliente: clientId,
         CodigoArquivo: fileId,
-        Titulo: `Variáveis da Folha - ${monthReference}`,
-        Observacao: 'Arquivo gerado automaticamente pelo Vision.',
-        DataCompetencia: zenCompetencia
+        Titulo: `Lançamentos Eventos Variáveis`,
+        Observacao: `Variáveis da Folha - ${monthReference} (Gerado pelo Vision)`,
+        DataCompetencia: zenCompetencia,
+        AtributosAdicionais: {
+          TipoDocumento: 'Lançamentos Eventos Variáveis'
+        }
       });
 
       if (!docResult.success || !docResult.protocol) {
