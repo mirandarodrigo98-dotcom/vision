@@ -154,16 +154,18 @@ export async function sendDocumentToZen(payload: {
     const config = await getQuestorZenConfig();
     if (!config) throw new Error('Configuração do Questor Zen não encontrada');
 
-    // Se o tipo for específico de folha, roteia para o FPA
-    const isFpa = payload.AtributosAdicionais?.TipoDocumento === 'Lançamentos Eventos Variáveis' || 
-                  payload.AtributosAdicionais?.isFpa === 'true';
+    const url = buildUrl(config, `/documentos`);
     
-    const endpoint = isFpa ? '/documentosfpa' : '/documentos';
-    const url = buildUrl(config, endpoint);
-    
-    // Removemos a flag isFpa se ela existir para não poluir os atributos do Questor
+    // Para Lançamentos Eventos Variáveis caírem corretamente no Q-Net
+    // Precisamos enviar para /documentos com atributos específicos
     const attrs = { ...payload.AtributosAdicionais };
     if (attrs.isFpa) delete attrs.isFpa;
+    
+    // Se for Lançamentos, passamos como Tipo e TipoDocumento para garantir
+    if (payload.Titulo === 'Lançamentos Eventos Variáveis' || attrs.TipoDocumento === 'Lançamentos Eventos Variáveis') {
+      attrs.Tipo = 'Lançamentos Eventos Variáveis';
+      attrs.Assunto = 'Lançamentos Eventos Variáveis';
+    }
     
     const docPayload = {
       CodigoCategoria: payload.CodigoCategoria,
