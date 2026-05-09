@@ -154,7 +154,16 @@ export async function sendDocumentToZen(payload: {
     const config = await getQuestorZenConfig();
     if (!config) throw new Error('Configuração do Questor Zen não encontrada');
 
-    const url = buildUrl(config, `/documentos`);
+    // Se o tipo for específico de folha, roteia para o FPA
+    const isFpa = payload.AtributosAdicionais?.TipoDocumento === 'Lançamentos Eventos Variáveis' || 
+                  payload.AtributosAdicionais?.isFpa === 'true';
+    
+    const endpoint = isFpa ? '/documentosfpa' : '/documentos';
+    const url = buildUrl(config, endpoint);
+    
+    // Removemos a flag isFpa se ela existir para não poluir os atributos do Questor
+    const attrs = { ...payload.AtributosAdicionais };
+    if (attrs.isFpa) delete attrs.isFpa;
     
     const docPayload = {
       CodigoCategoria: payload.CodigoCategoria,
@@ -164,7 +173,7 @@ export async function sendDocumentToZen(payload: {
       Observacao: payload.Observacao || '',
       Atributo: {
         DataCompetencia: payload.DataCompetencia,
-        ...payload.AtributosAdicionais
+        ...attrs
       }
     };
 
