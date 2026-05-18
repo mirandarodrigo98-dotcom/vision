@@ -28,6 +28,7 @@ interface PayrollVariablesFormProps {
 
 export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFormProps) {
   const router = useRouter();
+  const listPath = isAdmin ? '/admin/payroll-variables' : '/app/payroll-variables';
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -129,6 +130,10 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
     setStep(step - 1);
   };
 
+  const handleCancel = () => {
+    router.push(listPath);
+  };
+
   const handleSave = async (isDraft: boolean) => {
     setSubmitting(true);
     
@@ -144,11 +149,7 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
       toast.error(result.error);
     } else {
       toast.success(result.message);
-      if (isAdmin) {
-        router.push('/admin/payroll-variables');
-      } else {
-        router.push('/app/payroll-variables');
-      }
+      router.push(listPath);
     }
     setSubmitting(false);
   };
@@ -222,7 +223,10 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
               </TableBody>
             </Table>
           </div>
-          <div className="bg-slate-50 p-4 border-t flex justify-end">
+          <div className="bg-slate-50 p-4 border-t flex justify-between">
+            <Button onClick={handleCancel} variant="outline">
+              Cancelar
+            </Button>
             <Button onClick={handleNext} className="gap-2 bg-[#5cb85c] hover:bg-[#4cae4c] text-white">
               Próximo Passo
               <ArrowRightIcon className="h-4 w-4" />
@@ -290,9 +294,14 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
             </div>
           </div>
           <div className="bg-slate-50 p-4 border-t flex justify-between">
-            <Button onClick={handlePrev} variant="outline" className="gap-2">
-              <ArrowLeftIcon className="h-4 w-4" /> Voltar
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleCancel} variant="outline">
+                Cancelar
+              </Button>
+              <Button onClick={handlePrev} variant="outline" className="gap-2">
+                <ArrowLeftIcon className="h-4 w-4" /> Voltar
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button onClick={() => handleSave(true)} variant="outline" disabled={submitting} className="gap-2">
                 <SaveIcon className="h-4 w-4" /> Salvar Rascunho
@@ -352,9 +361,14 @@ export function PayrollVariablesForm({ companyId, isAdmin }: PayrollVariablesFor
             </div>
           </div>
           <div className="bg-slate-50 p-4 border-t flex justify-between">
-            <Button onClick={handlePrev} variant="outline" className="gap-2">
-              <ArrowLeftIcon className="h-4 w-4" /> Voltar
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleCancel} variant="outline">
+                Cancelar
+              </Button>
+              <Button onClick={handlePrev} variant="outline" className="gap-2">
+                <ArrowLeftIcon className="h-4 w-4" /> Voltar
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button 
                 onClick={() => handleSave(false)} 

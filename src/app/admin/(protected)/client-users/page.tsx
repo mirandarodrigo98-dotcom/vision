@@ -8,6 +8,29 @@ interface UsersPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+type ClientUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  cell_phone?: string;
+  is_active: number;
+  company_ids: string | null;
+  company_names: string | null;
+  notification_email?: number;
+  notification_whatsapp?: number;
+  carne_leao_access?: number;
+  questor_zen_usuario?: string;
+  questor_zen_senha?: string;
+  questor_zen_token?: string;
+};
+
+type ClientCompanyOption = {
+  id: string;
+  nome: string;
+  razao_social?: string;
+};
+
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const session = await getSession();
   const resolvedSearchParams = await searchParams;
@@ -23,6 +46,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   let query = `
     SELECT u.id, u.name, u.email, u.phone, u.cell_phone, u.is_active,
            u.notification_email, u.notification_whatsapp, u.carne_leao_access,
+           u.questor_zen_usuario, u.questor_zen_senha, u.questor_zen_token,
            STRING_AGG(c.id::text, ',') as company_ids,
            STRING_AGG(c.nome, ', ') as company_names
     FROM users u
@@ -31,7 +55,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     WHERE u.role = 'client_user'
   `;
 
-  const params: any[] = [];
+  const params: string[] = [];
 
   if (session && session.role === 'operator') {
     query += ` AND NOT EXISTS (
@@ -51,10 +75,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   query += ` GROUP BY u.id ORDER BY u.${safeSort} ${safeOrder}`;
 
-  const users = (await db.query(query, [...params])).rows as any[];
+  const users = (await db.query(query, [...params])).rows as ClientUserRow[];
 
   let companiesQuery = "SELECT id, nome, razao_social FROM client_companies WHERE is_active = 1";
-  const companiesParams: any[] = [];
+  const companiesParams: string[] = [];
 
   if (session && session.role === 'operator') {
       companiesQuery += ` AND (id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
@@ -63,7 +87,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
   companiesQuery += " ORDER BY COALESCE(NULLIF(nome, ''), razao_social)";
 
-  const companies = (await db.query(companiesQuery, [...companiesParams])).rows as any[];
+  const companies = (await db.query(companiesQuery, [...companiesParams])).rows as ClientCompanyOption[];
   
   return (
     <div className="space-y-6">

@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Eye, EyeOff } from 'lucide-react';
 
 const COLORS: Record<string, string> = {
   'Não Iniciado': '#64748b',
@@ -22,6 +25,7 @@ interface IRDashboardProps {
 }
 
 export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
+  const [showCharts, setShowCharts] = useState(false);
   const total = stats.reduce((sum, item) => sum + item.value, 0);
 
   const donutReceipts = receiptsStats || [];
@@ -42,6 +46,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
 
   // Custom tooltip to show ONLY the numeric value without text, placed in the top corner to prevent overlapping
   const CustomTooltip = ({ active, payload }: any) => {
+    if (!showCharts) return null;
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-800 text-white px-3 py-1.5 rounded-md text-sm font-bold shadow-md">
@@ -52,14 +57,37 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
     return null;
   };
 
+  const maskedValue = '••••';
+  const renderMaskedOverlay = (message: string) => (
+    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-background/90 backdrop-blur-sm">
+      <div className="text-center">
+        <p className="text-sm font-medium text-foreground">Gráfico oculto</p>
+        <p className="text-xs text-muted-foreground">{message}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setShowCharts(prev => !prev)}
+        >
+          {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showCharts ? 'Ocultar gráficos' : 'Mostrar gráficos'}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* 1. Status das Declarações */}
       <Card className="w-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle>Status das Declarações</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col h-[400px]">
+        <CardContent className="relative flex-1 flex flex-col h-[400px]">
           {total === 0 ? (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               Nenhuma declaração encontrada
@@ -93,7 +121,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 {/* Central value without negative margins, naturally centered over the donut hole */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-slate-700 leading-none">{total}</span>
+                    <span className="text-3xl font-bold text-slate-700 leading-none">{showCharts ? total : maskedValue}</span>
                     <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-widest mt-1">
                       Declarações
                     </span>
@@ -105,12 +133,13 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 {stats.map(entry => (
                   <div key={entry.name} className="flex items-center gap-1.5 text-xs">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[entry.name] || '#64748b' }}></div>
-                    <span className="text-slate-600 font-medium">{entry.name}</span>
+                    <span className="text-slate-600 font-medium">{showCharts ? entry.name : maskedValue}</span>
                   </div>
                 ))}
               </div>
             </>
           )}
+          {!showCharts && total > 0 && renderMaskedOverlay('Clique no olhinho para exibir os valores.')}
         </CardContent>
       </Card>
 
@@ -119,7 +148,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle>Recebidas vs Não Recebidas</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col h-[400px]">
+        <CardContent className="relative flex-1 flex flex-col h-[400px]">
           {(receiptsStats && receiptsStats.length > 0) ? (
             <>
               <div className="flex-1 relative min-h-[250px]">
@@ -150,7 +179,9 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center justify-center">
                     <span className="text-3xl font-bold text-slate-700 leading-none">
-                      {(receiptsStats.find(r => r.name === 'Recebidas')?.value || 0)}/{(receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0) + (receiptsStats.find(r => r.name === 'Recebidas')?.value || 0)}
+                      {showCharts
+                        ? `${receiptsStats.find(r => r.name === 'Recebidas')?.value || 0}/${(receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0) + (receiptsStats.find(r => r.name === 'Recebidas')?.value || 0)}`
+                        : maskedValue}
                     </span>
                     <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-widest mt-1">
                       Recebimentos
@@ -165,6 +196,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
               Sem dados de recebimento
             </div>
           )}
+          {!showCharts && receiptsStats && receiptsStats.length > 0 && renderMaskedOverlay('Clique no olhinho para exibir os valores.')}
         </CardContent>
       </Card>
 
@@ -173,7 +205,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle>Detalhamento Financeiro</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col h-[400px] justify-center">
+        <CardContent className="relative flex-1 flex flex-col h-[400px] justify-center">
           {(receiptsStats && receiptsStats.length > 0) ? (
             <div className="flex flex-col gap-6">
               <div className="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
@@ -183,10 +215,12 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-emerald-800">
-                    {receiptsStats.find(r => r.name === 'Recebidas')?.value || 0} decl.
+                    {showCharts ? `${receiptsStats.find(r => r.name === 'Recebidas')?.value || 0} decl.` : maskedValue}
                   </div>
                   <div className="text-lg font-bold text-emerald-600">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0)}
+                    {showCharts
+                      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0)
+                      : maskedValue}
                   </div>
                 </div>
               </div>
@@ -198,10 +232,12 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-red-800">
-                    {receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0} decl.
+                    {showCharts ? `${receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0} decl.` : maskedValue}
                   </div>
                   <div className="text-lg font-bold text-red-600">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)}
+                    {showCharts
+                      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)
+                      : maskedValue}
                   </div>
                 </div>
               </div>
@@ -213,13 +249,15 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-slate-700">
-                    {receiptsTotal || 0} decl.
+                    {showCharts ? `${receiptsTotal || 0} decl.` : maskedValue}
                   </div>
                   <div className="text-xl font-black text-slate-800">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      (Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0) + 
-                      (Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)
-                    )}
+                    {showCharts
+                      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          (Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0) +
+                          (Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)
+                        )
+                      : maskedValue}
                   </div>
                 </div>
               </div>
@@ -229,8 +267,10 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
               Sem dados de recebimento
             </div>
           )}
+          {!showCharts && receiptsStats && receiptsStats.length > 0 && renderMaskedOverlay('Clique no olhinho para exibir os valores.')}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

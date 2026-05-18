@@ -1,6 +1,7 @@
 'use client';
 
-import { IRDeclaration } from '@/app/actions/imposto-renda';
+import { useEffect, useMemo, useState } from 'react';
+import { getIRDeclarations, IRDeclaration } from '@/app/actions/imposto-renda';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -9,7 +10,6 @@ import { EyeIcon } from '@heroicons/react/24/outline';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
 import { ChevronDownIcon, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,11 @@ interface IRGridProps {
 }
 
 export function IRGrid({ declarations }: IRGridProps) {
-  const years = Array.from(new Set(declarations.map(d => d.year))).sort((a, b) => b - a);
+  const [currentDeclarations, setCurrentDeclarations] = useState<IRDeclaration[]>(declarations);
+  const years = useMemo(
+    () => Array.from(new Set(currentDeclarations.map(d => d.year))).sort((a, b) => Number(b) - Number(a)),
+    [currentDeclarations]
+  );
   
   // Filtros (Inputs)
   const [nameFilter, setNameFilter] = useState('');
@@ -88,20 +92,55 @@ export function IRGrid({ declarations }: IRGridProps) {
   // Limite de registros e paginação
   const [pageSize, setPageSize] = useState<string>('50');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [activeYear, setActiveYear] = useState<string>(years[0]?.toString() || '');
+  const [filterExecution, setFilterExecution] = useState<number>(0);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
 
-  const handleFilter = () => {
+  useEffect(() => {
+    setCurrentDeclarations(declarations);
+  }, [declarations]);
+
+  useEffect(() => {
+    if (!years.length) {
+      setActiveYear('');
+      return;
+    }
+
+    if (!years.some(year => String(year) === activeYear)) {
+      setActiveYear(String(years[0]));
+      setCurrentPage(1);
+    }
+  }, [years, activeYear]);
+
+  const applyCurrentFilters = () => {
     setAppliedFilters({
-      name: nameFilter,
-      cpf: cpfFilter,
-      priority: priorityFilter,
-      type: typeFilter,
-      status: statusFilter,
-      received: receivedFilter
+      name: nameFilter.trim(),
+      cpf: cpfFilter.trim(),
+      priority: [...priorityFilter],
+      type: [...typeFilter],
+      status: [...statusFilter],
+      received: [...receivedFilter]
     });
     setCurrentPage(1);
+    setFilterExecution(prev => prev + 1);
   };
 
-  const handleClearFilters = () => {
+  const refreshDeclarations = async () => {
+    setIsRefreshingData(true);
+    try {
+      const latestDeclarations = await getIRDeclarations();
+      setCurrentDeclarations(latestDeclarations);
+    } finally {
+      setIsRefreshingData(false);
+    }
+  };
+
+  const handleFilter = async () => {
+    await refreshDeclarations();
+    applyCurrentFilters();
+  };
+
+  const handleClearFilters = async () => {
     setNameFilter('');
     setCpfFilter('');
     setPriorityFilter([]);
@@ -117,11 +156,13 @@ export function IRGrid({ declarations }: IRGridProps) {
       received: []
     });
     setCurrentPage(1);
+    setFilterExecution(prev => prev + 1);
+    await refreshDeclarations();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleFilter();
+      await handleFilter();
     }
   };
 
@@ -198,6 +239,81 @@ export function IRGrid({ declarations }: IRGridProps) {
     });
   };
 
+  const filteredDataByYear = useMemo(() => {
+    return years.reduce<Record<string, IRDeclaration[]>>((acc, year) => {
+      const filteredData = sortData(
+        currentDeclarations
+          .filter(d => String(d.year) === String(year))
+          .filter(d => appliedFilters.name ? d.name.toLowerCase().includes(appliedFilters.name.toLowerCase()) : true)
+          .filter(d => {
+            const cpf = d.cpf || '';
+            return appliedFilters.cpf ? cpf.replace(/\D/g, '').includes(appliedFilters.cpf.replace(/\D/g, '')) : true;
+          })
+          .filter(d => appliedFilters.priority.length === 0 ? true : appliedFilters.priority.includes(d.priority || 'Média'))
+          .filter(d => appliedFilters.type.length === 0 ? true : appliedFilters.type.includes(d.type))
+          .filter(d => appliedFilters.status.length === 0 ? true : appliedFilters.status.includes(d.status))
+          .filter(d => {
+            if (appliedFilters.received.length === 0) return true;
+            const r = d.is_received ? 'Sim' : 'Não';
+            return appliedFilters.received.includes(r);
+          })
+      );
+
+      acc[String(year)] = filteredData;
+      return acc;
+    }, {});
+  }, [years, currentDeclarations, appliedFilters, sortConfig]);
+
+  const currentYearData = filteredDataByYear[activeYear] || [];
+  const totalItems = currentYearData.length;
+  const size = parseInt(pageSize, 10);
+  const totalPages = Math.ceil(totalItems / size);
+  const paginatedData = currentYearData.slice((currentPage - 1) * size, currentPage * size);
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== '...') {
+        pages.push('...');
+      }
+    }
+
+    return (
+      <div className="flex items-center justify-end space-x-1 mt-4">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+          {'<<'}
+        </Button>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+          {'<'}
+        </Button>
+        {pages.map((p, i) => (
+          p === '...' ? (
+            <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">...</span>
+          ) : (
+            <Button
+              key={`page-${p}-${i}`}
+              variant={currentPage === p ? 'default' : 'outline'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(p as number)}
+            >
+              {p}
+            </Button>
+          )
+        ))}
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+          {'>'}
+        </Button>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+          {'>>'}
+        </Button>
+      </div>
+    );
+  };
+
   const renderTable = (decls: IRDeclaration[]) => (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-center">
@@ -259,7 +375,11 @@ export function IRGrid({ declarations }: IRGridProps) {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/admin/pessoa-fisica/imposto-renda/${decl.id}`}>
+                  <Link
+                    href={`/admin/pessoa-fisica/imposto-renda/${decl.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <Button variant="ghost" size="icon" title="Detalhes">
                       <EyeIcon className="h-4 w-4" />
                     </Button>
@@ -279,10 +399,17 @@ export function IRGrid({ declarations }: IRGridProps) {
         <CardTitle>Declarações</CardTitle>
       </CardHeader>
       <CardContent>
-        {declarations.length === 0 ? (
+        {currentDeclarations.length === 0 ? (
           renderTable([])
         ) : (
-          <Tabs defaultValue={years[0].toString()} className="w-full" onValueChange={() => setCurrentPage(1)}>
+          <Tabs
+            value={activeYear}
+            className="w-full"
+            onValueChange={(value) => {
+              setActiveYear(value);
+              setCurrentPage(1);
+            }}
+          >
             <TabsList className="mb-4">
               {years.map(year => (
                 <TabsTrigger key={year} value={year.toString()}>
@@ -368,87 +495,23 @@ export function IRGrid({ declarations }: IRGridProps) {
                 </Select>
               </div>
               <div className="lg:col-span-7 flex justify-end gap-2 mt-2">
-                <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                <Button variant="outline" size="sm" onClick={() => { void handleClearFilters(); }} disabled={isRefreshingData}>
                   Limpar Filtros
                 </Button>
-                <Button size="sm" onClick={handleFilter}>
-                  Filtrar
+                <Button size="sm" onClick={() => { void handleFilter(); }} disabled={isRefreshingData}>
+                  {isRefreshingData ? 'Filtrando...' : 'Filtrar'}
                 </Button>
               </div>
             </div>
 
-            {years.map(year => {
-              const filteredData = sortData(
-                declarations
-                  .filter(d => d.year === year)
-                  .filter(d => appliedFilters.name ? d.name.toLowerCase().includes(appliedFilters.name.toLowerCase()) : true)
-                  .filter(d => appliedFilters.cpf ? d.cpf.replace(/\D/g, '').includes(appliedFilters.cpf.replace(/\D/g, '')) : true)
-                  .filter(d => appliedFilters.priority.length === 0 ? true : appliedFilters.priority.includes(d.priority || 'Média'))
-                  .filter(d => appliedFilters.type.length === 0 ? true : appliedFilters.type.includes(d.type))
-                  .filter(d => appliedFilters.status.length === 0 ? true : appliedFilters.status.includes(d.status))
-                  .filter(d => {
-                    if (appliedFilters.received.length === 0) return true;
-                    const r = d.is_received ? 'Sim' : 'Não';
-                    return appliedFilters.received.includes(r);
-                  })
-              );
-
-              const totalItems = filteredData.length;
-              const size = parseInt(pageSize, 10);
-              const totalPages = Math.ceil(totalItems / size);
-              const paginatedData = filteredData.slice((currentPage - 1) * size, currentPage * size);
-
-              const renderPagination = () => {
-                if (totalPages <= 1) return null;
-                const pages = [];
-                for (let i = 1; i <= totalPages; i++) {
-                  if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
-                    pages.push(i);
-                  } else if (pages[pages.length - 1] !== '...') {
-                    pages.push('...');
-                  }
-                }
-
-                return (
-                  <div className="flex items-center justify-end space-x-1 mt-4">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                      {'<<'}
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                      {'<'}
-                    </Button>
-                    {pages.map((p, i) => (
-                      p === '...' ? (
-                        <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">...</span>
-                      ) : (
-                        <Button
-                          key={`page-${p}-${i}`}
-                          variant={currentPage === p ? 'default' : 'outline'}
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setCurrentPage(p as number)}
-                        >
-                          {p}
-                        </Button>
-                      )
-                    ))}
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                      {'>'}
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                      {'>>'}
-                    </Button>
-                  </div>
-                );
-              };
-
-              return (
-                <TabsContent key={year} value={year.toString()}>
-                  {renderTable(paginatedData)}
-                  {renderPagination()}
-                </TabsContent>
-              );
-            })}
+            {years.map(year => (
+              <TabsContent key={year} value={year.toString()}>
+                <div key={`${year}-${filterExecution}-${currentPage}-${pageSize}`}>
+                  {renderTable(year.toString() === activeYear ? paginatedData : filteredDataByYear[year.toString()] || [])}
+                  {year.toString() === activeYear && renderPagination()}
+                </div>
+              </TabsContent>
+            ))}
           </Tabs>
         )}
       </CardContent>

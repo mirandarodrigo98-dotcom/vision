@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { toggleUserStatus, sendPassword, generateTempPassword } from '@/app/actions/client-users';
 import { toast } from 'sonner';
 import { Pencil, Power, PowerOff, Plus, Key, Loader2, Clock } from 'lucide-react';
@@ -23,6 +22,10 @@ interface User {
   company_names: string | null; // Comma separated Names
   notification_email?: number;
   notification_whatsapp?: number;
+  carne_leao_access?: number;
+  questor_zen_usuario?: string;
+  questor_zen_senha?: string;
+  questor_zen_token?: string;
 }
 
 interface Company {
@@ -111,10 +114,6 @@ export function UserList({ users, companies }: { users: User[], companies: Compa
           </TableHeader>
           <TableBody>
             {users.map((user) => {
-                const companyList = user.company_names ? user.company_names.split(', ') : [];
-                const displayCompanies = companyList.slice(0, 2);
-                const moreCount = companyList.length - 2;
-
                 return (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>

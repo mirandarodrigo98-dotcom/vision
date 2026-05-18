@@ -13,7 +13,40 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+
+function formatMonthReference(value?: string | null) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '-';
+
+  const match = raw.match(/^(\d{4})-(\d{2})$/);
+  if (match) {
+    return `${match[2]}/${match[1]}`;
+  }
+
+  return raw;
+}
+
+function formatSentAt(value?: string | Date | null) {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return format(date, 'dd/MM/yyyy HH:mm:ss');
+}
+
+function formatZenProtocol(value?: string | null) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '-';
+
+  const idMatch = raw.match(/[a-f0-9]{24}/i);
+  if (idMatch) {
+    return idMatch[0];
+  }
+
+  const lastSegment = raw.split(/[/?#\s]+/).filter(Boolean).pop();
+  return lastSegment || raw;
+}
 
 export default async function PayrollVariablesPage() {
   const session = await getSession();
@@ -67,12 +100,12 @@ export default async function PayrollVariablesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              {isAdmin && <TableHead>Empresa</TableHead>}
-              <TableHead>Mês Ref.</TableHead>
-              <TableHead>Data de Envio</TableHead>
-              <TableHead>Usuário</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Protocolo Zen</TableHead>
+              {isAdmin && <TableHead className="text-center">Empresa</TableHead>}
+              <TableHead className="text-center">Mês Ref.</TableHead>
+              <TableHead className="text-center">Data de Envio</TableHead>
+              <TableHead className="text-center">Usuário</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-center">Protocolo Zen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -85,14 +118,14 @@ export default async function PayrollVariablesPage() {
             ) : (
               variables.map((item) => (
                 <TableRow key={item.id}>
-                  {isAdmin && <TableCell className="font-medium">{item.company_name}</TableCell>}
-                  <TableCell>{item.month_reference}</TableCell>
-                  <TableCell>
-                    {item.created_at ? format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
+                  {isAdmin && <TableCell className="text-center font-medium">{item.company_name}</TableCell>}
+                  <TableCell className="text-center">{formatMonthReference(item.month_reference)}</TableCell>
+                  <TableCell className="text-center">
+                    {formatSentAt(item.created_at)}
                   </TableCell>
-                  <TableCell>{item.created_by_name}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  <TableCell className="text-center">{item.created_by_name}</TableCell>
+                  <TableCell className="text-center">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                       item.status === 'sent' ? 'bg-green-100 text-green-800' :
                       item.status === 'error' ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
@@ -100,8 +133,8 @@ export default async function PayrollVariablesPage() {
                       {item.status === 'sent' ? 'Enviado' : item.status === 'error' ? 'Erro' : 'Rascunho'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {item.zen_protocol || '-'}
+                  <TableCell className="text-center text-muted-foreground">
+                    {formatZenProtocol(item.zen_protocol)}
                   </TableCell>
                 </TableRow>
               ))

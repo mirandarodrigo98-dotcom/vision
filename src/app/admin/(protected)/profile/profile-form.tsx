@@ -17,6 +17,10 @@ interface ProfileFormProps {
         email: string;
         phone: string | null;
         avatar_path: string | null;
+        role: string;
+        questor_zen_usuario?: string | null;
+        questor_zen_senha?: string | null;
+        questor_zen_token?: string | null;
     };
 }
 
@@ -38,7 +42,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                    passwordInputs.forEach((input) => (input as HTMLInputElement).value = '');
                 }
             }
-        } catch (error) {
+        } catch {
             toast.error('Ocorreu um erro inesperado.');
         } finally {
             setIsPending(false);
@@ -112,6 +116,56 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                         defaultValue={user.phone || ''} 
                     />
                 </div>
+
+                {user.role === 'client_user' && (
+                    <div className="space-y-4 md:col-span-2 border-t pt-4">
+                        <div>
+                            <h2 className="text-lg font-semibold">Questor Zen</h2>
+                            <p className="text-sm text-gray-500">
+                                Estes dados ficam sincronizados com o cadastro do usuário cliente no painel administrativo.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="questor_zen_usuario">Usuário</Label>
+                                <Input
+                                    id="questor_zen_usuario"
+                                    name="questor_zen_usuario"
+                                    defaultValue={user.questor_zen_usuario || ''}
+                                    placeholder="E-mail do cliente no Questor Zen"
+                                    autoComplete="off"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="questor_zen_senha">Senha</Label>
+                                <Input
+                                    id="questor_zen_senha"
+                                    name="questor_zen_senha"
+                                    type="password"
+                                    defaultValue={user.questor_zen_senha || ''}
+                                    placeholder="Senha do cliente no Questor Zen"
+                                    autoComplete="new-password"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="questor_zen_token">Token API Questor Zen</Label>
+                            <Input 
+                                id="questor_zen_token" 
+                                name="questor_zen_token" 
+                                defaultValue={user.questor_zen_token || ''} 
+                                placeholder="Cole aqui o Token gerado no portal Questor Zen"
+                                autoComplete="off"
+                            />
+                            <p className="text-xs text-gray-500">
+                                Necessário para integrações e para o fluxo autenticado de lançamentos no Questor Zen.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="border-t pt-6 mt-6">

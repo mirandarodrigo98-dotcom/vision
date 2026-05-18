@@ -1,0 +1,3 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS questor_zen_usuario TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS questor_zen_senha TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS questor_zen_token TEXT;

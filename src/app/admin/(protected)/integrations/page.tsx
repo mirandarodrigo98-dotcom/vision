@@ -70,6 +70,18 @@ export default async function IntegrationsPage() {
                     QUESTOR (SYN)
                 </Button>
              )}
+
+             <Link href="/admin/integrations/integra-contador" className="w-full">
+                <Button className="w-full">
+                    INTEGRA CONTADOR
+                </Button>
+            </Link>
+
+             <Link href="/admin/integrations/consulta-cpf" className="w-full">
+                <Button className="w-full">
+                    CONSULTA CPF
+                </Button>
+            </Link>
           </CardContent>
         </Card>
 

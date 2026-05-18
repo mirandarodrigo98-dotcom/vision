@@ -186,8 +186,9 @@ export async function getIRStats() {
 
 export async function getIRReceiptStats() {
   const declarations = await getIRDeclarations();
+  const activeDeclarations = declarations.filter((d) => d.status !== 'Cancelada');
 
-  const normalized = declarations.map((d) => {
+  const normalized = activeDeclarations.map((d) => {
     const serviceValue = Number(d.service_value || 0);
     const receivedRaw = Number(d.receipt_value || 0);
     const receivedValue = serviceValue > 0 ? Math.min(receivedRaw, serviceValue) : receivedRaw;

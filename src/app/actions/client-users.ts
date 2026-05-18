@@ -4,7 +4,19 @@ import db from '@/lib/db';
 import { getSession, hashPassword } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email/resend';
+import { logAudit } from '@/lib/audit';
+import { buildQuestorZenCredentialChanges, normalizeQuestorZenSnapshot } from '@/lib/questor-zen-audit';
 import { v4 as uuidv4 } from 'uuid';
+
+type ClientCompanyRow = {
+  id: string;
+  razao_social: string;
+  cnpj: string;
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 async function checkOperatorAccessToUser(operatorId: string, targetUserId: string) {
     // Check if target user has any company that is restricted for the operator
@@ -29,7 +41,7 @@ export async function getUserCompanies() {
         JOIN user_companies uc ON c.id = uc.company_id
         WHERE uc.user_id = $1 AND c.is_active = 1
         ORDER BY c.razao_social
-      `, [session.user_id])).rows as any[];
+      `, [session.user_id])).rows as ClientCompanyRow[];
       return companies;
   } else if (session.role === 'operator') {
       const companies = (await db.query(`
@@ -38,7 +50,7 @@ export async function getUserCompanies() {
         WHERE c.is_active = 1 
         AND (c.id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))
         ORDER BY c.razao_social
-      `, [session.user_id])).rows as any[];
+      `, [session.user_id])).rows as ClientCompanyRow[];
       return companies;
   } else if (session.role === 'admin') {
       const companies = (await db.query(`
@@ -46,7 +58,7 @@ export async function getUserCompanies() {
         FROM client_companies c
         WHERE c.is_active = 1
         ORDER BY c.razao_social
-      `, [])).rows as any[];
+      `, [])).rows as ClientCompanyRow[];
       return companies;
   }
   return [];
@@ -124,6 +136,10 @@ interface SaveClientUserPayload {
     cell_phone?: string;
     notification_email: boolean;
     notification_whatsapp: boolean;
+    carne_leao_access: boolean;
+    questor_zen_usuario?: string;
+    questor_zen_senha?: string;
+    questor_zen_token?: string;
     company_ids: string[];
     permissions: string[];
 }
@@ -149,7 +165,20 @@ export async function saveClientUser(data: SaveClientUserPayload) {
     return { error: 'Unauthorized' };
   }
 
-  const { id, name, email, cell_phone, notification_email, notification_whatsapp, carne_leao_access, company_ids, permissions } = data;
+  const {
+    id,
+    name,
+    email,
+    cell_phone,
+    notification_email,
+    notification_whatsapp,
+    carne_leao_access,
+    questor_zen_usuario,
+    questor_zen_senha,
+    questor_zen_token,
+    company_ids,
+    permissions
+  } = data;
 
   if (!name || !email || company_ids.length === 0) {
     return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
@@ -181,6 +210,24 @@ export async function saveClientUser(data: SaveClientUserPayload) {
   }
 
   try {
+    const nextQuestorZenData = normalizeQuestorZenSnapshot({
+      questor_zen_usuario,
+      questor_zen_senha,
+      questor_zen_token,
+    });
+
+    let previousQuestorZenData = normalizeQuestorZenSnapshot({});
+    if (id) {
+      const existingUser = (await db.query(`
+        SELECT questor_zen_usuario, questor_zen_senha, questor_zen_token
+        FROM users
+        WHERE id = $1
+        LIMIT 1
+      `, [id])).rows[0] as { questor_zen_usuario?: string | null; questor_zen_senha?: string | null; questor_zen_token?: string | null } | undefined;
+
+      previousQuestorZenData = normalizeQuestorZenSnapshot(existingUser || {});
+    }
+
     const transaction = db.transaction(async () => {
         let userId = id;
 
@@ -188,9 +235,21 @@ export async function saveClientUser(data: SaveClientUserPayload) {
             // Update
             await db.query(`
                 UPDATE users 
-                SET name = $1, email = $2, cell_phone = $3, notification_email = $4, notification_whatsapp = $5, carne_leao_access = $6, updated_at = NOW()
-                WHERE id = $7
-            `, [name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, carne_leao_access ? 1 : 0, userId]);
+                SET name = $1, email = $2, cell_phone = $3, notification_email = $4, notification_whatsapp = $5, carne_leao_access = $6,
+                    questor_zen_usuario = $7, questor_zen_senha = $8, questor_zen_token = $9, updated_at = NOW()
+                WHERE id = $10
+            `, [
+              name,
+              email,
+              cell_phone || null,
+              notification_email ? 1 : 0,
+              notification_whatsapp ? 1 : 0,
+              carne_leao_access ? 1 : 0,
+              questor_zen_usuario?.trim() || null,
+              questor_zen_senha || null,
+              questor_zen_token?.trim() || null,
+              userId
+            ]);
 
             // Clear existing relations
             await db.query(`DELETE FROM user_companies WHERE user_id = $1`, [userId]);
@@ -203,9 +262,24 @@ export async function saveClientUser(data: SaveClientUserPayload) {
             const hashedPassword = await hashPassword(tempPassword);
 
             await db.query(`
-                INSERT INTO users (id, name, email, cell_phone, notification_email, notification_whatsapp, carne_leao_access, role, is_active, password_hash, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, 'client_user', 1, $8, NOW())
-            `, [userId, name, email, cell_phone || null, notification_email ? 1 : 0, notification_whatsapp ? 1 : 0, carne_leao_access ? 1 : 0, hashedPassword]);
+                INSERT INTO users (
+                  id, name, email, cell_phone, notification_email, notification_whatsapp, carne_leao_access,
+                  questor_zen_usuario, questor_zen_senha, questor_zen_token, role, is_active, password_hash, created_at
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'client_user', 1, $11, NOW())
+            `, [
+              userId,
+              name,
+              email,
+              cell_phone || null,
+              notification_email ? 1 : 0,
+              notification_whatsapp ? 1 : 0,
+              carne_leao_access ? 1 : 0,
+              questor_zen_usuario?.trim() || null,
+              questor_zen_senha || null,
+              questor_zen_token?.trim() || null,
+              hashedPassword
+            ]);
 
             // Send welcome email
              await sendEmail({
@@ -250,15 +324,75 @@ export async function saveClientUser(data: SaveClientUserPayload) {
         for (const perm of permissions) {
             await db.query(`INSERT INTO user_permissions (user_id, permission_code) VALUES ($1, $2)`, [userId, perm]);
         }
+
+        return userId!;
     });
 
-    await transaction();
+    const savedUserId = await transaction();
+
+    const questorZenChanges = buildQuestorZenCredentialChanges(previousQuestorZenData, nextQuestorZenData);
+    if (questorZenChanges.length > 0) {
+      await logAudit({
+        action: id ? 'UPDATE_USER' : 'CREATE_USER',
+        actor_user_id: session.user_id,
+        actor_email: session.email,
+        role: session.role,
+        entity_type: 'user',
+        entity_id: savedUserId,
+        success: true,
+        metadata: {
+          scope: 'questor_zen_credentials',
+          source: 'client_user_admin',
+          target_email: email,
+          changes: questorZenChanges,
+        }
+      });
+    }
+
     revalidatePath('/admin/client-users');
     return { success: true };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
       console.error('Error saving client user:', error);
-      return { error: 'Erro ao salvar usuário: ' + error.message };
+      return { error: 'Erro ao salvar usuário: ' + getErrorMessage(error) };
+  }
+}
+
+export async function getClientUserQuestorZenHistory(userId: string) {
+  const session = await getSession();
+  if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
+    return { error: 'Unauthorized' };
+  }
+
+  if (session.role === 'operator') {
+    const hasAccess = await checkOperatorAccessToUser(session.user_id, userId);
+    if (!hasAccess) {
+      return { error: 'Você não tem permissão para visualizar este histórico.' };
+    }
+  }
+
+  try {
+    const logs = (await db.query(`
+      SELECT
+        al.id,
+        al.action,
+        al.timestamp AS created_at,
+        al.metadata,
+        u.name AS user_name,
+        al.actor_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.actor_user_id = u.id
+      WHERE al.entity_id = $1
+        AND al.entity_type = 'user'
+        AND al.action IN ('CREATE_USER', 'UPDATE_USER')
+        AND al.metadata ->> 'scope' = 'questor_zen_credentials'
+      ORDER BY al.timestamp DESC
+    `, [userId])).rows;
+
+    return { success: true, logs };
+  } catch (error) {
+    console.error('Error fetching Questor Zen history:', error);
+    return { error: 'Erro ao buscar histórico do Questor Zen.' };
   }
 }
 
@@ -279,7 +413,7 @@ export async function toggleUserStatus(userId: string, currentStatus: number) {
     await db.query(`UPDATE users SET is_active = $1 WHERE id = $2`, [currentStatus === 1 ? 0 : 1, userId]);
     revalidatePath('/admin/client-users');
     return { success: true };
-  } catch (e) {
+  } catch {
     return { error: 'Erro ao alterar status.' };
   }
 }
@@ -325,7 +459,7 @@ export async function sendPassword(userId: string) {
         });
 
         return { success: true };
-    } catch (e) {
+    } catch {
         return { error: 'Erro ao enviar senha.' };
     }
 }
@@ -350,7 +484,7 @@ export async function generateTempPassword(userId: string) {
         await db.query(`UPDATE users SET password_hash = $1, password_temporary = 1 WHERE id = $2`, [hashedPassword, userId]);
 
         return { success: true, password: tempPassword };
-    } catch (e) {
+    } catch {
         return { error: 'Erro ao gerar senha.' };
     }
 }

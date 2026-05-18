@@ -12,10 +12,21 @@ export default async function ProfilePage() {
     }
 
     const user = (await db.query(`
-        SELECT id, name, email, phone, avatar_path
+        SELECT id, name, email, phone, avatar_path, role,
+               questor_zen_usuario, questor_zen_senha, questor_zen_token
         FROM users 
         WHERE id = $1
-    `, [session.user_id])).rows[0] as { id: string, name: string, email: string, phone: string | null, avatar_path: string | null };
+    `, [session.user_id])).rows[0] as {
+        id: string,
+        name: string,
+        email: string,
+        phone: string | null,
+        avatar_path: string | null,
+        role: string,
+        questor_zen_usuario: string | null,
+        questor_zen_senha: string | null,
+        questor_zen_token: string | null
+    };
 
     if (!user) {
         // Fallback if user session exists but DB record not found

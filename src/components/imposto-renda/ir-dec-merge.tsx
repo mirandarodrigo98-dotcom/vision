@@ -7,12 +7,16 @@ import {
   buildHeaderEditsFromFile,
   buildInitialDrafts,
   generateMergedIRDec,
+  getBlockEditableText,
   getBlockText,
-  getLatestIRDecFile,
+  getLatestIRComparableFile,
+  getPreferredGenerationBaseFile,
   IR_DEC_BLOCK_DEFINITIONS,
   IRDecFileData,
   IRDecHeaderEdits,
+  mergeHeaderEdits,
   parseIRDecContent,
+  parseIRXmlContent,
 } from '@/lib/ir-dec';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +32,7 @@ import { toast } from 'sonner';
 
 type FileSource = 'arquivoA' | 'arquivoB';
 
-const ACCEPTED_DEC_EXTENSIONS = ['.dec'];
+const ACCEPTED_EXTENSIONS = ['.dec', '.xml'];
 
 const FILE_SOURCE_LABEL: Record<FileSource, string> = {
   arquivoA: 'Arquivo 1',
@@ -42,7 +46,7 @@ function formatCpf(value: string) {
 }
 
 function summarizeRecordCount(file: IRDecFileData, blockId: string) {
-  return file.blocks[blockId]?.records.length ?? 0;
+  return file.blocks[blockId]?.recordCount ?? 0;
 }
 
 function encodeLatin1(content: string) {
@@ -74,6 +78,49 @@ async function decodeDecFile(file: File) {
   return new TextDecoder('iso-8859-1').decode(buffer);
 }
 
+async function decodeXmlFile(file: File) {
+  const buffer = await file.arrayBuffer();
+  const decoders = ['utf-8', 'iso-8859-1', 'windows-1252'];
+
+  for (const encoding of decoders) {
+    try {
+      const decoded = new TextDecoder(encoding, { fatal: false }).decode(buffer);
+      if (decoded.includes('<classe') || decoded.includes('<?xml')) {
+        return decoded;
+      }
+    } catch {
+      // Try the next encoding.
+    }
+  }
+
+  return new TextDecoder('utf-8').decode(buffer);
+}
+
+function getFileExtension(fileName: string) {
+  const parts = fileName.toLowerCase().split('.');
+  return parts.length > 1 ? `.${parts.pop()}` : '';
+}
+
+async function parseImportedFile(file: File) {
+  const extension = getFileExtension(file.name);
+
+  if (extension === '.xml') {
+    const content = await decodeXmlFile(file);
+    return parseIRXmlContent(file.name, content);
+  }
+
+  const content = await decodeDecFile(file);
+  if (extension === '.dec' || content.startsWith('IRPF')) {
+    return parseIRDecContent(file.name, content);
+  }
+
+  if (content.includes('<classe') || content.includes('<?xml')) {
+    return parseIRXmlContent(file.name, content);
+  }
+
+  throw new Error(`O arquivo ${file.name} nao esta em um formato suportado.`);
+}
+
 export function IRDecMerge() {
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
@@ -92,14 +139,21 @@ export function IRDecMerge() {
     municipalityName: '',
     cep: '',
   });
+  const [suggestedHeaderEdits, setSuggestedHeaderEdits] = useState<IRDecHeaderEdits | null>(null);
+  const [baseHeaderEdits, setBaseHeaderEdits] = useState<IRDecHeaderEdits | null>(null);
   const [activeTab, setActiveTab] = useState('upload');
   const [loading, setLoading] = useState(false);
 
   const ready = Boolean(parsedFileA && parsedFileB);
 
-  const latestFile = useMemo(() => {
+  const latestComparableFile = useMemo(() => {
     if (!parsedFileA || !parsedFileB) return null;
-    return getLatestIRDecFile([parsedFileA, parsedFileB]);
+    return getLatestIRComparableFile([parsedFileA, parsedFileB]);
+  }, [parsedFileA, parsedFileB]);
+
+  const baseFile = useMemo(() => {
+    if (!parsedFileA || !parsedFileB) return null;
+    return getPreferredGenerationBaseFile([parsedFileA, parsedFileB]);
   }, [parsedFileA, parsedFileB]);
 
   const visibleBlocks = useMemo(() => {
@@ -111,8 +165,6 @@ export function IRDecMerge() {
       );
     });
   }, [parsedFileA, parsedFileB]);
-
-  const baseFile = baseSource === 'arquivoA' ? parsedFileA : parsedFileB;
 
   function resetImportedState() {
     setParsedFileA(null);
@@ -129,7 +181,81 @@ export function IRDecMerge() {
       municipalityName: '',
       cep: '',
     });
+    setSuggestedHeaderEdits(null);
+    setBaseHeaderEdits(null);
     setBaseSource('arquivoA');
+    setActiveTab('upload');
+  }
+
+  function getSelectedFile(source: FileSource) {
+    return source === 'arquivoA' ? parsedFileA : parsedFileB;
+  }
+
+  function getOppositeFile(source: FileSource) {
+    return source === 'arquivoA' ? parsedFileB : parsedFileA;
+  }
+
+  function getEffectiveDraftInfo(blockId: string) {
+    const selectedSource = blockSources[blockId] ?? 'arquivoA';
+    const selectedFile = getSelectedFile(selectedSource);
+    const oppositeSource: FileSource = selectedSource === 'arquivoA' ? 'arquivoB' : 'arquivoA';
+    const oppositeFile = getOppositeFile(selectedSource);
+
+    if (selectedFile) {
+      const selectedEditableText = getBlockEditableText(selectedFile, blockId);
+      if (selectedEditableText) {
+        return {
+          selectedSource,
+          effectiveSource: selectedSource,
+          effectiveFile: selectedFile,
+          usedFallback: false,
+          text: selectedEditableText,
+        };
+      }
+    }
+
+    if (oppositeFile) {
+      const oppositeEditableText = getBlockEditableText(oppositeFile, blockId);
+      if (oppositeEditableText) {
+        return {
+          selectedSource,
+          effectiveSource: oppositeSource,
+          effectiveFile: oppositeFile,
+          usedFallback: true,
+          text: oppositeEditableText,
+        };
+      }
+    }
+
+    return {
+      selectedSource,
+      effectiveSource: selectedSource,
+      effectiveFile: selectedFile,
+      usedFallback: false,
+      text: '',
+    };
+  }
+
+  function reapplyDraftSuggestion(blockId: string) {
+    const draftInfo = getEffectiveDraftInfo(blockId);
+    if (!draftInfo.text) {
+      toast.error('Nao existe texto .DEC disponivel para reaplicar neste bloco.');
+      return;
+    }
+
+    setBlockDrafts((previous) => ({
+      ...previous,
+      [blockId]: draftInfo.text,
+    }));
+
+    if (draftInfo.usedFallback) {
+      toast.info(
+        `Bloco restaurado com o texto DEC do ${FILE_SOURCE_LABEL[draftInfo.effectiveSource]}, pois o arquivo selecionado esta em XML.`
+      );
+      return;
+    }
+
+    toast.success(`Bloco restaurado com o texto do ${FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.`);
   }
 
   function handleFileSelection(source: FileSource, event: ChangeEvent<HTMLInputElement>) {
@@ -143,15 +269,15 @@ export function IRDecMerge() {
 
   async function handleImportFiles() {
     if (!fileA || !fileB) {
-      toast.error('Selecione os dois arquivos .DEC para continuar.');
+      toast.error('Selecione os dois arquivos para continuar.');
       return;
     }
 
     const validateFileName = (file: File) => {
       const loweredName = file.name.toLowerCase();
-      const hasValidExtension = ACCEPTED_DEC_EXTENSIONS.some((extension) => loweredName.endsWith(extension));
+      const hasValidExtension = ACCEPTED_EXTENSIONS.some((extension) => loweredName.endsWith(extension));
       if (!hasValidExtension) {
-        throw new Error(`O arquivo ${file.name} esta fora do padrao. Envie somente arquivos .DEC.`);
+        throw new Error(`O arquivo ${file.name} esta fora do padrao. Envie somente arquivos .DEC ou .XML.`);
       }
     };
 
@@ -161,31 +287,44 @@ export function IRDecMerge() {
       validateFileName(fileA);
       validateFileName(fileB);
 
-      const [contentA, contentB] = await Promise.all([decodeDecFile(fileA), decodeDecFile(fileB)]);
-      const parsedA = parseIRDecContent(fileA.name, contentA);
-      const parsedB = parseIRDecContent(fileB.name, contentB);
-      const latest = getLatestIRDecFile([parsedA, parsedB]);
-      const latestSource: FileSource = latest === parsedA ? 'arquivoA' : 'arquivoB';
-      const secondarySource: FileSource = latestSource === 'arquivoA' ? 'arquivoB' : 'arquivoA';
-      const sourceMap = buildDefaultSourceMap(
-        latest,
-        latestSource === 'arquivoA' ? parsedB : parsedA,
-        latestSource,
-        secondarySource
-      );
+      const [parsedA, parsedB] = await Promise.all([parseImportedFile(fileA), parseImportedFile(fileB)]);
+      const preferredBase = getPreferredGenerationBaseFile([parsedA, parsedB]);
+
+      if (!preferredBase) {
+        throw new Error('Envie pelo menos um arquivo .DEC, pois a geracao final ainda depende de um leiaute posicional.');
+      }
+
+      const latestComparable = getLatestIRComparableFile([parsedA, parsedB]);
+      const latestSource: FileSource = latestComparable === parsedA ? 'arquivoA' : 'arquivoB';
+      const generationBaseSource: FileSource = preferredBase === parsedA ? 'arquivoA' : 'arquivoB';
+      const secondarySource: FileSource = generationBaseSource === 'arquivoA' ? 'arquivoB' : 'arquivoA';
+      const secondaryFile = generationBaseSource === 'arquivoA' ? parsedB : parsedA;
+      const sourceMap = buildDefaultSourceMap(preferredBase, secondaryFile, generationBaseSource, secondarySource);
       const drafts = buildInitialDrafts(sourceMap, parsedA, parsedB);
+      const mergedHeaders = mergeHeaderEdits(
+        buildHeaderEditsFromFile(latestComparable),
+        buildHeaderEditsFromFile(preferredBase)
+      );
 
       setParsedFileA(parsedA);
       setParsedFileB(parsedB);
-      setBaseSource(latestSource);
+      setBaseSource(generationBaseSource);
       setBlockSources(sourceMap);
       setBlockDrafts(drafts);
-      setHeaderEdits(buildHeaderEditsFromFile(latest));
+      setHeaderEdits(mergedHeaders);
+      setSuggestedHeaderEdits(mergedHeaders);
+      setBaseHeaderEdits(buildHeaderEditsFromFile(preferredBase));
       setActiveTab('blocos');
 
-      toast.success('Arquivos importados com sucesso. Agora escolha os blocos para montar o novo .DEC.');
+      if (parsedA.sourceFormat === 'xml' || parsedB.sourceFormat === 'xml') {
+        toast.success(
+          `Arquivos importados com sucesso. O ${FILE_SOURCE_LABEL[latestSource]} em XML sera usado como comparativo por blocos.`
+        );
+      } else {
+        toast.success('Arquivos importados com sucesso. Agora escolha os blocos para montar o novo .DEC.');
+      }
     } catch (error: any) {
-      toast.error(error?.message || 'Nao foi possivel importar os arquivos .DEC.');
+      toast.error(error?.message || 'Nao foi possivel importar os arquivos informados.');
     } finally {
       setLoading(false);
     }
@@ -194,9 +333,24 @@ export function IRDecMerge() {
   function updateBlockSource(blockId: string, source: FileSource) {
     if (!parsedFileA || !parsedFileB) return;
 
-    const file = source === 'arquivoA' ? parsedFileA : parsedFileB;
     setBlockSources((previous) => ({ ...previous, [blockId]: source }));
-    setBlockDrafts((previous) => ({ ...previous, [blockId]: getBlockText(file, blockId) }));
+
+    const selectedFile = source === 'arquivoA' ? parsedFileA : parsedFileB;
+    const editableText = getBlockEditableText(selectedFile, blockId);
+    if (editableText) {
+      setBlockDrafts((previous) => ({ ...previous, [blockId]: editableText }));
+      return;
+    }
+
+    const oppositeFile = source === 'arquivoA' ? parsedFileB : parsedFileA;
+    const fallbackEditableText = getBlockEditableText(oppositeFile, blockId);
+    if (fallbackEditableText) {
+      setBlockDrafts((previous) => ({ ...previous, [blockId]: fallbackEditableText }));
+      toast.info('O XML entrou apenas como comparativo. Mantive o texto DEC do outro arquivo neste bloco.');
+      return;
+    }
+
+    toast.info('O XML entra como comparativo nesse bloco. Revise o preview e ajuste o texto DEC manualmente, se necessario.');
   }
 
   function updateHeaderField(field: keyof IRDecHeaderEdits, value: string) {
@@ -240,7 +394,7 @@ export function IRDecMerge() {
                 Gerar Arquivo IR
               </CardTitle>
               <CardDescription>
-                Importe dois arquivos .DEC, escolha o que aproveitar de cada declaracao e gere um novo arquivo no leiaute do exercicio mais recente.
+                Compare dois arquivos .DEC ou um .DEC com a pre-preenchida em .XML e gere um novo .DEC a partir da base posicional.
               </CardDescription>
             </div>
           </div>
@@ -248,24 +402,24 @@ export function IRDecMerge() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 rounded-lg border p-4">
-              <Label htmlFor="arquivoA">Arquivo 1 (.DEC)</Label>
-              <Input id="arquivoA" type="file" accept=".DEC,.dec" onChange={(event) => handleFileSelection('arquivoA', event)} />
+              <Label htmlFor="arquivoA">Arquivo 1 (.DEC ou .XML)</Label>
+              <Input id="arquivoA" type="file" accept=".DEC,.dec,.XML,.xml" onChange={(event) => handleFileSelection('arquivoA', event)} />
               <p className="text-xs text-muted-foreground">
-                Envie um arquivo da declaracao original ou de outra declaracao que sera usada na mesclagem.
+                Use o .DEC do exercicio anterior ou o XML da pre-preenchida vigente.
               </p>
             </div>
 
             <div className="space-y-2 rounded-lg border p-4">
-              <Label htmlFor="arquivoB">Arquivo 2 (.DEC)</Label>
-              <Input id="arquivoB" type="file" accept=".DEC,.dec" onChange={(event) => handleFileSelection('arquivoB', event)} />
+              <Label htmlFor="arquivoB">Arquivo 2 (.DEC ou .XML)</Label>
+              <Input id="arquivoB" type="file" accept=".DEC,.dec,.XML,.xml" onChange={(event) => handleFileSelection('arquivoB', event)} />
               <p className="text-xs text-muted-foreground">
-                Pode ser do mesmo exercicio ou de exercicio e ano-calendario diferentes.
+                A rotina compara blocos entre os dois arquivos, mas a geracao final continua exigindo ao menos um .DEC.
               </p>
             </div>
           </div>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            A validacao verifica extensao <strong>.DEC</strong>, cabecalho <strong>IRPF</strong> e o trailer <strong>T9</strong>. Se o arquivo estiver fora do padrao, a rotina bloqueia a importacao.
+            O XML entra como referencia comparativa por tags e colecoes. O arquivo final continua sendo gerado em <strong>.DEC</strong> usando o leiaute do arquivo posicional importado.
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -280,7 +434,7 @@ export function IRDecMerge() {
         </CardContent>
       </Card>
 
-      {ready && parsedFileA && parsedFileB && latestFile && (
+      {ready && parsedFileA && parsedFileB && latestComparableFile && baseFile && (
         <>
           <div className="grid gap-4 lg:grid-cols-2">
             {[{ source: 'arquivoA' as FileSource, file: parsedFileA }, { source: 'arquivoB' as FileSource, file: parsedFileB }].map(({ source, file }) => (
@@ -288,7 +442,11 @@ export function IRDecMerge() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center justify-between gap-2 text-base">
                     <span>{FILE_SOURCE_LABEL[source]}</span>
-                    {latestFile === file && <Badge className="bg-orange-500 text-white">Leiaute Base</Badge>}
+                    <div className="flex gap-2">
+                      <Badge variant="outline">{file.sourceFormat.toUpperCase()}</Badge>
+                      {baseFile === file && <Badge className="bg-orange-500 text-white">Base de Geracao</Badge>}
+                      {latestComparableFile === file && <Badge variant="secondary">Mais Recente</Badge>}
+                    </div>
                   </CardTitle>
                   <CardDescription>{file.fileName}</CardDescription>
                 </CardHeader>
@@ -310,8 +468,8 @@ export function IRDecMerge() {
                     <span className="font-medium">{formatCpf(file.cpf)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Registros</span>
-                    <span className="font-medium">{file.lines.length}</span>
+                    <span className="text-muted-foreground">Comparacao</span>
+                    <span className="font-medium">{file.availableBlockIds.length} blocos</span>
                   </div>
                 </CardContent>
               </Card>
@@ -328,24 +486,38 @@ export function IRDecMerge() {
             <TabsContent value="upload" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Resumo da Mesclagem</CardTitle>
+                  <CardTitle>Resumo da Comparacao</CardTitle>
                   <CardDescription>
-                    O arquivo final sera gerado usando o leiaute do exercicio mais recente, atualmente vindo do {FILE_SOURCE_LABEL[baseSource]}.
+                    O arquivo final sera gerado com base no {FILE_SOURCE_LABEL[baseSource]}, enquanto o arquivo mais recente ajuda a sugerir o cabecalho do exercicio vigente.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="rounded-lg border p-4">
                     <p className="font-medium">Base de geracao</p>
                     <p className="text-muted-foreground">
-                      Exercicio {latestFile.exercise} / Ano-calendario {latestFile.calendarYear} - {latestFile.fileName}
+                      {baseFile.fileName} ({baseFile.sourceFormat.toUpperCase()}) - Exercicio {baseFile.exercise || 'Nao identificado'} / Ano-calendario {baseFile.calendarYear || 'Nao identificado'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="font-medium">Arquivo mais recente</p>
+                    <p className="text-muted-foreground">
+                      {latestComparableFile.fileName} ({latestComparableFile.sourceFormat.toUpperCase()}) - Exercicio {latestComparableFile.exercise || 'Nao identificado'} / Ano-calendario {latestComparableFile.calendarYear || 'Nao identificado'}
                     </p>
                   </div>
                   <div className="rounded-lg border p-4">
                     <p className="font-medium">Blocos disponiveis para escolha</p>
                     <p className="text-muted-foreground">
-                      {visibleBlocks.length} blocos identificados. Use a aba <strong>Blocos</strong> para escolher qual arquivo usar em cada parte e editar o conteudo quando necessario.
+                      {visibleBlocks.length} blocos identificados. Se um dos lados for XML, ele aparece como comparativo e o texto final do .DEC permanece editavel na aba <strong>Blocos</strong>.
                     </p>
                   </div>
+                  {suggestedHeaderEdits && baseHeaderEdits && (
+                    <div className="rounded-lg border p-4">
+                      <p className="font-medium">Cabecalho sugerido</p>
+                      <p className="text-muted-foreground">
+                        O sistema mescla os dados do arquivo mais recente com a base `.DEC`. Na aba <strong>Geracao</strong> voce pode reaplicar essa sugestao ou voltar ao cabecalho original do `.DEC` base.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -355,13 +527,14 @@ export function IRDecMerge() {
                 <CardHeader>
                   <CardTitle>Escolha por Blocos</CardTitle>
                   <CardDescription>
-                    O Vision separa os registros por blocos para facilitar a visualizacao. Em cada bloco voce pode escolher a origem e ajustar o texto antes de gerar.
+                    O Vision separa os registros por blocos. Quando houver XML, o preview mostra as tags mapeadas para a estrutura correspondente do .DEC.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Accordion type="multiple" className="w-full">
                     {visibleBlocks.map((block) => {
                       const source = blockSources[block.id] ?? 'arquivoA';
+                      const draftInfo = getEffectiveDraftInfo(block.id);
 
                       return (
                         <AccordionItem key={block.id} value={block.id}>
@@ -375,8 +548,8 @@ export function IRDecMerge() {
                                 <Badge variant="outline">
                                   {FILE_SOURCE_LABEL[source]} selecionado
                                 </Badge>
-                                <Badge variant="outline">Arquivo 1: {summarizeRecordCount(parsedFileA, block.id)} reg.</Badge>
-                                <Badge variant="outline">Arquivo 2: {summarizeRecordCount(parsedFileB, block.id)} reg.</Badge>
+                                <Badge variant="outline">Arquivo 1: {summarizeRecordCount(parsedFileA, block.id)} itens</Badge>
+                                <Badge variant="outline">Arquivo 2: {summarizeRecordCount(parsedFileB, block.id)} itens</Badge>
                               </div>
                             </div>
                           </AccordionTrigger>
@@ -387,41 +560,66 @@ export function IRDecMerge() {
                                 variant={source === 'arquivoA' ? 'default' : 'outline'}
                                 onClick={() => updateBlockSource(block.id, 'arquivoA')}
                               >
-                                Usar Arquivo 1
+                                {parsedFileA.sourceFormat === 'xml' ? 'Usar Arquivo 1 como referencia' : 'Usar Arquivo 1'}
                               </Button>
                               <Button
                                 type="button"
                                 variant={source === 'arquivoB' ? 'default' : 'outline'}
                                 onClick={() => updateBlockSource(block.id, 'arquivoB')}
                               >
-                                Usar Arquivo 2
+                                {parsedFileB.sourceFormat === 'xml' ? 'Usar Arquivo 2 como referencia' : 'Usar Arquivo 2'}
                               </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => reapplyDraftSuggestion(block.id)}
+                              >
+                                Reaplicar Texto DEC
+                              </Button>
+                            </div>
+
+                            <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                              {draftInfo.text ? (
+                                draftInfo.usedFallback ? (
+                                  <>O arquivo selecionado esta em XML neste bloco. O texto editavel do `.DEC` veio do {FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.</>
+                                ) : (
+                                  <>O texto editavel deste bloco esta vindo do {FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.</>
+                                )
+                              ) : (
+                                <>Nenhum dos arquivos trouxe texto `.DEC` pronto para este bloco. Use o comparativo ao lado e monte o bloco manualmente, se necessario.</>
+                              )}
                             </div>
 
                             <div className="grid gap-4 xl:grid-cols-2">
                               <div className="space-y-2 rounded-lg border p-3">
-                                <div className="flex items-center gap-2 text-sm font-medium">
-                                  <FileText className="h-4 w-4" />
-                                  Preview do Arquivo 1
+                                <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    Preview do Arquivo 1
+                                  </div>
+                                  <Badge variant="outline">{parsedFileA.sourceFormat.toUpperCase()}</Badge>
                                 </div>
                                 <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-                                  {getBlockText(parsedFileA, block.id) || 'Sem registros neste bloco.'}
+                                  {getBlockText(parsedFileA, block.id) || 'Sem informacoes neste bloco.'}
                                 </pre>
                               </div>
 
                               <div className="space-y-2 rounded-lg border p-3">
-                                <div className="flex items-center gap-2 text-sm font-medium">
-                                  <FileText className="h-4 w-4" />
-                                  Preview do Arquivo 2
+                                <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    Preview do Arquivo 2
+                                  </div>
+                                  <Badge variant="outline">{parsedFileB.sourceFormat.toUpperCase()}</Badge>
                                 </div>
                                 <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-                                  {getBlockText(parsedFileB, block.id) || 'Sem registros neste bloco.'}
+                                  {getBlockText(parsedFileB, block.id) || 'Sem informacoes neste bloco.'}
                                 </pre>
                               </div>
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor={`draft-${block.id}`}>Conteudo final do bloco</Label>
+                              <Label htmlFor={`draft-${block.id}`}>Conteudo final do bloco (.DEC)</Label>
                               <Textarea
                                 id={`draft-${block.id}`}
                                 value={blockDrafts[block.id] || ''}
@@ -434,7 +632,7 @@ export function IRDecMerge() {
                                 className="min-h-[220px] font-mono text-xs"
                               />
                               <p className="text-xs text-muted-foreground">
-                                Se precisar, voce pode ajustar manualmente o texto deste bloco antes da geracao do novo arquivo.
+                                Quando houver XML, use o preview comparativo para conferir os dados e mantenha ou ajuste o texto posicional do .DEC neste campo.
                               </p>
                             </div>
                           </AccordionContent>
@@ -454,7 +652,7 @@ export function IRDecMerge() {
                     Dados para o Novo Arquivo
                   </CardTitle>
                   <CardDescription>
-                    Estes campos ajustam o cabecalho principal do arquivo final. Para alteracoes mais profundas, edite os blocos diretamente na aba anterior.
+                    Estes campos ajustam o cabecalho principal do arquivo final. O XML mais recente ajuda a sugerir os dados do exercicio vigente.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
@@ -523,18 +721,38 @@ export function IRDecMerge() {
                     />
                   </div>
                 </CardContent>
+                {suggestedHeaderEdits && baseHeaderEdits && (
+                  <CardContent className="pt-0">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setHeaderEdits(suggestedHeaderEdits)}
+                      >
+                        Reaplicar Cabecalho Sugerido
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setHeaderEdits(baseHeaderEdits)}
+                      >
+                        Restaurar Cabecalho do DEC Base
+                      </Button>
+                    </div>
+                  </CardContent>
+                )}
               </Card>
 
               <Card>
                 <CardHeader>
                   <CardTitle>Gerar Arquivo Final</CardTitle>
                   <CardDescription>
-                    O download gera um novo arquivo .DEC com os blocos escolhidos e mantem o leiaute do exercicio mais recente importado.
+                    O download gera um novo arquivo .DEC com base no {FILE_SOURCE_LABEL[baseSource]} e nos blocos ajustados manualmente.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-                    O arquivo sera montado com base no {FILE_SOURCE_LABEL[baseSource]}, que contem o exercicio mais recente. Os blocos selecionados podem vir de qualquer um dos arquivos importados.
+                    A comparacao com XML serve para orientar o preenchimento e a revisao dos blocos. O arquivo final segue o leiaute do .DEC base importado.
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button onClick={handleGenerateFile}>
