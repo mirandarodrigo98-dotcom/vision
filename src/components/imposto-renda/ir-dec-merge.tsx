@@ -31,6 +31,14 @@ import { ArrowLeft, Download, FileCog, FileText, GitMerge, Upload } from 'lucide
 import { toast } from 'sonner';
 
 type FileSource = 'arquivoA' | 'arquivoB';
+type PreviewField = {
+  label: string;
+  value: string;
+};
+type PreviewSection = {
+  title: string;
+  fields: PreviewField[];
+};
 
 const ACCEPTED_EXTENSIONS = ['.dec', '.xml'];
 
@@ -39,10 +47,217 @@ const FILE_SOURCE_LABEL: Record<FileSource, string> = {
   arquivoB: 'Arquivo 2',
 };
 
+const FIELD_LABELS: Record<string, string> = {
+  bairro: 'Bairro',
+  celular: 'Celular',
+  cep: 'CEP',
+  cidade: 'Cidade',
+  complemento: 'Complemento',
+  conjuge: 'Conjuge',
+  cpf: 'CPF',
+  cpfConjuge: 'CPF do conjuge',
+  cpfProcurador: 'CPF do procurador',
+  dataNascimento: 'Data de nascimento',
+  dataRetorno: 'Data de retorno',
+  dddCelular: 'DDD celular',
+  email: 'E-mail',
+  enderecoNumero: 'Numero',
+  logradouro: 'Logradouro',
+  municipio: 'Codigo do municipio',
+  naturezaOcupacao: 'Natureza da ocupacao',
+  nome: 'Nome',
+  nomeMae: 'Nome da mae',
+  ocupacaoPrincipal: 'Ocupacao principal',
+  pais: 'Pais',
+  pergunta: 'Pergunta',
+  resposta: 'Resposta',
+  sexo: 'Sexo',
+  tipoDeclaracao: 'Tipo da declaracao',
+  tituloEleitor: 'Titulo de eleitor',
+  uf: 'UF',
+};
+
+const BLOCK_DECLARATION_HINT: Record<string, string> = {
+  identificacao: 'Identificacao do contribuinte e dados principais da declaracao.',
+  resumo: 'Resumo do imposto apurado, saldo a pagar ou restituicao.',
+  'rendimentos-pj': 'Fontes pagadoras, rendimentos tributaveis e imposto retido.',
+  'carne-leao': 'Rendimentos recebidos de pessoa fisica e do exterior.',
+  isentos: 'Rendimentos isentos ou nao tributaveis declarados.',
+  exclusivos: 'Rendimentos com tributacao exclusiva ou definitiva.',
+  pagamentos: 'Pagamentos efetuados, doacoes e despesas dedutiveis.',
+  'bens-dividas': 'Bens, direitos, financiamentos, dividas e onus.',
+  'inventario-saida': 'Espolio, inventario e saida definitiva do pais.',
+  'dependentes-alimentandos': 'Dependentes, alimentandos e informacoes vinculadas.',
+  'renda-variavel': 'Operacoes em bolsa, renda variavel e fundos imobiliarios.',
+  rra: 'Rendimentos recebidos acumuladamente.',
+  'atividade-rural': 'Receitas, despesas e bens da atividade rural.',
+  'ganho-capital': 'Operacoes de ganho de capital e importacoes do GCAP.',
+  outros: 'Informacoes auxiliares nao classificadas nos grupos principais.',
+};
+
 function formatCpf(value: string) {
   const digits = value.replace(/\D/g, '');
   if (digits.length !== 11) return value || 'Nao identificado';
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function formatCep(value: string) {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 8) return value || 'Nao informado';
+  return digits.replace(/(\d{5})(\d{3})/, '$1-$2');
+}
+
+function formatBooleanLike(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === '1' || normalized === 'true' || normalized === 'sim') return 'Sim';
+  if (normalized === '0' || normalized === 'false' || normalized === 'nao') return 'Nao';
+  return value;
+}
+
+function toTitleCase(value: string) {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function humanizeFieldLabel(value: string) {
+  const raw = value.trim();
+  if (!raw) return 'Campo';
+  if (FIELD_LABELS[raw]) return FIELD_LABELS[raw];
+
+  const normalized = raw
+    .replace(/#/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return toTitleCase(normalized);
+}
+
+function normalizePreviewValue(label: string, value: string) {
+  if (!value) return 'Nao informado';
+
+  if (label.toLowerCase().includes('cpf')) {
+    return formatCpf(value);
+  }
+
+  if (label === 'CEP') {
+    return formatCep(value);
+  }
+
+  if (label === 'Nome' || label === 'Nome da mae' || label === 'Logradouro' || label === 'Bairro' || label === 'Cidade') {
+    return toTitleCase(value);
+  }
+
+  if (label === 'UF') {
+    return value.toUpperCase();
+  }
+
+  return formatBooleanLike(value);
+}
+
+function buildIdentificationPreview(file: IRDecFileData) {
+  return [
+    {
+      title: 'Dados do contribuinte',
+      fields: [
+        { label: 'Nome', value: file.name || 'Nao identificado' },
+        { label: 'CPF', value: formatCpf(file.cpf) },
+        { label: 'Exercicio', value: file.exercise ? String(file.exercise) : 'Nao identificado' },
+        { label: 'Ano-calendario', value: file.calendarYear ? String(file.calendarYear) : 'Nao identificado' },
+        { label: 'UF', value: file.uf || 'Nao identificado' },
+        { label: 'Municipio', value: file.municipalityName || 'Nao identificado' },
+        { label: 'Codigo do municipio', value: file.municipalityCode || 'Nao identificado' },
+        { label: 'CEP', value: formatCep(file.cep) },
+      ],
+    },
+  ] satisfies PreviewSection[];
+}
+
+function buildDecBlockPreview(file: IRDecFileData, blockId: string) {
+  const block = file.blocks[blockId];
+  if (!block || block.recordCount === 0) return [];
+
+  if (blockId === 'identificacao') {
+    return buildIdentificationPreview(file);
+  }
+
+  return [
+    {
+      title: 'Resumo do bloco no arquivo .DEC',
+      fields: [
+        { label: 'Tipo de arquivo', value: 'Arquivo posicional da Receita (.DEC)' },
+        { label: 'Registros encontrados', value: String(block.recordCount) },
+        { label: 'Codigos deste bloco', value: block.codes.length ? block.codes.join(', ') : 'Nao mapeado' },
+        {
+          label: 'Uso na geracao',
+          value: file.generationSupported
+            ? 'Pode compor o arquivo final em formato .DEC'
+            : 'Somente comparativo',
+        },
+      ],
+    },
+  ] satisfies PreviewSection[];
+}
+
+function parseXmlComparisonText(text: string) {
+  const sections = text
+    .split(/\n{2,}/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+
+  return sections.map((chunk) => {
+    const lines = chunk.split('\n').map((line) => line.trim()).filter(Boolean);
+    const [rawTitle, ...rest] = lines;
+    const fields: PreviewField[] = [];
+    let currentItem = '';
+
+    for (const line of rest) {
+      const keyValueMatch = line.match(/^([^:]+):\s*(.*)$/);
+      if (keyValueMatch) {
+        const label = humanizeFieldLabel(keyValueMatch[1]);
+        const normalizedValue = normalizePreviewValue(label, keyValueMatch[2].trim());
+        if (currentItem) {
+          fields.push({ label: 'Registro', value: humanizeFieldLabel(currentItem) });
+          currentItem = '';
+        }
+        fields.push({ label, value: normalizedValue });
+        continue;
+      }
+
+      currentItem = line;
+    }
+
+    if (currentItem) {
+      fields.push({ label: 'Registro', value: humanizeFieldLabel(currentItem) });
+    }
+
+    return {
+      title: humanizeFieldLabel(rawTitle || 'Dados encontrados'),
+      fields,
+    } satisfies PreviewSection;
+  });
+}
+
+function buildXmlBlockPreview(file: IRDecFileData, blockId: string) {
+  const block = file.blocks[blockId];
+  if (!block || !block.comparisonText.trim()) return [];
+
+  const sections = parseXmlComparisonText(block.comparisonText);
+  if (blockId === 'identificacao') {
+    return [...buildIdentificationPreview(file), ...sections];
+  }
+
+  return sections;
+}
+
+function buildPreviewSections(file: IRDecFileData, blockId: string) {
+  return file.sourceFormat === 'xml'
+    ? buildXmlBlockPreview(file, blockId)
+    : buildDecBlockPreview(file, blockId);
 }
 
 function summarizeRecordCount(file: IRDecFileData, blockId: string) {
@@ -165,6 +380,64 @@ export function IRDecMerge() {
       );
     });
   }, [parsedFileA, parsedFileB]);
+
+  function renderPreviewCard(file: IRDecFileData, blockId: string, sourceLabel: string) {
+    const sections = buildPreviewSections(file, blockId);
+    const rawText = getBlockText(file, blockId);
+
+    return (
+      <div className="space-y-3 rounded-lg border p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">{sourceLabel}</p>
+            <p className="text-xs text-muted-foreground">
+              {file.sourceFormat === 'xml'
+                ? 'Leitura organizada a partir da declaracao pre-preenchida.'
+                : 'Resumo do arquivo posicional que servira de base para o .DEC.'}
+            </p>
+          </div>
+          <Badge variant="outline">{file.sourceFormat.toUpperCase()}</Badge>
+        </div>
+
+        {sections.length > 0 ? (
+          <div className="space-y-3">
+            {sections.map((section, index) => (
+              <div key={`${sourceLabel}-${blockId}-${section.title}-${index}`} className="rounded-lg border bg-muted/20 p-4">
+                <p className="text-sm font-semibold">{section.title}</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {section.fields.length > 0 ? (
+                    section.fields.map((field, fieldIndex) => (
+                      <div key={`${section.title}-${field.label}-${fieldIndex}`} className="space-y-1 rounded-md bg-background p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{field.label}</p>
+                        <p className="text-sm font-medium leading-5">{field.value}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-md bg-background p-3 text-sm text-muted-foreground">
+                      Nenhum detalhe adicional encontrado neste trecho.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
+            Sem informacoes resumidas para este bloco.
+          </div>
+        )}
+
+        <details className="rounded-lg border bg-background p-3">
+          <summary className="cursor-pointer text-sm font-medium">
+            Ver texto tecnico do arquivo
+          </summary>
+          <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
+            {rawText || 'Sem informacoes tecnicas neste bloco.'}
+          </pre>
+        </details>
+      </div>
+    );
+  }
 
   function resetImportedState() {
     setParsedFileA(null);
@@ -560,14 +833,14 @@ export function IRDecMerge() {
                                 variant={source === 'arquivoA' ? 'default' : 'outline'}
                                 onClick={() => updateBlockSource(block.id, 'arquivoA')}
                               >
-                                {parsedFileA.sourceFormat === 'xml' ? 'Usar Arquivo 1 como referencia' : 'Usar Arquivo 1'}
+                                {parsedFileA.sourceFormat === 'xml' ? 'Usar dados do Arquivo 1 como referencia' : 'Usar dados do Arquivo 1'}
                               </Button>
                               <Button
                                 type="button"
                                 variant={source === 'arquivoB' ? 'default' : 'outline'}
                                 onClick={() => updateBlockSource(block.id, 'arquivoB')}
                               >
-                                {parsedFileB.sourceFormat === 'xml' ? 'Usar Arquivo 2 como referencia' : 'Usar Arquivo 2'}
+                                {parsedFileB.sourceFormat === 'xml' ? 'Usar dados do Arquivo 2 como referencia' : 'Usar dados do Arquivo 2'}
                               </Button>
                               <Button
                                 type="button"
@@ -579,47 +852,25 @@ export function IRDecMerge() {
                             </div>
 
                             <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                              <p className="font-medium text-foreground">{BLOCK_DECLARATION_HINT[block.id] || block.description}</p>
                               {draftInfo.text ? (
                                 draftInfo.usedFallback ? (
-                                  <>O arquivo selecionado esta em XML neste bloco. O texto editavel do `.DEC` veio do {FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.</>
+                                  <p className="mt-1">O arquivo selecionado esta em XML neste bloco. O texto editavel do `.DEC` veio do {FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.</p>
                                 ) : (
-                                  <>O texto editavel deste bloco esta vindo do {FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.</>
+                                  <p className="mt-1">O texto editavel deste bloco esta vindo do {FILE_SOURCE_LABEL[draftInfo.effectiveSource]}.</p>
                                 )
                               ) : (
-                                <>Nenhum dos arquivos trouxe texto `.DEC` pronto para este bloco. Use o comparativo ao lado e monte o bloco manualmente, se necessario.</>
+                                <p className="mt-1">Nenhum dos arquivos trouxe texto `.DEC` pronto para este bloco. Use o comparativo abaixo e monte o bloco manualmente, se necessario.</p>
                               )}
                             </div>
 
                             <div className="grid gap-4 xl:grid-cols-2">
-                              <div className="space-y-2 rounded-lg border p-3">
-                                <div className="flex items-center justify-between gap-2 text-sm font-medium">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="h-4 w-4" />
-                                    Preview do Arquivo 1
-                                  </div>
-                                  <Badge variant="outline">{parsedFileA.sourceFormat.toUpperCase()}</Badge>
-                                </div>
-                                <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-                                  {getBlockText(parsedFileA, block.id) || 'Sem informacoes neste bloco.'}
-                                </pre>
-                              </div>
-
-                              <div className="space-y-2 rounded-lg border p-3">
-                                <div className="flex items-center justify-between gap-2 text-sm font-medium">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="h-4 w-4" />
-                                    Preview do Arquivo 2
-                                  </div>
-                                  <Badge variant="outline">{parsedFileB.sourceFormat.toUpperCase()}</Badge>
-                                </div>
-                                <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-                                  {getBlockText(parsedFileB, block.id) || 'Sem informacoes neste bloco.'}
-                                </pre>
-                              </div>
+                              {renderPreviewCard(parsedFileA, block.id, 'Arquivo 1')}
+                              {renderPreviewCard(parsedFileB, block.id, 'Arquivo 2')}
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor={`draft-${block.id}`}>Conteudo final do bloco (.DEC)</Label>
+                              <Label htmlFor={`draft-${block.id}`}>Texto final que sera gravado no bloco (.DEC)</Label>
                               <Textarea
                                 id={`draft-${block.id}`}
                                 value={blockDrafts[block.id] || ''}
@@ -632,7 +883,7 @@ export function IRDecMerge() {
                                 className="min-h-[220px] font-mono text-xs"
                               />
                               <p className="text-xs text-muted-foreground">
-                                Quando houver XML, use o preview comparativo para conferir os dados e mantenha ou ajuste o texto posicional do .DEC neste campo.
+                                Use a leitura organizada acima para decidir qual arquivo representa melhor este bloco. O campo abaixo continua sendo o texto posicional final que sera salvo no .DEC.
                               </p>
                             </div>
                           </AccordionContent>
