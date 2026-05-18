@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie, getOmieBankSyncStatus } from '@/app/actions/integrations/omie';
+import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie, getOmieBankSyncStatus, type OmieContasReceberDateFilter } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 
@@ -138,6 +138,7 @@ const CustomFloatingFilter = (props: any) => {
 export function CobrancaClient({ permissions, isAdminRole = false }: { permissions: string[], isAdminRole?: boolean }) {
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
+  const [dateFilterType, setDateFilterType] = useState<OmieContasReceberDateFilter>('emissao');
   const [loading, setLoading] = useState(false);
   const [contas, setContas] = useState<any[]>([]);
   const [bankSyncStatus, setBankSyncStatus] = useState<any[] | null>(null);
@@ -760,7 +761,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
 
       // Fetch Bank Sync Status in parallel
       const syncStatusPromise = getOmieBankSyncStatus();
-      const responsePromise = listarContasReceber(formattedDe, formattedAte);
+      const responsePromise = listarContasReceber(formattedDe, formattedAte, 1, dateFilterType);
 
       const [syncStatus, response] = await Promise.all([syncStatusPromise, responsePromise]);
 
@@ -801,12 +802,24 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
       <Card>
         <CardHeader>
           <CardTitle>Filtro por Período</CardTitle>
-          <CardDescription>Informe o período de Data de Emissão para buscar os lançamentos.</CardDescription>
+          <CardDescription>Escolha se a busca no Omie será por data de emissão ou por data de vencimento.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-end gap-4">
+            <div className="grid w-full md:w-[220px] items-center gap-1.5">
+              <Label>Filtrar por</Label>
+              <Select value={dateFilterType} onValueChange={(value: OmieContasReceberDateFilter) => setDateFilterType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de data" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="emissao">Data de Emissao</SelectItem>
+                  <SelectItem value="vencimento">Data de Vencimento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid w-full md:w-auto items-center gap-1.5">
-              <Label htmlFor="dataDe">Data de Emissão (De)</Label>
+              <Label htmlFor="dataDe">{dateFilterType === 'vencimento' ? 'Data de Vencimento (De)' : 'Data de Emissao (De)'}</Label>
               <Input 
                 type="date" 
                 id="dataDe" 
@@ -816,7 +829,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
               />
             </div>
             <div className="grid w-full md:w-auto items-center gap-1.5">
-              <Label htmlFor="dataAte">Data de Emissão (Até)</Label>
+              <Label htmlFor="dataAte">{dateFilterType === 'vencimento' ? 'Data de Vencimento (Até)' : 'Data de Emissao (Ate)'}</Label>
               <Input 
                 type="date" 
                 id="dataAte" 

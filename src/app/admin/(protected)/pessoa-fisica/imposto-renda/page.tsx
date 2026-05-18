@@ -6,7 +6,7 @@ import { IRDashboard } from '@/components/imposto-renda/ir-dashboard';
 import { IRGrid } from '@/components/imposto-renda/ir-grid';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
+import { FileCog, PlusIcon } from 'lucide-react';
 import { PartnersDialog } from '@/components/imposto-renda/partners-dialog';
 
 export const metadata: Metadata = {
@@ -31,6 +31,12 @@ export default async function ImpostoRendaPage() {
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Imposto de Renda</h2>
         <div className="flex gap-2">
           <PartnersDialog />
+          <Link href="/admin/pessoa-fisica/imposto-renda/gerar-arquivo">
+            <Button variant="outline">
+              <FileCog className="h-4 w-4 mr-2" />
+              Gerar Arquivo IR
+            </Button>
+          </Link>
           <Link href="/admin/pessoa-fisica/imposto-renda/novo">
             <Button>
               <PlusIcon className="h-4 w-4 mr-2" />

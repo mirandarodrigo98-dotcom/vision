@@ -5,8 +5,96 @@ import db from '@/lib/db';
 import { getOmieConfig } from './omie-config';
 import { sendDigisacMessage, getDigisacConfig } from '@/app/actions/integrations/digisac';
 
+export type OmieContasReceberDateFilter = 'emissao' | 'vencimento';
+
+async function buildOmieLookupMaps(appKey: string, appSecret: string, clienteIds: number[]) {
+  const clientesMap = new Map<number, string>();
+  const cnpjMap = new Map<number, string>();
+
+  const lotesClientes = [];
+  for (let i = 0; i < clienteIds.length; i += 50) {
+    lotesClientes.push(clienteIds.slice(i, i + 50));
+  }
+
+  await Promise.all(lotesClientes.map(async (lote) => {
+    if (lote.length === 0) return;
+
+    try {
+      const payloadCli = {
+        call: "ListarClientes",
+        app_key: appKey,
+        app_secret: appSecret,
+        param: [{
+          pagina: 1,
+          registros_por_pagina: 50,
+          apenas_importado_api: "N",
+          clientesPorCodigo: lote.map(id => ({ codigo_cliente_omie: id }))
+        }]
+      };
+      const resCli = await axios.post('https://app.omie.com.br/api/v1/geral/clientes/', payloadCli);
+      const clientesList = resCli.data.clientes_cadastro || [];
+      clientesList.forEach((cli: any) => {
+        clientesMap.set(cli.codigo_cliente_omie, cli.razao_social || cli.nome_fantasia);
+        cnpjMap.set(cli.codigo_cliente_omie, cli.cnpj_cpf || '');
+      });
+    } catch (err: any) {
+      console.error("Erro ao buscar lote de clientes", err.response?.data || err.message);
+      throw err;
+    }
+  }));
+
+  const categoriasMap = new Map<string, string>();
+  try {
+    const payloadCat = {
+      call: "ListarCategorias",
+      app_key: appKey,
+      app_secret: appSecret,
+      param: [{ pagina: 1, registros_por_pagina: 500 }]
+    };
+    const resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
+    const catList = resCat.data.categoria_cadastro || [];
+    catList.forEach((cat: any) => categoriasMap.set(cat.codigo, cat.descricao));
+  } catch (err) {
+    console.error("Erro ao buscar categorias", err);
+  }
+
+  const contasCorrentesMap = new Map<number, string>();
+  const contasCorrentesVisionMap = new Map<number, string>();
+  try {
+    const payloadCc = {
+      call: "ListarContasCorrentes",
+      app_key: appKey,
+      app_secret: appSecret,
+      param: [{ pagina: 1, registros_por_pagina: 500, apenas_importado_api: "N" }]
+    };
+    const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
+    const ccList = resCc.data.ListarContasCorrentes || resCc.data.conta_corrente_cadastro || resCc.data.ListarContasCorrentesResponse || [];
+    ccList.forEach((cc: any) => {
+      if (cc.inativo === "S" || cc.cStatus === "I") return;
+
+      const contaId = cc.nIdCC || cc.nCodCC;
+      const contaNome = cc.descricao || cc.cDescricao;
+      contasCorrentesMap.set(contaId, contaNome);
+
+      const obs = (cc.observacao || '').toLowerCase();
+      if (!obs.includes('vision')) return;
+
+      contasCorrentesVisionMap.set(contaId, contaNome);
+    });
+  } catch (err) {
+    console.error("Erro ao buscar contas correntes", err);
+  }
+
+  return { clientesMap, cnpjMap, categoriasMap, contasCorrentesMap, contasCorrentesVisionMap };
+}
+
 // Retorna as contas a receber do Omie
-export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte: string, companyId: number = 1) {
+export async function listarContasReceber(
+  dataDe: string,
+  dataAte: string,
+  companyId: number = 1,
+  dateFilterType: OmieContasReceberDateFilter = 'emissao'
+) {
   const config = await getOmieConfig(companyId);
 
   if (!config || !config.is_active || !config.app_key || !config.app_secret) {
@@ -17,6 +105,121 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
   const appSecret = config.app_secret;
 
   try {
+    const TIPO_DOC_MAP: Record<string, string> = {
+      'BOL': 'Boleto',
+      'REC': 'Recibo',
+      'NF': 'Nota Fiscal',
+      'CHQ': 'Cheque',
+      'DEP': 'Depósito',
+      'TRA': 'Transferência',
+      'DIN': 'Dinheiro',
+      'CRT': 'Cartão',
+      'PIX': 'Pix',
+      'Boleto': 'Boleto',
+      'Recibo': 'Recibo'
+    };
+
+    if (dateFilterType === 'vencimento') {
+      const titulos: any[] = [];
+      let pagina = 1;
+      let totalPaginas = 1;
+
+      do {
+        const payload = {
+          call: "PesquisarLancamentos",
+          app_key: appKey,
+          app_secret: appSecret,
+          param: [
+            {
+              nPagina: pagina,
+              nRegPorPagina: 500,
+              cNatureza: "R",
+              dDtVencDe: dataDe,
+              dDtVencAte: dataAte,
+              lDadosCad: true
+            }
+          ]
+        };
+
+        const response = await axios.post('https://app.omie.com.br/api/v1/financas/pesquisartitulos/', payload, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const pageItems = response.data.titulosEncontrados || [];
+        titulos.push(...pageItems);
+        totalPaginas = Number(response.data.nTotPaginas || 1);
+        pagina += 1;
+      } while (pagina <= totalPaginas);
+
+      if (titulos.length === 0) return { data: [] };
+
+      const clientesIds = [...new Set(
+        titulos
+          .map((item: any) => item.cabecTitulo?.nCodCliente)
+          .filter(Boolean)
+      )];
+
+      const { clientesMap, cnpjMap, categoriasMap, contasCorrentesMap, contasCorrentesVisionMap } = await buildOmieLookupMaps(appKey, appSecret, clientesIds);
+
+      const enrichedData = titulos.map((item: any) => {
+        const cabec = item.cabecTitulo || {};
+        const resumo = item.resumo || {};
+        const info = item.info || cabec.info || {};
+        const categoriaCodigo = cabec.cCodCateg || '';
+        const contaCorrenteId = cabec.nCodCC || null;
+        const numeroBoleto = cabec.cNumBoleto || cabec.cNumTitulo || '-';
+        const codigoBarras = cabec.cCodigoBarras || '-';
+        const valorPago = Number(resumo.nValPago || 0);
+        const dataPagamento = cabec.dDtPagamento || item.lancamentos?.[0]?.dDtLanc || null;
+        const boletoGerado = cabec.cNumBoleto || cabec.cCodigoBarras ? 'S' : 'N';
+
+        return {
+          codigo_lancamento_omie: cabec.nCodTitulo,
+          codigo_cliente_fornecedor: cabec.nCodCliente,
+          data_emissao: cabec.dDtEmissao || '',
+          data_vencimento: cabec.dDtVenc || '',
+          data_previsao: cabec.dDtPrevisao || cabec.dDtVenc || '',
+          data_registro: cabec.dDtRegistro || '',
+          status_titulo: cabec.cStatus || 'N/A',
+          valor_documento: Number(cabec.nValorTitulo || 0),
+          codigo_categoria: categoriaCodigo,
+          id_conta_corrente: contaCorrenteId,
+          codigo_tipo_documento: cabec.cTipo || '',
+          numero_documento: cabec.cNumTitulo || '',
+          numero_parcela: cabec.cNumParcela || '',
+          codigo_barras_ficha_compensacao: codigoBarras !== '-' ? codigoBarras : '',
+          info,
+          resumo: {
+            valor_pago: valorPago,
+            valor_aberto: Number(resumo.nValAberto || 0),
+            desconto: Number(resumo.nDesconto || 0),
+            juros: Number(resumo.nJuros || 0),
+            multa: Number(resumo.nMulta || 0)
+          },
+          boleto: {
+            cGerado: boletoGerado,
+            cNumBoleto: cabec.cNumBoleto || '',
+            cNumBancario: cabec.cNumBoleto || ''
+          },
+          nome_cliente: clientesMap.get(cabec.nCodCliente) || 'N/A',
+          cnpj_cliente: cnpjMap.get(cabec.nCodCliente) || cabec.cCPFCNPJCliente || '',
+          nome_categoria: categoriasMap.get(categoriaCodigo) || categoriaCodigo || '-',
+          nome_conta_corrente: contasCorrentesMap.get(contaCorrenteId) || contaCorrenteId || '-',
+          numero_boleto: numeroBoleto,
+          codigo_barras: codigoBarras,
+          tipo_documento: TIPO_DOC_MAP[cabec.cTipo] || cabec.cTipo || '-',
+          valor_pago_calculado: valorPago,
+          data_pagamento_calculada: dataPagamento
+        };
+      });
+
+      return {
+        data: enrichedData,
+        contasCorrentes: Array.from(contasCorrentesVisionMap.entries()).map(([id, nome]) => ({ id, nome })),
+        dateFilterType
+      };
+    }
+
     const payload = {
       call: "ListarContasReceber",
       app_key: appKey,
@@ -26,9 +229,8 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
           pagina: 1,
           registros_por_pagina: 500,
           apenas_importado_api: "N",
-          filtrar_por_data_de: dataEmissaoDe,
-          filtrar_por_data_ate: dataEmissaoAte,
-          filtrar_apenas_inclusao: "S"
+          filtrar_por_emissao_de: dataDe,
+          filtrar_por_emissao_ate: dataAte
         }
       ]
     };
@@ -40,82 +242,8 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
     const contas = response.data.conta_receber_cadastro || [];
     if (contas.length === 0) return { data: [] };
 
-    // 1. Extrair IDs únicos
     const clientesIds = [...new Set(contas.map((c: any) => c.codigo_cliente_fornecedor).filter(Boolean))];
-    
-    // 2. Buscar Clientes (em lotes de 50)
-    const clientesMap = new Map<number, string>();
-    const cnpjMap = new Map<number, string>();
-    const lotesClientes = [];
-    for (let i = 0; i < clientesIds.length; i += 50) {
-      lotesClientes.push(clientesIds.slice(i, i + 50));
-    }
-    
-    await Promise.all(lotesClientes.map(async (lote) => {
-      try {
-        const payloadCli = {
-          call: "ListarClientes",
-          app_key: appKey,
-          app_secret: appSecret,
-          param: [{
-            pagina: 1,
-            registros_por_pagina: 50,
-            apenas_importado_api: "N",
-            clientesPorCodigo: lote.map(id => ({ codigo_cliente_omie: id }))
-          }]
-        };
-        const resCli = await axios.post('https://app.omie.com.br/api/v1/geral/clientes/', payloadCli);
-        const clientesList = resCli.data.clientes_cadastro || [];
-        clientesList.forEach((cli: any) => {
-          clientesMap.set(cli.codigo_cliente_omie, cli.razao_social || cli.nome_fantasia);
-          cnpjMap.set(cli.codigo_cliente_omie, cli.cnpj_cpf || '');
-        });
-      } catch (err: any) {
-        console.error("Erro ao buscar lote de clientes", err.response?.data || err.message);
-        throw err;
-      }
-    }));
-
-    // 3. Buscar Categorias
-    const categoriasMap = new Map();
-    try {
-      const payloadCat = {
-        call: "ListarCategorias",
-        app_key: appKey,
-        app_secret: appSecret,
-        param: [{ pagina: 1, registros_por_pagina: 500 }]
-      };
-      const resCat = await axios.post('https://app.omie.com.br/api/v1/geral/categorias/', payloadCat);
-      const catList = resCat.data.categoria_cadastro || [];
-      catList.forEach((cat: any) => categoriasMap.set(cat.codigo, cat.descricao));
-    } catch (err) {
-      console.error("Erro ao buscar categorias", err);
-    }
-
-    // 4. Buscar Contas Correntes
-    const contasCorrentesMap = new Map();
-    try {
-      const payloadCc = {
-        call: "ListarContasCorrentes",
-        app_key: appKey,
-        app_secret: appSecret,
-        param: [{ pagina: 1, registros_por_pagina: 500, apenas_importado_api: "N" }]
-      };
-      const resCc = await axios.post('https://app.omie.com.br/api/v1/geral/contacorrente/', payloadCc);
-      const ccList = resCc.data.ListarContasCorrentes || resCc.data.conta_corrente_cadastro || resCc.data.ListarContasCorrentesResponse || [];
-      ccList.forEach((cc: any) => {
-        // Ignorar contas inativas (se houver campo de inativo)
-        if (cc.inativo === "S" || cc.cStatus === "I") return;
-        
-        // Exibir no modal apenas as contas que possuem a palavra "Vision" ou "vision" na observação
-        const obs = (cc.observacao || '').toLowerCase();
-        if (!obs.includes('vision')) return;
-        
-        contasCorrentesMap.set(cc.nIdCC || cc.nCodCC, cc.descricao || cc.cDescricao);
-      });
-    } catch (err) {
-      console.error("Erro ao buscar contas correntes", err);
-    }
+    const { clientesMap, cnpjMap, categoriasMap, contasCorrentesMap, contasCorrentesVisionMap } = await buildOmieLookupMaps(appKey, appSecret, clientesIds);
 
     // 5. Enriquecer os dados
     const enrichedData = contas.map((c: any) => {
@@ -131,20 +259,6 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
         valorPago = c.valor_pago || c.valor_baixa || c.resumo?.valor_pago || c.valor_documento || 0;
         dataPagamento = c.data_pagamento || c.data_baixa || c.resumo?.data_pagamento || c.info?.dAlt || c.info?.dInc || null;
       }
-
-      const TIPO_DOC_MAP: Record<string, string> = {
-        'BOL': 'Boleto',
-        'REC': 'Recibo',
-        'NF': 'Nota Fiscal',
-        'CHQ': 'Cheque',
-        'DEP': 'Depósito',
-        'TRA': 'Transferência',
-        'DIN': 'Dinheiro',
-        'CRT': 'Cartão',
-        'PIX': 'Pix',
-        'Boleto': 'Boleto',
-        'Recibo': 'Recibo'
-      };
 
       return {
         ...c,
@@ -162,11 +276,11 @@ export async function listarContasReceber(dataEmissaoDe: string, dataEmissaoAte:
 
     return { 
       data: enrichedData,
-      contasCorrentes: Array.from(contasCorrentesMap.entries()).map(([id, nome]) => ({ id, nome }))
+      contasCorrentes: Array.from(contasCorrentesVisionMap.entries()).map(([id, nome]) => ({ id, nome })),
+      dateFilterType
     };
   } catch (error: any) {
     const errorMsg = error.response?.data?.faultstring || error.message;
-    console.error('Erro na integração Omie:', errorMsg);
     
     if (errorMsg && errorMsg.toLowerCase().includes('nenhum registro encontrado')) {
       return { data: [] };
@@ -773,10 +887,7 @@ export async function enviarCobrancaDigisacOmie(conta: any, companyId: number = 
 
     for (let i = 0; i < phones.length; i++) {
       const phone = phones[i];
-      let currentMessageBody = messageBody.replace(/\$\{phone\.name\}/g, phone.name); // though we already interpolated phone.name above, wait, messageBody uses phone.name.
-
-      // We need to re-interpolate messageBody for each phone!
-      currentMessageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
+      let currentMessageBody = `_*Essa é uma mensagem automática. Não é necessário responder.*_
 
 Olá *${phone.name}*.
 Como vai? Esperamos que esteja bem!
