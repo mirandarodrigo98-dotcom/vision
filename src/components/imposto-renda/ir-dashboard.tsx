@@ -70,15 +70,21 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => setShowCharts(prev => !prev)}
-        >
-          {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showCharts ? 'Ocultar gráficos' : 'Mostrar gráficos'}
-        </Button>
+        <div className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1 shadow-sm">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            onClick={() => setShowCharts(prev => !prev)}
+            title={showCharts ? 'Ocultar gráficos' : 'Mostrar gráficos'}
+            aria-label={showCharts ? 'Ocultar gráficos' : 'Mostrar gráficos'}
+          >
+            {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
+          <span className="pr-2 text-xs font-medium text-muted-foreground">
+            {showCharts ? 'Gráficos visíveis' : 'Gráficos ocultos'}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
