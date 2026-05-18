@@ -709,9 +709,6 @@ export async function getZenVariableEvents(userId: string, companyCode: string, 
   }
 
   const credentials = await getQuestorZenCredenciaisUsuario(userId);
-  // #region debug-point B:credentials-context
-  void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'B',location:'questor-zen.ts:getZenVariableEvents',msg:'[DEBUG] loaded questor zen credentials for payroll event fetch',data:{userId,companyCode,hasConfig:Boolean(config?.base_url&&config?.api_token),hasUsuario:Boolean(credentials?.questor_zen_usuario),hasSenha:Boolean(credentials?.questor_zen_senha),hasToken:Boolean(credentials?.questor_zen_token)},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
-  // #endregion
   if (!credentials?.questor_zen_usuario || !credentials?.questor_zen_senha) {
     throw new Error('Usuário e senha do Questor Zen não estão salvos no cadastro do usuário cliente.');
   }
@@ -747,9 +744,6 @@ export async function getZenVariableEvents(userId: string, companyCode: string, 
   }, '/cliente/documento/configurarcadastroselecionado');
 
   const responseText = await response.text();
-  // #region debug-point C:portal-response
-  void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'C',location:'questor-zen.ts:getZenVariableEvents',msg:'[DEBUG] portal response received for GetVariableEvent',data:{userId,companyCode,status:response.status,responsePreview:responseText.slice(0,500)},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
-  // #endregion
   if (!response.ok) {
     throw new Error(`Falha em GetVariableEvent (${response.status}): ${responseText}`);
   }
@@ -760,9 +754,6 @@ export async function getZenVariableEvents(userId: string, companyCode: string, 
   }
 
   const rows = Array.isArray(parsed?.aaData) ? parsed.aaData : [];
-  // #region debug-point C:parsed-events
-  void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'C',location:'questor-zen.ts:getZenVariableEvents',msg:'[DEBUG] parsed aaData from GetVariableEvent',data:{userId,companyCode,rowCount:rows.length,firstRow:Array.isArray(rows[0])?rows[0].slice(0,12):rows[0]||null},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
-  // #endregion
   return rows
     .map((row) => {
       const normalizedRow = Array.isArray(row) ? row : [];
