@@ -177,6 +177,10 @@ export async function getPayrollEvents(companyId: string, bypassAuth = false): P
     const fallbackCompanyCode = cnpjDigits ? String(parseInt(cnpjDigits.substring(0, 8), 10)) : '';
     const companyCode = String(company.code || fallbackCompanyCode || '');
 
+    // #region debug-point A:company-context
+    void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'A',location:'payroll-variables.ts:getPayrollEvents',msg:'[DEBUG] resolved company context for payroll events',data:{companyId,sessionUserId:sessionUserId||null,bypassAuth,dbCompanyCode:company?.code||null,cnpj:company?.cnpj||null,fallbackCompanyCode,companyCode},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
+    // #endregion
+
     if (!companyCode) {
       console.warn('[Payroll] Código da empresa não encontrado para busca de eventos.');
       return { data: [] };
@@ -185,11 +189,17 @@ export async function getPayrollEvents(companyId: string, bypassAuth = false): P
     if (sessionUserId) {
       try {
         console.log(`[Payroll] Buscando eventos para a empresa ${companyCode} via portal do Questor Zen`);
-        const zenEvents = await getZenVariableEvents(sessionUserId, companyCode);
+        const zenEvents = await getZenVariableEvents(sessionUserId, companyCode, String(company.cnpj || ''));
+        // #region debug-point C:zen-events-result
+        void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'C',location:'payroll-variables.ts:getPayrollEvents',msg:'[DEBUG] questor zen returned events for payroll screen',data:{companyId,sessionUserId,eventCount:zenEvents.length,firstEvent:zenEvents[0]||null},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
+        // #endregion
         if (zenEvents.length > 0) {
           return { data: zenEvents };
         }
       } catch (zenError: unknown) {
+        // #region debug-point B:zen-events-error
+        void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'B',location:'payroll-variables.ts:getPayrollEvents',msg:'[DEBUG] questor zen event fetch failed and fallback will be used',data:{companyId,sessionUserId,error:getErrorMessage(zenError)},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
+        // #endregion
         console.warn('[Payroll] Falha ao buscar eventos via portal do Questor Zen, usando fallback da consulta personalizada:', getErrorMessage(zenError));
       }
     }
@@ -216,6 +226,10 @@ export async function getPayrollEvents(companyId: string, bypassAuth = false): P
             };
           }).filter(e => e.codigo);
         
+        // #region debug-point D:fallback-result
+        void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'D',location:'payroll-variables.ts:getPayrollEvents',msg:'[DEBUG] fallback EventosZen completed',data:{companyId,companyCode,resultError:result.error||null,rawCount:Array.isArray(result.data)?result.data.length:0,eventCount:events.length,firstEvent:events[0]||null},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
+        // #endregion
+        
         if (events.length > 0) {
           return { data: events };
         }
@@ -225,6 +239,9 @@ export async function getPayrollEvents(companyId: string, bypassAuth = false): P
         return { data: [] }; // No events found for this company
     }
   } catch (error: unknown) {
+    // #region debug-point E:payroll-events-catch
+    void (async()=>{let u='http://127.0.0.1:7777/event',s='payroll-variables-empty';try{const fs=await import('node:fs/promises');const e=await fs.readFile('.dbg/payroll-variables-empty.env','utf8');u=e.match(/DEBUG_SERVER_URL=(.+)/)?.[1]||u;s=e.match(/DEBUG_SESSION_ID=(.+)/)?.[1]||s}catch{}fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:s,runId:'pre',hypothesisId:'E',location:'payroll-variables.ts:getPayrollEvents',msg:'[DEBUG] payroll events failed in outer catch',data:{companyId,error:getErrorMessage(error)},ts:Date.now()})}).catch(()=>{})})().catch(()=>{});
+    // #endregion
     console.error('Erro ao buscar eventos:', error);
     // Não quebrar a tela do cliente por erro de integração.
     return { data: [] };
