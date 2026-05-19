@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { getSession } from '@/lib/auth';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { redirect } from 'next/navigation';
+import { ensureEmployeeHistoriesTable } from '@/lib/employee-histories-db';
 import { getEmployeeHistoryStatusLabel, getEmployeeHistoryTypeConfig } from '@/lib/employee-histories';
 import { HistoryActions } from '@/components/histories/history-actions';
 import { HistoryFilters } from '@/components/histories/history-filters';
@@ -36,6 +37,8 @@ export default async function AdminHistoriesPage({ searchParams }: AdminHistorie
       </div>
     );
   }
+
+  await ensureEmployeeHistoriesTable();
 
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';

@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { getUserPermissions } from '@/app/actions/permissions';
+import { ensureEmployeeHistoriesTable } from '@/lib/employee-histories-db';
 import { getEmployeeHistoryStatusLabel, getEmployeeHistoryTypeConfig } from '@/lib/employee-histories';
 import { HistoryActions } from '@/components/histories/history-actions';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,8 @@ export default async function ClientHistoriesPage({ searchParams }: ClientHistor
   if (!activeCompanyId) {
     return <div className="p-8 text-center text-muted-foreground">Selecione uma empresa.</div>;
   }
+
+  await ensureEmployeeHistoriesTable();
 
   const resolvedSearchParams = await searchParams;
   const q = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';

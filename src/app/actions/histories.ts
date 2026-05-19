@@ -15,6 +15,7 @@ import {
   getEmployeeHistoryStatusLabel,
   getEmployeeHistoryTypeConfig,
 } from '@/lib/employee-histories';
+import { ensureEmployeeHistoriesTable } from '@/lib/employee-histories-db';
 import { sendEmployeeHistoryNotification } from '@/lib/emails/notifications';
 
 function generateProtocolNumber() {
@@ -225,6 +226,8 @@ export async function createEmployeeHistory(formData: FormData) {
   if (!canCreate) return { error: 'Sem permissão para criar solicitação de histórico.' };
 
   try {
+    await ensureEmployeeHistoriesTable();
+
     const companyId = String(formData.get('company_id') || '');
     const employeeId = String(formData.get('employee_id') || '');
     const requestType = String(formData.get('request_type') || '') as EmployeeHistoryRequestType;
@@ -336,6 +339,8 @@ export async function updateEmployeeHistory(id: string, formData: FormData) {
   if (!canEdit) return { error: 'Sem permissão para retificar esta solicitação.' };
 
   try {
+    await ensureEmployeeHistoriesTable();
+
     const existing = await loadHistoryWithRelations(id);
     if (!existing) return { error: 'Solicitação não encontrada.' };
 
@@ -455,6 +460,8 @@ export async function cancelEmployeeHistory(id: string) {
   if (!canCancel) return { error: 'Sem permissão para cancelar esta solicitação.' };
 
   try {
+    await ensureEmployeeHistoriesTable();
+
     const history = await loadHistoryWithRelations(id);
     if (!history) return { error: 'Solicitação não encontrada.' };
 
@@ -531,6 +538,8 @@ export async function approveEmployeeHistory(id: string) {
   if (!canApprove) return { error: 'Sem permissão para concluir esta solicitação.' };
 
   try {
+    await ensureEmployeeHistoriesTable();
+
     const history = await loadHistoryWithRelations(id);
     if (!history) return { error: 'Solicitação não encontrada.' };
 
@@ -592,6 +601,8 @@ export async function getEmployeeHistory(id: string) {
   if (!session) return null;
 
   try {
+    await ensureEmployeeHistoriesTable();
+
     const history = await loadHistoryWithRelations(id);
     if (!history) return null;
 
