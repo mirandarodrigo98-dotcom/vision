@@ -74,6 +74,11 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'payroll_variables.view', label: 'Acessar Variáveis da Folha', category: 'Variáveis da Folha', module: 'Módulo Pessoal' },
     { code: 'payroll_variables.create', label: 'Lançar Variáveis da Folha', category: 'Variáveis da Folha', module: 'Módulo Pessoal' },
 
+    { code: 'histories.view', label: 'Visualizar Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
+    { code: 'histories.create', label: 'Solicitar Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
+    { code: 'histories.approve', label: 'Concluir Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
+    { code: 'histories.cancel', label: 'Cancelar Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
+
     // --- Módulo Societário ---
     { code: 'societario.view', label: 'Acessar Módulo Societário', category: 'Societário', module: 'Módulo Societário' },
     { code: 'societario.processes.view', label: 'Visualizar Processos', category: 'Societário', module: 'Módulo Societário' },

@@ -18,7 +18,8 @@ import {
   ChevronDown,
   ChevronRight,
   BarChart2,
-  FilePlus
+  FilePlus,
+  History
 } from 'lucide-react';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
       { href: '/app/leaves', label: 'Afastamentos', icon: Stethoscope, permission: 'leaves.view' },
       { href: '/app/vt', label: 'Vale Transporte', icon: Bus, permission: 'vt.view' },
       { href: '/app/payroll-variables', label: 'Variáveis da Folha', icon: FilePlus, permission: 'payroll_variables.view' },
+      { href: '/app/histories', label: 'Históricos', icon: History, permission: 'histories.view' },
       { 
         label: 'Relatórios', 
         icon: BarChart2,

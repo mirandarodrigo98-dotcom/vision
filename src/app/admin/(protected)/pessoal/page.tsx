@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRightIcon, UserGroupIcon, DocumentPlusIcon, DocumentMinusIcon, SunIcon, ArrowsRightLeftIcon, ExclamationTriangleIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, UserGroupIcon, DocumentPlusIcon, DocumentMinusIcon, SunIcon, ArrowsRightLeftIcon, ExclamationTriangleIcon, TruckIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function PessoalPage() {
@@ -11,7 +11,19 @@ export default async function PessoalPage() {
   if (!session) redirect('/login');
 
   const permissions = await getUserPermissions();
-  if (!permissions.includes('employees.view')) {
+  const hasPessoalAccess = session.role === 'admin' || [
+    'employees.view',
+    'admissions.view',
+    'dismissals.view',
+    'vacations.view',
+    'transfers.view',
+    'leaves.view',
+    'vt.view',
+    'payroll_variables.view',
+    'histories.view',
+  ].some((permission) => permissions.includes(permission));
+
+  if (!hasPessoalAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
@@ -161,6 +173,23 @@ export default async function PessoalPage() {
               </CardTitle>
               <CardDescription>
                 Lançamentos de eventos e variáveis da folha.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/admin/histories" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <DocumentTextIcon className="h-5 w-5" />
+                  Históricos
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Solicitações de alterações cadastrais, salariais, benefícios, exames e CAT.
               </CardDescription>
             </CardHeader>
           </Card>

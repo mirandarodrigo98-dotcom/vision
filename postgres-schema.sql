@@ -29,7 +29,10 @@ CREATE TABLE IF NOT EXISTS users (
     last_login_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-    avatar_path TEXT
+    avatar_path TEXT,
+    questor_zen_usuario TEXT,
+    questor_zen_senha TEXT,
+    questor_zen_token TEXT
 );
 
 -- Client Companies table
@@ -248,6 +251,27 @@ CREATE TABLE IF NOT EXISTS dismissals (
     observations TEXT,
     status TEXT NOT NULL DEFAULT 'SUBMITTED',
     protocol_number TEXT UNIQUE,
+    created_by_user_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (company_id) REFERENCES client_companies(id),
+    FOREIGN KEY (employee_id) REFERENCES employees(id),
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+);
+
+-- Employee Histories
+CREATE TABLE IF NOT EXISTS employee_histories (
+    id TEXT PRIMARY KEY,
+    company_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL,
+    request_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'SUBMITTED',
+    protocol_number TEXT UNIQUE,
+    effective_date TEXT,
+    current_data TEXT,
+    requested_change TEXT,
+    details TEXT,
+    attachment_key TEXT,
     created_by_user_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),

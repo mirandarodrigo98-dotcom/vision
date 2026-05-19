@@ -506,6 +506,104 @@ export async function sendVacationNotification(type: 'NEW' | 'UPDATE' | 'CANCEL'
     });
 }
 
+interface EmployeeHistoryEmailData {
+    companyName: string;
+    cnpj: string;
+    userName: string;
+    employeeName: string;
+    requestLabel: string;
+    requestSummary: string;
+    currentData?: string;
+    requestedChange?: string;
+    details?: string;
+    effectiveDate?: string;
+    recipientEmail?: string;
+    senderEmail?: string;
+    downloadLink?: string;
+    changes?: string[];
+}
+
+export async function sendEmployeeHistoryNotification(
+    type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN',
+    data: EmployeeHistoryEmailData
+) {
+    let to = '';
+
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        to = await getDestEmail() || '';
+
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        to = data.recipientEmail || '';
+    }
+
+    if (!to) {
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
+        return { success: false, error: 'Destination email not configured' };
+    }
+
+    let subject = '';
+    let html = '';
+    const buttonHtml = data.downloadLink
+        ? `<p><a href="${data.downloadLink}" style="display:inline-block;padding:10px 18px;background-color:#f97316;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Baixar Documento Anexo</a></p>`
+        : '';
+
+    if (type === 'NEW') {
+        subject = `Nova Solicitação - ${data.requestLabel}`;
+        html = `
+            <p>Você está recebendo uma solicitação de <strong>“${data.requestLabel}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
+            <p><strong>Funcionário:</strong> ${data.employeeName}</p>
+            ${data.effectiveDate ? `<p><strong>Data informada:</strong> ${data.effectiveDate}</p>` : ''}
+            ${data.currentData ? `<p><strong>Como está hoje:</strong> ${data.currentData}</p>` : ''}
+            ${data.requestedChange ? `<p><strong>Solicitação:</strong> ${data.requestedChange}</p>` : ''}
+            ${data.details ? `<p><strong>Detalhamento:</strong> ${data.details}</p>` : ''}
+            ${buttonHtml}
+        `;
+    } else if (type === 'UPDATE') {
+        const changes = data.changes || [];
+        subject = `Retificação - ${data.requestLabel}`;
+        html = `
+            <p>Você está recebendo uma retificação de <strong>“${data.requestLabel}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, enviada pelo usuário <strong>“${data.userName}”</strong>.</p>
+            <p><strong>Funcionário:</strong> ${data.employeeName}</p>
+            ${data.effectiveDate ? formatField('DATA INFORMADA', data.effectiveDate, 'effective_date', changes) : ''}
+            ${data.currentData ? formatField('COMO ESTÁ HOJE', data.currentData, 'current_data', changes) : ''}
+            ${data.requestedChange ? formatField('SOLICITAÇÃO', data.requestedChange, 'requested_change', changes) : ''}
+            ${data.details ? formatField('DETALHAMENTO', data.details, 'details', changes) : ''}
+            ${changes.includes('attachment') ? buttonHtml : ''}
+        `;
+    } else if (type === 'CANCEL') {
+        subject = `Solicitação Cancelada - ${data.requestLabel}`;
+        html = `
+            <p>A solicitação de <strong>“${data.requestLabel}”</strong> do funcionário <strong>“${data.employeeName}”</strong>, da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, enviada pelo usuário <strong>“${data.userName}”</strong>, foi CANCELADA.</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Solicitação Cancelada - ${data.requestLabel}`;
+        html = `
+            <p>A solicitação de <strong>“${data.requestLabel}”</strong> do funcionário <strong>“${data.employeeName}”</strong>, da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, foi CANCELADA.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
+        `;
+    } else if (type === 'COMPLETED') {
+        subject = `Solicitação Concluída - ${data.requestLabel}`;
+        html = `
+            <p>A solicitação de <strong>“${data.requestLabel}”</strong> do funcionário <strong>“${data.employeeName}”</strong>, da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, foi CONCLUÍDA.</p>
+            <p>As orientações e os desdobramentos dessa alteração seguirão pelo Portal do Cliente.</p>
+            <br/>
+            <p>Departamento Pessoal<br>NZD Contabilidade</p>
+        `;
+    }
+
+    return await resend.emails.send({
+        from: FROM_EMAIL,
+        to: [to],
+        subject,
+        html: await wrapHtml(html),
+    });
+}
+
 interface LeaveEmailData {
     userName: string;
     companyName: string;

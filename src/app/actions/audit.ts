@@ -109,6 +109,65 @@ export async function getLeaveHistory(leaveId: string) {
   }
 }
 
+export async function getEmployeeHistoryAudit(historyId: string) {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'Unauthorized' };
+  }
+
+  const history = (await db.query(`SELECT created_by_user_id, company_id FROM employee_histories WHERE id = $1`, [historyId])).rows[0] as any;
+
+  if (!history) {
+    return { error: 'Histórico não encontrado.' };
+  }
+
+  if (session.role === 'client_user') {
+    const hasAccess = (await db.query(`
+      SELECT 1 FROM user_companies WHERE user_id = $1 AND company_id = $2
+    `, [session.user_id, history.company_id])).rows[0];
+
+    if (!hasAccess && history.created_by_user_id !== session.user_id) {
+      return { error: 'Unauthorized' };
+    }
+  } else if (session.role === 'operator') {
+    const restricted = (await db.query(`
+      SELECT 1 FROM user_restricted_companies WHERE user_id = $1 AND company_id = $2
+    `, [session.user_id, history.company_id])).rows[0];
+
+    if (restricted) {
+      return { error: 'Unauthorized' };
+    }
+  }
+
+  try {
+    const logs = (await db.query(`
+      SELECT
+        al.id,
+        al.action,
+        al.timestamp AS created_at,
+        al.metadata,
+        u.name AS user_name,
+        al.actor_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.actor_user_id = u.id
+      WHERE al.entity_id = $1
+      ORDER BY al.timestamp DESC
+    `, [historyId])).rows as Array<{
+      id: string;
+      action: string;
+      created_at: string;
+      metadata: string;
+      user_name: string;
+      actor_email: string;
+    }>;
+
+    return { success: true, logs };
+  } catch (error) {
+    console.error('Error fetching employee history audit logs:', error);
+    return { error: 'Erro ao buscar histórico.' };
+  }
+}
+
 export async function getDismissalHistory(dismissalId: string) {
   const session = await getSession();
   if (!session) {
