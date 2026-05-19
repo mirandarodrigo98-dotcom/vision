@@ -11,6 +11,98 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.11.9',
+    date: '2026-05-19',
+    notes: [
+      { module: 'Pessoal', description: 'Nova rotina de Históricos no módulo Pessoal para cliente e adm/operador, com solicitações de alteração cadastral, salário, cargo, escala, dependentes, vale transporte, benefícios, exames médicos e CAT.' },
+      { module: 'Pessoal', description: 'A rotina de Históricos agora conta com permissões próprias, notificações internas no sino, disparo de e-mails por solicitação/retificação/conclusão/cancelamento e blindagem da tabela para funcionar na Vercel mesmo sem runner automático de migration.' },
+      { module: 'Imposto de Renda', description: 'A comparação entre declaração anterior e pré-preenchida foi reorganizada para leitura mais clara no formato da declaração, com recuperação do controle visual para ocultar e exibir gráficos.' },
+      { module: 'Questor Zen', description: 'Correção do fluxo de lançamento de variáveis para voltar a carregar os eventos corretamente no portal autenticado do Questor Zen.' }
+    ]
+  },
+  {
+    version: '1.11.8',
+    date: '2026-05-14',
+    notes: [
+      { module: 'Sistema', description: 'Nova versão publicada para destravar a exibição das novidades do sistema no ambiente de operador e administrador. Como o modal compara pela versão atual, as atualizações voltam a aparecer corretamente após o deploy.' },
+      { module: 'Financeiro', description: 'O filtro da cobrança agora permite escolher a busca no Omie por data de emissão ou por data de vencimento, mantendo as duas opções disponíveis nas duas empresas.' },
+      { module: 'Imposto de Renda', description: 'O botão de detalhes da declaração (olhinho) agora abre em uma nova aba do navegador, preservando a listagem atual.' }
+    ]
+  },
+  {
+    version: '1.11.7',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Variáveis da Folha', description: 'A grade de lançamentos agora exibe cabeçalhos e dados centralizados para melhorar a leitura da listagem.' },
+      { module: 'Variáveis da Folha', description: 'Mês Ref. passa a ser mostrado em MM/AAAA, Data de Envio em DD/MM/AAAA HH:mm:ss e Protocolo Zen exibe apenas o ID do protocolo.' }
+    ]
+  },
+  {
+    version: '1.11.6',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Questor Zen', description: 'Correção da exibição de descrições de eventos variáveis vindas do portal do Questor Zen, com tratamento adicional de charset para preservar acentuação.' },
+      { module: 'Variáveis da Folha', description: 'Nova rotina de lançamento agora exibe botão Cancelar em todas as etapas, retornando diretamente para a grade de Variáveis da Folha.' }
+    ]
+  },
+  {
+    version: '1.11.5',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Questor Zen', description: 'Envios de Lançamentos Eventos Variáveis feitos pelo Vision agora preenchem a observação do documento com o texto Importação Vision.' },
+      { module: 'Questor Zen', description: 'Ajuste aplicado diretamente no fluxo web autenticado do portal, sem alterar o comportamento validado da Aba 1 e da visualização do cadastro.' }
+    ]
+  },
+  {
+    version: '1.11.4',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Questor Zen', description: 'O assunto dos lançamentos de eventos variáveis volta a seguir o original do portal: apenas Lançamentos Eventos Variáveis.' },
+      { module: 'Questor Zen', description: 'A busca de eventos/variáveis agora usa primeiro o próprio portal do Questor Zen e mantém a consulta personalizada apenas como fallback, reduzindo o tempo de resposta quando o Zen responde normalmente.' }
+    ]
+  },
+  {
+    version: '1.11.3',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Questor Zen', description: 'Novo alinhamento do fluxo web de Lançamentos de Eventos Variáveis com o payload manual do portal, incluindo contexto oculto de categoria e campos persistidos do formulário.' },
+      { module: 'Questor Zen', description: 'Correção adicional para visualização do cadastro no portal após envio pelo Vision, ajustando o uso de REFERVALOR, VALOREVENTO e campos de contexto do formulário.' }
+    ]
+  },
+  {
+    version: '1.11.2',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Questor Zen', description: 'Correção do envio web de Lançamentos de Eventos Variáveis para preservar a visualização do cadastro no portal após o envio pelo Vision.' },
+      { module: 'Questor Zen', description: 'O payload agora separa corretamente os dados salvos do formulário e a grade exibida no portal, alinhando o comportamento com o fluxo manual do Zen.' }
+    ]
+  },
+  {
+    version: '1.11.1',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Sistema', description: 'Correção no modal de atualizações: as novidades voltam a aparecer corretamente ao abrir o sistema, incluindo as versões mais recentes.' },
+      { module: 'Sistema', description: 'A comparação de versões agora considera a versão completa, evitando falhas ao decidir quais novidades devem ser exibidas.' }
+    ]
+  },
+  {
+    version: '1.11.0',
+    date: '2026-05-13',
+    notes: [
+      { module: 'Questor Zen', description: 'Meu Perfil do usuário cliente agora exibe os campos Usuário, Senha e Token do Questor Zen, usando exatamente os mesmos dados do cadastro administrativo.' },
+      { module: 'Questor Zen', description: 'Sincronização bidirecional: qualquer alteração feita no Meu Perfil reflete no cadastro do usuário cliente no painel administrativo, e vice-versa.' },
+      { module: 'Cadastros', description: 'Novo botão de Histórico no cadastro do usuário cliente para acompanhar alterações dos campos do Questor Zen sem expor a senha em texto puro.' }
+    ]
+  },
+  {
+    version: '1.10.0',
+    date: '2026-05-12',
+    notes: [
+      { module: 'Questor Zen', description: 'Adicionada a seção Questor Zen no cadastro do usuário cliente com os campos Usuário, Senha e Token para autenticação no portal.' },
+      { module: 'Pessoal', description: 'Lançamentos de Eventos Variáveis passam a usar o fluxo web autenticado do Questor Zen, alinhado ao comportamento necessário para integração com a Aba 1 do Desktop.' }
+    ]
+  },
+  {
     version: '1.8.0',
     date: '2026-04-29',
     notes: [
@@ -316,29 +408,44 @@ export const RELEASE_NOTES: ReleaseNote[] = [
   }
 ];
 
+function parseVersion(version: string | null | undefined) {
+  const parts = String(version || '')
+    .split('.')
+    .map((part) => Number.parseInt(part, 10));
+
+  return [
+    Number.isFinite(parts[0]) ? parts[0] : 0,
+    Number.isFinite(parts[1]) ? parts[1] : 0,
+    Number.isFinite(parts[2]) ? parts[2] : 0,
+  ] as const;
+}
+
+function compareVersions(a: string | null | undefined, b: string | null | undefined) {
+  const left = parseVersion(a);
+  const right = parseVersion(b);
+
+  for (let i = 0; i < 3; i++) {
+    if (left[i] > right[i]) return 1;
+    if (left[i] < right[i]) return -1;
+  }
+
+  return 0;
+}
+
 // Helper to determine if we should show notes
 export function shouldShowReleaseNotes(currentVersion: string, lastSeenVersion: string | null): boolean {
   if (!lastSeenVersion || typeof lastSeenVersion !== 'string') return true;
-  
-  const [currMajor, currMinor] = currentVersion.split('.').map(Number);
-  const [seenMajor, seenMinor] = lastSeenVersion.split('.').map(Number);
-  
-  if (currMajor > seenMajor) return true;
-  if (currMajor === seenMajor && currMinor > seenMinor) return true;
-  
-  return false;
+
+  return compareVersions(currentVersion, lastSeenVersion) > 0;
 }
 
 // Helper to get notes to show
 export function getNotesToShow(lastSeenVersion: string | null): ReleaseNote[] {
-  if (!lastSeenVersion || typeof lastSeenVersion !== 'string') return RELEASE_NOTES;
-  
-  const [seenMajor, seenMinor] = lastSeenVersion.split('.').map(Number);
-  
+  if (!lastSeenVersion || typeof lastSeenVersion !== 'string') {
+    return RELEASE_NOTES.filter(note => compareVersions(note.version, '0.0.0') > 0);
+  }
+
   return RELEASE_NOTES.filter(note => {
-    const [noteMajor, noteMinor] = note.version.split('.').map(Number);
-    if (noteMajor > seenMajor) return true;
-    if (noteMajor === seenMajor && noteMinor > seenMinor) return true;
-    return false;
+    return compareVersions(note.version, lastSeenVersion) > 0;
   });
 }
