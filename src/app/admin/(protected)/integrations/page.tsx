@@ -82,6 +82,12 @@ export default async function IntegrationsPage() {
                     CONSULTA CPF
                 </Button>
             </Link>
+
+             <Link href="/admin/integrations/postgree" className="w-full">
+                <Button className="w-full">
+                    POSTGREE
+                </Button>
+            </Link>
           </CardContent>
         </Card>
 

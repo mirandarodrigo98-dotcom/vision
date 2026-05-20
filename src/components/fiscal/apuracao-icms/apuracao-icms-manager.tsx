@@ -266,7 +266,7 @@ export function ApuracaoIcmsManager() {
           Consulte a tabela TOTALICMSRJ, compare com os totalizadores de lancamentos fiscais e atualize os registros necessarios.
         </p>
         <p className="text-xs text-slate-500">
-          Datas no formato DD/MM/AAAA. O processamento consulta o Questor SYN em tempo real.
+          Datas no formato DD/MM/AAAA. O processamento usa conexao direta com o banco configurado em Integracoes &gt; Postgree.
         </p>
       </div>
 
