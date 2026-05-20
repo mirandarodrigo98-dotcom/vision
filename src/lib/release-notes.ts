@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.12.0',
+    date: '2026-05-19',
+    notes: [
+      { module: 'Fiscal', description: 'Nova rotina Apuração ICMS dentro do módulo Fiscal para consultar a TOTALICMSRJ por empresa, filial e período, exibindo a descrição da operação fiscal junto de cada registro.' },
+      { module: 'Fiscal', description: 'A tela agora compara os valores atuais da TOTALICMSRJ com os totalizadores das tabelas lctofissaiproduto e lctofisentproduto, incluindo visão consolidada dos campos Valor Total, Base de Cálculo ICMS, Valor ICMS, Outras ICMS e Isentas ICMS.' },
+      { module: 'Fiscal', description: 'Cada linha da TOTALICMSRJ pode ser atualizada diretamente pela interface com base nos totalizadores encontrados no Questor SYN, reduzindo ajuste manual na apuração do ICMS.' }
+    ]
+  },
+  {
     version: '1.11.9',
     date: '2026-05-19',
     notes: [
