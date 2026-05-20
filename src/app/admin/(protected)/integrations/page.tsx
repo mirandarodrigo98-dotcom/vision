@@ -83,11 +83,6 @@ export default async function IntegrationsPage() {
                 </Button>
             </Link>
 
-             <Link href="/admin/integrations/postgree" className="w-full">
-                <Button className="w-full">
-                    POSTGREE
-                </Button>
-            </Link>
           </CardContent>
         </Card>
 

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRightIcon, ReceiptText, FileText, Calculator } from 'lucide-react';
+import { ArrowRightIcon, ReceiptText, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -135,22 +135,6 @@ export default async function FiscalPage() {
           </Card>
         </Link>
 
-        <Link href="/admin/fiscal/apuracao-icms" className="group">
-          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
-                <div className="flex items-center gap-2 text-blue-600 group-hover:text-[#f97316] transition-colors">
-                  <Calculator className="h-5 w-5" />
-                  Apuracao ICMS
-                </div>
-                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </CardTitle>
-              <CardDescription>
-                Consulte a TOTALICMSRJ, compare com os totalizadores fiscais e atualize a apuracao de ICMS.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
       </div>
     </div>
   );
