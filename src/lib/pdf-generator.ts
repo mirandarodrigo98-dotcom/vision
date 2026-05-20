@@ -382,6 +382,7 @@ export async function generateDismissalPDF(data: any): Promise<Buffer> {
     doc.text(`Data de Geração: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, startY + 26);
 
     const dismissalData = [
+        getCell('Data do Aviso', data.notice_date ? format(new Date(data.notice_date), 'dd/MM/yyyy') : '-', ['notice_date'], changes),
         getCell('Data de Desligamento', data.dismissal_date ? format(new Date(data.dismissal_date), 'dd/MM/yyyy') : '-', ['dismissal_date'], changes),
         getCell('Tipo de Aviso', data.notice_type || '-', ['notice_type'], changes),
         getCell('Causa da Demissão', data.reason || '-', ['reason'], changes),

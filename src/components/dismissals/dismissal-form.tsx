@@ -11,16 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { addDays, format } from "date-fns";
+import { Loader2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 interface DismissalFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -56,10 +49,26 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     // Controlled Selects
     const [noticeType, setNoticeType] = useState<string>(initialData?.notice_type || '');
     const [dismissalCause, setDismissalCause] = useState<string>(initialData?.dismissal_cause || '');
+    const [noticeDate, setNoticeDate] = useState<Date | undefined>(
+        initialData?.notice_date ? parseDate(initialData.notice_date) : (
+            initialData?.dismissal_date ? parseDate(initialData.dismissal_date) : undefined
+        )
+    );
     
     const [dismissalDate, setDismissalDate] = useState<Date | undefined>(
         initialData?.dismissal_date ? parseDate(initialData.dismissal_date) : undefined
     );
+
+    useEffect(() => {
+        if (!noticeDate || !noticeType) return;
+
+        if (noticeType === 'Trabalhado') {
+            setDismissalDate(addDays(noticeDate, 30));
+            return;
+        }
+
+        setDismissalDate(noticeDate);
+    }, [noticeDate, noticeType]);
 
     // Fetch employees when company changes
     useEffect(() => {
@@ -80,13 +89,20 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
 
         const formData = new FormData(event.currentTarget);
         
-        if (dismissalDate) {
-            formData.set('dismissal_date', format(dismissalDate, 'yyyy-MM-dd'));
-        } else {
-             toast.error('Data de Desligamento é obrigatória');
-             setLoading(false);
-             return;
+        if (!noticeDate) {
+            toast.error('Data do Aviso é obrigatória');
+            setLoading(false);
+            return;
         }
+
+        if (!dismissalDate) {
+            toast.error('Data de Desligamento é obrigatória');
+            setLoading(false);
+            return;
+        }
+
+        formData.set('notice_date', format(noticeDate, 'yyyy-MM-dd'));
+        formData.set('dismissal_date', format(dismissalDate, 'yyyy-MM-dd'));
 
         try {
             let result;
@@ -154,7 +170,7 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                          {isEditing && <input type="hidden" name="employee_id" value={initialData.employee_id} />}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Tipo de Aviso */}
                         <div className="space-y-2">
                             <Label htmlFor="notice_type">Tipo de Aviso *</Label>
@@ -189,17 +205,31 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
 
-                    {/* Data de Desligamento */}
-                    <div className="space-y-2 flex flex-col">
+                        <div className="space-y-2 flex flex-col">
+                            <Label>Data do Aviso *</Label>
+                            <DatePicker
+                                date={noticeDate}
+                                setDate={setNoticeDate}
+                                disabled={readOnly}
+                                placeholder="Selecione uma data"
+                            />
+                        </div>
+
+                        <div className="space-y-2 flex flex-col">
                         <Label>Data de Desligamento *</Label>
                         <DatePicker
                             date={dismissalDate}
                             setDate={setDismissalDate}
-                            disabled={readOnly}
+                            disabled={true}
                             placeholder="Selecione uma data"
                         />
+                        <p className="text-xs text-muted-foreground">
+                            {noticeType === 'Trabalhado'
+                                ? 'Calculada automaticamente para 30 dias após a data do aviso.'
+                                : 'Segue automaticamente a mesma data do aviso.'}
+                        </p>
+                        </div>
                     </div>
 
                     {/* Observações */}

@@ -50,7 +50,7 @@ export function AdmissionActions({
   const [isApproving, setIsApproving] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
 
-  // Check deadline: 1 day before admission date
+  // Check deadline: allow rectification until the admission date itself
   // Fix: Parse YYYY-MM-DD manually to ensure local time is used and avoid UTC timezone shifts
   let admDate: Date;
   const cleanAdmissionDate = typeof admissionDate === 'string' ? admissionDate.trim().split('T')[0] : '';
@@ -62,15 +62,12 @@ export function AdmissionActions({
       admDate = new Date(admissionDate);
   }
   
-  const deadline = new Date(admDate);
-  deadline.setDate(deadline.getDate() - 1);
-  
   // Reset time for comparison
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  // No need to reset deadline hours as it was created from year/month/day (00:00 local)
+  admDate.setHours(0, 0, 0, 0);
   
-  const isExpired = now > deadline;
+  const isExpired = now > admDate;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
@@ -236,7 +233,7 @@ export function AdmissionActions({
               <p>{
                 isCanceled ? "Admissão cancelada" :
                 isCompleted ? "Admissão concluída" :
-                (!isAdmin && isExpired) ? "Prazo de retificação expirado" :
+                (!isAdmin && isExpired) ? "Prazo expirado (até a data da admissão)" :
                 "Retificar Admissão"
               }</p>
             </TooltipContent>

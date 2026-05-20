@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS dismissals (
     employee_id TEXT NOT NULL,
     notice_type TEXT NOT NULL,
     dismissal_cause TEXT NOT NULL,
+    notice_date TEXT NOT NULL,
     dismissal_date TEXT NOT NULL,
     observations TEXT,
     status TEXT NOT NULL DEFAULT 'SUBMITTED',

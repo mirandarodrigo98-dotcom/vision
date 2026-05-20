@@ -39,7 +39,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const [isCancelling, setIsCancelling] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
-  // Check deadline: 1 day before dismissal date
+  // Check deadline: allow rectification until the dismissal date itself
   // Parse YYYY-MM-DD string as local date to avoid timezone issues
   let disDate: Date;
   const cleanDismissalDate = typeof dismissalDate === 'string' ? dismissalDate.trim().split('T')[0] : '';
@@ -51,14 +51,11 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
       disDate = new Date(dismissalDate);
   }
 
-  const deadline = new Date(disDate);
-  deadline.setDate(deadline.getDate() - 1);
-  
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  deadline.setHours(0, 0, 0, 0);
+  disDate.setHours(0, 0, 0, 0);
   
-  const isExpired = now > deadline;
+  const isExpired = now > disDate;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
@@ -232,7 +229,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
               <p>{
                 isCanceled ? "Rescisão cancelada" :
                 isCompleted ? "Rescisão concluída" :
-                (!isAdmin && isExpired) ? "Prazo de retificação expirado" :
+                (!isAdmin && isExpired) ? "Prazo expirado (até a data do desligamento)" :
                 "Retificar Rescisão"
               }</p>
             </TooltipContent>

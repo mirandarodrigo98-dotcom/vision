@@ -43,6 +43,11 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
           `, [])).rows as Array<{ id: string; nome: string; cnpj: string }>;
     }
 
+    const attachments = (await db.query(
+        'SELECT id as attachment_id, original_name FROM admission_attachments WHERE admission_id = $1 ORDER BY created_at',
+        [id]
+    )).rows;
+
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">
             <div className="flex flex-col space-y-2">
@@ -54,7 +59,7 @@ export default async function AdminEditAdmissionPage({ params }: { params: Promi
             
             <AdmissionForm 
                 companies={companies} 
-                initialData={admission} 
+                initialData={{ ...admission, attachments }} 
                 isEditing={true} 
                 isAdmin={true} 
             />

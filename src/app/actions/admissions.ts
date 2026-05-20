@@ -432,18 +432,16 @@ export async function updateAdmission(formData: FormData) {
             }
         }
 
-        // Check date constraint
+        // Check date constraint: allow rectification until the admission date itself
         const dateStr = existingAdmission.admission_date.includes('T') ? existingAdmission.admission_date : existingAdmission.admission_date + 'T00:00:00';
         const admissionDateObj = new Date(dateStr);
-        const deadline = new Date(admissionDateObj);
-        deadline.setDate(deadline.getDate() - 1);
         
         const now = new Date();
         now.setHours(0, 0, 0, 0);
-        deadline.setHours(0, 0, 0, 0);
+        admissionDateObj.setHours(0, 0, 0, 0);
 
-        if (session.role !== 'admin' && now > deadline) {
-            return { error: 'O prazo para retificação expirou (até 1 dia antes da admissão).' };
+        if (session.role !== 'admin' && now > admissionDateObj) {
+            return { error: 'O prazo para retificação expirou (até a data da admissão).' };
         }
 
         // Extract fields

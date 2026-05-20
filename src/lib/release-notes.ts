@@ -11,10 +11,12 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: '1.12.2',
+    version: '1.12.3',
     date: '2026-05-19',
     notes: [
-      { module: 'Sistema', description: 'Ajustes internos de limpeza e estabilidade foram aplicados para manter a base alinhada com as rotinas atualmente válidas em produção.' }
+      { module: 'Pessoal', description: 'Admissão agora permite retificação até a própria data da admissão e a tela de retificação passou a exibir os anexos já enviados, permitindo complementar o envio com novos arquivos.' },
+      { module: 'Pessoal', description: 'Demissões ganhou o campo Data do Aviso com cálculo automático da Data de Desligamento: aviso trabalhado soma 30 dias e os demais tipos repetem a data do aviso.' },
+      { module: 'Pessoal', description: 'As regras de retificação de Demissões foram ajustadas para permitir edição até a data do desligamento, com atualização do PDF e persistência do novo campo notice_date.' }
     ]
   },
   {

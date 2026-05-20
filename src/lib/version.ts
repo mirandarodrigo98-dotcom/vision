@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.12.2'; // Limpeza de pacotes removidos da produção
+export const APP_VERSION = '1.12.3'; // Ajustes de Admissão e Demissões no módulo Pessoal

@@ -36,6 +36,26 @@ export default async function AdminEditDismissalPage({ params }: { params: Promi
          return <div>Esta solicitação já foi finalizada ou cancelada e não pode ser editada.</div>;
     }
 
+    if (session.role !== 'admin') {
+        const cleanDismissalDate = String(dismissal.dismissal_date || '').trim().split('T')[0];
+        const dismissalDate = /^\d{4}-\d{2}-\d{2}$/.test(cleanDismissalDate)
+            ? new Date(...cleanDismissalDate.split('-').map((part, index) => index === 1 ? Number(part) - 1 : Number(part)) as [number, number, number])
+            : new Date(dismissal.dismissal_date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        dismissalDate.setHours(0, 0, 0, 0);
+
+        if (now > dismissalDate) {
+            return (
+                <div className="p-8 text-center">
+                    <h1 className="text-2xl font-bold text-red-600">Prazo Expirado</h1>
+                    <p className="mt-4">O prazo para retificação desta rescisão expirou (até a data do desligamento).</p>
+                    <a href="/admin/dismissals" className="mt-6 inline-block text-primary hover:underline">Voltar para a lista</a>
+                </div>
+            );
+        }
+    }
+
     // Get companies based on role
     let companies = [];
     if (session.role === 'admin') {

@@ -28,20 +28,17 @@ export default async function EditAdmissionPage({ params }: { params: Promise<{ 
         redirect('/app/admissions');
     }
 
-    // Check deadline
+    // Check deadline: allow rectification until the admission date itself
     const admissionDate = new Date(admission.admission_date);
-    const deadline = new Date(admissionDate);
-    deadline.setDate(deadline.getDate() - 1);
-    
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    deadline.setHours(0, 0, 0, 0);
+    admissionDate.setHours(0, 0, 0, 0);
 
-    if (now > deadline) {
+    if (now > admissionDate) {
         return (
              <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold text-red-600">Prazo Expirado</h1>
-                <p className="mt-4">O prazo para retificação desta admissão expirou (até 1 dia antes da data de admissão).</p>
+                <p className="mt-4">O prazo para retificação desta admissão expirou (até a data da admissão).</p>
                 <a href="/app/admissions" className="mt-6 inline-block text-primary hover:underline">Voltar para a lista</a>
              </div>
         );
@@ -65,6 +62,11 @@ export default async function EditAdmissionPage({ params }: { params: Promise<{ 
         ORDER BY c.nome
       `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
+    const attachments = (await db.query(
+        'SELECT id as attachment_id, original_name FROM admission_attachments WHERE admission_id = $1 ORDER BY created_at',
+        [id]
+    )).rows;
+
     return (
         <div className="space-y-6 max-w-4xl mx-auto py-8">
             <div className="flex flex-col space-y-2">
@@ -74,7 +76,7 @@ export default async function EditAdmissionPage({ params }: { params: Promise<{ 
                 </p>
             </div>
             
-            <AdmissionForm companies={companies} initialData={admission} isEditing={true} />
+            <AdmissionForm companies={companies} initialData={{ ...admission, attachments }} isEditing={true} />
         </div>
     );
 }
