@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.12.4',
+    date: '2026-05-20',
+    notes: [
+      { module: 'Pessoal', description: 'Históricos permanece com download de anexo disponível na visualização tanto para cliente quanto para adm/operador, seguindo o fluxo com link assinado já gerado pela rotina.' },
+      { module: 'Pessoal', description: 'A visualização administrativa de Afastamentos passou a usar a mesma rotina de carregamento que monta o link de download do anexo, liberando o arquivo também para adm/operador.' },
+      { module: 'Pessoal', description: 'A visualização de Admissões na área do cliente agora carrega os anexos já enviados e permite baixar cada documento diretamente ao abrir a solicitação.' }
+    ]
+  },
+  {
     version: '1.12.3',
     date: '2026-05-19',
     notes: [

@@ -25,6 +25,11 @@ export default async function ViewAdmissionPage({ params }: { params: Promise<{ 
         redirect('/app/admissions');
     }
 
+    const attachments = (await db.query(
+        'SELECT id as attachment_id, original_name FROM admission_attachments WHERE admission_id = $1 ORDER BY created_at',
+        [id]
+    )).rows;
+
     const companies = (await db.query(`
         SELECT c.id, c.nome, c.cnpj 
         FROM client_companies c 
@@ -44,7 +49,7 @@ export default async function ViewAdmissionPage({ params }: { params: Promise<{ 
             
             <AdmissionForm 
                 companies={companies} 
-                initialData={admission} 
+                initialData={{ ...admission, attachments }} 
                 isEditing={true} 
                 readOnly={true}
             />

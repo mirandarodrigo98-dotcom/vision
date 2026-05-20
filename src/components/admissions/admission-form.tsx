@@ -1352,7 +1352,7 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                                 </ul>
                             </div>
                         )}
-                        {isEditing && files.length === 0 && (
+                        {isEditing && existingAttachments.length > 0 && files.length === 0 && (
                             <p className="text-sm text-gray-500 mt-2">
                                 Os arquivos já enviados continuam vinculados. Se necessário, você pode anexar novos arquivos para complementar o envio.
                             </p>

@@ -2,6 +2,7 @@ import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { LeaveForm } from '@/components/leaves/leave-form';
+import { getLeave } from '@/app/actions/leaves';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,20 +12,7 @@ export default async function AdminViewLeavePage({ params }: { params: Promise<{
 
     const { id } = await params;
 
-    let leaveQuery = `
-        SELECT l.*, c.nome as company_name
-        FROM leaves l
-        JOIN client_companies c ON l.company_id = c.id
-        WHERE l.id = $1
-    `;
-    const queryParams: any[] = [id];
-
-    if (session.role === 'operator') {
-        leaveQuery += ` AND (l.company_id IS NULL OR l.company_id NOT IN (SELECT company_id FROM user_restricted_companies WHERE user_id = $1))`;
-        queryParams.push(session.user_id);
-    }
-
-    const leave = (await db.query(leaveQuery, [...queryParams])).rows[0] as any;
+    const leave = await getLeave(id);
 
     if (!leave) {
         redirect('/admin/leaves');
