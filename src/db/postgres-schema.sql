@@ -267,6 +267,7 @@ CREATE TABLE IF NOT EXISTS migrations (
 INSERT INTO role_permissions (role, permission) VALUES 
 ('operator', 'admissions.view'),
 ('operator', 'admissions.create'),
+('operator', 'admissions.approve'),
 ('operator', 'admissions.edit'),
 ('operator', 'transfers.view'),
 ('operator', 'transfers.create'),
@@ -276,6 +277,10 @@ INSERT INTO role_permissions (role, permission) VALUES
 ('operator', 'vacations.create'),
 ('operator', 'vacations.cancel'),
 ('operator', 'vacations.approve'),
+('operator', 'leaves.view'),
+('operator', 'leaves.create'),
+('operator', 'leaves.cancel'),
+('operator', 'leaves.approve'),
 ('client', 'vacations.view'),
 ('client', 'vacations.create'),
 ('client', 'admissions.view'),

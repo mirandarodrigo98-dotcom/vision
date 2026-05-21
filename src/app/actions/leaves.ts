@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { sendLeaveNotification } from '@/lib/emails/notifications';
 import { generateLeavePDF } from '@/lib/pdf-generator';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
+import { getUserPermissions } from './permissions';
 
 // Helper to generate Protocol Number
 function generateProtocolNumber() {
@@ -404,6 +405,13 @@ export async function approveLeave(id: string) {
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
+    }
+
+    if (session.role === 'operator') {
+        const permissions = await getUserPermissions();
+        if (!permissions.includes('leaves.approve')) {
+            return { error: 'Sem permissão para concluir afastamento.' };
+        }
     }
 
     try {

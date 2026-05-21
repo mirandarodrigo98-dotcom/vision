@@ -41,6 +41,7 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     // --- Módulo Pessoal ---
     { code: 'admissions.view', label: 'Visualizar Admissões', category: 'Admissões', module: 'Módulo Pessoal' },
     { code: 'admissions.create', label: 'Criar Admissão', category: 'Admissões', module: 'Módulo Pessoal' },
+    { code: 'admissions.approve', label: 'Concluir Admissão', category: 'Admissões', module: 'Módulo Pessoal' },
     { code: 'admissions.edit', label: 'Editar Admissão', category: 'Admissões', module: 'Módulo Pessoal' },
     { code: 'admissions.cancel', label: 'Cancelar Admissão', category: 'Admissões', module: 'Módulo Pessoal' },
     { code: 'admissions.delete', label: 'Excluir Admissão', category: 'Admissões', module: 'Módulo Pessoal' },
@@ -63,6 +64,8 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
 
     { code: 'leaves.view', label: 'Visualizar Afastamentos', category: 'Afastamentos', module: 'Módulo Pessoal' },
     { code: 'leaves.create', label: 'Lançar Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
+    { code: 'leaves.approve', label: 'Concluir Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
+    { code: 'leaves.cancel', label: 'Cancelar Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
     { code: 'leaves.edit', label: 'Editar Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
     { code: 'leaves.delete', label: 'Excluir Afastamento', category: 'Afastamentos', module: 'Módulo Pessoal' },
 

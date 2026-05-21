@@ -32,6 +32,7 @@ interface AdmissionActionsProps {
   status: string;
   employeeName: string;
   isAdmin?: boolean;
+  canApprovePermission?: boolean;
   createdByUserId?: string;
   currentUserId?: string;
 }
@@ -42,6 +43,7 @@ export function AdmissionActions({
   status, 
   employeeName, 
   isAdmin = false,
+  canApprovePermission = true,
   createdByUserId,
   currentUserId
 }: AdmissionActionsProps) {
@@ -77,7 +79,7 @@ export function AdmissionActions({
   const hasPermission = isAdmin || true; 
 
   const canCancel = !isCanceled && !isCompleted;
-  const canApprove = isAdmin && !isCanceled && !isCompleted;
+  const canApprove = isAdmin && canApprovePermission && !isCanceled && !isCompleted;
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canView = true; // View is allowed for anyone with access to the list
 
@@ -154,7 +156,7 @@ export function AdmissionActions({
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
-          {isAdmin && (
+          {isAdmin && canApprovePermission && (
             canApprove ? (
                 <Tooltip>
                   <TooltipTrigger asChild>

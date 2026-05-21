@@ -7,6 +7,7 @@ import { ColumnHeader } from '@/components/ui/column-header';
 import { AdmissionActions } from '@/components/admissions/admission-actions';
 import { AdmissionFilters } from '@/components/admissions/admission-filters';
 import { getSession } from '@/lib/auth';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,8 @@ interface AdminAdmissionsPageProps {
 export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissionsPageProps) {
   const session = await getSession();
   if (!session) return null;
+  const permissions = session.role === 'operator' ? await getUserPermissions() : [];
+  const canApproveAdmission = session.role === 'admin' || permissions.includes('admissions.approve');
 
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
@@ -192,6 +195,7 @@ export default async function AdminAdmissionsPage({ searchParams }: AdminAdmissi
                     status={adm.status}
                     employeeName={adm.employee_full_name}
                     isAdmin={true}
+                    canApprovePermission={canApproveAdmission}
                   />
                 </TableCell>
               </TableRow>

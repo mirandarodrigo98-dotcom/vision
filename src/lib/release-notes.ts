@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.12.5',
+    date: '2026-05-20',
+    notes: [
+      { module: 'Pessoal', description: 'A tela de permissões por departamento passou a exibir a opção Concluir Admissão para operadores, alinhando o cadastro com o fluxo real da rotina.' },
+      { module: 'Pessoal', description: 'A tela de permissões por departamento passou a exibir a opção Concluir Afastamento para operadores e também o cancelamento do afastamento, acompanhando os códigos já usados pela rotina.' },
+      { module: 'Pessoal', description: 'A conclusão de Admissão e Afastamento agora respeita a permissão do operador tanto na interface quanto no backend, evitando concluir solicitações sem autorização.' }
+    ]
+  },
+  {
     version: '1.12.4',
     date: '2026-05-20',
     notes: [

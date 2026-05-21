@@ -5,6 +5,7 @@ import { ColumnHeader } from '@/components/ui/column-header';
 import { LeaveActions } from '@/components/leaves/leave-actions';
 import { LeaveFilters } from '@/components/leaves/leave-filters';
 import { getSession } from '@/lib/auth';
+import { getUserPermissions } from '@/app/actions/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,8 @@ interface AdminLeavesPageProps {
 
 export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageProps) {
   const session = await getSession();
+  const permissions = session?.role === 'operator' ? await getUserPermissions() : [];
+  const canApproveLeave = session?.role === 'admin' || permissions.includes('leaves.approve');
   const resolvedSearchParams = await searchParams;
   const sort = typeof resolvedSearchParams.sort === 'string' ? resolvedSearchParams.sort : 'created_at';
   const order = typeof resolvedSearchParams.order === 'string' ? resolvedSearchParams.order : 'desc';
@@ -193,6 +196,7 @@ export default async function AdminLeavesPage({ searchParams }: AdminLeavesPageP
                         status={leave.status}
                         employeeName={leave.employee_name}
                         isAdmin={true}
+                        canApprovePermission={canApproveLeave}
                       />
                     </TableCell>
                   </TableRow>

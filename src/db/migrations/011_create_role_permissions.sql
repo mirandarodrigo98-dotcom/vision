@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 INSERT OR IGNORE INTO role_permissions (role, permission) VALUES 
 ('operator', 'admissions.view'),
 ('operator', 'admissions.create'),
+('operator', 'admissions.approve'),
 ('operator', 'admissions.edit'),
 ('operator', 'transfers.view'),
 ('operator', 'transfers.create'),

@@ -31,9 +31,10 @@ interface LeaveActionsProps {
   status: string;
   employeeName: string;
   isAdmin?: boolean;
+  canApprovePermission?: boolean;
 }
 
-export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin = false }: LeaveActionsProps) {
+export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin = false, canApprovePermission = true }: LeaveActionsProps) {
   const router = useRouter();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
@@ -65,7 +66,7 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
   // Admin/Operator CAN cancel. Client can cancel if not expired.
   const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
-  const canApprove = isAdmin && (status === 'SUBMITTED' || status === 'RECTIFIED');
+  const canApprove = isAdmin && canApprovePermission && (status === 'SUBMITTED' || status === 'RECTIFIED');
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -133,7 +134,7 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
-          {isAdmin && (
+          {isAdmin && canApprovePermission && (
             canApprove ? (
             <AlertDialog>
                 <Tooltip>

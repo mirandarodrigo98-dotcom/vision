@@ -11,6 +11,7 @@ import { sendAdmissionNotification } from '@/lib/emails/notifications';
 import { format } from 'date-fns';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { generateAdmissionPDF } from '@/lib/pdf-generator';
+import { getUserPermissions } from './permissions';
 
 export async function createAdmission(formData: FormData) {
     const session = await getSession();
@@ -681,6 +682,13 @@ export async function completeAdmission(admissionId: string, data?: { employeeCo
     const session = await getSession();
     if (!session || (session.role !== 'admin' && session.role !== 'operator')) {
         return { error: 'Unauthorized' };
+    }
+
+    if (session.role === 'operator') {
+        const permissions = await getUserPermissions();
+        if (!permissions.includes('admissions.approve')) {
+            return { error: 'Sem permissão para concluir admissão.' };
+        }
     }
 
     if (!data?.employeeCode || !data?.esocialRegistration) {

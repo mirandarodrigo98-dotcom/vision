@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.12.4'; // Download de anexos nas visualizações do módulo Pessoal
+export const APP_VERSION = '1.12.5'; // Permissões de conclusão para Admissão e Afastamento no operador
