@@ -11,6 +11,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.12.6',
+    date: '2026-05-20',
+    notes: [
+      { module: 'Imposto de Renda', description: 'Os gráficos do dashboard passaram a usar a mesma base filtrada exibida na grade, refletindo imediatamente o resultado do botão Filtrar.' },
+      { module: 'Imposto de Renda', description: 'A atualização dos gráficos de status e recebimentos agora considera os dados mais recentes ao recarregar as declarações antes da filtragem.' },
+      { module: 'Imposto de Renda', description: 'Ao voltar o foco para a tela do módulo de IR, a listagem e os gráficos buscam novamente os dados para refletir mudanças recentes de status, inclusão ou exclusão de recebimentos.' }
+    ]
+  },
+  {
     version: '1.12.5',
     date: '2026-05-20',
     notes: [

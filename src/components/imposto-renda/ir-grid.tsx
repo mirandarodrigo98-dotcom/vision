@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getIRDeclarations, IRDeclaration } from '@/app/actions/imposto-renda';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,9 +59,10 @@ function MultiSelectDropdown({ title, options, selected, onChange }: { title: st
 
 interface IRGridProps {
   declarations: IRDeclaration[];
+  onVisibleDeclarationsChange?: (declarations: IRDeclaration[]) => void;
 }
 
-export function IRGrid({ declarations }: IRGridProps) {
+export function IRGrid({ declarations, onVisibleDeclarationsChange }: IRGridProps) {
   const [currentDeclarations, setCurrentDeclarations] = useState<IRDeclaration[]>(declarations);
   const years = useMemo(
     () => Array.from(new Set(currentDeclarations.map(d => d.year))).sort((a, b) => Number(b) - Number(a)),
@@ -125,7 +126,7 @@ export function IRGrid({ declarations }: IRGridProps) {
     setFilterExecution(prev => prev + 1);
   };
 
-  const refreshDeclarations = async () => {
+  const refreshDeclarations = useCallback(async () => {
     setIsRefreshingData(true);
     try {
       const latestDeclarations = await getIRDeclarations();
@@ -133,7 +134,7 @@ export function IRGrid({ declarations }: IRGridProps) {
     } finally {
       setIsRefreshingData(false);
     }
-  };
+  }, []);
 
   const handleFilter = async () => {
     await refreshDeclarations();
@@ -269,6 +270,30 @@ export function IRGrid({ declarations }: IRGridProps) {
   const size = parseInt(pageSize, 10);
   const totalPages = Math.ceil(totalItems / size);
   const paginatedData = currentYearData.slice((currentPage - 1) * size, currentPage * size);
+
+  useEffect(() => {
+    onVisibleDeclarationsChange?.(currentYearData);
+  }, [currentYearData, onVisibleDeclarationsChange]);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      void refreshDeclarations();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshDeclarations();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshDeclarations]);
 
   const renderPagination = () => {
     if (totalPages <= 1) return null;

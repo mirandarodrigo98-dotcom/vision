@@ -1,1 +1,1 @@
-export const APP_VERSION = '1.12.5'; // Permissões de conclusão para Admissão e Afastamento no operador
+export const APP_VERSION = '1.12.6'; // Gráficos do IR sincronizados com filtros e atualizações de dados
