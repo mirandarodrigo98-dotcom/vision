@@ -1,14 +1,19 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { getEDocCreateCatalog } from '@/app/actions/edoc';
 import { getUserPermissions } from '@/app/actions/permissions';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EDocCreateForm } from '@/components/edoc/edoc-create-form';
 import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export default async function EDocCreatePage() {
+type EDocCreatePageProps = {
+  searchParams: Promise<{
+    categoryId?: string;
+  }>;
+};
+
+export default async function EDocCreatePage({ searchParams }: EDocCreatePageProps) {
   const session = await getSession();
   if (!session) redirect('/login');
 
@@ -24,20 +29,8 @@ export default async function EDocCreatePage() {
     );
   }
 
-  return (
-    <Card className="max-w-3xl border-slate-200 shadow-sm">
-      <CardHeader>
-        <CardTitle>e-Doc - Cadastrar</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-slate-600">
-          A rotina de cadastro/envio de documentos pelo Vision sera construida na proxima etapa, depois da
-          aprovacao da tela de <strong>Documentos Enviados</strong>.
-        </p>
-        <Link href="/admin/edoc">
-          <Button variant="outline">Voltar ao modulo e-Doc</Button>
-        </Link>
-      </CardContent>
-    </Card>
-  );
+  const params = await searchParams;
+  const catalog = await getEDocCreateCatalog();
+
+  return <EDocCreateForm catalog={catalog} selectedCategoryId={params.categoryId} />;
 }

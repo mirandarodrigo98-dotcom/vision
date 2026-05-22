@@ -1,12 +1,11 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { getUserPermissions } from '@/app/actions/permissions';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EDocReceivedManager } from '@/components/edoc/edoc-received-manager';
 import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function EDocReceivedPage() {
   const session = await getSession();
@@ -24,20 +23,5 @@ export default async function EDocReceivedPage() {
     );
   }
 
-  return (
-    <Card className="max-w-3xl border-slate-200 shadow-sm">
-      <CardHeader>
-        <CardTitle>e-Doc - Recebidos</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-slate-600">
-          Esta sera a proxima etapa do modulo. O pacote atual entrega primeiro a tela do admin/operador para
-          <strong> Documentos Enviados</strong>.
-        </p>
-        <Link href="/admin/edoc">
-          <Button variant="outline">Voltar ao modulo e-Doc</Button>
-        </Link>
-      </CardContent>
-    </Card>
-  );
+  return <EDocReceivedManager />;
 }

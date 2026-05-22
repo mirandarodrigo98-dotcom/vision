@@ -1,10 +1,9 @@
-import Link from 'next/link';
-import { ArrowRightIcon, FilePlus2, Inbox, Send } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
+import { getEDocCreateCatalog } from '@/app/actions/edoc';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { getSession } from '@/lib/auth';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EDocModuleClient } from '@/components/edoc/edoc-module-client';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -28,77 +27,14 @@ export default async function EDocPage() {
     );
   }
 
-  const cards = [
-    {
-      href: '/admin/edoc/enviados',
-      label: 'Enviados',
-      description: 'Consulte e acompanhe os documentos publicados para os clientes via Questor Zen.',
-      icon: Send,
-      enabled: canViewSent,
-    },
-    {
-      href: '/admin/edoc/recebidos',
-      label: 'Recebidos',
-      description: 'Area reservada para a tela de documentos recebidos do e-Doc.',
-      icon: Inbox,
-      enabled: canViewReceived,
-    },
-    {
-      href: '/admin/edoc/cadastrar',
-      label: 'Cadastrar',
-      description: 'Preparacao da rotina de publicacao/envio de documentos pelo Vision.',
-      icon: FilePlus2,
-      enabled: canCreate,
-    },
-  ];
+  const catalog = await getEDocCreateCatalog();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">e-Doc</h1>
-        <p className="mt-2 text-muted-foreground">
-          Frontend do Vision para os documentos do Questor Zen no painel admin/operador.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card) => {
-          const Icon = card.icon;
-
-          if (!card.enabled) {
-            return (
-              <Card key={card.label} className="cursor-not-allowed border-dashed opacity-60">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between gap-2 text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-5 w-5" />
-                      {card.label}
-                    </div>
-                  </CardTitle>
-                  <CardDescription>{card.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            );
-          }
-
-          return (
-            <Link key={card.href} href={card.href} className="group">
-              <Card className="h-full cursor-pointer transition-all hover:border-[#f97316] hover:shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between gap-2 transition-colors group-hover:text-[#f97316]">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-5 w-5" />
-                      {card.label}
-                    </div>
-                    <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 transition-opacity group-hover:opacity-100" />
-                  </CardTitle>
-                  <CardDescription>{card.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
+    <EDocModuleClient
+      catalog={catalog}
+      canViewSent={canViewSent}
+      canViewReceived={canViewReceived}
+      canCreate={canCreate}
+    />
   );
 }

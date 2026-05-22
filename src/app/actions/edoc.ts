@@ -4,8 +4,11 @@ import { revalidatePath } from 'next/cache';
 
 import { getSession } from '@/lib/auth';
 import {
+  getZenClientByCnpj,
   getQuestorZenConfig,
   getZenCategories,
+  sendDocumentToZen,
+  uploadToZen,
 } from '@/app/actions/integrations/questor-zen';
 
 export type EDocCategoryNode = {
@@ -34,6 +37,8 @@ export type EDocSentDocument = {
   comments: string;
   recipients: string;
   fileId: string;
+  origin: string;
+  typeKey: string;
 };
 
 export type EDocSentFilters = {
@@ -55,13 +60,14 @@ export type EDocSentFilters = {
   pageSize?: number;
 };
 
-type EDocSearchResult = {
+export type EDocSearchResult = {
   success: boolean;
   items: EDocSentDocument[];
   total: number;
   page: number;
   pageSize: number;
   pageCount: number;
+  availableTypes?: EDocCategoryNode[];
   error?: string;
 };
 
@@ -69,6 +75,37 @@ type QuestorZenCategory = {
   Codigo?: unknown;
   Descricao?: unknown;
   Categorias?: QuestorZenCategory[];
+  Atributos?: unknown;
+  CategoriaSugestoes?: unknown;
+  DeadFile?: unknown;
+};
+
+export type EDocCreateSuggestion = {
+  subject: string;
+  observation: string;
+};
+
+export type EDocCreateField = {
+  key: string;
+  label: string;
+  inputType: 'text' | 'date' | 'month' | 'currency';
+  required: boolean;
+};
+
+export type EDocCreateCategory = {
+  id: string;
+  label: string;
+  moduleId: string;
+  moduleLabel: string;
+  deadFile: boolean;
+  fields: EDocCreateField[];
+  suggestions: EDocCreateSuggestion[];
+};
+
+export type EDocCreateModule = {
+  id: string;
+  label: string;
+  categories: EDocCreateCategory[];
 };
 
 const FALLBACK_EDOC_CATEGORIES: EDocCategoryNode[] = [
@@ -138,6 +175,15 @@ const FALLBACK_EDOC_CATEGORIES: EDocCategoryNode[] = [
 
 function normalizeText(value: unknown) {
   return String(value ?? '').trim();
+}
+
+function slugify(value: unknown) {
+  return normalizeText(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function digitsOnly(value: unknown) {
@@ -327,6 +373,124 @@ function normalizeCategoryTree(input: unknown): EDocCategoryNode[] {
   return normalized.length > 0 ? normalized : FALLBACK_EDOC_CATEGORIES;
 }
 
+function inferFieldFromAttribute(label: string): EDocCreateField {
+  const normalized = label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  if (normalized.includes('data de vencimento')) {
+    return { key: 'DataVencimento', label, inputType: 'date', required: true };
+  }
+
+  if (normalized.includes('data de publicacao')) {
+    return { key: 'DataPublicacao', label, inputType: 'date', required: true };
+  }
+
+  if (normalized.includes('data de competencia')) {
+    return { key: 'DataCompetencia', label, inputType: 'month', required: true };
+  }
+
+  if (normalized.includes('valor')) {
+    return { key: 'Valor', label, inputType: 'currency', required: true };
+  }
+
+  if (normalized.includes('tipo calculo')) {
+    return { key: 'TipoCalculo', label, inputType: 'text', required: true };
+  }
+
+  if (normalized.includes('colaborador')) {
+    return { key: 'Colaborador', label, inputType: 'text', required: true };
+  }
+
+  return {
+    key: label
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ''),
+    label,
+    inputType: 'text',
+    required: true,
+  };
+}
+
+function normalizeCreateCatalog(input: unknown): EDocCreateModule[] {
+  const modules = Array.isArray(input) ? input : [];
+
+  const normalized = modules
+    .map((module) => {
+      if (!module || typeof module !== 'object') return null;
+      const record = module as QuestorZenCategory;
+      const moduleId = normalizeText(record.Codigo);
+      const moduleLabel = normalizeText(record.Descricao);
+      if (!moduleId || !moduleLabel) return null;
+
+      const categories = Array.isArray(record.Categorias)
+        ? record.Categorias
+            .map((category) => {
+              const categoryId = normalizeText(category?.Codigo);
+              const categoryLabel = normalizeText(category?.Descricao);
+              if (!categoryId || !categoryLabel) return null;
+
+              const attributes = Array.isArray(category?.Atributos)
+                ? category.Atributos
+                    .map((attribute) => normalizeText(attribute))
+                    .filter(Boolean)
+                : [];
+
+              const suggestions = Array.isArray(category?.CategoriaSugestoes)
+                ? category.CategoriaSugestoes
+                    .map((item) => {
+                      if (!item || typeof item !== 'object') return null;
+                      const record = item as Record<string, unknown>;
+                      return {
+                        subject: normalizeText(record.Assunto),
+                        observation: normalizeText(record.Observacao),
+                      } satisfies EDocCreateSuggestion;
+                    })
+                    .filter((item): item is EDocCreateSuggestion => Boolean(item?.subject || item?.observation))
+                : [];
+
+              return {
+                id: categoryId,
+                label: categoryLabel,
+                moduleId,
+                moduleLabel,
+                deadFile: Boolean(category?.DeadFile),
+                fields: attributes.map((attribute) => inferFieldFromAttribute(attribute)),
+                suggestions,
+              } satisfies EDocCreateCategory;
+            })
+            .filter(Boolean) as EDocCreateCategory[]
+        : [];
+
+      return {
+        id: moduleId,
+        label: moduleLabel,
+        categories,
+      } satisfies EDocCreateModule;
+    })
+    .filter(Boolean) as EDocCreateModule[];
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  return FALLBACK_EDOC_CATEGORIES.map((module) => ({
+    id: module.id,
+    label: module.label,
+    categories: module.children.map((category) => ({
+      id: category.id,
+      label: category.label,
+      moduleId: module.id,
+      moduleLabel: module.label,
+      deadFile: false,
+      fields: [],
+      suggestions: [],
+    })),
+  }));
+}
+
 function extractDocumentItems(payload: unknown) {
   if (Array.isArray(payload)) return payload;
   if (payload && typeof payload === 'object') {
@@ -374,9 +538,23 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
   const sentAtIso = parseDateToIso(publicationRaw);
   const dueAtIso = parseDateToIso(dueRaw);
   const competenceIso = parseCompetenceToIso(competenceRaw);
+  const origin = firstNonEmpty(
+    getAttributeValue(attributeMap, ['Origem', 'Origin']),
+    record.Origem,
+    record.Origin
+  );
 
   const title = firstNonEmpty(record.Titulo, record.Title, record.Assunto, record.Subject);
   if (!title) return null;
+
+  const categoryId = firstNonEmpty(record.CategoriaId, record.IdCategoria);
+  const categoryLabel = firstNonEmpty(
+    record.CategoriaDescricao,
+    record.CategoryDescription,
+    record.Tipo,
+    record.TypeDescription
+  );
+  const typeKey = categoryId || slugify(categoryLabel || title);
 
   return {
     id: firstNonEmpty(record.Id, record.id),
@@ -404,13 +582,8 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
       record.UsuarioCriacao,
       record.CreatedByName
     ),
-    categoryId: firstNonEmpty(record.CategoriaId, record.IdCategoria),
-    categoryLabel: firstNonEmpty(
-      record.CategoriaDescricao,
-      record.CategoryDescription,
-      record.Tipo,
-      record.TypeDescription
-    ),
+    categoryId,
+    categoryLabel,
     status: status.label,
     statusGroup: status.group,
     sentAt: sentAtIso ? formatDateFromIso(sentAtIso) : normalizeText(publicationRaw),
@@ -422,6 +595,8 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
     comments: firstNonEmpty(record.Observacao, record.Observation, record.Comments),
     recipients: firstNonEmpty(record.Destinatarios, record.Recipients),
     fileId: firstNonEmpty(record.Arquivo, record.File, record.FileId),
+    origin,
+    typeKey,
   };
 }
 
@@ -453,7 +628,7 @@ function applyClientSideFilters(items: EDocSentDocument[], filters: EDocSentFilt
     })
     .filter((item) => {
       if (selectedTypes.size === 0) return true;
-      return selectedTypes.has(item.categoryId);
+      return selectedTypes.has(item.typeKey || item.categoryId);
     })
     .filter((item) => {
       if (!companyDocument && !companyName) return true;
@@ -524,108 +699,234 @@ async function ensureAdminOrOperatorEdocAccess() {
   return session;
 }
 
-export async function getEDocCategories(): Promise<EDocCategoryNode[]> {
+export async function getEDocCreateCatalog(): Promise<EDocCreateModule[]> {
   await ensureAdminOrOperatorEdocAccess();
 
   try {
     const categories = await getZenCategories();
-    return normalizeCategoryTree(categories);
+    return normalizeCreateCatalog(categories);
   } catch {
-    return FALLBACK_EDOC_CATEGORIES;
+    return normalizeCreateCatalog([]);
   }
+}
+
+export async function getEDocCategories(): Promise<EDocCategoryNode[]> {
+  const catalog = await getEDocCreateCatalog();
+
+  return catalog.map((module) => ({
+    id: module.id,
+    label: module.label,
+    children: module.categories.map((category) => ({
+      id: category.id,
+      label: category.label,
+      children: [],
+    })),
+  }));
+}
+
+async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCategoryIds?: string[]) {
+  if (!filters.startDate || !filters.endDate) {
+    return {
+      success: false,
+      items: [] as EDocSentDocument[],
+      error: 'Informe a data inicial e final para consultar os documentos.',
+    };
+  }
+
+  const config = await getQuestorZenConfig();
+  if (!config) {
+    return {
+      success: false,
+      items: [] as EDocSentDocument[],
+      error: 'Configuracao do Questor Zen nao encontrada.',
+    };
+  }
+
+  const categoryIds = requestCategoryIds && requestCategoryIds.length > 0 ? requestCategoryIds : [''];
+  const uniqueItems = new Map<string, EDocSentDocument>();
+
+  for (const categoryId of categoryIds) {
+    const response = await fetch(
+      buildZenApiUrl(config.base_url, config.api_token, '/pegardocsedocqnet'),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          DataInicio: filters.startDate,
+          DataFinal: filters.endDate,
+          ...(categoryId ? { IdCategoria: categoryId } : {}),
+        }),
+        cache: 'no-store',
+      }
+    );
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      return {
+        success: false,
+        items: [] as EDocSentDocument[],
+        error: `Questor Zen retornou erro ${response.status}: ${responseText}`,
+      };
+    }
+
+    const parsed = parseJsonSafely(responseText);
+    const items = extractDocumentItems(parsed);
+
+    for (const rawItem of items) {
+      const normalized = normalizeDocument(rawItem);
+      if (!normalized) continue;
+
+      const dedupeKey = normalized.id || `${normalized.code}-${normalized.title}-${normalized.sentAtIso}`;
+      uniqueItems.set(dedupeKey, normalized);
+    }
+  }
+
+  return {
+    success: true,
+    items: Array.from(uniqueItems.values()),
+  };
+}
+
+function paginateDocuments(items: EDocSentDocument[], page?: number, pageSize?: number) {
+  const safePageSize = Math.max(1, pageSize || 10);
+  const safePage = Math.max(1, page || 1);
+  const pageCount = items.length === 0 ? 0 : Math.ceil(items.length / safePageSize);
+  const finalPage = pageCount > 0 ? Math.min(safePage, pageCount) : 1;
+  const startIndex = (finalPage - 1) * safePageSize;
+
+  return {
+    page: finalPage,
+    pageSize: safePageSize,
+    pageCount,
+    items: items.slice(startIndex, startIndex + safePageSize),
+  };
+}
+
+function groupReceivedTypeLabel(label: string) {
+  const normalized = slugify(label);
+
+  if (
+    normalized.includes('extrato') ||
+    normalized.includes('comprovante') ||
+    normalized.includes('contabil') ||
+    normalized.includes('balancete') ||
+    normalized.includes('demonstrac')
+  ) {
+    return 'Documentos Contabeis';
+  }
+
+  if (
+    normalized.includes('folha') ||
+    normalized.includes('rescis') ||
+    normalized.includes('ferias') ||
+    normalized.includes('laudo') ||
+    normalized.includes('vale') ||
+    normalized.includes('admiss') ||
+    normalized.includes('atestado') ||
+    normalized.includes('pagamento')
+  ) {
+    return 'Documentos Departamento Pessoal';
+  }
+
+  if (
+    normalized.includes('nota') ||
+    normalized.includes('fiscal') ||
+    normalized.includes('imposto') ||
+    normalized.includes('guia') ||
+    normalized.includes('das')
+  ) {
+    return 'Documentos Fiscais';
+  }
+
+  if (
+    normalized.includes('contrato') ||
+    normalized.includes('boleto') ||
+    normalized.includes('administr')
+  ) {
+    return 'Documentos Administrativos';
+  }
+
+  return 'Outros Documentos';
+}
+
+function buildReceivedTypeTree(items: EDocSentDocument[]): EDocCategoryNode[] {
+  const grouped = new Map<string, Map<string, { id: string; label: string }>>();
+
+  for (const item of items) {
+    const typeLabel = item.categoryLabel || item.title;
+    if (!typeLabel) continue;
+
+    const groupLabel = groupReceivedTypeLabel(typeLabel);
+    if (!grouped.has(groupLabel)) {
+      grouped.set(groupLabel, new Map());
+    }
+
+    grouped.get(groupLabel)?.set(item.typeKey, {
+      id: item.typeKey,
+      label: typeLabel,
+    });
+  }
+
+  return Array.from(grouped.entries())
+    .map(([groupLabel, childrenMap]) => ({
+      id: slugify(groupLabel),
+      label: groupLabel,
+      children: Array.from(childrenMap.values())
+        .sort((left, right) => left.label.localeCompare(right.label))
+        .map((child) => ({
+          id: child.id,
+          label: child.label,
+          children: [],
+        })),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function filterReceivedOrigin(items: EDocSentDocument[]) {
+  const docsWithOrigin = items.filter((item) => item.origin);
+  if (docsWithOrigin.length === 0) {
+    return items;
+  }
+
+  const received = items.filter((item) => {
+    if (!item.origin) return false;
+    return includesNormalized(item.origin, 'cliente') || includesNormalized(item.origin, 'q-net');
+  });
+
+  return received.length > 0 ? received : items;
 }
 
 export async function searchEDocSentDocuments(filters: EDocSentFilters): Promise<EDocSearchResult> {
   try {
     await ensureAdminOrOperatorEdocAccess();
 
-    if (!filters.startDate || !filters.endDate) {
-      return {
-        success: false,
-        items: [],
-        total: 0,
-        page: 1,
-        pageSize: 10,
-        pageCount: 0,
-        error: 'Informe a data inicial e final para consultar os documentos enviados.',
-      };
-    }
-
-    const config = await getQuestorZenConfig();
-    if (!config) {
-      return {
-        success: false,
-        items: [],
-        total: 0,
-        page: 1,
-        pageSize: 10,
-        pageCount: 0,
-        error: 'Configuracao do Questor Zen nao encontrada.',
-      };
-    }
-
     const categoryIds = (filters.typeIds || []).filter(Boolean);
-    const requestCategories = categoryIds.length > 0 ? categoryIds : [''];
-    const uniqueItems = new Map<string, EDocSentDocument>();
-
-    for (const categoryId of requestCategories) {
-      const response = await fetch(
-        buildZenApiUrl(config.base_url, config.api_token, '/pegardocsedocqnet'),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            DataInicio: filters.startDate,
-            DataFinal: filters.endDate,
-            ...(categoryId ? { IdCategoria: categoryId } : {}),
-          }),
-          cache: 'no-store',
-        }
-      );
-
-      const responseText = await response.text();
-      if (!response.ok) {
-        return {
-          success: false,
-          items: [],
-          total: 0,
-          page: 1,
-          pageSize: 10,
-          pageCount: 0,
-          error: `Questor Zen retornou erro ${response.status}: ${responseText}`,
-        };
-      }
-
-      const parsed = parseJsonSafely(responseText);
-      const items = extractDocumentItems(parsed);
-
-      for (const rawItem of items) {
-        const normalized = normalizeDocument(rawItem);
-        if (!normalized) continue;
-
-        const dedupeKey = normalized.id || `${normalized.code}-${normalized.title}-${normalized.sentAtIso}`;
-        uniqueItems.set(dedupeKey, normalized);
-      }
+    const result = await fetchEDocDocumentsFromZen(filters, categoryIds.length > 0 ? categoryIds : ['']);
+    if (!result.success) {
+      return {
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        pageCount: 0,
+        success: false,
+        error: result.error,
+      };
     }
 
-    const filtered = applyClientSideFilters(Array.from(uniqueItems.values()), filters);
-    const pageSize = Math.max(1, filters.pageSize || 10);
-    const page = Math.max(1, filters.page || 1);
-    const pageCount = filtered.length === 0 ? 0 : Math.ceil(filtered.length / pageSize);
-    const safePage = pageCount > 0 ? Math.min(page, pageCount) : 1;
-    const startIndex = (safePage - 1) * pageSize;
-    const paginatedItems = filtered.slice(startIndex, startIndex + pageSize);
+    const filtered = applyClientSideFilters(result.items, filters);
+    const paginated = paginateDocuments(filtered, filters.page, filters.pageSize);
 
     return {
       success: true,
-      items: paginatedItems,
+      items: paginated.items,
       total: filtered.length,
-      page: safePage,
-      pageSize,
-      pageCount,
+      page: paginated.page,
+      pageSize: paginated.pageSize,
+      pageCount: paginated.pageCount,
     };
   } catch (error) {
     return {
@@ -636,6 +937,180 @@ export async function searchEDocSentDocuments(filters: EDocSentFilters): Promise
       pageSize: 10,
       pageCount: 0,
       error: error instanceof Error ? error.message : 'Falha ao consultar documentos enviados do e-Doc.',
+    };
+  }
+}
+
+export async function searchEDocReceivedDocuments(filters: EDocSentFilters): Promise<EDocSearchResult> {
+  try {
+    await ensureAdminOrOperatorEdocAccess();
+
+    const result = await fetchEDocDocumentsFromZen(filters, ['']);
+    if (!result.success) {
+      return {
+        success: false,
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        pageCount: 0,
+        error: result.error,
+      };
+    }
+
+    const receivedItems = filterReceivedOrigin(result.items);
+    const availableTypes = buildReceivedTypeTree(receivedItems);
+    const filtered = applyClientSideFilters(receivedItems, filters);
+    const paginated = paginateDocuments(filtered, filters.page, filters.pageSize);
+
+    return {
+      success: true,
+      items: paginated.items,
+      total: filtered.length,
+      page: paginated.page,
+      pageSize: paginated.pageSize,
+      pageCount: paginated.pageCount,
+      availableTypes,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      pageCount: 0,
+      error: error instanceof Error ? error.message : 'Falha ao consultar documentos recebidos do e-Doc.',
+    };
+  }
+}
+
+function toBrDate(value: string) {
+  if (!value) return '';
+  const [year, month, day] = value.split('-');
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
+function toCompetenceValue(value: string) {
+  if (!value) return '';
+  const [year, month] = value.split('-');
+  if (!year || !month) return value;
+  return `${month}/${year}`;
+}
+
+function buildAdditionalAttributesFromForm(fields: EDocCreateField[], formData: FormData) {
+  const attributes: Record<string, string> = {};
+
+  for (const field of fields) {
+    const rawValue = normalizeText(formData.get(field.key));
+    if (!rawValue) continue;
+
+    if (field.key === 'DataCompetencia') {
+      attributes[field.key] = toCompetenceValue(rawValue);
+      continue;
+    }
+
+    if (field.key === 'DataVencimento' || field.key === 'DataPublicacao') {
+      attributes[field.key] = toBrDate(rawValue);
+      continue;
+    }
+
+    if (field.key === 'Valor') {
+      attributes[field.key] = rawValue.replace(/\./g, '').replace(',', '.');
+      continue;
+    }
+
+    attributes[field.key] = rawValue;
+  }
+
+  return attributes;
+}
+
+export async function createEDocDocument(formData: FormData) {
+  try {
+    await ensureAdminOrOperatorEdocAccess();
+
+    const categoryId = normalizeText(formData.get('categoryId'));
+    const companyCnpj = digitsOnly(formData.get('companyCnpj'));
+    const title = normalizeText(formData.get('title'));
+    const observation = normalizeText(formData.get('observation'));
+    const file = formData.get('file');
+
+    if (!categoryId) {
+      return { success: false, error: 'Selecione o tipo de documento.' };
+    }
+
+    if (!companyCnpj) {
+      return { success: false, error: 'Selecione o cliente.' };
+    }
+
+    if (!title) {
+      return { success: false, error: 'Informe o assunto do documento.' };
+    }
+
+    if (!(file instanceof File) || file.size === 0) {
+      return { success: false, error: 'Selecione um arquivo para envio.' };
+    }
+
+    const catalog = await getEDocCreateCatalog();
+    const selectedCategory =
+      catalog.flatMap((module) => module.categories).find((category) => category.id === categoryId) || null;
+
+    if (!selectedCategory) {
+      return { success: false, error: 'Categoria do documento nao encontrada na API do Questor Zen.' };
+    }
+
+    for (const field of selectedCategory.fields) {
+      if (!field.required) continue;
+      const value = normalizeText(formData.get(field.key));
+      if (!value) {
+        return { success: false, error: `Preencha o campo obrigatorio: ${field.label}.` };
+      }
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const uploadedFileId = await uploadToZen(file.name, fileBuffer);
+    if (!uploadedFileId) {
+      return { success: false, error: 'Falha ao enviar o arquivo para o Questor Zen.' };
+    }
+
+    const zenClientCode = await getZenClientByCnpj(companyCnpj);
+    if (!zenClientCode) {
+      return { success: false, error: `Cliente nao encontrado no Questor Zen para o CNPJ ${companyCnpj}.` };
+    }
+
+    const attributes = buildAdditionalAttributesFromForm(selectedCategory.fields, formData);
+
+    const result = await sendDocumentToZen({
+      CodigoCategoria: selectedCategory.id,
+      CodigoCliente: zenClientCode,
+      CodigoArquivo: uploadedFileId,
+      Titulo: title,
+      Observacao: observation,
+      DataCompetencia: attributes.DataCompetencia || '',
+      AtributosAdicionais: attributes,
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Questor Zen recusou o cadastro do documento.',
+      };
+    }
+
+    revalidatePath('/admin/edoc/enviados');
+    revalidatePath('/admin/edoc/cadastrar');
+
+    return {
+      success: true,
+      protocol: result.protocol,
+      message: 'Documento cadastrado com sucesso no Questor Zen.',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha ao cadastrar documento no e-Doc.',
     };
   }
 }
@@ -679,6 +1154,7 @@ export async function cancelEDocDocument(documentId: string) {
     }
 
     revalidatePath('/admin/edoc/enviados');
+    revalidatePath('/admin/edoc/recebidos');
 
     return {
       success: true,
