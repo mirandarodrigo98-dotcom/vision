@@ -114,6 +114,12 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'financeiro.cobranca.consultoria.boleto', label: 'Visualizar Boleto', category: 'NZD Consultoria', module: 'Módulo Financeiro' },
     { code: 'financeiro.cobranca.consultoria.digisac', label: 'Enviar Boleto via Digisac', category: 'NZD Consultoria', module: 'Módulo Financeiro' },
 
+    // --- Módulo e-Doc ---
+    { code: 'edoc.view', label: 'Acessar e-Doc', category: 'e-Doc', module: 'Módulo e-Doc' },
+    { code: 'edoc.sent.view', label: 'Visualizar Documentos Enviados', category: 'e-Doc', module: 'Módulo e-Doc' },
+    { code: 'edoc.received.view', label: 'Visualizar Documentos Recebidos', category: 'e-Doc', module: 'Módulo e-Doc' },
+    { code: 'edoc.create', label: 'Cadastrar Documento', category: 'e-Doc', module: 'Módulo e-Doc' },
+
     // --- Módulo Integrações ---
     { code: 'integrations.view', label: 'Acessar Integrações', category: 'Integrações', module: 'Módulo Integrações' },
     { code: 'integrations.enuves', label: 'Acessar Enuves', category: 'Integrações', module: 'Módulo Integrações' },

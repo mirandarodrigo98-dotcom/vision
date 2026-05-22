@@ -59,6 +59,7 @@ const navigation: NavigationItem[] = [
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
   { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view', 'payroll_variables.view', 'histories.view'] },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
+  { name: 'e-Doc', href: '/admin/edoc', icon: DocumentTextIcon, permissions: ['edoc.view', 'edoc.sent.view', 'edoc.received.view', 'edoc.create'] },
   { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permissions: ['contabilidade.view', 'contabilidade.faturamento.view'] },
   { name: 'Financeiro', href: '/admin/financeiro', icon: CurrencyDollarIcon, permissions: ['financeiro.cobranca.contabilidade.view', 'financeiro.cobranca.consultoria.view', 'financeiro.dashboard.contabilidade', 'financeiro.dashboard.consultoria'] },
   { name: 'Pessoa Física', href: '/admin/pessoa-fisica', icon: UserIcon },
