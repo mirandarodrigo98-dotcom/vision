@@ -378,6 +378,116 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
   return cookieJar;
 }
 
+async function fetchPortalHtmlPage(
+  baseUrl: string,
+  cookieJar: QuestorZenCookieJar,
+  path: string,
+  refererPath: string
+): Promise<{ html: string; finalUrl: string; status: number }> {
+  let response = await portalFetch(baseUrl, path, cookieJar, {
+    method: 'GET',
+    headers: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    },
+  }, refererPath);
+
+  let finalUrl = buildPortalUrl(baseUrl, path);
+
+  if (isRedirectStatus(response.status)) {
+    const redirectLocation = response.headers.get('location');
+    if (redirectLocation) {
+      finalUrl = redirectLocation.startsWith('http')
+        ? redirectLocation
+        : buildPortalUrl(baseUrl, redirectLocation);
+
+      response = await fetch(finalUrl, {
+        method: 'GET',
+        headers: buildPortalHeaders(baseUrl, refererPath, cookieJar, {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        }),
+        redirect: 'manual',
+      });
+      updateCookieJar(cookieJar, response);
+    }
+  }
+
+  return {
+    html: await readPortalResponseText(response),
+    finalUrl,
+    status: response.status,
+  };
+}
+
+export async function fetchQuestorZenPortalDocumentDetailHtml(
+  userId: string,
+  documentId: string
+): Promise<{ html: string | null; finalUrl?: string; error?: string }> {
+  try {
+    const config = await getQuestorZenConfig();
+    if (!config) {
+      return { html: null, error: 'Configuração do Questor Zen não encontrada.' };
+    }
+
+    const credentials = await getQuestorZenCredenciaisUsuario(userId);
+    if (!credentials?.questor_zen_usuario || !credentials?.questor_zen_senha) {
+      return { html: null, error: 'Credenciais do portal do Questor Zen não estão salvas para este usuário.' };
+    }
+
+    const baseUrl = config.base_url.replace(/\/$/, '');
+    const cookieJar = await authenticateQuestorZenPortal(baseUrl, credentials);
+    const refererPath = '/cliente/documento/enviados';
+    const candidates = [
+      `/cliente/documento/detalhesdocumento/${encodeURIComponent(documentId)}`,
+      `/cliente/documento/detalhesdocumento?documentId=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/detalhesdocumento?id=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/documentodetalhes/${encodeURIComponent(documentId)}`,
+      `/cliente/documento/documentodetalhes?documentId=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/documentodetalhes?id=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/visualizardetalhes/${encodeURIComponent(documentId)}`,
+      `/cliente/documento/visualizardetalhes?documentId=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/visualizardetalhes?id=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/detalhes/${encodeURIComponent(documentId)}`,
+      `/cliente/documento/detalhes?id=${encodeURIComponent(documentId)}`,
+      `/cliente/documento/documento/${encodeURIComponent(documentId)}`,
+      `/cliente/documento/documento?id=${encodeURIComponent(documentId)}`,
+    ];
+
+    for (const candidate of candidates) {
+      const page = await fetchPortalHtmlPage(baseUrl, cookieJar, candidate, refererPath);
+      if (page.status >= 400 || !page.html || isLoginHtml(page.html)) {
+        continue;
+      }
+
+      const normalizedHtml = normalizeZenText(page.html);
+      const looksLikeDetailPage =
+        normalizedHtml.includes('Detalhes do Documento') ||
+        normalizedHtml.includes('Movimentações') ||
+        normalizedHtml.includes('Movimentacoes') ||
+        normalizedHtml.includes('Comentários') ||
+        normalizedHtml.includes('Comentarios');
+
+      if (!looksLikeDetailPage) {
+        continue;
+      }
+
+      return {
+        html: page.html,
+        finalUrl: page.finalUrl,
+      };
+    }
+
+    return {
+      html: null,
+      error: 'Nenhuma rota de detalhe conhecida do portal do Questor Zen respondeu com a página do documento.',
+    };
+  } catch (error: unknown) {
+    return {
+      html: null,
+      error: getErrorMessage(error) || 'Falha ao buscar detalhe do documento no portal do Questor Zen.',
+    };
+  }
+}
+
 async function postVerificarSessao(baseUrl: string, cookieJar: QuestorZenCookieJar, clientOwnerDocument: string, email: string) {
   const body = new URLSearchParams({
     client: clientOwnerDocument,

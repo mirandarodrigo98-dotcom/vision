@@ -1,9 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { load } from 'cheerio';
 
 import { getSession } from '@/lib/auth';
 import {
+  fetchQuestorZenPortalDocumentDetailHtml,
   getZenClientByCnpj,
   getQuestorZenConfig,
   getZenCategories,
@@ -108,6 +110,41 @@ export type EDocCreateModule = {
   categories: EDocCreateCategory[];
 };
 
+export type EDocDocumentAttachment = {
+  id: string;
+  name: string;
+};
+
+export type EDocDocumentMovement = {
+  title: string;
+  description: string;
+  time: string;
+};
+
+export type EDocDocumentDetail = {
+  id: string;
+  code: string;
+  title: string;
+  type: string;
+  status: string;
+  statusGroup: 'open' | 'archived' | 'canceled';
+  companyName: string;
+  companyDocument: string;
+  author: string;
+  competence: string;
+  collaborator: string;
+  createdAt: string;
+  sentAt: string;
+  dueAt: string;
+  commentsCount: number;
+  observation: string;
+  origin: string;
+  attachments: EDocDocumentAttachment[];
+  movements: EDocDocumentMovement[];
+  source: 'portal' | 'api-fallback';
+  portalUrl?: string;
+};
+
 const FALLBACK_EDOC_CATEGORIES: EDocCategoryNode[] = [
   {
     id: '64b6d631273adf21d4750e07',
@@ -194,6 +231,17 @@ function buildZenApiUrl(baseUrl: string, token: string, path: string) {
   const base = baseUrl.replace(/\/$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}/api/v1/${token}${normalizedPath}`;
+}
+
+function stripTags(value: string) {
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function parseJsonSafely(text: string): unknown {
@@ -613,6 +661,225 @@ function includesNormalized(source: string, search: string) {
   return normalizedSource.includes(normalizedSearch);
 }
 
+function normalizePlainLines(value: string) {
+  return value
+    .replace(/\u00a0/g, ' ')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
+function extractLabelValueFromLines(lines: string[], labels: string[]) {
+  for (const line of lines) {
+    for (const label of labels) {
+      const pattern = new RegExp(`^${label}\\s*:\\s*(.+)$`, 'i');
+      const match = line.match(pattern);
+      if (match) {
+        return normalizeText(match[1]);
+      }
+    }
+  }
+
+  return '';
+}
+
+function parseCommentsCount(value: string) {
+  const match = value.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function buildDetailLookupFilters(): EDocSentFilters {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setFullYear(endDate.getFullYear() - 5);
+
+  return {
+    status: 'all',
+    dateMode: 'publication',
+    startDate: startDate.toISOString().slice(0, 10),
+    endDate: endDate.toISOString().slice(0, 10),
+    page: 1,
+    pageSize: 500,
+  };
+}
+
+async function findEDocDocumentById(documentId: string, mode: 'sent' | 'received') {
+  const lookup = buildDetailLookupFilters();
+  const result = await fetchEDocDocumentsFromZen(lookup, ['']);
+  if (!result.success) {
+    throw new Error(result.error || 'Falha ao localizar documento no Questor Zen.');
+  }
+
+  const pool = mode === 'received' ? filterReceivedOrigin(result.items) : result.items;
+  const byId = pool.find((item) => item.id === documentId);
+  if (byId) return byId;
+
+  const fallback = result.items.find((item) => item.id === documentId);
+  if (fallback) return fallback;
+
+  return null;
+}
+
+function buildFallbackDetailFromListItem(item: EDocSentDocument): EDocDocumentDetail {
+  const collaborator =
+    item.comments
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => includesNormalized(line, 'colaborador'))?.split(':').slice(1).join(':').trim() || '';
+
+  return {
+    id: item.id,
+    code: item.code,
+    title: item.title,
+    type: item.categoryLabel,
+    status: item.status,
+    statusGroup: item.statusGroup,
+    companyName: item.companyName,
+    companyDocument: item.companyDocument,
+    author: item.createdBy,
+    competence: item.competence,
+    collaborator,
+    createdAt: item.sentAt,
+    sentAt: item.sentAt,
+    dueAt: item.dueAt,
+    commentsCount: item.comments ? 1 : 0,
+    observation: item.comments,
+    origin: item.origin,
+    attachments: item.fileId
+      ? [
+          {
+            id: item.fileId,
+            name: item.title || `documento-${item.code || item.id}`,
+          },
+        ]
+      : [],
+    movements: item.sentAt
+      ? [
+          {
+            title: 'Documento listado no Zen',
+            description: item.status,
+            time: item.sentAt,
+          },
+        ]
+      : [],
+    source: 'api-fallback',
+  };
+}
+
+function parsePortalDocumentDetail(html: string, fallback: EDocSentDocument, portalUrl?: string): EDocDocumentDetail {
+  const $ = load(html);
+  const plainText = $('body').text();
+  const lines = normalizePlainLines(plainText);
+  const attachments: EDocDocumentAttachment[] = [];
+  const movementMap = new Map<string, EDocDocumentMovement>();
+
+  $('a').each((_, element) => {
+    const href = normalizeText($(element).attr('href'));
+    const text = normalizeText($(element).text());
+    if (!text) return;
+
+    const fileIdMatch = href.match(/fileId=([^&]+)/i);
+    if (fileIdMatch || /\.[a-z0-9]{2,5}$/i.test(text)) {
+      const attachmentId = fileIdMatch ? decodeURIComponent(fileIdMatch[1]) : '';
+      const key = `${attachmentId}-${text}`;
+      if (!attachments.some((item) => `${item.id}-${item.name}` === key)) {
+        attachments.push({
+          id: attachmentId || fallback.fileId,
+          name: text,
+        });
+      }
+    }
+  });
+
+  $('tr').each((_, row) => {
+    const cells = $(row)
+      .find('td')
+      .map((__, cell) => normalizeText($(cell).text()))
+      .get()
+      .filter(Boolean);
+
+    if (cells.length === 0) return;
+
+    const time = cells.find((cell) => /^\d{2}:\d{2}$/.test(cell)) || '';
+    const description = cells.filter((cell) => cell !== time).join(' | ');
+    if (!description) return;
+
+    const title = cells[0] || 'Movimentacao';
+    const key = `${title}-${description}-${time}`;
+    if (!movementMap.has(key)) {
+      movementMap.set(key, {
+        title,
+        description,
+        time,
+      });
+    }
+  });
+
+  if (movementMap.size === 0) {
+    const movementHeaderIndex = lines.findIndex((line) => includesNormalized(line, 'movimentacoes'));
+    if (movementHeaderIndex >= 0) {
+      for (const line of lines.slice(movementHeaderIndex + 1)) {
+        if (
+          includesNormalized(line, 'arquivos') ||
+          includesNormalized(line, 'comentarios') ||
+          includesNormalized(line, 'quem recebera')
+        ) {
+          break;
+        }
+
+        const timeMatch = line.match(/(\d{2}:\d{2})$/);
+        const time = timeMatch?.[1] || '';
+        const description = time ? line.replace(/\s+\d{2}:\d{2}$/, '').trim() : line;
+        if (!description) continue;
+
+        movementMap.set(`${description}-${time}`, {
+          title: description.split(' - ')[0] || description,
+          description,
+          time,
+        });
+      }
+    }
+  }
+
+  const commentValue = extractLabelValueFromLines(lines, ['Coment[aá]rio']);
+  const observationValue = extractLabelValueFromLines(lines, ['Observa[cç][aã]o']);
+  const competenceValue = extractLabelValueFromLines(lines, ['Compet[eê]ncia', 'Competencia']);
+  const collaboratorValue = extractLabelValueFromLines(lines, ['Colaborador']);
+  const createdAtValue = extractLabelValueFromLines(lines, ['Data Cria[cç][aã]o', 'Data Criacao']);
+  const clientValue = extractLabelValueFromLines(lines, ['Cliente']);
+  const authorValue = extractLabelValueFromLines(lines, ['Autor']);
+  const statusValue = extractLabelValueFromLines(lines, ['Status']);
+  const typeValue = extractLabelValueFromLines(lines, ['Tipo']);
+  const idValue = extractLabelValueFromLines(lines, ['Id']);
+
+  return {
+    id: fallback.id,
+    code: fallback.code || idValue,
+    title: fallback.title,
+    type: typeValue || fallback.categoryLabel,
+    status: statusValue || fallback.status,
+    statusGroup: fallback.statusGroup,
+    companyName: clientValue || fallback.companyName,
+    companyDocument: fallback.companyDocument,
+    author: authorValue || fallback.createdBy,
+    competence: competenceValue || fallback.competence,
+    collaborator: collaboratorValue,
+    createdAt: createdAtValue || fallback.sentAt,
+    sentAt: fallback.sentAt,
+    dueAt: fallback.dueAt,
+    commentsCount: parseCommentsCount(commentValue),
+    observation: stripTags(observationValue || fallback.comments),
+    origin: fallback.origin,
+    attachments: attachments.length > 0 ? attachments : buildFallbackDetailFromListItem(fallback).attachments,
+    movements:
+      Array.from(movementMap.values()).length > 0
+        ? Array.from(movementMap.values())
+        : buildFallbackDetailFromListItem(fallback).movements,
+    source: 'portal',
+    portalUrl,
+  };
+}
+
 function applyClientSideFilters(items: EDocSentDocument[], filters: EDocSentFilters) {
   const today = new Date().toISOString().slice(0, 10);
   const selectedTypes = new Set(filters.typeIds || []);
@@ -981,6 +1248,39 @@ export async function searchEDocReceivedDocuments(filters: EDocSentFilters): Pro
       pageSize: 10,
       pageCount: 0,
       error: error instanceof Error ? error.message : 'Falha ao consultar documentos recebidos do e-Doc.',
+    };
+  }
+}
+
+export async function getEDocDocumentDetail(
+  documentId: string,
+  mode: 'sent' | 'received'
+): Promise<{ success: boolean; detail?: EDocDocumentDetail; error?: string }> {
+  try {
+    const session = await ensureAdminOrOperatorEdocAccess();
+    if (!documentId) {
+      return { success: false, error: 'Documento invalido.' };
+    }
+
+    const document = await findEDocDocumentById(documentId, mode);
+    if (!document) {
+      return { success: false, error: 'Documento nao encontrado no Questor Zen.' };
+    }
+
+    const portalResult = await fetchQuestorZenPortalDocumentDetailHtml(session.user_id, documentId);
+    const detail = portalResult.html
+      ? parsePortalDocumentDetail(portalResult.html, document, portalResult.finalUrl)
+      : buildFallbackDetailFromListItem(document);
+
+    return {
+      success: true,
+      detail,
+      ...(portalResult.error && !portalResult.html ? { error: portalResult.error } : {}),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha ao consultar detalhe do documento no e-Doc.',
     };
   }
 }

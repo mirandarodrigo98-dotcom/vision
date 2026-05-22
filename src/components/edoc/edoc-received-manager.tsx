@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ChevronDown,
   ChevronRight,
@@ -105,6 +106,7 @@ function getStatusClasses(statusGroup: EDocSentDocument['statusGroup']) {
 }
 
 export function EDocReceivedManager({ initialCategories = [] }: EDocReceivedManagerProps) {
+  const router = useRouter();
   const [categories, setCategories] = React.useState<EDocCategoryNode[]>(initialCategories);
   const [draftFilters, setDraftFilters] = React.useState<FilterState>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = React.useState<FilterState>(DEFAULT_FILTERS);
@@ -629,7 +631,13 @@ export function EDocReceivedManager({ initialCategories = [] }: EDocReceivedMana
                     </td>
                     <td className="px-4 py-4 align-top">
                       <div className="space-y-1">
-                        <div className="font-semibold uppercase text-slate-900">{document.title}</div>
+                        <button
+                          type="button"
+                          className="text-left font-semibold uppercase text-slate-900 transition-colors hover:text-orange-600"
+                          onClick={() => router.push(`/admin/edoc/recebidos/${encodeURIComponent(document.id)}`)}
+                        >
+                          {document.title}
+                        </button>
                         <div className="text-slate-600">{document.companyName || document.recipients || '--'}</div>
                         <div className="text-xs italic text-slate-500">
                           Enviado por <span className="font-semibold text-slate-700">{document.createdBy || '--'}</span>
@@ -670,9 +678,11 @@ export function EDocReceivedManager({ initialCategories = [] }: EDocReceivedMana
                               <Download className="mr-2 h-4 w-4" />
                               Download
                             </DropdownMenuItem>
-                            <DropdownMenuItem disabled>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/edoc/recebidos/${encodeURIComponent(document.id)}`)}
+                            >
                               <Eye className="mr-2 h-4 w-4" />
-                              Visualizar
+                              Visualizar detalhes
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
