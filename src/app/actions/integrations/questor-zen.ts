@@ -3,6 +3,7 @@
 import db from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { load } from 'cheerio';
 
 export type QuestorZenConfig = {
   id: number;
@@ -114,6 +115,36 @@ function tryParseJsonObject(text: string): JsonObject | null {
   } catch {
     return null;
   }
+}
+
+function extractPortalLoginForm(html: string, fallbackAction: string) {
+  const $ = load(html);
+  const form =
+    $('form').filter((_, element) => {
+      const action = String($(element).attr('action') || '');
+      return action.includes('/entrar') || $(element).find('input[name="UserName"]').length > 0;
+    }).first();
+
+  if (!form.length) {
+    return {
+      action: fallbackAction,
+      hiddenFields: {} as Record<string, string>,
+    };
+  }
+
+  const action = String(form.attr('action') || '').trim() || fallbackAction;
+  const hiddenFields: Record<string, string> = {};
+
+  form.find('input[type="hidden"], input:not([type])').each((_, element) => {
+    const name = String($(element).attr('name') || '').trim();
+    if (!name || name === 'UserName' || name === 'Password') return;
+    hiddenFields[name] = String($(element).attr('value') || '');
+  });
+
+  return {
+    action,
+    hiddenFields,
+  };
 }
 
 export async function getQuestorZenConfig(): Promise<QuestorZenConfig | null> {
@@ -366,20 +397,32 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
   }, '/cliente/painel');
+  const initialLoginHtml = await readPortalResponseText(initialLoginResponse);
+  const parsedLoginForm = extractPortalLoginForm(initialLoginHtml, loginPath);
   // #region debug-point B:login-get
   reportZenAuthDebug('B', 'questor-zen.ts:authenticateQuestorZenPortal:login-get', 'resposta inicial do GET de login', {
     status: initialLoginResponse.status,
     location: initialLoginResponse.headers.get('location') || '',
     cookieCount: cookieJar.size,
+    formAction: parsedLoginForm.action,
+    hiddenFieldNames: Object.keys(parsedLoginForm.hiddenFields),
+    htmlLength: initialLoginHtml.length,
   });
   // #endregion
 
   const loginBody = new URLSearchParams({
+    ...parsedLoginForm.hiddenFields,
     UserName: credentials.questor_zen_usuario || '',
     Password: credentials.questor_zen_senha || '',
   }).toString();
 
-  const loginResponse = await portalFetch(baseUrl, loginPath, cookieJar, {
+  const loginSubmitPath = parsedLoginForm.action.startsWith('http')
+    ? parsedLoginForm.action
+    : parsedLoginForm.action.startsWith('/')
+      ? parsedLoginForm.action
+      : `/${parsedLoginForm.action}`;
+
+  const loginResponse = await portalFetch(baseUrl, loginSubmitPath, cookieJar, {
     method: 'POST',
     headers: {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -392,6 +435,8 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
     status: loginResponse.status,
     location: loginResponse.headers.get('location') || '',
     cookieCount: cookieJar.size,
+    submitPath: loginSubmitPath,
+    hiddenFieldCount: Object.keys(parsedLoginForm.hiddenFields).length,
   });
   // #endregion
 
