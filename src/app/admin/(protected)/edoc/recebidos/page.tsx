@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { getEDocReceivedCategories } from '@/app/actions/edoc';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { EDocReceivedManager } from '@/components/edoc/edoc-received-manager';
 import { getSession } from '@/lib/auth';
@@ -23,5 +24,7 @@ export default async function EDocReceivedPage() {
     );
   }
 
-  return <EDocReceivedManager />;
+  const categories = await getEDocReceivedCategories();
+
+  return <EDocReceivedManager initialCategories={categories} />;
 }

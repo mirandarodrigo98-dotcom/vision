@@ -74,7 +74,7 @@ export function EDocCompanySelector({ value, onSelect }: EDocCompanySelectorProp
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="h-11 w-full justify-between border-slate-200 bg-white font-normal"
+          className="h-11 w-full justify-between border-slate-200 bg-white font-normal text-slate-800 hover:border-orange-200 hover:bg-orange-50 focus-visible:border-orange-400 focus-visible:ring-orange-100"
         >
           <span className="truncate text-left">
             {value ? value.name : 'Selecione um cliente'}
@@ -90,7 +90,7 @@ export function EDocCompanySelector({ value, onSelect }: EDocCompanySelectorProp
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Digite 1 caractere ou mais"
-              className="border-0 px-0 shadow-none focus-visible:ring-0"
+              className="border-0 px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
             />
           </div>
         </div>
@@ -118,7 +118,7 @@ export function EDocCompanySelector({ value, onSelect }: EDocCompanySelectorProp
             {!loading && value && (
               <button
                 type="button"
-                className="flex w-full items-center rounded-sm px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
+                className="flex w-full items-center rounded-sm px-3 py-2 text-left text-sm text-slate-600 hover:bg-orange-50"
                 onClick={() => {
                   onSelect(null);
                   setSearch('');
@@ -137,7 +137,7 @@ export function EDocCompanySelector({ value, onSelect }: EDocCompanySelectorProp
                   key={company.id}
                   type="button"
                   className={cn(
-                    'flex w-full items-start gap-2 rounded-sm px-3 py-2 text-left text-sm hover:bg-slate-50',
+                    'flex w-full items-start gap-2 rounded-sm px-3 py-2 text-left text-sm hover:bg-orange-50',
                     selected && 'bg-orange-50'
                   )}
                   onClick={() => {

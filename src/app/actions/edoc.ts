@@ -703,6 +703,21 @@ function buildDetailLookupFilters(): EDocSentFilters {
   };
 }
 
+function buildInitialTypeLookupFilters(): EDocSentFilters {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setFullYear(endDate.getFullYear() - 3);
+
+  return {
+    status: 'all',
+    dateMode: 'publication',
+    startDate: startDate.toISOString().slice(0, 10),
+    endDate: endDate.toISOString().slice(0, 10),
+    page: 1,
+    pageSize: 500,
+  };
+}
+
 async function findEDocDocumentById(documentId: string, mode: 'sent' | 'received') {
   const lookup = buildDetailLookupFilters();
   const result = await fetchEDocDocumentsFromZen(lookup, ['']);
@@ -989,6 +1004,21 @@ export async function getEDocCategories(): Promise<EDocCategoryNode[]> {
       children: [],
     })),
   }));
+}
+
+export async function getEDocReceivedCategories(): Promise<EDocCategoryNode[]> {
+  await ensureAdminOrOperatorEdocAccess();
+
+  try {
+    const result = await fetchEDocDocumentsFromZen(buildInitialTypeLookupFilters(), ['']);
+    if (!result.success) {
+      return [];
+    }
+
+    return buildReceivedTypeTree(filterReceivedOrigin(result.items));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCategoryIds?: string[]) {
