@@ -76,6 +76,35 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+// #region debug-point A:reporter
+function reportZenAuthDebug(hypothesisId: string, location: string, msg: string, data: Record<string, unknown>) {
+  try {
+    const fs = require('fs') as typeof import('fs');
+    const envPath = '.dbg/edoc-portal-auth.env';
+    let serverUrl = 'http://127.0.0.1:7777/event';
+    let sessionId = 'edoc-portal-auth';
+    try {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      serverUrl = envContent.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() || serverUrl;
+      sessionId = envContent.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() || sessionId;
+    } catch {}
+    void fetch(serverUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        runId: 'pre-fix',
+        hypothesisId,
+        location,
+        msg: `[DEBUG] ${msg}`,
+        data,
+        ts: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {}
+}
+// #endregion
+
 function tryParseJsonObject(text: string): JsonObject | null {
   try {
     const parsed: unknown = text ? JSON.parse(text) : null;
@@ -320,12 +349,30 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
   const encodedReturnUrl = encodeURIComponent(returnPath);
   const loginPath = `/entrar?returnUrl=${encodedReturnUrl}`;
 
-  await portalFetch(baseUrl, loginPath, cookieJar, {
+  // #region debug-point C:auth-entry
+  reportZenAuthDebug('C', 'questor-zen.ts:authenticateQuestorZenPortal:entry', 'inicio da autenticacao no portal', {
+    baseUrl,
+    loginPath,
+    hasUser: Boolean(credentials.questor_zen_usuario),
+    userLength: credentials.questor_zen_usuario?.length || 0,
+    hasPassword: Boolean(credentials.questor_zen_senha),
+    passwordLength: credentials.questor_zen_senha?.length || 0,
+  });
+  // #endregion
+
+  const initialLoginResponse = await portalFetch(baseUrl, loginPath, cookieJar, {
     method: 'GET',
     headers: {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
   }, '/cliente/painel');
+  // #region debug-point B:login-get
+  reportZenAuthDebug('B', 'questor-zen.ts:authenticateQuestorZenPortal:login-get', 'resposta inicial do GET de login', {
+    status: initialLoginResponse.status,
+    location: initialLoginResponse.headers.get('location') || '',
+    cookieCount: cookieJar.size,
+  });
+  // #endregion
 
   const loginBody = new URLSearchParams({
     UserName: credentials.questor_zen_usuario || '',
@@ -340,6 +387,13 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
     },
     body: loginBody,
   }, loginPath);
+  // #region debug-point B:login-post
+  reportZenAuthDebug('B', 'questor-zen.ts:authenticateQuestorZenPortal:login-post', 'resposta do POST de login', {
+    status: loginResponse.status,
+    location: loginResponse.headers.get('location') || '',
+    cookieCount: cookieJar.size,
+  });
+  // #endregion
 
   if (isRedirectStatus(loginResponse.status)) {
     const redirectLocation = loginResponse.headers.get('location');
@@ -356,6 +410,14 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
         redirect: 'manual',
       });
       updateCookieJar(cookieJar, redirectResponse);
+      // #region debug-point D:redirect-follow
+      reportZenAuthDebug('D', 'questor-zen.ts:authenticateQuestorZenPortal:redirect-follow', 'redirecionamento seguido apos login', {
+        redirectUrl,
+        status: redirectResponse.status,
+        location: redirectResponse.headers.get('location') || '',
+        cookieCount: cookieJar.size,
+      });
+      // #endregion
     }
   }
 
@@ -365,12 +427,29 @@ async function authenticateQuestorZenPortal(baseUrl: string, credentials: Questo
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
   }, loginPath);
+  // #region debug-point E:validate-status
+  reportZenAuthDebug('E', 'questor-zen.ts:authenticateQuestorZenPortal:validate-status', 'resposta de validacao do painel', {
+    status: validateResponse.status,
+    location: validateResponse.headers.get('location') || '',
+    cookieCount: cookieJar.size,
+  });
+  // #endregion
 
   if (isRedirectStatus(validateResponse.status)) {
     throw new Error('Falha ao autenticar no portal do Questor Zen. Verifique usuário e senha salvos.');
   }
 
   const validateHtml = await validateResponse.text();
+  // #region debug-point E:validate-html
+  reportZenAuthDebug('E', 'questor-zen.ts:authenticateQuestorZenPortal:validate-html', 'html retornado na validacao do painel', {
+    isLoginHtml: isLoginHtml(validateHtml),
+    includesPainel: validateHtml.includes('/cliente/painel') || validateHtml.includes('cliente/painel'),
+    includesFormSignin: validateHtml.includes('form-signin'),
+    includesUserName: validateHtml.includes('name="UserName"'),
+    htmlLength: validateHtml.length,
+    htmlSnippet: validateHtml.slice(0, 300),
+  });
+  // #endregion
   if (isLoginHtml(validateHtml)) {
     throw new Error('As credenciais salvas do Questor Zen foram rejeitadas pelo portal.');
   }
@@ -429,6 +508,17 @@ export async function fetchQuestorZenPortalDocumentDetailHtml(
     }
 
     const credentials = await getQuestorZenCredenciaisUsuario(userId);
+    // #region debug-point A:credentials-read
+    reportZenAuthDebug('A', 'questor-zen.ts:fetchQuestorZenPortalDocumentDetailHtml:credentials-read', 'credenciais lidas para detalhe do documento', {
+      userId,
+      documentId,
+      hasUser: Boolean(credentials?.questor_zen_usuario),
+      userLength: credentials?.questor_zen_usuario?.length || 0,
+      hasPassword: Boolean(credentials?.questor_zen_senha),
+      passwordLength: credentials?.questor_zen_senha?.length || 0,
+      hasToken: Boolean(credentials?.questor_zen_token),
+    });
+    // #endregion
     if (!credentials?.questor_zen_usuario || !credentials?.questor_zen_senha) {
       return {
         html: null,
