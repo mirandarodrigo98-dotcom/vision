@@ -172,7 +172,7 @@ export async function getQuestorZenEDocEmbedInfo(): Promise<QuestorZenEmbedInfo>
       };
     }
 
-    const targetPath = '/cliente/documento/enviados';
+    const targetPath = '/empresa/documentos?filter=1&PluginSystemName=Document.Forward';
     const embedUrl = buildPortalUrl(config.base_url, targetPath);
     const response = await fetch(embedUrl, {
       method: 'GET',
