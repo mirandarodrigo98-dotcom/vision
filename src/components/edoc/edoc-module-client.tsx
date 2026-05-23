@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRightIcon, FilePlus2, Inbox, Send } from 'lucide-react';
+import { ArrowRightIcon, FilePlus2, Inbox, Monitor, Send } from 'lucide-react';
 
 import type { EDocCreateModule } from '@/app/actions/edoc';
 import { Button } from '@/components/ui/button';
@@ -72,6 +72,14 @@ export function EDocModuleClient({
       icon: FilePlus2,
       enabled: canCreate,
       action: 'dialog' as const,
+    },
+    {
+      href: '/admin/edoc/zen',
+      label: 'Zen Integrado',
+      description: 'Teste a abertura do e-Doc do Questor Zen dentro do Vision, focando a area central do modulo.',
+      icon: Monitor,
+      enabled: canViewSent || canViewReceived,
+      action: 'link' as const,
     },
   ];
 

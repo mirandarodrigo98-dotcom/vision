@@ -18,6 +18,16 @@ export type QuestorZenCredenciaisUsuario = {
   questor_zen_token: string | null;
 };
 
+export type QuestorZenEmbedInfo = {
+  success: boolean;
+  embedUrl?: string;
+  xFrameOptions?: string;
+  contentSecurityPolicy?: string;
+  frameAncestors?: string;
+  likelyBlocked?: boolean;
+  error?: string;
+};
+
 export type QuestorZenRegFormRecord = Record<string, string>;
 export type QuestorZenSelectedEvent = {
   code: string;
@@ -150,6 +160,55 @@ function extractPortalLoginForm(html: string, fallbackAction: string) {
 export async function getQuestorZenConfig(): Promise<QuestorZenConfig | null> {
   const result = await db.query('SELECT * FROM questor_zen_config WHERE id = 1');
   return result.rows[0] || null;
+}
+
+export async function getQuestorZenEDocEmbedInfo(): Promise<QuestorZenEmbedInfo> {
+  try {
+    const config = await getQuestorZenConfig();
+    if (!config) {
+      return {
+        success: false,
+        error: 'Configuracao do Questor Zen nao encontrada.',
+      };
+    }
+
+    const targetPath = '/cliente/documento/enviados';
+    const embedUrl = buildPortalUrl(config.base_url, targetPath);
+    const response = await fetch(embedUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      redirect: 'manual',
+      cache: 'no-store',
+    });
+
+    const xFrameOptions = response.headers.get('x-frame-options') || '';
+    const contentSecurityPolicy = response.headers.get('content-security-policy') || '';
+    const frameAncestorsMatch = contentSecurityPolicy.match(/frame-ancestors\s+([^;]+)/i);
+    const frameAncestors = frameAncestorsMatch?.[1]?.trim() || '';
+    const normalizedXFrame = xFrameOptions.toLowerCase();
+    const normalizedFrameAncestors = frameAncestors.toLowerCase();
+    const likelyBlocked =
+      normalizedXFrame.includes('deny') ||
+      normalizedXFrame.includes('sameorigin') ||
+      normalizedFrameAncestors.includes("'none'") ||
+      normalizedFrameAncestors.includes("'self'");
+
+    return {
+      success: true,
+      embedUrl,
+      xFrameOptions,
+      contentSecurityPolicy,
+      frameAncestors,
+      likelyBlocked,
+    };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: getErrorMessage(error) || 'Falha ao inspecionar a incorporacao do portal do Questor Zen.',
+    };
+  }
 }
 
 export async function getQuestorZenCredenciaisUsuario(userId: string): Promise<QuestorZenCredenciaisUsuario | null> {
