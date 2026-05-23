@@ -1021,6 +1021,25 @@ export async function getEDocReceivedCategories(): Promise<EDocCategoryNode[]> {
   }
 }
 
+async function getAllEDocCategoryIds() {
+  try {
+    const categories = await getZenCategories();
+    const catalog = normalizeCreateCatalog(categories);
+    const ids = catalog.flatMap((module) => module.categories.map((category) => category.id)).filter(Boolean);
+    if (ids.length > 0) {
+      return Array.from(new Set(ids));
+    }
+  } catch {
+    // fallback abaixo
+  }
+
+  return Array.from(
+    new Set(
+      FALLBACK_EDOC_CATEGORIES.flatMap((module) => module.children.map((category) => category.id)).filter(Boolean)
+    )
+  );
+}
+
 async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCategoryIds?: string[]) {
   if (!filters.startDate || !filters.endDate) {
     return {
@@ -1039,7 +1058,8 @@ async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCatego
     };
   }
 
-  const categoryIds = requestCategoryIds && requestCategoryIds.length > 0 ? requestCategoryIds : [''];
+  const categoryIds =
+    requestCategoryIds && requestCategoryIds.length > 0 ? requestCategoryIds : await getAllEDocCategoryIds();
   const uniqueItems = new Map<string, EDocSentDocument>();
 
   for (const categoryId of categoryIds) {
