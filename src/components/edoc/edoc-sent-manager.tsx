@@ -98,6 +98,24 @@ const STATUS_ACTIVE_CLASS = 'border-orange-500 bg-orange-500 text-white hover:bg
 const STATUS_INACTIVE_CLASS = 'border-slate-200 bg-white text-slate-700 hover:border-orange-200 hover:bg-orange-50';
 const FILTER_PANEL_CLASS = 'rounded-xl border border-slate-200 bg-slate-50/80 p-4';
 
+// #region debug-point D:client-reporter
+function reportEdocClientDebug(hypothesisId: string, location: string, msg: string, data: Record<string, unknown>) {
+  fetch('http://127.0.0.1:7777/event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: 'edoc-empty-filter',
+      runId: 'pre-fix',
+      hypothesisId,
+      location,
+      msg: `[DEBUG] ${msg}`,
+      data,
+      ts: Date.now(),
+    }),
+  }).catch(() => {});
+}
+// #endregion
+
 function flattenTypeIds(categories: EDocCategoryNode[]) {
   return categories.flatMap((category) => category.children.map((child) => child.id));
 }
@@ -165,11 +183,11 @@ export function EDocSentManager({ categories }: EDocSentManagerProps) {
   }, []);
 
   const handleApplyFilters = React.useCallback(() => {
-    if (!draftFilters.startDate || !draftFilters.endDate) {
-      toast.warning('Informe a data inicial e final antes de filtrar os documentos enviados.');
-      return;
-    }
-
+    // #region debug-point D:sent-click-filter
+    reportEdocClientDebug('D', 'edoc-sent-manager.tsx:handleApplyFilters', 'usuario clicou em filtrar nos enviados', {
+      draftFilters,
+    });
+    // #endregion
     setAppliedFilters(draftFilters);
     setHasSearched(true);
     setPage(1);
@@ -178,17 +196,18 @@ export function EDocSentManager({ categories }: EDocSentManagerProps) {
   const handleClearFilters = React.useCallback(() => {
     setDraftFilters(DEFAULT_FILTERS);
     setAppliedFilters(DEFAULT_FILTERS);
-    setRows([]);
-    setTotal(0);
     setPage(1);
-    setPageCount(0);
-    setHasSearched(false);
+    setHasSearched(true);
   }, []);
 
   React.useEffect(() => {
     if (!hasSearched) return;
     loadDocuments(appliedFilters, page, pageSize);
   }, [appliedFilters, hasSearched, loadDocuments, page, pageSize]);
+
+  React.useEffect(() => {
+    setHasSearched(true);
+  }, []);
 
   const toggleType = React.useCallback((typeId: string) => {
     setDraftFilters((current) => ({
@@ -561,7 +580,7 @@ export function EDocSentManager({ categories }: EDocSentManagerProps) {
             <p className="mt-1 text-sm text-slate-500">
               {hasSearched
                 ? `${total} documento(s) encontrado(s) no filtro atual.`
-                : 'Aplique o filtro para listar os documentos enviados.'}
+                : 'Carregando documentos enviados.'}
             </p>
           </div>
 
@@ -599,21 +618,7 @@ export function EDocSentManager({ categories }: EDocSentManagerProps) {
                 </tr>
               </thead>
               <tbody>
-                {!hasSearched && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3 text-slate-500">
-                        <FileText className="h-10 w-10 text-slate-300" />
-                        <div>
-                          <p className="font-medium text-slate-700">Atenção!</p>
-                          <p>Aplique o filtro para listar seus documentos.</p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-
-                {hasSearched && isPending && (
+                {isPending && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                       <div className="inline-flex items-center gap-2">
@@ -624,7 +629,7 @@ export function EDocSentManager({ categories }: EDocSentManagerProps) {
                   </tr>
                 )}
 
-                {hasSearched && !isPending && rows.length === 0 && (
+                {!isPending && rows.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                       Nenhum documento encontrado para o filtro informado.
@@ -632,7 +637,7 @@ export function EDocSentManager({ categories }: EDocSentManagerProps) {
                   </tr>
                 )}
 
-                {hasSearched && !isPending && rows.map((document) => (
+                {!isPending && rows.map((document) => (
                   <tr key={document.id || `${document.code}-${document.title}`} className="border-t border-slate-200">
                     <td className="px-4 py-4 align-top font-semibold text-slate-700">
                       {document.code || '--'}

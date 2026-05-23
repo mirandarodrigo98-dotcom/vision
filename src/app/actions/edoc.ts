@@ -233,6 +233,35 @@ function buildZenApiUrl(baseUrl: string, token: string, path: string) {
   return `${base}/api/v1/${token}${normalizedPath}`;
 }
 
+// #region debug-point A:reporter
+function reportEdocDebug(hypothesisId: string, location: string, msg: string, data: Record<string, unknown>) {
+  try {
+    const fs = require('fs') as typeof import('fs');
+    const envPath = '.dbg/edoc-empty-filter.env';
+    let serverUrl = 'http://127.0.0.1:7777/event';
+    let sessionId = 'edoc-empty-filter';
+    try {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      serverUrl = envContent.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() || serverUrl;
+      sessionId = envContent.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() || sessionId;
+    } catch {}
+    void fetch(serverUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        runId: 'pre-fix',
+        hypothesisId,
+        location,
+        msg: `[DEBUG] ${msg}`,
+        data,
+        ts: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {}
+}
+// #endregion
+
 function stripTags(value: string) {
   return value
     .replace(/<br\s*\/?>/gi, '\n')
@@ -718,6 +747,14 @@ function buildInitialTypeLookupFilters(): EDocSentFilters {
   };
 }
 
+function buildUnfilteredDateRange() {
+  const endDate = new Date();
+  return {
+    startDate: '2000-01-01',
+    endDate: endDate.toISOString().slice(0, 10),
+  };
+}
+
 async function findEDocDocumentById(documentId: string, mode: 'sent' | 'received') {
   const lookup = buildDetailLookupFilters();
   const result = await fetchEDocDocumentsFromZen(lookup, ['']);
@@ -1041,7 +1078,25 @@ async function getAllEDocCategoryIds() {
 }
 
 async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCategoryIds?: string[]) {
-  if (!filters.startDate || !filters.endDate) {
+  // #region debug-point A:server-entry
+  reportEdocDebug('A', 'edoc.ts:fetchEDocDocumentsFromZen:entry', 'entrada da consulta ao Zen', {
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    requestedCategoryCount: requestCategoryIds?.length || 0,
+    dateMode: filters.dateMode,
+  });
+  // #endregion
+  const fallbackRange = buildUnfilteredDateRange();
+  const effectiveStartDate = filters.startDate || fallbackRange.startDate;
+  const effectiveEndDate = filters.endDate || fallbackRange.endDate;
+
+  if (!effectiveStartDate || !effectiveEndDate) {
+    // #region debug-point A:missing-dates
+    reportEdocDebug('A', 'edoc.ts:fetchEDocDocumentsFromZen:missing-dates', 'consulta abortada por falta de datas', {
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    });
+    // #endregion
     return {
       success: false,
       items: [] as EDocSentDocument[],
@@ -1060,6 +1115,12 @@ async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCatego
 
   const categoryIds =
     requestCategoryIds && requestCategoryIds.length > 0 ? requestCategoryIds : await getAllEDocCategoryIds();
+  // #region debug-point C:category-resolution
+  reportEdocDebug('C', 'edoc.ts:fetchEDocDocumentsFromZen:categories', 'categorias resolvidas para consulta', {
+    categoryCount: categoryIds.length,
+    firstCategories: categoryIds.slice(0, 10),
+  });
+  // #endregion
   const uniqueItems = new Map<string, EDocSentDocument>();
 
   for (const categoryId of categoryIds) {
@@ -1072,8 +1133,8 @@ async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCatego
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          DataInicio: filters.startDate,
-          DataFinal: filters.endDate,
+          DataInicio: effectiveStartDate,
+          DataFinal: effectiveEndDate,
           ...(categoryId ? { IdCategoria: categoryId } : {}),
         }),
         cache: 'no-store',
@@ -1091,6 +1152,14 @@ async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCatego
 
     const parsed = parseJsonSafely(responseText);
     const items = extractDocumentItems(parsed);
+    // #region debug-point B:zen-response
+    reportEdocDebug('B', 'edoc.ts:fetchEDocDocumentsFromZen:response', 'resposta bruta do Zen recebida', {
+      categoryId,
+      responseOk: response.ok,
+      responseStatus: response.status,
+      rawItemCount: items.length,
+    });
+    // #endregion
 
     for (const rawItem of items) {
       const normalized = normalizeDocument(rawItem);
@@ -1235,6 +1304,13 @@ export async function searchEDocSentDocuments(filters: EDocSentFilters): Promise
     }
 
     const filtered = applyClientSideFilters(result.items, filters);
+    // #region debug-point B:sent-after-filter
+    reportEdocDebug('B', 'edoc.ts:searchEDocSentDocuments:after-filter', 'resultado de enviados apos filtro local', {
+      rawCount: result.items.length,
+      filteredCount: filtered.length,
+      filters,
+    });
+    // #endregion
     const paginated = paginateDocuments(filtered, filters.page, filters.pageSize);
 
     return {
@@ -1278,6 +1354,14 @@ export async function searchEDocReceivedDocuments(filters: EDocSentFilters): Pro
     const receivedItems = filterReceivedOrigin(result.items);
     const availableTypes = buildReceivedTypeTree(receivedItems);
     const filtered = applyClientSideFilters(receivedItems, filters);
+    // #region debug-point E:received-after-filter
+    reportEdocDebug('E', 'edoc.ts:searchEDocReceivedDocuments:after-filter', 'resultado de recebidos apos origem e filtro local', {
+      rawCount: result.items.length,
+      afterOriginCount: receivedItems.length,
+      filteredCount: filtered.length,
+      filters,
+    });
+    // #endregion
     const paginated = paginateDocuments(filtered, filters.page, filters.pageSize);
 
     return {
