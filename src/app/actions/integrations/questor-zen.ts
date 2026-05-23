@@ -430,7 +430,10 @@ export async function fetchQuestorZenPortalDocumentDetailHtml(
 
     const credentials = await getQuestorZenCredenciaisUsuario(userId);
     if (!credentials?.questor_zen_usuario || !credentials?.questor_zen_senha) {
-      return { html: null, error: 'Credenciais do portal do Questor Zen não estão salvas para este usuário.' };
+      return {
+        html: null,
+        error: 'Usuário e senha do Questor Zen não foram configurados no Meu Perfil do usuário logado.'
+      };
     }
 
     const baseUrl = config.base_url.replace(/\/$/, '');

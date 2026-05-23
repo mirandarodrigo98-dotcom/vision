@@ -104,8 +104,9 @@ export function EDocDocumentDetailView({ detail, mode, warning }: EDocDocumentDe
 
       {detail.source === 'api-fallback' && (
         <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          Alguns blocos da tela usam apenas os dados expostos pela API/listagem do Zen. Quando a rota interna de
-          detalhe do portal responder para este usuário, o painel passa a preencher mais informações automaticamente.
+          Alguns blocos da tela usam apenas os dados expostos pela API/listagem do Zen. Quando o portal do Questor Zen
+          responder com as credenciais salvas no Meu Perfil do usuário logado, o painel passa a preencher mais
+          informações automaticamente.
         </div>
       )}
 

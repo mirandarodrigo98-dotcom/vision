@@ -27,6 +27,8 @@ interface ProfileFormProps {
 export default function ProfileForm({ user }: ProfileFormProps) {
     const [isPending, setIsPending] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(user.avatar_path);
+    const canManageQuestorZen = user.role === 'admin' || user.role === 'operator' || user.role === 'client_user';
+    const isBackofficeUser = user.role === 'admin' || user.role === 'operator';
 
     async function handleSubmit(formData: FormData) {
         setIsPending(true);
@@ -117,12 +119,14 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                     />
                 </div>
 
-                {user.role === 'client_user' && (
+                {canManageQuestorZen && (
                     <div className="space-y-4 md:col-span-2 border-t pt-4">
                         <div>
                             <h2 className="text-lg font-semibold">Questor Zen</h2>
                             <p className="text-sm text-gray-500">
-                                Estes dados ficam sincronizados com o cadastro do usuário cliente no painel administrativo.
+                                {isBackofficeUser
+                                    ? 'Essas credenciais sao usadas para autenticar o portal do Questor Zen nas rotinas do admin/operador, como o enriquecimento de detalhes do e-Doc.'
+                                    : 'Estes dados ficam sincronizados com o cadastro do usuário cliente no painel administrativo.'}
                             </p>
                         </div>
 
@@ -133,7 +137,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                                     id="questor_zen_usuario"
                                     name="questor_zen_usuario"
                                     defaultValue={user.questor_zen_usuario || ''}
-                                    placeholder="E-mail do cliente no Questor Zen"
+                                    placeholder={isBackofficeUser ? 'Usuario do admin/operador no Questor Zen' : 'E-mail do cliente no Questor Zen'}
                                     autoComplete="off"
                                 />
                             </div>
@@ -145,7 +149,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                                     name="questor_zen_senha"
                                     type="password"
                                     defaultValue={user.questor_zen_senha || ''}
-                                    placeholder="Senha do cliente no Questor Zen"
+                                    placeholder={isBackofficeUser ? 'Senha do admin/operador no Questor Zen' : 'Senha do cliente no Questor Zen'}
                                     autoComplete="new-password"
                                 />
                             </div>
@@ -161,7 +165,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                                 autoComplete="off"
                             />
                             <p className="text-xs text-gray-500">
-                                Necessário para integrações e para o fluxo autenticado de lançamentos no Questor Zen.
+                                Necessário para integrações. No e-Doc, a listagem segue pela API e os detalhes tentam enriquecer os dados via portal autenticado do usuário logado.
                             </p>
                         </div>
                     </div>
