@@ -572,6 +572,7 @@ function extractDocumentItems(payload: unknown) {
   if (Array.isArray(payload)) return payload;
   if (payload && typeof payload === 'object') {
     const record = payload as Record<string, unknown>;
+    if (Array.isArray(record.Documents)) return record.Documents;
     if (Array.isArray(record.Items)) return record.Items;
     if (Array.isArray(record.items)) return record.items;
     if (Array.isArray(record.Documentos)) return record.Documentos;
