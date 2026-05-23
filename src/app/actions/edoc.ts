@@ -361,6 +361,29 @@ function firstNonEmpty(...values: unknown[]) {
   return '';
 }
 
+function normalizeJoinedText(values: unknown) {
+  if (!Array.isArray(values)) {
+    return normalizeText(values);
+  }
+
+  return values
+    .map((value) => normalizeText(value))
+    .filter(Boolean)
+    .join(', ');
+}
+
+function firstClientRecord(value: unknown) {
+  if (!Array.isArray(value)) return null;
+
+  for (const entry of value) {
+    if (entry && typeof entry === 'object') {
+      return entry as Record<string, unknown>;
+    }
+  }
+
+  return null;
+}
+
 function getAttributeValue(attributeMap: Map<string, string>, keys: string[]) {
   for (const key of keys) {
     const normalizedKey = key
@@ -581,10 +604,11 @@ function extractDocumentItems(payload: unknown) {
   return [];
 }
 
-function normalizeDocument(raw: unknown): EDocSentDocument | null {
+function normalizeDocument(raw: unknown, fallbackCategoryId = ''): EDocSentDocument | null {
   if (!raw || typeof raw !== 'object') return null;
   const record = raw as Record<string, unknown>;
   const attributeMap = getAttributeMap(record.Atributos ?? record.Attributes);
+  const clientRecord = firstClientRecord(record.Cliente ?? record.Clients);
 
   const rawStatus = firstNonEmpty(record.Status, record.Situacao, record.DocumentStatus, record.State);
   const status = normalizeStatus(rawStatus);
@@ -593,6 +617,7 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
     getAttributeValue(attributeMap, ['DataPublicacao', 'DatePublication']),
     record.DataPublicacao,
     record.DatePublication,
+    record.DateCreation,
     record.DataCriacao,
     record.CreatedAt
   );
@@ -610,7 +635,8 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
       getAttributeValue(attributeMap, ['YearCompetence'])
     ),
     record.DataCompetencia,
-    record.Competencia
+    record.Competencia,
+    record.Competence
   );
 
   const sentAtIso = parseDateToIso(publicationRaw);
@@ -625,7 +651,13 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
   const title = firstNonEmpty(record.Titulo, record.Title, record.Assunto, record.Subject);
   if (!title) return null;
 
-  const categoryId = firstNonEmpty(record.CategoriaId, record.IdCategoria);
+  const categoryId = firstNonEmpty(
+    record.CategoriaId,
+    record.IdCategoria,
+    record.CategoryId,
+    record.IdCategory,
+    fallbackCategoryId
+  );
   const categoryLabel = firstNonEmpty(
     record.CategoriaDescricao,
     record.CategoryDescription,
@@ -639,6 +671,9 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
     code: firstNonEmpty(record.Chave, record.Key, record.Code, record.Codigo),
     title,
     companyName: firstNonEmpty(
+      normalizeJoinedText(record.ClientNames),
+      normalizeJoinedText(record.ClienteNomes),
+      clientRecord?.Name,
       record.ClienteNome,
       record.ClientName,
       record.CompanyName,
@@ -648,6 +683,7 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
     ),
     companyDocument: digitsOnly(
       firstNonEmpty(
+        clientRecord?.FederalRegistration,
         record.ClienteDocumento,
         record.ClientDocument,
         record.CnpjCpfCliente,
@@ -655,6 +691,7 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
       )
     ),
     createdBy: firstNonEmpty(
+      record.UserCreateName,
       record.CriadoPorUsuarioNome,
       record.AuthorName,
       record.UsuarioCriacao,
@@ -671,7 +708,12 @@ function normalizeDocument(raw: unknown): EDocSentDocument | null {
     dueAt: dueAtIso ? formatDateFromIso(dueAtIso) : normalizeText(dueRaw),
     dueAtIso,
     comments: firstNonEmpty(record.Observacao, record.Observation, record.Comments),
-    recipients: firstNonEmpty(record.Destinatarios, record.Recipients),
+    recipients: firstNonEmpty(
+      normalizeJoinedText(record.ClientNames),
+      normalizeJoinedText(record.Destinatarios),
+      record.Destinatarios,
+      record.Recipients
+    ),
     fileId: firstNonEmpty(record.Arquivo, record.File, record.FileId),
     origin,
     typeKey,
@@ -758,7 +800,7 @@ function buildUnfilteredDateRange() {
 
 async function findEDocDocumentById(documentId: string, mode: 'sent' | 'received') {
   const lookup = buildDetailLookupFilters();
-  const result = await fetchEDocDocumentsFromZen(lookup, ['']);
+  const result = await fetchEDocDocumentsFromZen(lookup);
   if (!result.success) {
     throw new Error(result.error || 'Falha ao localizar documento no Questor Zen.');
   }
@@ -1048,7 +1090,7 @@ export async function getEDocReceivedCategories(): Promise<EDocCategoryNode[]> {
   await ensureAdminOrOperatorEdocAccess();
 
   try {
-    const result = await fetchEDocDocumentsFromZen(buildInitialTypeLookupFilters(), ['']);
+    const result = await fetchEDocDocumentsFromZen(buildInitialTypeLookupFilters());
     if (!result.success) {
       return [];
     }
@@ -1114,8 +1156,9 @@ async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCatego
     };
   }
 
+  const normalizedRequestedCategoryIds = (requestCategoryIds || []).map((value) => normalizeText(value)).filter(Boolean);
   const categoryIds =
-    requestCategoryIds && requestCategoryIds.length > 0 ? requestCategoryIds : await getAllEDocCategoryIds();
+    normalizedRequestedCategoryIds.length > 0 ? normalizedRequestedCategoryIds : await getAllEDocCategoryIds();
   // #region debug-point C:category-resolution
   reportEdocDebug('C', 'edoc.ts:fetchEDocDocumentsFromZen:categories', 'categorias resolvidas para consulta', {
     categoryCount: categoryIds.length,
@@ -1163,7 +1206,7 @@ async function fetchEDocDocumentsFromZen(filters: EDocSentFilters, requestCatego
     // #endregion
 
     for (const rawItem of items) {
-      const normalized = normalizeDocument(rawItem);
+      const normalized = normalizeDocument(rawItem, categoryId);
       if (!normalized) continue;
 
       const dedupeKey = normalized.id || `${normalized.code}-${normalized.title}-${normalized.sentAtIso}`;
@@ -1291,7 +1334,7 @@ export async function searchEDocSentDocuments(filters: EDocSentFilters): Promise
     await ensureAdminOrOperatorEdocAccess();
 
     const categoryIds = (filters.typeIds || []).filter(Boolean);
-    const result = await fetchEDocDocumentsFromZen(filters, categoryIds.length > 0 ? categoryIds : ['']);
+    const result = await fetchEDocDocumentsFromZen(filters, categoryIds.length > 0 ? categoryIds : undefined);
     if (!result.success) {
       return {
         items: [],
@@ -1339,7 +1382,8 @@ export async function searchEDocReceivedDocuments(filters: EDocSentFilters): Pro
   try {
     await ensureAdminOrOperatorEdocAccess();
 
-    const result = await fetchEDocDocumentsFromZen(filters, ['']);
+    const categoryIds = (filters.typeIds || []).filter(Boolean);
+    const result = await fetchEDocDocumentsFromZen(filters, categoryIds.length > 0 ? categoryIds : undefined);
     if (!result.success) {
       return {
         success: false,
