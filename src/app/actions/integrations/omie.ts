@@ -490,6 +490,39 @@ export async function lancarRecebimentoOmie(payloadData: any, companyId: number 
   }
 }
 
+type OmieSyncMoment = {
+  date: string;
+  time: string;
+};
+
+function buildOmieSyncSortKey(date?: string | null, time?: string | null) {
+  if (!date) return '';
+  const [day = '', month = '', year = ''] = date.split('/');
+  if (!day || !month || !year) return '';
+
+  const safeTime = time && time !== '-' ? time : '00:00:00';
+  return `${year}${month.padStart(2, '0')}${day.padStart(2, '0')}${safeTime.replace(/:/g, '').padEnd(6, '0')}`;
+}
+
+function pickLatestOmieSyncMoment(
+  current: OmieSyncMoment | null,
+  candidateDate?: string | null,
+  candidateTime?: string | null
+) {
+  if (!candidateDate) return current;
+
+  const candidate: OmieSyncMoment = {
+    date: candidateDate,
+    time: candidateTime && candidateTime !== '-' ? candidateTime : '00:00:00',
+  };
+
+  if (!current) return candidate;
+
+  return buildOmieSyncSortKey(candidate.date, candidate.time) > buildOmieSyncSortKey(current.date, current.time)
+    ? candidate
+    : current;
+}
+
 export async function getOmieBankSyncStatus(companyId: number = 1) {
   const config = await getOmieConfig(companyId);
   if (!config || !config.is_active || !config.app_key || !config.app_secret) return null;
@@ -507,6 +540,41 @@ export async function getOmieBankSyncStatus(companyId: number = 1) {
     });
     
     const ccList = response.data.ListarContasCorrentes || [];
+    const latestTitleChangesByAccount = new Map<number, OmieSyncMoment>();
+    let paginaTitulos = 1;
+    let totalPaginasTitulos = 1;
+
+    do {
+      const contasPayload = {
+        call: "ListarContasReceber",
+        app_key: config.app_key,
+        app_secret: config.app_secret,
+        param: [{ pagina: paginaTitulos, registros_por_pagina: 500, apenas_importado_api: "N" }]
+      };
+
+      const contasRes = await axios.post('https://app.omie.com.br/api/v1/financas/contareceber/', contasPayload, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const contas = contasRes.data.conta_receber_cadastro || [];
+      totalPaginasTitulos = Number(contasRes.data.total_de_paginas || contasRes.data.nTotPaginas || 1);
+
+      for (const conta of contas) {
+        const accountId = Number(conta.id_conta_corrente);
+        if (!accountId) continue;
+
+        const latestInfoDate = conta.info?.dAlt || conta.info?.dInc || null;
+        const latestInfoTime = conta.info?.hAlt || conta.info?.hInc || null;
+        const currentMoment = latestTitleChangesByAccount.get(accountId) || null;
+        const updatedMoment = pickLatestOmieSyncMoment(currentMoment, latestInfoDate, latestInfoTime);
+
+        if (updatedMoment) {
+          latestTitleChangesByAccount.set(accountId, updatedMoment);
+        }
+      }
+
+      paginaTitulos += 1;
+    } while (paginaTitulos <= totalPaginasTitulos);
     
     // Filtramos apenas as contas de interesse ativas
     const targetBanks = ccList.filter((c: any) => 
@@ -521,8 +589,12 @@ export async function getOmieBankSyncStatus(companyId: number = 1) {
     // Agora precisamos buscar a data real da última movimentação de cada conta
     const result = [];
     for (const bank of targetBanks) {
-        let lastSyncDate = bank.data_alt || bank.saldo_data || '-';
-        let lastSyncTime = bank.hora_alt || '-';
+        const bankAccountId = Number(bank.nIdCC || bank.nCodCC);
+        let latestMoment = pickLatestOmieSyncMoment(
+          null,
+          bank.data_alt || bank.saldo_data || null,
+          bank.hora_alt || null
+        );
         
         try {
             // Buscamos os lançamentos recentes desta conta corrente
@@ -549,25 +621,14 @@ export async function getOmieBankSyncStatus(companyId: number = 1) {
             
             let records = extratoRes.data.listaMovimentos || [];
             if (records.length > 0) {
-                // Filtramos para não considerar saldos previstos (que não têm hora de inclusão real)
-                const validRecords = records.filter((r: any) => r.cDataInclusao && r.cHoraInclusao);
-                
-                if (validRecords.length > 0) {
-                    validRecords.sort((a: any, b: any) => {
-                        const parseDate = (d: string) => d ? d.split('/').reverse().join('') : '';
-                        const dateA = parseDate(a.cDataInclusao);
-                        const dateB = parseDate(b.cDataInclusao);
-                        if (dateA !== dateB) {
-                            return dateA < dateB ? 1 : -1;
-                        }
-                        const hrA = a.cHoraInclusao || '';
-                        const hrB = b.cHoraInclusao || '';
-                        return hrA < hrB ? 1 : -1;
-                    });
-                    
-                    const latest = validRecords[0];
-                    lastSyncDate = latest.cDataInclusao;
-                    lastSyncTime = latest.cHoraInclusao;
+                const validRecords = records.filter((r: any) => r.cDataInclusao);
+
+                for (const record of validRecords) {
+                    latestMoment = pickLatestOmieSyncMoment(
+                      latestMoment,
+                      record.cDataInclusao,
+                      record.cHoraInclusao || null
+                    );
                 }
             }
         } catch (e) {
@@ -575,12 +636,19 @@ export async function getOmieBankSyncStatus(companyId: number = 1) {
             console.log(`Fallback de data para banco ${bank.descricao} - Sem lançamentos recentes.`);
         }
 
+        const latestTitleMoment = latestTitleChangesByAccount.get(bankAccountId) || null;
+        latestMoment = pickLatestOmieSyncMoment(
+          latestMoment,
+          latestTitleMoment?.date || null,
+          latestTitleMoment?.time || null
+        );
+
         result.push({
             banco: bank.descricao,
             agencia: bank.codigo_agencia,
             conta: bank.numero_conta_corrente,
-            data_alt: lastSyncDate,
-            hora_alt: lastSyncTime
+            data_alt: latestMoment?.date || '-',
+            hora_alt: latestMoment?.time || '-'
         });
     }
 
