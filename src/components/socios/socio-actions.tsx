@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pencil, UserX, Trash, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteSocio, desligarSocio } from '@/app/actions/socios';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { usePendingAction } from '@/hooks/use-pending-action';
 import {
   Tooltip,
   TooltipContent,
@@ -33,24 +33,22 @@ interface SocioActionsProps {
 
 export function SocioActions({ socioId, companyId, isActive }: SocioActionsProps) {
   const router = useRouter();
-  const [isDesligando, setIsDesligando] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { isPending, isActionPending, runAction } = usePendingAction<'desligar' | 'delete'>();
 
   const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      const result = await deleteSocio(socioId);
-      if (result.success) {
-        toast.success(result.message);
-        router.refresh();
-      } else {
-        toast.error(result.message);
+    await runAction('delete', async () => {
+      try {
+        const result = await deleteSocio(socioId);
+        if (result.success) {
+          toast.success(result.message);
+          router.refresh();
+        } else {
+          toast.error(result.message);
+        }
+      } catch (error) {
+        toast.error('Erro ao excluir sócio.');
       }
-    } catch (error) {
-      toast.error('Erro ao excluir sócio.');
-    } finally {
-      setIsDeleting(false);
-    }
+    });
   };
 
   const handleDesligar = async () => {
@@ -60,20 +58,19 @@ export function SocioActions({ socioId, companyId, isActive }: SocioActionsProps
     }
 
     if (confirm('Tem certeza que deseja desligar este sócio da empresa?')) {
-      setIsDesligando(true);
-      try {
-        const result = await desligarSocio(socioId, companyId);
-        if (result.success) {
-          toast.success(result.message);
-          router.refresh();
-        } else {
-          toast.error(result.message);
+      await runAction('desligar', async () => {
+        try {
+          const result = await desligarSocio(socioId, companyId);
+          if (result.success) {
+            toast.success(result.message);
+            router.refresh();
+          } else {
+            toast.error(result.message);
+          }
+        } catch (error) {
+          toast.error('Erro ao desligar sócio.');
         }
-      } catch (error) {
-        toast.error('Erro ao desligar sócio.');
-      } finally {
-        setIsDesligando(false);
-      }
+      });
     }
   };
 
@@ -101,10 +98,10 @@ export function SocioActions({ socioId, companyId, isActive }: SocioActionsProps
               variant="outline" 
               size="sm" 
               onClick={handleDesligar}
-              disabled={!isActive || isDesligando}
-              className={!isActive ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-orange-600 border-orange-200 hover:bg-orange-50"}
+              disabled={!isActive || isPending}
+              className={!isActive || isPending ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-orange-600 border-orange-200 hover:bg-orange-50"}
             >
-              {isDesligando ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}
+              {isActionPending('desligar') ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -120,10 +117,10 @@ export function SocioActions({ socioId, companyId, isActive }: SocioActionsProps
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  disabled={isDeleting}
+                  disabled={isPending}
                   className="text-red-600 border-red-200 hover:bg-red-50"
                 >
-                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
+                  {isActionPending('delete') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
                 </Button>
               </AlertDialogTrigger>
             </TooltipTrigger>
@@ -139,8 +136,9 @@ export function SocioActions({ socioId, companyId, isActive }: SocioActionsProps
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction disabled={isPending} onClick={() => void handleDelete()} className="bg-red-600 hover:bg-red-700">
+                {isActionPending('delete') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>

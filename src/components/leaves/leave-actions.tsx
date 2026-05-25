@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, Ban, Loader2, CheckCircle, Pencil } from 'lucide-react';
 import {
@@ -18,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { cancelLeave, approveLeave } from '@/app/actions/leaves';
 import { toast } from 'sonner';
 import { LeaveHistory } from './leave-history';
+import { usePendingAction } from '@/hooks/use-pending-action';
 import {
   Tooltip,
   TooltipContent,
@@ -31,13 +31,11 @@ interface LeaveActionsProps {
   status: string;
   employeeName: string;
   isAdmin?: boolean;
-  canApprovePermission?: boolean;
 }
 
-export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin = false, canApprovePermission = true }: LeaveActionsProps) {
+export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin = false }: LeaveActionsProps) {
   const router = useRouter();
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
+  const { isPending, isActionPending, runAction } = usePendingAction<'cancel' | 'approve'>();
 
   // Check deadline: 1 day before start date
   // Parse YYYY-MM-DD string as local date to avoid timezone issues
@@ -66,40 +64,38 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
   // Admin/Operator CAN cancel. Client can cancel if not expired.
   const canCancel = !isCanceled && !isCompleted && (isAdmin || !isExpired);
   const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
-  const canApprove = isAdmin && canApprovePermission && (status === 'SUBMITTED' || status === 'RECTIFIED');
+  const canApprove = isAdmin && (status === 'SUBMITTED' || status === 'RECTIFIED');
 
   const handleCancel = async () => {
-    setIsCancelling(true);
-    try {
-      const result = await cancelLeave(leaveId);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Solicitação de afastamento cancelada com sucesso.');
-        router.refresh();
+    await runAction('cancel', async () => {
+      try {
+        const result = await cancelLeave(leaveId);
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success('Solicitação de afastamento cancelada com sucesso.');
+          router.refresh();
+        }
+      } catch (error) {
+        toast.error('Erro ao cancelar solicitação.');
       }
-    } catch (error) {
-      toast.error('Erro ao cancelar solicitação.');
-    } finally {
-      setIsCancelling(false);
-    }
+    });
   };
 
   const handleApprove = async () => {
-    setIsApproving(true);
-    try {
-      const result = await approveLeave(leaveId);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Solicitação de afastamento aprovada com sucesso.');
-        router.refresh();
+    await runAction('approve', async () => {
+      try {
+        const result = await approveLeave(leaveId);
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success('Solicitação de afastamento aprovada com sucesso.');
+          router.refresh();
+        }
+      } catch (error) {
+        toast.error('Erro ao aprovar solicitação.');
       }
-    } catch (error) {
-      toast.error('Erro ao aprovar solicitação.');
-    } finally {
-      setIsApproving(false);
-    }
+    });
   };
 
   const handleView = () => {
@@ -134,7 +130,7 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
 
        <TooltipProvider>
           {/* Approve Button (Admin Only) */}
-          {isAdmin && canApprovePermission && (
+          {isAdmin && (
             canApprove ? (
             <AlertDialog>
                 <Tooltip>
@@ -143,10 +139,10 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            disabled={isApproving}
+                            disabled={isPending}
                             className="text-green-600 border-green-200 hover:bg-green-50"
                           >
-                            {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                            {isActionPending('approve') ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
                       </AlertDialogTrigger>
                   </TooltipTrigger>
@@ -198,6 +194,7 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
                         variant="outline" 
                         size="sm" 
                         onClick={handleView}
+                        disabled={isPending}
                         className="text-primary border-primary/20 hover:bg-primary/10"
                     >
                         <Eye className="h-4 w-4" />
@@ -218,8 +215,8 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
                   variant="outline" 
                   size="sm" 
                   onClick={handleEdit} 
-                  disabled={!canEdit}
-                  className={!canEdit ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
+                  disabled={!canEdit || isPending}
+                  className={!canEdit || isPending ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -246,9 +243,9 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
                                 variant="outline" 
                                 size="sm" 
                                 className="text-red-600 border-red-200 hover:bg-red-50"
-                                disabled={isCancelling}
+                                disabled={isPending}
                             >
-                                {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                {isActionPending('cancel') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                             </Button>
                         </AlertDialogTrigger>
                     </TooltipTrigger>
@@ -266,8 +263,9 @@ export function LeaveActions({ leaveId, startDate, status, employeeName, isAdmin
                       </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                      <AlertDialogCancel>Voltar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                      <AlertDialogCancel disabled={isPending}>Voltar</AlertDialogCancel>
+                      <AlertDialogAction disabled={isPending} onClick={() => void handleCancel()} className="bg-red-600 hover:bg-red-700">
+                          {isActionPending('cancel') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                           Confirmar Cancelamento
                       </AlertDialogAction>
                   </AlertDialogFooter>

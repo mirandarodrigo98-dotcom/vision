@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, Ban, Loader2, CheckCircle, Pencil } from 'lucide-react';
 import {
@@ -18,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { cancelDismissal, approveDismissal } from '@/app/actions/dismissals';
 import { toast } from 'sonner';
 import { DismissalHistory } from './dismissal-history';
+import { usePendingAction } from '@/hooks/use-pending-action';
 import {
   Tooltip,
   TooltipContent,
@@ -36,10 +36,9 @@ interface DismissalActionsProps {
 
 export function DismissalActions({ dismissalId, dismissalDate, status, employeeName, isAdmin = false, basePath = '/admin' }: DismissalActionsProps) {
   const router = useRouter();
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
+  const { isPending, isActionPending, runAction } = usePendingAction<'cancel' | 'approve'>();
 
-  // Check deadline: allow rectification until the dismissal date itself
+  // Check deadline: 1 day before dismissal date
   // Parse YYYY-MM-DD string as local date to avoid timezone issues
   let disDate: Date;
   const cleanDismissalDate = typeof dismissalDate === 'string' ? dismissalDate.trim().split('T')[0] : '';
@@ -51,11 +50,14 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
       disDate = new Date(dismissalDate);
   }
 
+  const deadline = new Date(disDate);
+  deadline.setDate(deadline.getDate() - 1);
+  
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  disDate.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
   
-  const isExpired = now > disDate;
+  const isExpired = now > deadline;
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
@@ -65,37 +67,35 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
-    setIsCancelling(true);
-    try {
-      const result = await cancelDismissal(dismissalId);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Rescisão cancelada com sucesso.');
-        router.refresh();
+    await runAction('cancel', async () => {
+      try {
+        const result = await cancelDismissal(dismissalId);
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success('Rescisão cancelada com sucesso.');
+          router.refresh();
+        }
+      } catch (error) {
+        toast.error('Erro ao cancelar rescisão.');
       }
-    } catch (error) {
-      toast.error('Erro ao cancelar rescisão.');
-    } finally {
-      setIsCancelling(false);
-    }
+    });
   };
 
   const handleApprove = async () => {
-    setIsApproving(true);
-    try {
-      const result = await approveDismissal(dismissalId);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Rescisão aprovada com sucesso.');
-        router.refresh();
+    await runAction('approve', async () => {
+      try {
+        const result = await approveDismissal(dismissalId);
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success('Rescisão aprovada com sucesso.');
+          router.refresh();
+        }
+      } catch (error) {
+        toast.error('Erro ao aprovar rescisão.');
       }
-    } catch (error) {
-      toast.error('Erro ao aprovar rescisão.');
-    } finally {
-      setIsApproving(false);
-    }
+    });
   };
 
   const handleView = () => {
@@ -140,10 +140,10 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            disabled={isApproving}
+                            disabled={isPending}
                             className="text-green-600 border-green-200 hover:bg-green-50"
                           >
-                            {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                            {isActionPending('approve') ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                           </Button>
                       </AlertDialogTrigger>
                     </div>
@@ -198,6 +198,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                         variant="outline" 
                         size="sm" 
                         onClick={handleView}
+                        disabled={isPending}
                         className="text-primary border-primary/20 hover:bg-primary/10"
                     >
                         <Eye className="h-4 w-4" />
@@ -218,8 +219,8 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                   variant="outline" 
                   size="sm" 
                   onClick={handleEdit} 
-                  disabled={!canEdit}
-                  className={!canEdit ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
+                  disabled={!canEdit || isPending}
+                  className={!canEdit || isPending ? "text-gray-300 border-gray-200 cursor-not-allowed" : "text-primary border-primary/20 hover:bg-primary/10"}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -229,7 +230,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
               <p>{
                 isCanceled ? "Rescisão cancelada" :
                 isCompleted ? "Rescisão concluída" :
-                (!isAdmin && isExpired) ? "Prazo expirado (até a data do desligamento)" :
+                (!isAdmin && isExpired) ? "Prazo de retificação expirado" :
                 "Retificar Rescisão"
               }</p>
             </TooltipContent>
@@ -247,9 +248,9 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                                 variant="outline" 
                                 size="sm" 
                                 className="text-red-600 border-red-200 hover:bg-red-50"
-                                disabled={isCancelling}
+                                disabled={isPending}
                             >
-                                {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                {isActionPending('cancel') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                             </Button>
                         </AlertDialogTrigger>
                       </div>
@@ -268,8 +269,9 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                        <AlertDialogCancel disabled={isPending}>Voltar</AlertDialogCancel>
+                        <AlertDialogAction disabled={isPending} onClick={() => void handleCancel()} className="bg-red-600 hover:bg-red-700">
+                            {isActionPending('cancel') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Confirmar Cancelamento
                         </AlertDialogAction>
                     </AlertDialogFooter>
