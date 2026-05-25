@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Upload, FileText, Download } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -22,6 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface LeaveFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -109,6 +110,7 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
+        await waitForBrowserPaint();
 
         const formData = new FormData(event.currentTarget);
         if (date) {
@@ -290,6 +292,7 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={loading}>
+                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Enviar Solicitação')}
                             </Button>
                         </div>

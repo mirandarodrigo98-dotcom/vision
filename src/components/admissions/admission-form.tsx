@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from "date-fns";
-import { Copy, AlertTriangle, Download, Loader2, UploadCloud, X } from "lucide-react";
+import { Copy, AlertTriangle, Loader2, UploadCloud, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Tooltip,
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/tooltip";
 import { TimePicker } from "@/components/ui/time-picker";
 import { validateCPF } from '@/lib/validators';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface AdmissionFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -91,7 +92,6 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
     const [files, setFiles] = useState<File[]>([]);
     const [fileError, setFileError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const existingAttachments = Array.isArray(initialData?.attachments) ? initialData.attachments : [];
 
     const handleFilesAdded = (newFiles: File[]) => {
         setFileError(null);
@@ -451,9 +451,9 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
             }
         }
 
+        await waitForBrowserPaint();
         setLoading(true);
 
-        const formData = new FormData(e.currentTarget);
 
         // Validate CPF
         const cpf = formData.get('cpf') as string;
@@ -1331,31 +1331,8 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
                                 </ul>
                             </div>
                         )}
-                        {isEditing && existingAttachments.length > 0 && (
-                            <div className="mt-4 space-y-2">
-                                <p className="text-sm font-medium">Arquivos já enviados:</p>
-                                <ul className="space-y-2">
-                                    {existingAttachments.map((attachment: any) => (
-                                        <li key={attachment.attachment_id} className="flex items-center justify-between p-2 bg-gray-50 border rounded text-sm">
-                                            <span className="truncate max-w-[80%]">{attachment.original_name}</span>
-                                            <a
-                                                href={`/api/download/${attachment.attachment_id}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary hover:bg-primary/10"
-                                                title={`Baixar ${attachment.original_name}`}
-                                            >
-                                                <Download className="h-4 w-4" />
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                        {isEditing && existingAttachments.length > 0 && files.length === 0 && (
-                            <p className="text-sm text-gray-500 mt-2">
-                                Os arquivos já enviados continuam vinculados. Se necessário, você pode anexar novos arquivos para complementar o envio.
-                            </p>
+                        {isEditing && files.length === 0 && (
+                            <p className="text-sm text-gray-500 mt-2">Arquivos atuais mantidos. Enviar novos arquivos substituirá os anteriores.</p>
                         )}
                     </div>
                 </CardContent>

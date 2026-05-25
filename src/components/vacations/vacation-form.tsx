@@ -22,6 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { calculateReturnDate } from '@/lib/holidays';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface VacationFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -93,6 +94,7 @@ export function VacationForm({ companies, activeCompanyId, initialData, isEditin
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
+        await waitForBrowserPaint();
 
         const formData = new FormData(event.currentTarget);
         

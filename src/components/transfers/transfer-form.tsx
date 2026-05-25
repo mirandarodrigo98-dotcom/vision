@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -21,6 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface TransferFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -71,6 +72,7 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
+        await waitForBrowserPaint();
 
         const formData = new FormData(event.currentTarget);
         if (date) {
@@ -225,6 +227,7 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={loading}>
+                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Enviar Solicitação')}
                             </Button>
                         </div>

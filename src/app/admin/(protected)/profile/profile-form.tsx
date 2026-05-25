@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface ProfileFormProps {
     user: {
@@ -32,6 +33,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
     async function handleSubmit(formData: FormData) {
         setIsPending(true);
+        await waitForBrowserPaint();
         try {
             const result = await updateProfile(formData);
             if (result.error) {
@@ -212,6 +214,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
             <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={isPending}>
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     {isPending ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
             </div>

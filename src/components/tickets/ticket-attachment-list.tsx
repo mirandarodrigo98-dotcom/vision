@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface TicketAttachment {
   id: string;
@@ -36,6 +37,7 @@ export function TicketAttachmentList({ attachments, ticketId, isAdmin }: TicketA
 
   const handleDelete = async (attachmentId: string) => {
     setIsDeleting(attachmentId);
+    await waitForBrowserPaint();
     try {
       const result = await deleteTicketAttachment(attachmentId, ticketId);
       if (result?.error) {
@@ -121,11 +123,13 @@ export function TicketAttachmentList({ attachments, ticketId, isAdmin }: TicketA
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel disabled={isDeleting === att.id}>Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => handleDelete(att.id)}
+                          onClick={() => void handleDelete(att.id)}
+                          disabled={isDeleting === att.id}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
+                          {isDeleting === att.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                           Excluir
                         </AlertDialogAction>
                       </AlertDialogFooter>

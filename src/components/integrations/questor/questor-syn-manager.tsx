@@ -40,6 +40,7 @@ import {
   QuestorSynConfig,
   QuestorSynRoutine
 } from '@/types/questor-syn';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface QuestorSynManagerProps {
   initialConfig?: QuestorSynConfig;
@@ -60,6 +61,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
   const handleDiagnose = async () => {
     setIsLoading(true);
     setDiagnosticResult(null);
+    await waitForBrowserPaint();
     try {
       const response = await fetch('/api/admin/questor/diagnose');
       const data = await response.json();
@@ -80,6 +82,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
   // Config Handlers
   const handleSaveConfig = async () => {
     setIsLoading(true);
+    await waitForBrowserPaint();
     try {
       await saveQuestorSynConfig(config);
       toast.success('Configurações salvas com sucesso');
@@ -98,6 +101,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
     }
 
     setIsLoading(true);
+    await waitForBrowserPaint();
     try {
       await saveQuestorSynRoutine(currentRoutine as QuestorSynRoutine);
       toast.success('Rotina salva com sucesso');
@@ -116,6 +120,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
     if (!confirm('Tem certeza que deseja excluir esta rotina?')) return;
     
     setIsLoading(true);
+    await waitForBrowserPaint();
     try {
       await deleteQuestorSynRoutine(id);
       toast.success('Rotina excluída');
@@ -153,6 +158,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
     }
 
     setIsVerifying(true);
+    await waitForBrowserPaint();
     try {
       const res = await fetchQuestorRoutineParams(currentRoutine.action_name);
       if (res.error) {
@@ -172,6 +178,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
 
   const handleTestConnectivity = async () => {
     setIsVerifying(true);
+    await waitForBrowserPaint();
     try {
       const res = await testQuestorConnectivity();
       if (res.error) {
@@ -269,7 +276,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                     Salvar Configuração
                   </Button>
                   <Button onClick={handleDiagnose} variant="outline" disabled={isLoading}>
-                    <RefreshCw className="mr-2 h-4 w-4" /> Diagnóstico de Autenticação
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Diagnóstico de Autenticação
                   </Button>
                 </div>
 
@@ -330,7 +337,7 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                   Cadastre as rotinas (Actions) que serão utilizadas pelo sistema.
                 </CardDescription>
               </div>
-              <Button onClick={openNewRoutine}>
+              <Button onClick={openNewRoutine} disabled={isLoading || isVerifying}>
                 <Plus className="mr-2 h-4 w-4" /> Nova Rotina
               </Button>
             </CardHeader>
@@ -365,11 +372,11 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
                         )}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => openEditRoutine(routine)}>
+                        <Button variant="ghost" size="icon" onClick={() => openEditRoutine(routine)} disabled={isLoading || isVerifying}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRoutine(routine.id!)} className="text-red-500">
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" onClick={() => void handleDeleteRoutine(routine.id!)} disabled={isLoading || isVerifying} className="text-red-500">
+                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -558,8 +565,8 @@ export function QuestorSynManager({ initialConfig, initialRoutines }: QuestorSyn
             </div>
           </div>
           <DialogFooter>
-             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-             <Button onClick={handleSaveRoutine} disabled={isLoading}>
+             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading || isVerifying}>Cancelar</Button>
+             <Button onClick={() => void handleSaveRoutine()} disabled={isLoading || isVerifying}>
                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                Salvar
              </Button>
