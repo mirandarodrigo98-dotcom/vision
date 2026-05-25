@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, ChevronDoubleLeftIcon, EyeIcon, FunnelIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, XMarkIcon, PaperAirplaneIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, MagnifyingGlassIcon, DocumentArrowDownIcon, EyeIcon, FunnelIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, XMarkIcon, PaperAirplaneIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie, getOmieBankSyncStatus, type OmieContasReceberDateFilter } from '@/app/actions/integrations/omie';
@@ -21,6 +21,14 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AG_GRID_LOCALE_PT_BR } from '@/lib/ag-grid-locale-pt-br';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import {
+  calculateCobrancaTotals,
+  collectFilteredCobrancaRows,
+  createEmptyCobrancaTotals,
+  exportFilteredCobrancaToPdf,
+  exportFilteredCobrancaToXlsx,
+  type CobrancaTotals,
+} from '@/lib/financeiro-cobranca-report';
 
 // Registra todos os recursos gratuitos do AG Grid (necessário na v35+)
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -146,6 +154,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
   const [gridApi, setGridApi] = useState<any>(null);
   const [hiddenColumns, setHiddenColumns] = useState<{ id: string, name: string }[]>([]);
   const [contasCorrentes, setContasCorrentes] = useState<any[]>([]);
+  const [filteredTotals, setFilteredTotals] = useState<CobrancaTotals>(createEmptyCobrancaTotals);
 
   // Receber Dialog State
   const [isReceberOpen, setIsReceberOpen] = useState(false);
@@ -171,18 +180,34 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
   const [loteProgress, setLoteProgress] = useState(0);
   const [loteResults, setLoteResults] = useState<any[]>([]);
   const [isSendingLote, setIsSendingLote] = useState(false);
-  const [loteFinished, setLoteFinished] = useState(false);
+  const [, setLoteFinished] = useState(false);
 
-  const [userPermissions, setUserPermissions] = useState<string[]>(permissions);
-  const [isAdmin, setIsAdmin] = useState(isAdminRole || permissions.includes('all_permissions') || permissions.length > 100);
-
-  useEffect(() => {
-    // Permissoes ja carregadas via props
-  }, []);
+  const userPermissions = permissions;
+  const isAdmin = isAdminRole || permissions.includes('all_permissions') || permissions.length > 100;
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
   };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+  };
+
+  const formatDateLabel = (value: string) => {
+    if (!value) return '-';
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) return value;
+    return `${day}/${month}/${year}`;
+  };
+
+  const syncFilteredTotals = (apiOverride?: any) => {
+    const api = apiOverride || gridApi;
+    const rows = api ? collectFilteredCobrancaRows(api) : contas;
+    setFilteredTotals(calculateCobrancaTotals(rows));
+  };
+
+  const dateFilterLabel = dateFilterType === 'vencimento' ? 'Data de Vencimento' : 'Data de Emissao';
+  const periodLabel = `${formatDateLabel(dataDe)} a ${formatDateLabel(dataAte)}`;
 
   const columnDefs = useMemo(() => [
     {
@@ -315,6 +340,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
 
   const onGridReady = (params: any) => {
     setGridApi(params.api);
+    syncFilteredTotals(params.api);
   };
 
   const onDisplayedColumnsChanged = (params: any) => {
@@ -336,6 +362,36 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
 
   const onSelectionChanged = (params: any) => {
     setSelectedRows(params.api.getSelectedRows());
+  };
+
+  const onModelUpdated = (params: any) => {
+    syncFilteredTotals(params.api);
+  };
+
+  const handleExport = (format: 'pdf' | 'xlsx') => {
+    if (!gridApi) {
+      toast.error('Realize uma busca antes de exportar.');
+      return;
+    }
+
+    const exportParams = {
+      gridApi,
+      companyLabel: 'NZD Contabilidade',
+      periodLabel,
+      dateFilterLabel,
+      filePrefix: 'cobranca_nzd_contabilidade',
+    };
+
+    const exported = format === 'pdf'
+      ? exportFilteredCobrancaToPdf(exportParams)
+      : exportFilteredCobrancaToXlsx(exportParams);
+
+    if (!exported) {
+      toast.warning('Nenhum resultado filtrado para exportar.');
+      return;
+    }
+
+    toast.success(`Exportacao em ${format.toUpperCase()} iniciada com base no filtro aplicado.`);
   };
 
   const handleReceberClick = () => {
@@ -750,6 +806,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
     setLoading(true);
     setContas([]);
     setSelectedRows([]);
+    setFilteredTotals(createEmptyCobrancaTotals());
     if (gridApi) {
       gridApi.deselectAll();
     }
@@ -778,8 +835,10 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
         return;
       }
 
-      setContas(response.data || []);
-      toast.success(`${(response.data || []).length} registros encontrados.`);
+      const nextContas = response.data || [];
+      setContas(nextContas);
+      setFilteredTotals(calculateCobrancaTotals(nextContas));
+      toast.success(`${nextContas.length} registros encontrados.`);
     } catch (error: any) {
       toast.error(error.message || 'Erro ao buscar dados no Omie.');
     } finally {
@@ -879,12 +938,12 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
       )}
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <CardTitle>Resultados</CardTitle>
             <CardDescription>Lista de contas a receber do período selecionado.</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {hiddenColumns.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -902,6 +961,26 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 text-orange-500 border-orange-500 hover:bg-orange-50"
+                  disabled={!gridApi}
+                >
+                  <DocumentArrowDownIcon className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                  Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                  Exportar XLSX
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button 
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
               disabled={selectedRows.length !== 1} 
@@ -953,6 +1032,40 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
           </div>
         </CardHeader>
         <CardContent>
+          <div className="grid gap-3 mb-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <p className="text-xs text-muted-foreground">Registros filtrados</p>
+              <p className="text-2xl font-semibold">{filteredTotals.registros}</p>
+            </div>
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <p className="text-xs text-muted-foreground">Valor total</p>
+              <p className="text-lg font-semibold">{formatCurrency(filteredTotals.valorConta)}</p>
+            </div>
+            <div className="rounded-lg border bg-red-50 p-3">
+              <p className="text-xs text-muted-foreground">Em atraso</p>
+              <p className="text-lg font-semibold text-red-600">{formatCurrency(filteredTotals.emAtraso)}</p>
+            </div>
+            <div className="rounded-lg border bg-orange-50 p-3">
+              <p className="text-xs text-muted-foreground">Honorarios</p>
+              <p className="text-lg font-semibold text-orange-600">{formatCurrency(filteredTotals.honorarios)}</p>
+            </div>
+            <div className="rounded-lg border bg-green-50 p-3">
+              <p className="text-xs text-muted-foreground">Recebido</p>
+              <p className="text-lg font-semibold text-green-600">{formatCurrency(filteredTotals.recebido)}</p>
+            </div>
+            <div className="rounded-lg border bg-amber-50 p-3">
+              <p className="text-xs text-muted-foreground">A receber</p>
+              <p className="text-lg font-semibold text-amber-700">{formatCurrency(filteredTotals.aReceber)}</p>
+            </div>
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <p className="text-xs text-muted-foreground">Descontos</p>
+              <p className="text-lg font-semibold">{formatCurrency(filteredTotals.desconto)}</p>
+            </div>
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <p className="text-xs text-muted-foreground">Juros</p>
+              <p className="text-lg font-semibold">{formatCurrency(filteredTotals.juros)}</p>
+            </div>
+          </div>
           <div 
             className="ag-theme-alpine w-full h-[500px]"
             style={{ 
@@ -972,6 +1085,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
               animateRows={true}
               rowSelection="multiple"
               onGridReady={onGridReady}
+              onModelUpdated={onModelUpdated}
               onDisplayedColumnsChanged={onDisplayedColumnsChanged}
               onSelectionChanged={onSelectionChanged}
               localeText={AG_GRID_LOCALE_PT_BR}
