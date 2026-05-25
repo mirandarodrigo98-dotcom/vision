@@ -59,9 +59,10 @@ function MultiSelectDropdown({ title, options, selected, onChange }: { title: st
 
 interface IRGridProps {
   declarations: IRDeclaration[];
+  onRefreshData?: () => Promise<IRDeclaration[]>;
 }
 
-export function IRGrid({ declarations }: IRGridProps) {
+export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
   const [currentDeclarations, setCurrentDeclarations] = useState<IRDeclaration[]>(declarations);
   const years = useMemo(
     () => Array.from(new Set(currentDeclarations.map(d => d.year))).sort((a, b) => Number(b) - Number(a)),
@@ -128,8 +129,11 @@ export function IRGrid({ declarations }: IRGridProps) {
   const refreshDeclarations = async () => {
     setIsRefreshingData(true);
     try {
-      const latestDeclarations = await getIRDeclarations(String(Date.now()));
+      const latestDeclarations = onRefreshData
+        ? await onRefreshData()
+        : await getIRDeclarations(String(Date.now()));
       setCurrentDeclarations(latestDeclarations);
+      return latestDeclarations;
     } finally {
       setIsRefreshingData(false);
     }

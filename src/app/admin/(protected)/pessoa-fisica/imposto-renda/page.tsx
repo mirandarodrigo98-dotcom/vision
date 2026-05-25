@@ -1,12 +1,12 @@
 import { Metadata } from 'next';
-import { getIRDeclarations } from '@/app/actions/imposto-renda';
+import { getIRDeclarations, getIRStats, getIRReceiptStats } from '@/app/actions/imposto-renda';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { redirect } from 'next/navigation';
+import { IROverview } from '@/components/imposto-renda/ir-overview';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FileCog, PlusIcon } from 'lucide-react';
 import { PartnersDialog } from '@/components/imposto-renda/partners-dialog';
-import { IROverview } from '@/components/imposto-renda/ir-overview';
 
 export const metadata: Metadata = {
   title: 'Imposto de Renda | VISION',
@@ -21,6 +21,8 @@ export default async function ImpostoRendaPage() {
   }
   
   const declarations = await getIRDeclarations();
+  const stats = await getIRStats();
+  const receiptsStats = await getIRReceiptStats();
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -44,7 +46,7 @@ export default async function ImpostoRendaPage() {
       </div>
 
       <div className="space-y-4">
-        <IROverview declarations={declarations} />
+        <IROverview declarations={declarations} stats={stats} receiptsStats={receiptsStats} />
       </div>
     </div>
   );
