@@ -240,7 +240,9 @@ function buildExportSnapshot(gridApi: any): ExportSnapshot {
 
     const row: Record<string, string | number> = {};
     for (const column of columns) {
-      const rawValue = gridApi.getValue(column.key, node);
+      const rawValue = typeof node.getDataValue === 'function'
+        ? node.getDataValue(column.key, 'value')
+        : node.data?.[column.key];
       row[column.key] = column.isNumeric ? toNumber(rawValue) : stringifyValue(rawValue);
     }
     rows.push(row);

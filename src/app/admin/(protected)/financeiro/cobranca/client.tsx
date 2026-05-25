@@ -405,8 +405,9 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
       }
 
       toast.success(`Exportacao em ${format.toUpperCase()} concluida.`, { id: toastId });
-    } catch (error) {
-      toast.error(`Nao foi possivel exportar em ${format.toUpperCase()}.`, { id: toastId });
+    } catch (error: any) {
+      const errorMessage = error?.message ? ` Detalhe: ${error.message}` : '';
+      toast.error(`Nao foi possivel exportar em ${format.toUpperCase()}.${errorMessage}`, { id: toastId });
     } finally {
       setIsExporting(null);
     }
