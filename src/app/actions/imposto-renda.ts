@@ -2,7 +2,7 @@
 
 import db from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
 import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { v4 as uuidv4 } from 'uuid';
 import { createNotification } from './notifications';
@@ -137,7 +137,8 @@ export interface IRReceipt {
   created_by_name?: string | null;
 }
 
-export async function getIRDeclarations(): Promise<IRDeclaration[]> {
+export async function getIRDeclarations(_refreshKey?: string): Promise<IRDeclaration[]> {
+  noStore();
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   await ensureIRReceiptsTable();
@@ -171,6 +172,7 @@ export async function getIRDeclarations(): Promise<IRDeclaration[]> {
 }
 
 export async function getIRStats() {
+  noStore();
   const declarations = await getIRDeclarations();
   
   const statusCounts = declarations.reduce((acc, curr) => {
@@ -185,6 +187,7 @@ export async function getIRStats() {
 }
 
 export async function getIRReceiptStats() {
+  noStore();
   const declarations = await getIRDeclarations();
   const activeDeclarations = declarations.filter((d) => d.status !== 'Cancelada');
 
