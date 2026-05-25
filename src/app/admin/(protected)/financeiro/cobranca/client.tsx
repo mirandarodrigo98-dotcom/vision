@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { listarContasReceber, obterBoletoOmie, downloadBoletoPdfServer, lancarRecebimentoOmie, consultarContaReceberOmie, cancelarRecebimentoOmie, enviarBoletoDigisacOmie, enviarCobrancaDigisacOmie, getOmieBankSyncStatus, type OmieContasReceberDateFilter } from '@/app/actions/integrations/omie';
 import { toast } from 'sonner';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
@@ -29,6 +29,7 @@ import {
   exportFilteredCobrancaToXlsx,
   type CobrancaTotals,
 } from '@/lib/financeiro-cobranca-report';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 // Registra todos os recursos gratuitos do AG Grid (necessário na v35+)
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -181,6 +182,7 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
   const [loteResults, setLoteResults] = useState<any[]>([]);
   const [isSendingLote, setIsSendingLote] = useState(false);
   const [, setLoteFinished] = useState(false);
+  const [isExporting, setIsExporting] = useState<null | 'pdf' | 'xlsx'>(null);
 
   const userPermissions = permissions;
   const isAdmin = isAdminRole || permissions.includes('all_permissions') || permissions.length > 100;
@@ -368,9 +370,13 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
     syncFilteredTotals(params.api);
   };
 
-  const handleExport = (format: 'pdf' | 'xlsx') => {
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
     if (!gridApi) {
       toast.error('Realize uma busca antes de exportar.');
+      return;
+    }
+
+    if (isExporting) {
       return;
     }
 
@@ -382,16 +388,28 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
       filePrefix: 'cobranca_nzd_contabilidade',
     };
 
-    const exported = format === 'pdf'
-      ? exportFilteredCobrancaToPdf(exportParams)
-      : exportFilteredCobrancaToXlsx(exportParams);
+    const toastId = toast.loading(`Preparando exportacao em ${format.toUpperCase()}...`);
+    setIsExporting(format);
 
-    if (!exported) {
-      toast.warning('Nenhum resultado filtrado para exportar.');
-      return;
+    try {
+      // Permite que a interface pinte o estado de carregamento antes do processamento pesado.
+      await waitForBrowserPaint();
+
+      const exported = format === 'pdf'
+        ? exportFilteredCobrancaToPdf(exportParams)
+        : exportFilteredCobrancaToXlsx(exportParams);
+
+      if (!exported) {
+        toast.warning('Nenhum resultado filtrado para exportar.', { id: toastId });
+        return;
+      }
+
+      toast.success(`Exportacao em ${format.toUpperCase()} concluida.`, { id: toastId });
+    } catch (error) {
+      toast.error(`Nao foi possivel exportar em ${format.toUpperCase()}.`, { id: toastId });
+    } finally {
+      setIsExporting(null);
     }
-
-    toast.success(`Exportacao em ${format.toUpperCase()} iniciada com base no filtro aplicado.`);
   };
 
   const handleReceberClick = () => {
@@ -966,17 +984,17 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
                 <Button
                   variant="outline"
                   className="flex items-center gap-2 text-orange-500 border-orange-500 hover:bg-orange-50"
-                  disabled={!gridApi}
+                  disabled={!gridApi || isExporting !== null}
                 >
-                  <DocumentArrowDownIcon className="h-4 w-4" />
-                  Exportar
+                  {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <DocumentArrowDownIcon className="h-4 w-4" />}
+                  {isExporting ? `Exportando ${isExporting.toUpperCase()}...` : 'Exportar'}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <DropdownMenuItem disabled={isExporting !== null} onClick={() => void handleExport('pdf')}>
                   Exportar PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                <DropdownMenuItem disabled={isExporting !== null} onClick={() => void handleExport('xlsx')}>
                   Exportar XLSX
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -1044,10 +1062,6 @@ export function CobrancaClient({ permissions, isAdminRole = false }: { permissio
             <div className="rounded-lg border bg-red-50 p-3">
               <p className="text-xs text-muted-foreground">Em atraso</p>
               <p className="text-lg font-semibold text-red-600">{formatCurrency(filteredTotals.emAtraso)}</p>
-            </div>
-            <div className="rounded-lg border bg-orange-50 p-3">
-              <p className="text-xs text-muted-foreground">Honorarios</p>
-              <p className="text-lg font-semibold text-orange-600">{formatCurrency(filteredTotals.honorarios)}</p>
             </div>
             <div className="rounded-lg border bg-green-50 p-3">
               <p className="text-xs text-muted-foreground">Recebido</p>
