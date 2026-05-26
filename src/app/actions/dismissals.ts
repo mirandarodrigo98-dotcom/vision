@@ -156,10 +156,6 @@ export async function createDismissal(formData: FormData) {
     const dismissal_date = formData.get('dismissal_date') as string;
     const observations = formData.get('observations') as string;
 
-    // #region debug-point A:server-received-payload
-    fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"dismissal-required-fields",runId:"pre-fix",hypothesisId:"A",location:"dismissals.ts:158",msg:"[DEBUG] server action received dismissal payload",data:{role:session.role,company_id:company_id||"",employee_id:employee_id||"",notice_type:notice_type||"",dismissal_cause:dismissal_cause||"",dismissal_date:dismissal_date||"",missingFields:[!company_id?"company_id":null,!employee_id?"employee_id":null,!notice_type?"notice_type":null,!dismissal_cause?"dismissal_cause":null,!dismissal_date?"dismissal_date":null].filter(Boolean)},ts:Date.now()})}).catch(()=>{});
-    // #endregion
-
     if (!company_id || !employee_id || !notice_type || !dismissal_cause || !dismissal_date) {
         return { error: 'Preencha todos os campos obrigatórios.' };
     }
