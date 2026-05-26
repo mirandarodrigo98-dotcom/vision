@@ -78,6 +78,9 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = event.currentTarget;
+        // #region debug-point B:client-pre-submit
+        fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"dismissal-required-fields",runId:"pre-fix",hypothesisId:"B",location:"dismissal-form.tsx:80",msg:"[DEBUG] client state before dismissal submit",data:{pathname:typeof window!=="undefined"?window.location.pathname:"",activeCompanyId:activeCompanyId??null,companyId:companyId??null,employeeId:employeeId??null,noticeType:noticeType??null,dismissalCause:dismissalCause??null,dismissalDate:dismissalDate?format(dismissalDate,"yyyy-MM-dd"):null,isEditing,readOnly},ts:Date.now()})}).catch(()=>{});
+        // #endregion
         setLoading(true);
         await waitForBrowserPaint();
 
@@ -105,6 +108,10 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
              setLoading(false);
              return;
         }
+
+        // #region debug-point A:client-payload
+        fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"dismissal-required-fields",runId:"pre-fix",hypothesisId:"A",location:"dismissal-form.tsx:109",msg:"[DEBUG] client payload prepared for dismissal submit",data:{company_id:String(formData.get("company_id")??""),employee_id:String(formData.get("employee_id")??""),notice_type:String(formData.get("notice_type")??""),dismissal_cause:String(formData.get("dismissal_cause")??""),dismissal_date:String(formData.get("dismissal_date")??""),observationsLength:String(formData.get("observations")??"").length},ts:Date.now()})}).catch(()=>{});
+        // #endregion
 
         try {
             let result;
