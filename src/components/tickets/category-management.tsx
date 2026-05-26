@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { createTicketCategory, updateTicketCategory, deleteTicketCategory } from '@/app/actions/ticket-categories';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface Category {
   id: string;
@@ -63,6 +64,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
     if (!categoryName.trim()) return;
     
     setIsSubmitting(true);
+    await waitForBrowserPaint();
     try {
       const result = await createTicketCategory(categoryName);
       if (result.error) {
@@ -85,6 +87,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
     if (!currentCategory || !categoryName.trim()) return;
     
     setIsSubmitting(true);
+    await waitForBrowserPaint();
     try {
       const result = await updateTicketCategory(currentCategory.id, { name: categoryName });
       if (result.error) {
@@ -109,6 +112,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
     if (!currentCategory) return;
     
     setIsSubmitting(true);
+    await waitForBrowserPaint();
     try {
       const result = await deleteTicketCategory(currentCategory.id);
       if (result.error) {
@@ -127,11 +131,15 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
   };
 
   const toggleActive = async (category: Category) => {
+    if (isSubmitting) return;
+
     const newStatus = !category.active;
     // Optimistic update
     setCategories(categories.map(cat => 
       cat.id === category.id ? { ...cat, active: newStatus } : cat
     ));
+    setIsSubmitting(true);
+    await waitForBrowserPaint();
 
     try {
       const result = await updateTicketCategory(category.id, { active: newStatus });
@@ -150,6 +158,8 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
         cat.id === category.id ? { ...cat, active: !newStatus } : cat
       ));
       toast.error('Erro ao alterar status');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,7 +185,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
           </Link>
           <h2 className="text-3xl font-bold tracking-tight">Gerenciar Categorias</h2>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
+        <Button onClick={() => setIsCreateOpen(true)} disabled={isSubmitting}>
           <Plus className="mr-2 h-4 w-4" />
           Incluir
         </Button>
@@ -217,6 +227,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
                       <Switch
                         checked={!!category.active}
                         onCheckedChange={() => toggleActive(category)}
+                        disabled={isSubmitting}
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -225,6 +236,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
                           variant="ghost"
                           size="icon"
                           onClick={() => openEdit(category)}
+                          disabled={isSubmitting}
                           title="Editar"
                         >
                           <Pencil className="h-4 w-4" />
@@ -233,6 +245,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
                           variant="ghost"
                           size="icon"
                           onClick={() => openDelete(category)}
+                          disabled={isSubmitting}
                           title="Excluir"
                           className="text-destructive hover:text-destructive/90"
                         >
@@ -268,7 +281,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
             <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button onClick={handleCreate} disabled={!categoryName.trim() || isSubmitting}>
+            <Button onClick={() => void handleCreate()} disabled={!categoryName.trim() || isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
             </Button>
@@ -296,7 +309,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
             <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button onClick={handleEdit} disabled={!categoryName.trim() || isSubmitting}>
+            <Button onClick={() => void handleEdit()} disabled={!categoryName.trim() || isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
             </Button>
@@ -324,7 +337,7 @@ export function CategoryManagement({ initialCategories }: CategoryManagementProp
             </Button>
             <Button 
               variant="destructive" 
-              onClick={handleDelete} 
+              onClick={() => void handleDelete()} 
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

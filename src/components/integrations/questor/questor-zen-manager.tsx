@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { saveQuestorZenConfig, QuestorZenConfig } from '@/app/actions/integrations/questor-zen';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 const questorZenConfigSchema = z.object({
   base_url: z.string().url('O domínio do cliente deve ser uma URL válida').min(1, 'O domínio do cliente é obrigatório'),
@@ -36,14 +37,18 @@ export function QuestorZenManager({ initialConfig }: QuestorZenManagerProps) {
 
   const onSubmit = async (data: FormData) => {
     setSaving(true);
-    const result = await saveQuestorZenConfig(data);
-    
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success('Configurações do Questor Zen salvas com sucesso!');
+    await waitForBrowserPaint();
+    try {
+      const result = await saveQuestorZenConfig(data);
+      
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success('Configurações do Questor Zen salvas com sucesso!');
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (

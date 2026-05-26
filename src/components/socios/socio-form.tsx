@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Search } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { validateCPF } from '@/lib/validators';
@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { QuestorImportDialog } from '@/components/admin/companies/questor-import-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface SocioFormProps {
   companies: any[];
@@ -161,6 +162,7 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
 
     try {
       setIsSaving(true);
+      await waitForBrowserPaint();
       const result = await saveSocio({
         id: initialData?.id,
         companyId: selectedCompanyId,
@@ -491,7 +493,8 @@ export function SocioForm({ companies, initialData }: SocioFormProps) {
             <Button variant="outline" onClick={() => router.push('/admin/socios')} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button disabled={isSaving || !isFormValid} onClick={handleSave}>
+            <Button disabled={isSaving || !isFormValid} onClick={() => void handleSave()}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSaving ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>

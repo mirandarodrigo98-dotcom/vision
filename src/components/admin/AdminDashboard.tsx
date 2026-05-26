@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/tooltip'
 import { SessionMonitor } from '@/components/session-monitor'
 import { NotificationMonitor } from '@/components/admin/notification-monitor'
+import { waitForBrowserPaint } from '@/lib/client-feedback'
 
 interface NavigationItem {
   name: string
@@ -97,6 +98,7 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
   const [isHovering, setIsHovering] = useState(false)
   const [ignoreHover, setIgnoreHover] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { setTheme, theme } = useTheme()
 
   const [mounted, setMounted] = useState(false)
@@ -170,8 +172,17 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
 
 
   const handleLogout = async () => {
-    await logout()
-    window.location.replace('/login')
+    if (isLoggingOut) return
+
+    setIsLoggingOut(true)
+    await waitForBrowserPaint()
+
+    try {
+      await logout()
+      window.location.replace('/login')
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -569,16 +580,29 @@ export default function AdminDashboard({ children, user, permissions = [] }: Adm
                               {userNavigation.map((item) => (
                         <Menu.Item key={item.name}>
                           {({ active }) => (
-                            <a
-                              href={item.href}
-                              onClick={item.action === 'logout' ? handleLogout : undefined}
-                              className={classNames(
-                                active ? 'bg-gray-50' : '',
-                                'block px-3 py-1 text-sm leading-6 text-gray-900 cursor-pointer'
-                              )}
-                            >
-                              {item.name}
-                            </a>
+                            item.action === 'logout' ? (
+                              <button
+                                type="button"
+                                onClick={() => void handleLogout()}
+                                disabled={isLoggingOut}
+                                className={classNames(
+                                  active ? 'bg-gray-50' : '',
+                                  'block w-full px-3 py-1 text-left text-sm leading-6 text-gray-900 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60'
+                                )}
+                              >
+                                {isLoggingOut ? 'Saindo...' : item.name}
+                              </button>
+                            ) : (
+                              <a
+                                href={item.href}
+                                className={classNames(
+                                  active ? 'bg-gray-50' : '',
+                                  'block px-3 py-1 text-sm leading-6 text-gray-900 cursor-pointer'
+                                )}
+                              >
+                                {item.name}
+                              </a>
+                            )
                           )}
                         </Menu.Item>
                       ))}

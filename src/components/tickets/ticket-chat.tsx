@@ -7,11 +7,12 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { addTicketComment } from '@/app/actions/tickets';
 import { toast } from 'sonner';
-import { User, Send, Paperclip, X } from 'lucide-react';
+import { User, Send, Paperclip, X, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { translateStatus } from '@/lib/ticket-utils';
+import { waitForBrowserPaint } from '@/lib/client-feedback';
 
 interface Interaction {
   id: string;
@@ -63,6 +64,7 @@ export function TicketChat({ ticketId, interactions, currentUserEmail, ticketSta
     if (!comment.trim() && attachments.length === 0) return;
 
     setIsSubmitting(true);
+    await waitForBrowserPaint();
     try {
       const formData = new FormData();
       formData.append('content', comment);
@@ -202,12 +204,13 @@ export function TicketChat({ ticketId, interactions, currentUserEmail, ticketSta
                   ref={fileInputRef} 
                   onChange={handleFileSelect} 
                 />
-                <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} type="button">
+                <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} type="button" disabled={isSubmitting}>
                   <Paperclip size={16} className="mr-2" /> Anexar Arquivo (Max 2MB)
                 </Button>
               </div>
-              <Button onClick={handleSubmit} disabled={isSubmitting || (!comment.trim() && attachments.length === 0)}>
-                Enviar <Send size={16} className="ml-2" />
+              <Button onClick={() => void handleSubmit()} disabled={isSubmitting || (!comment.trim() && attachments.length === 0)}>
+                {isSubmitting ? <span className="mr-2"><Loader2 className="h-4 w-4 animate-spin" /></span> : null}
+                {isSubmitting ? 'Enviando...' : 'Enviar'} <Send size={16} className="ml-2" />
               </Button>
             </div>
           </div>
