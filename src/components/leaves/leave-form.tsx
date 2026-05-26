@@ -69,6 +69,7 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
     const [sourceCompanyId, setSourceCompanyId] = useState<string>(initialData?.company_id || activeCompanyId || '');
     const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(initialData?.employee_id || '');
+    const [leaveType, setLeaveType] = useState<string>(initialData?.type || '');
     const [file, setFile] = useState<File | null>(null);
 
     useEffect(() => {
@@ -114,6 +115,18 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
         await waitForBrowserPaint();
 
         const formData = new FormData(form);
+        const resolvedCompanyId = initialData?.company_id || activeCompanyId || sourceCompanyId;
+        const resolvedEmployeeId = isEditing ? initialData?.employee_id : selectedEmployeeId;
+
+        if (!resolvedCompanyId || !resolvedEmployeeId || !leaveType) {
+             toast.error('Preencha todos os campos obrigatórios.');
+             setLoading(false);
+             return;
+        }
+
+        formData.set('company_id', resolvedCompanyId);
+        formData.set('employee_id', resolvedEmployeeId);
+        formData.set('type', leaveType);
         if (date) {
             formData.set('start_date', format(date, 'yyyy-MM-dd'));
         } else {
@@ -224,9 +237,8 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
                     <div className="space-y-2">
                         <Label htmlFor="type">Tipo de Afastamento *</Label>
                         <Select 
-                            name="type" 
-                            required 
-                            defaultValue={initialData?.type}
+                            value={leaveType}
+                            onValueChange={setLeaveType}
                             disabled={readOnly}
                         >
                             <SelectTrigger className="w-full">

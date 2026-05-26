@@ -98,6 +98,17 @@ export function VacationForm({ companies, activeCompanyId, initialData, isEditin
         await waitForBrowserPaint();
 
         const formData = new FormData(form);
+        const resolvedCompanyId = initialData?.company_id || activeCompanyId || companyId;
+        const resolvedEmployeeId = isEditing ? initialData?.employee_id : employeeId;
+
+        if (!resolvedCompanyId || !resolvedEmployeeId) {
+             toast.error('Preencha todos os campos obrigatórios.');
+             setLoading(false);
+             return;
+        }
+
+        formData.set('company_id', resolvedCompanyId);
+        formData.set('employee_id', resolvedEmployeeId);
         
         if (startDate) {
             formData.set('start_date', format(startDate, 'yyyy-MM-dd'));

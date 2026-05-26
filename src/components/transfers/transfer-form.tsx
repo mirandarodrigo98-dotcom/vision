@@ -76,6 +76,19 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
         await waitForBrowserPaint();
 
         const formData = new FormData(form);
+        const resolvedSourceCompanyId = initialData?.source_company_id || activeCompanyId || sourceCompanyId;
+        const resolvedEmployeeName = isEditing ? initialData?.employee_name : selectedEmployeeName;
+        const resolvedTargetCompanyId = isEditing ? initialData?.target_company_id : targetCompanyId;
+
+        if (!resolvedSourceCompanyId || !resolvedEmployeeName || !resolvedTargetCompanyId) {
+             toast.error('Preencha todos os campos obrigatórios.');
+             setLoading(false);
+             return;
+        }
+
+        formData.set('source_company_id', resolvedSourceCompanyId);
+        formData.set('employee_name', resolvedEmployeeName);
+        formData.set('target_company_id', resolvedTargetCompanyId);
         if (date) {
             formData.set('transfer_date', format(date, 'yyyy-MM-dd'));
         } else {
@@ -159,9 +172,8 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
                              />
                          ) : (
                             <Select 
-                                name="target_company_id" 
-                                required 
-                                defaultValue={initialData?.target_company_id}
+                                value={targetCompanyId}
+                                onValueChange={setTargetCompanyId}
                                 disabled={!sourceCompanyId}
                             >
                                 <SelectTrigger className="w-full">
