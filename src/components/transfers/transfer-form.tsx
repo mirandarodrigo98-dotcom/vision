@@ -71,10 +71,11 @@ export function TransferForm({ companies, activeCompanyId, initialData, isEditin
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        const form = event.currentTarget;
         setLoading(true);
         await waitForBrowserPaint();
 
-        const formData = new FormData(event.currentTarget);
+        const formData = new FormData(form);
         if (date) {
             formData.set('transfer_date', format(date, 'yyyy-MM-dd'));
         } else {

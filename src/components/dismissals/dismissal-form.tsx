@@ -77,10 +77,11 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        const form = event.currentTarget;
         setLoading(true);
         await waitForBrowserPaint();
 
-        const formData = new FormData(event.currentTarget);
+        const formData = new FormData(form);
         
         if (dismissalDate) {
             formData.set('dismissal_date', format(dismissalDate, 'yyyy-MM-dd'));

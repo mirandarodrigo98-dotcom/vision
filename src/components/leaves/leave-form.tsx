@@ -109,10 +109,11 @@ export function LeaveForm({ companies, activeCompanyId, initialData, isEditing =
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        const form = event.currentTarget;
         setLoading(true);
         await waitForBrowserPaint();
 
-        const formData = new FormData(event.currentTarget);
+        const formData = new FormData(form);
         if (date) {
             formData.set('start_date', format(date, 'yyyy-MM-dd'));
         } else {
