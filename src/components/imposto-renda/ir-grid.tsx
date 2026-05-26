@@ -20,11 +20,11 @@ const STATUS_COLORS: Record<string, string> = {
   'Iniciado': 'bg-blue-900',
   'Pendente': 'bg-red-600',
   'Validada': 'bg-yellow-500',
-  'Transmitida': 'bg-orange-500',
-  'Processada': 'bg-green-600',
-  'Malha Fina': 'bg-pink-600',
+  'Transmitida': 'bg-green-500',
+  'Processada': 'bg-green-700',
+  'Malha Fina': 'bg-rose-700',
   'Retificadora': 'bg-purple-600',
-  'Reaberta': 'bg-blue-400',
+  'Reaberta': 'bg-orange-500',
   'Cancelada': 'bg-slate-900'
 };
 

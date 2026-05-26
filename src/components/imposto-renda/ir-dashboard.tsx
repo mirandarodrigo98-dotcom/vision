@@ -11,11 +11,11 @@ const COLORS: Record<string, string> = {
   'Iniciado': '#1e3a8a',
   'Pendente': '#dc2626',
   'Validada': '#eab308',
-  'Transmitida': '#f97316',
-  'Processada': '#16a34a',
-  'Malha Fina': '#db2777',
+  'Transmitida': '#22c55e',
+  'Processada': '#15803d',
+  'Malha Fina': '#be123c',
   'Retificadora': '#7e22ce',
-  'Reaberta': '#60a5fa',
+  'Reaberta': '#f97316',
   'Cancelada': '#0f172a'
 };
 
