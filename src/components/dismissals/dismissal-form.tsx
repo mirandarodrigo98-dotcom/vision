@@ -82,6 +82,21 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
         await waitForBrowserPaint();
 
         const formData = new FormData(form);
+        const resolvedCompanyId = initialData?.company_id || activeCompanyId || companyId;
+        const resolvedEmployeeId = isEditing ? initialData?.employee_id : employeeId;
+        const resolvedNoticeType = noticeType;
+        const resolvedDismissalCause = dismissalCause;
+
+        if (!resolvedCompanyId || !resolvedEmployeeId || !resolvedNoticeType || !resolvedDismissalCause) {
+             toast.error('Preencha todos os campos obrigatórios.');
+             setLoading(false);
+             return;
+        }
+
+        formData.set('company_id', resolvedCompanyId);
+        formData.set('employee_id', resolvedEmployeeId);
+        formData.set('notice_type', resolvedNoticeType);
+        formData.set('dismissal_cause', resolvedDismissalCause);
         
         if (dismissalDate) {
             formData.set('dismissal_date', format(dismissalDate, 'yyyy-MM-dd'));
