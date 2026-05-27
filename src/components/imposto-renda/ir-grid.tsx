@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button';
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
-import { ChevronDownIcon, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
@@ -28,32 +28,46 @@ const STATUS_COLORS: Record<string, string> = {
   'Cancelada': 'bg-slate-900'
 };
 
-function MultiSelectDropdown({ title, options, selected, onChange }: { title: string, options: string[], selected: string[], onChange: (val: string[]) => void }) {
+const PRIORITY_OPTIONS = ['Baixa', 'Média', 'Alta', 'Crítica'];
+const TYPE_OPTIONS = ['Sócio', 'Particular'];
+const STATUS_OPTIONS = Object.keys(STATUS_COLORS);
+const RECEIVED_OPTIONS = ['Sim', 'Não'];
+
+function CheckboxFilterGroup({
+  options,
+  selected,
+  onChange,
+  actions,
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (val: string[]) => void;
+  actions?: React.ReactNode;
+}) {
+  const toggleOption = (option: string, checked: boolean) => {
+    if (checked) {
+      onChange(selected.includes(option) ? selected : [...selected, option]);
+      return;
+    }
+
+    onChange(selected.filter((item) => item !== option));
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full justify-between h-8 text-sm px-3 font-normal">
-          <span className="truncate">
-            {selected.length === 0 ? 'Todos' : selected.length === 1 ? selected[0] : `${selected.length} selecionados`}
-          </span>
-          <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-48">
-        {options.map(opt => (
-          <DropdownMenuCheckboxItem
-            key={opt}
-            checked={selected.includes(opt)}
-            onCheckedChange={(checked) => {
-              if (checked) onChange([...selected, opt]);
-              else onChange(selected.filter(x => x !== opt));
-            }}
-          >
-            {opt}
-          </DropdownMenuCheckboxItem>
+    <div className="rounded-md border bg-background p-2">
+      {actions ? <div className="mb-2 flex flex-wrap gap-1">{actions}</div> : null}
+      <div className="flex flex-wrap gap-x-3 gap-y-2">
+        {options.map((option) => (
+          <label key={option} className="flex items-center gap-2 text-sm leading-none">
+            <Checkbox
+              checked={selected.includes(option)}
+              onCheckedChange={(checked) => toggleOption(option, checked === true)}
+            />
+            <span>{option}</span>
+          </label>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </div>
+    </div>
   );
 }
 
@@ -274,6 +288,18 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
   const totalPages = Math.ceil(totalItems / size);
   const paginatedData = currentYearData.slice((currentPage - 1) * size, currentPage * size);
 
+  const handleSelectAllStatus = () => {
+    setStatusFilter([...STATUS_OPTIONS]);
+  };
+
+  const handleInvertStatusSelection = () => {
+    setStatusFilter(STATUS_OPTIONS.filter((option) => !statusFilter.includes(option)));
+  };
+
+  const handleClearStatusSelection = () => {
+    setStatusFilter([]);
+  };
+
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     const pages = [];
@@ -422,7 +448,7 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
               ))}
             </TabsList>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6 p-4 border rounded-lg bg-muted/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg bg-muted/20">
               <div className="space-y-1.5">
                 <Label className="text-xs">Nome</Label>
                 <Input 
@@ -445,36 +471,45 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Prioridade</Label>
-                <MultiSelectDropdown 
-                  title="Prioridade" 
-                  options={['Baixa', 'Média', 'Alta', 'Crítica']} 
+                <CheckboxFilterGroup
+                  options={PRIORITY_OPTIONS}
                   selected={priorityFilter} 
                   onChange={setPriorityFilter} 
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo</Label>
-                <MultiSelectDropdown 
-                  title="Tipo" 
-                  options={['Sócio', 'Particular']} 
+                <CheckboxFilterGroup
+                  options={TYPE_OPTIONS}
                   selected={typeFilter} 
                   onChange={setTypeFilter} 
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Status</Label>
-                <MultiSelectDropdown 
-                  title="Status" 
-                  options={Object.keys(STATUS_COLORS)} 
+                <CheckboxFilterGroup
+                  options={STATUS_OPTIONS}
                   selected={statusFilter} 
                   onChange={setStatusFilter} 
+                  actions={
+                    <>
+                      <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={handleSelectAllStatus}>
+                        Selecionar tudo
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={handleInvertStatusSelection}>
+                        Inverter seleção
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={handleClearStatusSelection}>
+                        Limpar
+                      </Button>
+                    </>
+                  }
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Recebido</Label>
-                <MultiSelectDropdown 
-                  title="Recebido" 
-                  options={['Sim', 'Não']} 
+                <CheckboxFilterGroup
+                  options={RECEIVED_OPTIONS}
                   selected={receivedFilter} 
                   onChange={setReceivedFilter} 
                 />
@@ -498,7 +533,7 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="lg:col-span-7 flex justify-end gap-2 mt-2">
+              <div className="col-span-full flex justify-end gap-2 mt-2">
                 <Button variant="outline" size="sm" onClick={() => { void handleClearFilters(); }} disabled={isRefreshingData}>
                   Limpar Filtros
                 </Button>
