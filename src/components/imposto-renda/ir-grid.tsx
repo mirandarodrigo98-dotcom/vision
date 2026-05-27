@@ -38,11 +38,15 @@ function CheckboxFilterGroup({
   selected,
   onChange,
   actions,
+  optionsClassName,
+  itemClassName,
 }: {
   options: string[];
   selected: string[];
   onChange: (val: string[]) => void;
   actions?: React.ReactNode;
+  optionsClassName?: string;
+  itemClassName?: string;
 }) {
   const toggleOption = (option: string, checked: boolean) => {
     if (checked) {
@@ -56,9 +60,9 @@ function CheckboxFilterGroup({
   return (
     <div className="rounded-md border bg-background p-2">
       {actions ? <div className="mb-2 flex flex-wrap gap-1">{actions}</div> : null}
-      <div className="flex flex-wrap gap-x-3 gap-y-2">
+      <div className={optionsClassName || "flex flex-wrap gap-x-3 gap-y-2"}>
         {options.map((option) => (
-          <label key={option} className="flex items-center gap-2 text-sm leading-none">
+          <label key={option} className={itemClassName || "flex items-center gap-2 text-sm leading-none"}>
             <Checkbox
               checked={selected.includes(option)}
               onCheckedChange={(checked) => toggleOption(option, checked === true)}
@@ -448,8 +452,8 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
               ))}
             </TabsList>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg bg-muted/20">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6 p-4 border rounded-lg bg-muted/20">
+              <div className="space-y-1.5 lg:col-span-5">
                 <Label className="text-xs">Nome</Label>
                 <Input 
                   placeholder="Filtrar por nome" 
@@ -459,7 +463,7 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
                   className="h-8 text-sm"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 lg:col-span-3">
                 <Label className="text-xs">CPF</Label>
                 <Input 
                   placeholder="Filtrar por CPF" 
@@ -469,28 +473,24 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
                   className="h-8 text-sm"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 lg:col-span-4">
                 <Label className="text-xs">Prioridade</Label>
                 <CheckboxFilterGroup
                   options={PRIORITY_OPTIONS}
                   selected={priorityFilter} 
                   onChange={setPriorityFilter} 
+                  optionsClassName="flex flex-wrap gap-x-4 gap-y-2"
+                  itemClassName="flex items-center gap-2 text-sm leading-none"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo</Label>
-                <CheckboxFilterGroup
-                  options={TYPE_OPTIONS}
-                  selected={typeFilter} 
-                  onChange={setTypeFilter} 
-                />
-              </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 lg:col-span-6">
                 <Label className="text-xs">Status</Label>
                 <CheckboxFilterGroup
                   options={STATUS_OPTIONS}
                   selected={statusFilter} 
                   onChange={setStatusFilter} 
+                  optionsClassName="grid grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-2"
+                  itemClassName="grid grid-cols-[16px_minmax(0,1fr)] items-center gap-2 text-sm leading-none"
                   actions={
                     <>
                       <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={handleSelectAllStatus}>
@@ -506,15 +506,27 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
                   }
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 lg:col-span-3">
                 <Label className="text-xs">Recebido</Label>
                 <CheckboxFilterGroup
                   options={RECEIVED_OPTIONS}
                   selected={receivedFilter} 
                   onChange={setReceivedFilter} 
+                  optionsClassName="flex flex-wrap gap-x-4 gap-y-2"
+                  itemClassName="flex items-center gap-2 text-sm leading-none"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 lg:col-span-2">
+                <Label className="text-xs">Tipo</Label>
+                <CheckboxFilterGroup
+                  options={TYPE_OPTIONS}
+                  selected={typeFilter} 
+                  onChange={setTypeFilter} 
+                  optionsClassName="flex flex-wrap gap-x-4 gap-y-2"
+                  itemClassName="flex items-center gap-2 text-sm leading-none"
+                />
+              </div>
+              <div className="space-y-1.5 lg:col-span-1">
                 <Label className="text-xs">Registros</Label>
                 <Select value={pageSize} onValueChange={(val) => { setPageSize(val); setCurrentPage(1); }}>
                   <SelectTrigger className="h-8 text-sm">
