@@ -7,6 +7,7 @@ import { uploadToR2, getR2DownloadLink } from '@/lib/r2';
 import { v4 as uuidv4 } from 'uuid';
 import { createNotification } from './notifications';
 import { sendIRUpdateEmail } from '@/lib/emails/notifications';
+import { getIRPaymentStatus, type IRPaymentStatus } from '@/lib/ir-payment-status';
 
 async function ensureIRReceiptsTable() {
   await db.query(`
@@ -122,6 +123,7 @@ export interface IRDeclaration {
   receipt_account?: string | null;
   receipt_attachment_url?: string | null;
   receipt_value?: number | null;
+  payment_status?: IRPaymentStatus;
 }
 
 export interface IRReceipt {
@@ -168,7 +170,18 @@ export async function getIRDeclarations(_refreshKey?: string): Promise<IRDeclara
   `;
 
   const rows = (await db.query(sql, [])).rows;
-  return JSON.parse(JSON.stringify(rows));
+  const declarations = rows.map((row: any) => {
+    const serviceValue = Number(row.service_value || 0);
+    const receiptValue = Number(row.receipt_value || 0);
+
+    return {
+      ...row,
+      receipt_value: receiptValue,
+      payment_status: getIRPaymentStatus(serviceValue, receiptValue, row.is_received)
+    };
+  });
+
+  return JSON.parse(JSON.stringify(declarations));
 }
 
 export async function getIRStats() {
@@ -205,13 +218,22 @@ export async function getIRReceiptStats() {
     };
   });
 
+  const partialCount = normalized.filter((d) => d.receivedValue > 0 && !d.isFullyReceived).length;
   const receivedCount = normalized.filter((d) => d.isFullyReceived).length;
-  const notReceivedCount = normalized.length - receivedCount;
-  const receivedValue = normalized.reduce((sum, d) => sum + d.receivedValue, 0);
-  const notReceivedValue = normalized.reduce((sum, d) => sum + d.pendingValue, 0);
+  const notReceivedCount = normalized.length - receivedCount - partialCount;
+  const receivedValue = normalized
+    .filter((d) => d.isFullyReceived)
+    .reduce((sum, d) => sum + d.receivedValue, 0);
+  const partialValue = normalized
+    .filter((d) => d.receivedValue > 0 && !d.isFullyReceived)
+    .reduce((sum, d) => sum + d.receivedValue, 0);
+  const notReceivedValue = normalized
+    .filter((d) => d.receivedValue <= 0)
+    .reduce((sum, d) => sum + d.pendingValue, 0);
 
   return [
     { name: 'Recebidas', value: receivedCount, moneyValue: Number(receivedValue) },
+    { name: 'Parciais', value: partialCount, moneyValue: Number(partialValue) },
     { name: 'Não Recebidas', value: notReceivedCount, moneyValue: Number(notReceivedValue) }
   ];
 }
@@ -405,6 +427,7 @@ export async function getIRDeclarationById(id: string): Promise<IRDeclaration | 
   
   declaration.receipt_value = totalReceived;
   declaration.is_received = serviceValue > 0 ? totalReceived >= serviceValue : declaration.is_received;
+  declaration.payment_status = getIRPaymentStatus(serviceValue, totalReceived, declaration.is_received);
 
   const latestReceipt = (await db.query(`
     SELECT receipt_date, receipt_method, receipt_account, receipt_attachment_url
@@ -769,7 +792,8 @@ _Departamento Tributário_`;
 export async function resendIRDeclaration(
   declarationId: string,
   sendWhatsapp: boolean,
-  sendEmail: boolean
+  sendEmail: boolean,
+  selectedFileIds?: string[]
 ) {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
@@ -778,9 +802,16 @@ export async function resendIRDeclaration(
   if (!declaration) throw new Error('Declaração não encontrada');
 
   const files = await getIRFiles(declarationId);
+  const filteredFiles = selectedFileIds && selectedFileIds.length > 0
+    ? files.filter((file) => selectedFileIds.includes(file.id))
+    : files;
+
+  if (filteredFiles.length === 0) {
+    throw new Error('Selecione pelo menos um arquivo para reenviar.');
+  }
   
   const uploadedFiles = [];
-  for (const file of files) {
+  for (const file of filteredFiles) {
     try {
       const res = await fetch(file.file_url);
       if (!res.ok) continue;

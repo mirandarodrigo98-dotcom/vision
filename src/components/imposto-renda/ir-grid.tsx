@@ -14,6 +14,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getIRPaymentStatus, getIRPaymentStatusOrder } from '@/lib/ir-payment-status';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
@@ -31,7 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
 const PRIORITY_OPTIONS = ['Baixa', 'Média', 'Alta', 'Crítica'];
 const TYPE_OPTIONS = ['Sócio', 'Particular'];
 const STATUS_OPTIONS = Object.keys(STATUS_COLORS);
-const RECEIVED_OPTIONS = ['Sim', 'Não'];
+const RECEIVED_OPTIONS = ['Sim', 'Parcial', 'Não'];
 
 function CheckboxFilterGroup({
   options,
@@ -236,8 +237,8 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
       let valB: any = b[sortConfig.key as keyof IRDeclaration];
 
       if (sortConfig.key === 'is_received') {
-        valA = a.is_received ? 1 : 0;
-        valB = b.is_received ? 1 : 0;
+        valA = getIRPaymentStatusOrder(getIRPaymentStatus(a.service_value, a.receipt_value, a.is_received));
+        valB = getIRPaymentStatusOrder(getIRPaymentStatus(b.service_value, b.receipt_value, b.is_received));
       } else if (sortConfig.key === 'priority') {
          const priorityOrder: Record<string, number> = { 'Baixa': 1, 'Média': 2, 'Alta': 3, 'Crítica': 4 };
          valA = priorityOrder[a.priority || 'Média'] || 0;
@@ -276,7 +277,7 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
           .filter(d => appliedFilters.status.length === 0 ? true : appliedFilters.status.includes(d.status))
           .filter(d => {
             if (appliedFilters.received.length === 0) return true;
-            const r = d.is_received ? 'Sim' : 'Não';
+            const r = getIRPaymentStatus(d.service_value, d.receipt_value, d.is_received);
             return appliedFilters.received.includes(r);
           })
       );
@@ -402,11 +403,16 @@ export function IRGrid({ declarations, onRefreshData }: IRGridProps) {
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
-                  {decl.is_received ? (
-                    <Badge variant="outline" className="text-green-600 border-green-600">Sim</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-red-600 border-red-600">Não</Badge>
-                  )}
+                  {(() => {
+                    const paymentStatus = getIRPaymentStatus(decl.service_value, decl.receipt_value, decl.is_received);
+                    if (paymentStatus === 'Sim') {
+                      return <Badge variant="outline" className="text-green-600 border-green-600">Sim</Badge>;
+                    }
+                    if (paymentStatus === 'Parcial') {
+                      return <Badge variant="outline" className="text-amber-600 border-amber-600">Parcial</Badge>;
+                    }
+                    return <Badge variant="outline" className="text-red-600 border-red-600">Não</Badge>;
+                  })()}
                 </td>
                 <td className="px-4 py-3">
                   <Link

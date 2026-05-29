@@ -58,6 +58,11 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
   };
 
   const maskedValue = '••••';
+  const receiptColorMap: Record<string, string> = {
+    'Recebidas': '#10b981',
+    'Parciais': '#f59e0b',
+    'Não Recebidas': '#ef4444'
+  };
   const renderMaskedOverlay = (message: string) => (
     <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-background/90 backdrop-blur-sm">
       <div className="text-center">
@@ -149,10 +154,10 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         </CardContent>
       </Card>
 
-      {/* 2. Recebidas vs Não Recebidas */}
+      {/* 2. Recebidas vs Parciais vs Não Recebidas */}
       <Card className="w-full flex flex-col">
         <CardHeader className="pb-2">
-          <CardTitle>Recebidas vs Não Recebidas</CardTitle>
+          <CardTitle>Recebidas vs Parciais vs Não Recebidas</CardTitle>
         </CardHeader>
         <CardContent className="relative flex-1 flex flex-col h-[400px]">
           {(receiptsStats && receiptsStats.length > 0) ? (
@@ -175,7 +180,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                       label={renderPercentLabel}
                     >
                       {donutReceipts.map((entry, index) => (
-                        <Cell key={`rc-${index}`} fill={entry.name === 'Recebidas' ? '#10b981' : '#ef4444'} stroke="#ffffff" strokeWidth={2} />
+                        <Cell key={`rc-${index}`} fill={receiptColorMap[entry.name] || '#64748b'} stroke="#ffffff" strokeWidth={2} />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} position={{ x: 10, y: 10 }} />
@@ -185,9 +190,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center justify-center">
                     <span className="text-3xl font-bold text-slate-700 leading-none">
-                      {showCharts
-                        ? `${receiptsStats.find(r => r.name === 'Recebidas')?.value || 0}/${(receiptsStats.find(r => r.name === 'Não Recebidas')?.value || 0) + (receiptsStats.find(r => r.name === 'Recebidas')?.value || 0)}`
-                        : maskedValue}
+                      {showCharts ? `${receiptsTotal || 0}` : maskedValue}
                     </span>
                     <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-widest mt-1">
                       Recebimentos
@@ -206,7 +209,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
         </CardContent>
       </Card>
 
-      {/* 3. Detalhamento Financeiro (Valores Recebidos e Não Recebidos) */}
+      {/* 3. Detalhamento Financeiro */}
       <Card className="w-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle>Detalhamento Financeiro</CardTitle>
@@ -226,6 +229,23 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                   <div className="text-lg font-bold text-emerald-600">
                     {showCharts
                       ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0)
+                      : maskedValue}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center p-4 bg-amber-50 border border-amber-100 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
+                  <span className="text-base font-semibold text-amber-900">Parciais</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-amber-800">
+                    {showCharts ? `${receiptsStats.find(r => r.name === 'Parciais')?.value || 0} decl.` : maskedValue}
+                  </div>
+                  <div className="text-lg font-bold text-amber-600">
+                    {showCharts
+                      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(receiptsStats.find(r => r.name === 'Parciais')?.moneyValue) || 0)
                       : maskedValue}
                   </div>
                 </div>
@@ -261,6 +281,7 @@ export function IRDashboard({ stats, receiptsStats }: IRDashboardProps) {
                     {showCharts
                       ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                           (Number(receiptsStats.find(r => r.name === 'Recebidas')?.moneyValue) || 0) +
+                          (Number(receiptsStats.find(r => r.name === 'Parciais')?.moneyValue) || 0) +
                           (Number(receiptsStats.find(r => r.name === 'Não Recebidas')?.moneyValue) || 0)
                         )
                       : maskedValue}

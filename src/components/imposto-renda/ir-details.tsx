@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -23,6 +24,7 @@ import { IRChat } from './ir-chat';
 import { deleteIRDeclaration } from '@/app/actions/imposto-renda';
 import { useRouter } from 'next/navigation';
 import { IRTransmitidaDialog } from './ir-transmitida-dialog';
+import { getIRPaymentStatus } from '@/lib/ir-payment-status';
 
 const STATUS_COLORS: Record<string, string> = {
   'Não Iniciado': 'bg-slate-500',
@@ -55,6 +57,7 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
   const totalReceived = receipts.reduce((acc, receipt) => acc + Number(receipt.receipt_value || 0), 0);
   const remainingValue = Math.max(serviceValue - totalReceived, 0);
   const fullyReceived = serviceValue > 0 ? remainingValue <= 0 : declaration.is_received;
+  const paymentStatus = getIRPaymentStatus(serviceValue, totalReceived || declaration.receipt_value, declaration.is_received);
   const latestReceipt = receipts[0] || null;
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -101,6 +104,7 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
   const [resendDialog, setResendDialog] = useState(false);
   const [resendWhatsapp, setResendWhatsapp] = useState(true);
   const [resendEmail, setResendEmail] = useState(true);
+  const [selectedResendFileIds, setSelectedResendFileIds] = useState<string[]>([]);
   const [processadaData, setProcessadaData] = useState({
     outcome_type: '' as 'restituicao' | 'imposto' | '',
     outcome_value: '',
@@ -114,9 +118,13 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
       toast.error('Selecione pelo menos um meio de envio (WhatsApp ou E-mail).');
       return;
     }
+    if (selectedResendFileIds.length === 0) {
+      toast.error('Selecione pelo menos um arquivo para reenviar.');
+      return;
+    }
     setLoading(true);
     try {
-      const response = await resendIRDeclaration(declaration.id, resendWhatsapp, resendEmail);
+      const response = await resendIRDeclaration(declaration.id, resendWhatsapp, resendEmail, selectedResendFileIds);
       if (response && response.warning) {
         toast.warning(response.warning, { duration: 10000 });
       } else {
@@ -193,6 +201,11 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
       loadCompanies();
     }
   }, [contributorDialog]);
+
+  useEffect(() => {
+    if (!resendDialog) return;
+    setSelectedResendFileIds(files.map((file) => file.id));
+  }, [resendDialog, files]);
 
   const handleUpdateIndication = async () => {
     setLoading(true);
@@ -544,9 +557,13 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
               </SelectContent>
             </Select>
           </div>
-          {fullyReceived ? (
+          {paymentStatus === 'Sim' ? (
             <Badge variant="outline" className="text-green-600 border-green-600 px-3 py-1 flex items-center gap-1">
               <CheckCircleIcon className="h-4 w-4" /> Recebido
+            </Badge>
+          ) : paymentStatus === 'Parcial' ? (
+            <Badge variant="outline" className="text-amber-600 border-amber-600 px-3 py-1 flex items-center gap-1">
+              <BanknotesIcon className="h-4 w-4" /> Parcial
             </Badge>
           ) : (
             <Badge variant="outline" className="text-red-600 border-red-600 px-3 py-1 flex items-center gap-1">
@@ -1451,7 +1468,7 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
           <DialogHeader>
             <DialogTitle>Reenviar Declaração e Recibos</DialogTitle>
             <DialogDescription>
-              Selecione por onde deseja reenviar os arquivos anexados para o contribuinte.
+              Selecione por onde deseja reenviar e quais arquivos anexados devem seguir para o contribuinte.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -1481,12 +1498,58 @@ export function IRDetails({ declaration, interactions, files, receipts, isAdmin 
                 disabled={!declaration.email}
               />
             </div>
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-base">Arquivos para reenviar</Label>
+                  <p className="text-sm text-muted-foreground">Desmarque o que nao precisa ser enviado novamente.</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedResendFileIds(files.map((file) => file.id))}
+                  disabled={loading || files.length === 0}
+                >
+                  Selecionar todos
+                </Button>
+              </div>
+              {files.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nao ha arquivos anexados para reenviar.</p>
+              ) : (
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {files.map((file) => {
+                    const checked = selectedResendFileIds.includes(file.id);
+                    return (
+                      <label key={file.id} className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(nextChecked) => {
+                            if (nextChecked === true) {
+                              setSelectedResendFileIds((current) => current.includes(file.id) ? current : [...current, file.id]);
+                              return;
+                            }
+                            setSelectedResendFileIds((current) => current.filter((id) => id !== file.id));
+                          }}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate" title={file.file_name}>{file.file_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(file.created_at), "dd/MM/yyyy HH:mm")} • {file.uploaded_by_name || 'Sistema'}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResendDialog(false)} disabled={loading}>
               Cancelar
             </Button>
-            <Button onClick={handleResend} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={handleResend} disabled={loading || files.length === 0} className="bg-blue-600 hover:bg-blue-700 text-white">
               {loading ? 'Enviando...' : 'Confirmar Reenvio'}
             </Button>
           </DialogFooter>
