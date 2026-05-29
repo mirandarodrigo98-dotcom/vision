@@ -18,6 +18,7 @@ import { cancelDismissal, approveDismissal } from '@/app/actions/dismissals';
 import { toast } from 'sonner';
 import { DismissalHistory } from './dismissal-history';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { canRectifyDismissal } from '@/lib/dismissal-dates';
 import {
   Tooltip,
   TooltipContent,
@@ -37,27 +38,7 @@ interface DismissalActionsProps {
 export function DismissalActions({ dismissalId, dismissalDate, status, employeeName, isAdmin = false, basePath = '/admin' }: DismissalActionsProps) {
   const router = useRouter();
   const { isPending, isActionPending, runAction } = usePendingAction<'cancel' | 'approve'>();
-
-  // Check deadline: 1 day before dismissal date
-  // Parse YYYY-MM-DD string as local date to avoid timezone issues
-  let disDate: Date;
-  const cleanDismissalDate = typeof dismissalDate === 'string' ? dismissalDate.trim().split('T')[0] : '';
-
-  if (cleanDismissalDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDismissalDate)) {
-      const [year, month, day] = cleanDismissalDate.split('-').map(Number);
-      disDate = new Date(year, month - 1, day);
-  } else {
-      disDate = new Date(dismissalDate);
-  }
-
-  const deadline = new Date(disDate);
-  deadline.setDate(deadline.getDate() - 1);
-  
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  deadline.setHours(0, 0, 0, 0);
-  
-  const isExpired = now > deadline;
+  const isExpired = !canRectifyDismissal(dismissalDate);
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
@@ -117,7 +98,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const getTooltipMessage = () => {
     if (isCanceled) return "Rescisão cancelada";
     if (isCompleted) return "Rescisão concluída";
-    if (isExpired && !isAdmin) return "Prazo de retificação expirado";
+    if (isExpired && !isAdmin) return "Prazo de retificação expirado após a data do desligamento";
     return null;
   };
 
@@ -230,7 +211,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
               <p>{
                 isCanceled ? "Rescisão cancelada" :
                 isCompleted ? "Rescisão concluída" :
-                (!isAdmin && isExpired) ? "Prazo de retificação expirado" :
+                (!isAdmin && isExpired) ? "Prazo de retificação expirado após a data do desligamento" :
                 "Retificar Rescisão"
               }</p>
             </TooltipContent>

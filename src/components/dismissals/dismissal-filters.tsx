@@ -206,11 +206,11 @@ export function DismissalFilters() {
 
         {/* Dismissal Date */}
         <div className="space-y-2 flex flex-col">
-            <label className="text-sm font-medium">Data de Demissão</label>
+            <label className="text-sm font-medium">Data de Desligamento</label>
             <DatePicker
                 date={parseDate(filters.dismissal_date)}
                 setDate={(date) => handleFilterChange('dismissal_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                placeholder="Data de Demissão"
+                placeholder="Data de Desligamento"
             />
         </div>
       </div>

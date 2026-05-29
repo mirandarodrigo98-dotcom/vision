@@ -12,16 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { waitForBrowserPaint } from '@/lib/client-feedback';
+import { calculateDismissalDate, parseDismissalDate } from '@/lib/dismissal-dates';
 
 interface DismissalFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -31,19 +25,6 @@ interface DismissalFormProps {
     readOnly?: boolean;
     redirectPath?: string;
 }
-
-const parseDate = (dateStr: any) => {
-    if (!dateStr) return undefined;
-    if (typeof dateStr === 'string') {
-        const cleanDate = dateStr.trim().split('T')[0];
-        if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-            const [y, m, d] = cleanDate.split('-').map(Number);
-            return new Date(y, m - 1, d);
-        }
-    }
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? undefined : d;
-};
 
 export function DismissalForm({ companies, activeCompanyId, initialData, isEditing = false, readOnly = false, redirectPath = '/admin/dismissals' }: DismissalFormProps) {
     const router = useRouter();
@@ -57,9 +38,16 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     // Controlled Selects
     const [noticeType, setNoticeType] = useState<string>(initialData?.notice_type || '');
     const [dismissalCause, setDismissalCause] = useState<string>(initialData?.dismissal_cause || '');
+    const [noticeDate, setNoticeDate] = useState<Date | undefined>(
+        initialData?.notice_date
+            ? parseDismissalDate(initialData.notice_date)
+            : initialData?.notice_type !== 'Trabalhado'
+                ? parseDismissalDate(initialData?.dismissal_date)
+                : undefined
+    );
     
     const [dismissalDate, setDismissalDate] = useState<Date | undefined>(
-        initialData?.dismissal_date ? parseDate(initialData.dismissal_date) : undefined
+        initialData?.dismissal_date ? parseDismissalDate(initialData.dismissal_date) : undefined
     );
 
     // Fetch employees when company changes
@@ -74,6 +62,20 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
             setEmployeeId('');
         }
     }, [companyId, initialData?.company_id]);
+
+    useEffect(() => {
+        if (!noticeDate) {
+            if (isEditing && initialData?.dismissal_date) {
+                setDismissalDate(parseDismissalDate(initialData.dismissal_date));
+            } else {
+                setDismissalDate(undefined);
+            }
+            return;
+        }
+
+        const calculatedDate = calculateDismissalDate(noticeType, noticeDate);
+        setDismissalDate(calculatedDate);
+    }, [noticeType, noticeDate, isEditing, initialData?.dismissal_date]);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -97,6 +99,14 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
         formData.set('employee_id', resolvedEmployeeId);
         formData.set('notice_type', resolvedNoticeType);
         formData.set('dismissal_cause', resolvedDismissalCause);
+
+        if (noticeDate) {
+            formData.set('notice_date', format(noticeDate, 'yyyy-MM-dd'));
+        } else {
+             toast.error('Data do Aviso é obrigatória');
+             setLoading(false);
+             return;
+        }
         
         if (dismissalDate) {
             formData.set('dismissal_date', format(dismissalDate, 'yyyy-MM-dd'));
@@ -130,7 +140,7 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     }
 
     return (
-        <Card className="w-full max-w-2xl mx-auto">
+        <Card className="w-full max-w-5xl mx-auto">
             <CardHeader>
                 <CardTitle>{readOnly ? 'Visualizar Rescisão' : (isEditing ? 'Editar Rescisão' : 'Nova Solicitação de Rescisão')}</CardTitle>
             </CardHeader>
@@ -172,7 +182,7 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                          {isEditing && <input type="hidden" name="employee_id" value={initialData.employee_id} />}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
                         {/* Tipo de Aviso */}
                         <div className="space-y-2">
                             <Label htmlFor="notice_type">Tipo de Aviso *</Label>
@@ -188,6 +198,28 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                                     <SelectItem value="Quebra de Contrato">Quebra de Contrato</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {/* Data do Aviso */}
+                        <div className="space-y-2 flex flex-col">
+                            <Label>Data do Aviso *</Label>
+                            <DatePicker
+                                date={noticeDate}
+                                setDate={setNoticeDate}
+                                disabled={readOnly}
+                                placeholder="Selecione uma data"
+                            />
+                        </div>
+
+                        {/* Data de Desligamento */}
+                        <div className="space-y-2 flex flex-col">
+                            <Label>Data de Desligamento *</Label>
+                            <DatePicker
+                                date={dismissalDate}
+                                setDate={setDismissalDate}
+                                disabled={true}
+                                placeholder="Calculada automaticamente"
+                            />
                         </div>
 
                         {/* Causa Demissão */}
@@ -207,17 +239,6 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
-
-                    {/* Data de Desligamento */}
-                    <div className="space-y-2 flex flex-col">
-                        <Label>Data de Desligamento *</Label>
-                        <DatePicker
-                            date={dismissalDate}
-                            setDate={setDismissalDate}
-                            disabled={readOnly}
-                            placeholder="Selecione uma data"
-                        />
                     </div>
 
                     {/* Observações */}

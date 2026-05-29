@@ -451,8 +451,10 @@ export function AdmissionForm({ companies, activeCompanyId, initialData, isEditi
             }
         }
 
-        await waitForBrowserPaint();
         setLoading(true);
+        await waitForBrowserPaint();
+
+        const formData = new FormData(form);
 
 
         // Validate CPF

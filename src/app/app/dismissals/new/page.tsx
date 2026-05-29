@@ -20,7 +20,7 @@ export default async function ClientNewDismissalPage() {
   `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto py-8">
+    <div className="space-y-6 max-w-5xl mx-auto py-8">
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Solicitar Rescisão</h1>
         <p className="text-muted-foreground">
