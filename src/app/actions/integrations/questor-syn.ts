@@ -39,7 +39,6 @@ function isPrivateQuestorUrl(rawUrl: string): boolean {
 
 export async function resolveQuestorUrl(config: QuestorSynConfig): Promise<string> {
   const urlsToCheck = [];
-  const failedAttempts: string[] = [];
   
   if (config.internal_url) urlsToCheck.push({ url: config.internal_url, type: 'internal' });
   if (config.external_url) urlsToCheck.push({ url: config.external_url, type: 'external' });
@@ -89,17 +88,13 @@ export async function resolveQuestorUrl(config: QuestorSynConfig): Promise<strin
         return cleanUrl;
       }
 
-      failedAttempts.push(`${type}:${cleanUrl}=>HTTP ${response.status}`);
     } catch (e) {
       console.warn(`[Questor] Failed to connect via ${type} URL (${url}):`, e);
-      const message = e instanceof Error ? e.message : 'erro-desconhecido';
-      failedAttempts.push(`${type}:${url.replace(/\/$/, '')}=>${message}`);
       // Continue to next URL
     }
   }
 
-  const details = failedAttempts.length > 0 ? ` Tentativas: ${failedAttempts.join(' | ')}` : '';
-  throw new Error(`Não foi possível conectar ao Questor em nenhuma das URLs configuradas (Interna/Externa).${details}`);
+  throw new Error('Não foi possível conectar ao Questor em nenhuma das URLs configuradas (Interna/Externa).');
 }
 
 // --- Actions: Config ---
