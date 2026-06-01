@@ -22,7 +22,8 @@ export async function getUserPermissions() {
             const result = (await db.query(`SELECT permission_code FROM user_permissions WHERE user_id = $1`, [session.user_id])).rows as { permission_code: string }[];
             return result
                 .map(r => r.permission_code)
-                .filter(code => !code.endsWith('.approve'));
+                .filter(code => !code.endsWith('.approve'))
+                .filter(code => !code.startsWith('solicitation_types.'));
         } else if (session.role === 'operator') {
             // Operators inherit permissions from their department
             if (!session.department_id) return [];

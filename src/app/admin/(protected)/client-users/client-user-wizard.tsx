@@ -265,6 +265,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         if (p.category === 'Equipe Interna') return false;
         if (p.category === 'Usuários do Escritório') return false;
         if (p.category === 'Departamentos') return false;
+        if (p.category === 'Tipos de Solicitacao') return false;
         if (p.category === 'Usuários de Cliente') return false; // Client shouldn't manage other users
         if (p.category === 'Segurança') return false;
         if (p.category === 'Clientes') return false; // This is the firm's client list
@@ -284,6 +285,7 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
 
         // Client users cannot receive completion permissions from office workflows
         if (p.code.endsWith('.approve')) return false;
+        if (p.code.startsWith('solicitation_types.')) return false;
 
         // Block specific VT admin permissions from client
         if (p.code === 'vt.cancel') return false;

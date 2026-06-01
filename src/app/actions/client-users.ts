@@ -152,7 +152,10 @@ export async function getClientUserPermissions(userId: string) {
 
     try {
         const permissions = (await db.query(`SELECT permission_code FROM user_permissions WHERE user_id = $1`, [userId])).rows as { permission_code: string }[];
-        return permissions.map(p => p.permission_code);
+        return permissions
+          .map(p => p.permission_code)
+          .filter((permission) => !permission.endsWith('.approve'))
+          .filter((permission) => !permission.startsWith('solicitation_types.'));
     } catch (error) {
         console.error('Error fetching client user permissions:', error);
         return [];
@@ -180,7 +183,9 @@ export async function saveClientUser(data: SaveClientUserPayload) {
     permissions
   } = data;
 
-  const sanitizedPermissions = permissions.filter((permission) => !permission.endsWith('.approve'));
+  const sanitizedPermissions = permissions
+    .filter((permission) => !permission.endsWith('.approve'))
+    .filter((permission) => !permission.startsWith('solicitation_types.'));
 
   if (!name || !email || company_ids.length === 0) {
     return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
