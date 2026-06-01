@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
       { href: '/app/vt', label: 'Vale Transporte', icon: Bus, permission: 'vt.view' },
       { href: '/app/payroll-variables', label: 'Variáveis da Folha', icon: FilePlus, permission: 'payroll_variables.view' },
       { href: '/app/histories', label: 'Históricos', icon: History, permission: 'histories.view' },
+      { href: '/app/solicitations', label: 'Solicitações', icon: FileText, permission: 'solicitations.view' },
       { 
         label: 'Relatórios', 
         icon: BarChart2,

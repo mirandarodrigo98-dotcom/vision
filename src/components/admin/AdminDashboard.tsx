@@ -56,9 +56,9 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: 'Painel', href: '/admin/dashboard', icon: HomeIcon, permission: 'dashboard.view' },
   { name: 'Chamados', href: '/admin/tickets', icon: TicketIcon },
-  { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permissions: ['companies.view', 'employees.view', 'socios.view', 'client_users.view', 'team.view', 'departments.view'] },
+  { name: 'Cadastro', href: '/admin/cadastro', icon: BuildingOfficeIcon, permissions: ['companies.view', 'employees.view', 'socios.view', 'client_users.view', 'team.view', 'departments.view', 'solicitation_types.view'] },
   { name: 'Societário', href: '/admin/societario', icon: ClipboardDocumentListIcon, permission: 'societario.view' },
-  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view', 'payroll_variables.view', 'histories.view'] },
+  { name: 'Pessoal', href: '/admin/pessoal', icon: UserGroupIcon, permissions: ['employees.view', 'admissions.view', 'transfers.view', 'vacations.view', 'dismissals.view', 'leaves.view', 'payroll_variables.view', 'histories.view', 'solicitations.view'] },
   { name: 'Fiscal', href: '/admin/fiscal', icon: BanknotesIcon, permission: 'fiscal.view' },
   { name: 'e-Doc', href: '/admin/edoc', icon: DocumentTextIcon, permissions: ['edoc.view', 'edoc.sent.view', 'edoc.received.view', 'edoc.create'] },
   { name: 'Contabilidade', href: '/admin/contabilidade', icon: CalculatorIcon, permissions: ['contabilidade.view', 'contabilidade.faturamento.view'] },

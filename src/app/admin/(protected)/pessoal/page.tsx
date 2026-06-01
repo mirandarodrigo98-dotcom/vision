@@ -21,6 +21,7 @@ export default async function PessoalPage() {
     'vt.view',
     'payroll_variables.view',
     'histories.view',
+    'solicitations.view',
   ].some((permission) => permissions.includes(permission));
 
   if (!hasPessoalAccess) {
@@ -37,7 +38,7 @@ export default async function PessoalPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Departamento Pessoal</h1>
         <p className="text-muted-foreground mt-2">
-          Gestão de funcionários, admissões, demissões, férias e afastamentos.
+          Gestão de funcionários, admissões, demissões, férias, afastamentos e solicitações.
         </p>
       </div>
 
@@ -190,6 +191,23 @@ export default async function PessoalPage() {
               </CardTitle>
               <CardDescription>
                 Solicitações de alterações cadastrais, salariais, benefícios, exames e CAT.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/admin/solicitations" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <DocumentTextIcon className="h-5 w-5" />
+                  Solicitações
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Demandas gerais do cliente distribuídas por departamento.
               </CardDescription>
             </CardHeader>
           </Card>

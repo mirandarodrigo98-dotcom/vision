@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRightIcon, BuildingOfficeIcon, UserGroupIcon, UsersIcon, IdentificationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, BuildingOfficeIcon, UserGroupIcon, UsersIcon, IdentificationIcon, BuildingStorefrontIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function CadastroPage() {
@@ -17,7 +17,8 @@ export default async function CadastroPage() {
     'socios.view',
     'client_users.view',
     'team.view',
-    'departments.view'
+    'departments.view',
+    'solicitation_types.view'
   ].some(p => permissions.includes(p));
 
   if (!hasCadastroAccess) {
@@ -34,7 +35,7 @@ export default async function CadastroPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Cadastro</h1>
         <p className="text-muted-foreground mt-2">
-          Gerencie as empresas, sócios, contadores e departamentos.
+          Gerencie as empresas, sócios, contadores, departamentos e tipos de solicitação.
         </p>
       </div>
 
@@ -136,6 +137,23 @@ export default async function CadastroPage() {
               </CardTitle>
               <CardDescription>
                 Membros da equipe interna e operadores.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/admin/registrations/solicitation-types" className="group">
+          <Card className="h-full transition-all hover:border-[#f97316] hover:shadow-sm cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 group-hover:text-[#f97316] transition-colors">
+                <div className="flex items-center gap-2">
+                  <DocumentTextIcon className="h-5 w-5" />
+                  Tipos de Solicitação
+                </div>
+                <ArrowRightIcon className="h-5 w-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
+              <CardDescription>
+                Cadastro dos tipos exibidos no módulo de solicitações do cliente.
               </CardDescription>
             </CardHeader>
           </Card>

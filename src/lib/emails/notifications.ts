@@ -604,6 +604,102 @@ export async function sendEmployeeHistoryNotification(
     });
 }
 
+interface SolicitationEmailData {
+    companyName: string;
+    cnpj: string;
+    userName: string;
+    requestTypeName: string;
+    departmentName: string;
+    requestSummary: string;
+    subject: string;
+    details: string;
+    recipientEmail?: string;
+    senderEmail?: string;
+    downloadLink?: string;
+    changes?: string[];
+}
+
+export async function sendSolicitationNotification(
+    type: 'NEW' | 'UPDATE' | 'CANCEL' | 'COMPLETED' | 'CANCEL_BY_ADMIN',
+    data: SolicitationEmailData
+) {
+    let to = '';
+
+    if (type === 'NEW' || type === 'UPDATE' || type === 'CANCEL') {
+        to = await getDestEmail() || '';
+
+        if (data.senderEmail && to.trim().toLowerCase() === data.senderEmail.trim().toLowerCase()) {
+            console.warn(`Email prevented: Destination (${to}) matches sender (${data.senderEmail}). This notification is for internal team only.`);
+            return { success: false, error: 'Destination matches sender - prevented loop' };
+        }
+    } else {
+        to = data.recipientEmail || '';
+    }
+
+    if (!to) {
+        console.warn('Email destination not configured (NZD_DEST_EMAIL) or recipientEmail not provided.');
+        return { success: false, error: 'Destination email not configured' };
+    }
+
+    const buttonHtml = data.downloadLink
+        ? `<p><a href="${data.downloadLink}" style="display:inline-block;padding:10px 18px;background-color:#f97316;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Baixar Anexo</a></p>`
+        : '';
+
+    let subject = '';
+    let html = '';
+
+    if (type === 'NEW') {
+        subject = `Nova Solicitacao - ${data.requestTypeName}`;
+        html = `
+            <p>Voce esta recebendo uma solicitacao de <strong>“${data.requestTypeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, enviada pelo usuario <strong>“${data.userName}”</strong>.</p>
+            <p><strong>Departamento:</strong> ${data.departmentName}</p>
+            <p><strong>Assunto:</strong> ${data.subject}</p>
+            <p><strong>Detalhamento:</strong> ${data.details}</p>
+            ${buttonHtml}
+        `;
+    } else if (type === 'UPDATE') {
+        const changes = data.changes || [];
+        subject = `Retificacao - ${data.requestTypeName}`;
+        html = `
+            <p>Voce esta recebendo uma retificacao de <strong>“${data.requestTypeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, enviada pelo usuario <strong>“${data.userName}”</strong>.</p>
+            <p><strong>Departamento:</strong> ${data.departmentName}</p>
+            ${formatField('ASSUNTO', data.subject, 'subject', changes)}
+            ${formatField('DETALHAMENTO', data.details, 'details', changes)}
+            ${changes.includes('attachment') ? buttonHtml : ''}
+        `;
+    } else if (type === 'CANCEL') {
+        subject = `Solicitacao Cancelada - ${data.requestTypeName}`;
+        html = `
+            <p>A solicitacao de <strong>“${data.requestTypeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, enviada pelo usuario <strong>“${data.userName}”</strong>, foi CANCELADA.</p>
+            <p><strong>Assunto:</strong> ${data.subject}</p>
+        `;
+    } else if (type === 'CANCEL_BY_ADMIN') {
+        subject = `Solicitacao Cancelada - ${data.requestTypeName}`;
+        html = `
+            <p>A sua solicitacao de <strong>“${data.requestTypeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, foi CANCELADA.</p>
+            <p><strong>Assunto:</strong> ${data.subject}</p>
+            <br/>
+            <p>${data.departmentName}<br>NZD Contabilidade</p>
+        `;
+    } else if (type === 'COMPLETED') {
+        subject = `Solicitacao Concluida - ${data.requestTypeName}`;
+        html = `
+            <p>A sua solicitacao de <strong>“${data.requestTypeName}”</strong> da empresa <strong>“${data.companyName}”</strong>, CNPJ <strong>“${data.cnpj}”</strong>, foi CONCLUIDA.</p>
+            <p><strong>Assunto:</strong> ${data.subject}</p>
+            <p>Os desdobramentos desta demanda seguirao pelo Portal do Cliente.</p>
+            <br/>
+            <p>${data.departmentName}<br>NZD Contabilidade</p>
+        `;
+    }
+
+    return await resend.emails.send({
+        from: FROM_EMAIL,
+        to: [to],
+        subject,
+        html: await wrapHtml(html),
+    });
+}
+
 interface LeaveEmailData {
     userName: string;
     companyName: string;

@@ -38,6 +38,11 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'departments.edit', label: 'Editar Departamento', category: 'Departamentos', module: 'Cadastros' },
     { code: 'departments.delete', label: 'Excluir Departamento', category: 'Departamentos', module: 'Cadastros' },
 
+    { code: 'solicitation_types.view', label: 'Visualizar Tipos de Solicitacao', category: 'Tipos de Solicitacao', module: 'Cadastros' },
+    { code: 'solicitation_types.create', label: 'Criar Tipo de Solicitacao', category: 'Tipos de Solicitacao', module: 'Cadastros' },
+    { code: 'solicitation_types.edit', label: 'Editar Tipo de Solicitacao', category: 'Tipos de Solicitacao', module: 'Cadastros' },
+    { code: 'solicitation_types.delete', label: 'Excluir Tipo de Solicitacao', category: 'Tipos de Solicitacao', module: 'Cadastros' },
+
     // --- Módulo Pessoal ---
     { code: 'admissions.view', label: 'Visualizar Admissões', category: 'Admissões', module: 'Módulo Pessoal' },
     { code: 'admissions.create', label: 'Criar Admissão', category: 'Admissões', module: 'Módulo Pessoal' },
@@ -81,6 +86,11 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     { code: 'histories.create', label: 'Solicitar Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
     { code: 'histories.approve', label: 'Concluir Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
     { code: 'histories.cancel', label: 'Cancelar Históricos', category: 'Históricos', module: 'Módulo Pessoal' },
+
+    { code: 'solicitations.view', label: 'Visualizar Solicitacoes', category: 'Solicitacoes', module: 'Módulo Pessoal' },
+    { code: 'solicitations.create', label: 'Solicitar Demandas', category: 'Solicitacoes', module: 'Módulo Pessoal' },
+    { code: 'solicitations.approve', label: 'Concluir Solicitacoes', category: 'Solicitacoes', module: 'Módulo Pessoal' },
+    { code: 'solicitations.cancel', label: 'Cancelar Solicitacoes', category: 'Solicitacoes', module: 'Módulo Pessoal' },
 
     // --- Módulo Societário ---
     { code: 'societario.view', label: 'Acessar Módulo Societário', category: 'Societário', module: 'Módulo Societário' },
