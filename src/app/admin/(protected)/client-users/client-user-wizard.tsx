@@ -282,8 +282,11 @@ export function ClientUserWizard({ isOpen, onClose, companies, initialData, onSu
         // Global block for DELETE permissions (Clients generally shouldn't delete records)
         if (p.code.includes('.delete')) return false;
 
+        // Client users cannot receive completion permissions from office workflows
+        if (p.code.endsWith('.approve')) return false;
+
         // Block specific VT admin permissions from client
-        if (p.code === 'vt.approve' || p.code === 'vt.cancel') return false;
+        if (p.code === 'vt.cancel') return false;
 
         return true;
     });

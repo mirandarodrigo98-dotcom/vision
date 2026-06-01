@@ -20,7 +20,9 @@ export async function getUserPermissions() {
         if (session.role === 'client_user') {
             // Client users have permissions assigned directly to them
             const result = (await db.query(`SELECT permission_code FROM user_permissions WHERE user_id = $1`, [session.user_id])).rows as { permission_code: string }[];
-            return result.map(r => r.permission_code);
+            return result
+                .map(r => r.permission_code)
+                .filter(code => !code.endsWith('.approve'));
         } else if (session.role === 'operator') {
             // Operators inherit permissions from their department
             if (!session.department_id) return [];

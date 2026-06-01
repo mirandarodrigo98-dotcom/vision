@@ -180,6 +180,8 @@ export async function saveClientUser(data: SaveClientUserPayload) {
     permissions
   } = data;
 
+  const sanitizedPermissions = permissions.filter((permission) => !permission.endsWith('.approve'));
+
   if (!name || !email || company_ids.length === 0) {
     return { error: 'Nome, email e pelo menos uma empresa são obrigatórios.' };
   }
@@ -321,7 +323,7 @@ export async function saveClientUser(data: SaveClientUserPayload) {
 
         // Insert Permissions
         
-        for (const perm of permissions) {
+        for (const perm of sanitizedPermissions) {
             await db.query(`INSERT INTO user_permissions (user_id, permission_code) VALUES ($1, $2)`, [userId, perm]);
         }
 
