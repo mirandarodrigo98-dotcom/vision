@@ -28,23 +28,23 @@ import {
 
 interface DismissalActionsProps {
   dismissalId: string;
-  dismissalDate: string;
+  paymentDate?: string | null;
   status: string;
   employeeName: string;
   isAdmin?: boolean;
   basePath?: string;
 }
 
-export function DismissalActions({ dismissalId, dismissalDate, status, employeeName, isAdmin = false, basePath = '/admin' }: DismissalActionsProps) {
+export function DismissalActions({ dismissalId, paymentDate, status, employeeName, isAdmin = false, basePath = '/admin' }: DismissalActionsProps) {
   const router = useRouter();
   const { isPending, isActionPending, runAction } = usePendingAction<'cancel' | 'approve'>();
-  const isExpired = !canRectifyDismissal(dismissalDate);
+  const isExpired = !canRectifyDismissal(paymentDate);
   const isCanceled = status === 'CANCELLED';
   const isCompleted = status === 'COMPLETED';
   
   // Admin/Operator CAN cancel. Client can cancel even if expired.
   const canCancel = !isCanceled && !isCompleted;
-  const canEdit = !isCanceled && !isCompleted && (isAdmin || !isExpired);
+  const canEdit = !isCanceled && !isCompleted && !isExpired;
   const canApprove = isAdmin && status === 'SUBMITTED';
 
   const handleCancel = async () => {
@@ -98,7 +98,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
   const getTooltipMessage = () => {
     if (isCanceled) return "Rescisão cancelada";
     if (isCompleted) return "Rescisão concluída";
-    if (isExpired && !isAdmin) return "Prazo de retificação expirado após a data do desligamento";
+    if (isExpired) return "Prazo de retificação expirado após a data prevista de pagamento";
     return null;
   };
 
@@ -211,7 +211,7 @@ export function DismissalActions({ dismissalId, dismissalDate, status, employeeN
               <p>{
                 isCanceled ? "Rescisão cancelada" :
                 isCompleted ? "Rescisão concluída" :
-                (!isAdmin && isExpired) ? "Prazo de retificação expirado após a data do desligamento" :
+                isExpired ? "Prazo de retificação expirado após a data prevista de pagamento" :
                 "Retificar Rescisão"
               }</p>
             </TooltipContent>

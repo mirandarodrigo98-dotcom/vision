@@ -1,0 +1,2 @@
+ALTER TABLE dismissals
+ADD COLUMN IF NOT EXISTS payment_date TEXT;

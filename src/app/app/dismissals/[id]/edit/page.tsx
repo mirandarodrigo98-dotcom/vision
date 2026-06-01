@@ -24,8 +24,8 @@ export default async function ClientEditDismissalPage({ params }: { params: Prom
          return <div>Esta solicitação já foi finalizada ou cancelada e não pode ser editada.</div>;
     }
 
-    if (!canRectifyDismissal(dismissal.dismissal_date)) {
-        return <div>O prazo para retificação expirou após a data do desligamento.</div>;
+    if (!canRectifyDismissal(dismissal.payment_date)) {
+        return <div>O prazo para retificação expirou após a data prevista de pagamento.</div>;
     }
 
     const companies = (await db.query(`
@@ -37,7 +37,7 @@ export default async function ClientEditDismissalPage({ params }: { params: Prom
     `, [session.user_id])).rows as Array<{ id: string; nome: string; cnpj: string }>;
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto py-8">
+        <div className="space-y-6 max-w-7xl mx-auto py-8">
             <h1 className="text-3xl font-bold tracking-tight">Retificar Solicitação de Rescisão</h1>
             <DismissalForm companies={companies} initialData={dismissal} isEditing={true} redirectPath="/app/dismissals" />
         </div>

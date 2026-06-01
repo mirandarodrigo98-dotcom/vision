@@ -10,12 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { CircleHelp, Loader2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { waitForBrowserPaint } from '@/lib/client-feedback';
-import { calculateDismissalDate, parseDismissalDate } from '@/lib/dismissal-dates';
+import { calculateDismissalDate, calculatePaymentDate, parseDismissalDate } from '@/lib/dismissal-dates';
 
 interface DismissalFormProps {
     companies: Array<{ id: string; nome: string; cnpj: string }>;
@@ -49,6 +50,9 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     const [dismissalDate, setDismissalDate] = useState<Date | undefined>(
         initialData?.dismissal_date ? parseDismissalDate(initialData.dismissal_date) : undefined
     );
+    const [paymentDate, setPaymentDate] = useState<Date | undefined>(
+        initialData?.payment_date ? parseDismissalDate(initialData.payment_date) : undefined
+    );
 
     // Fetch employees when company changes
     useEffect(() => {
@@ -76,6 +80,20 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
         const calculatedDate = calculateDismissalDate(noticeType, noticeDate);
         setDismissalDate(calculatedDate);
     }, [noticeType, noticeDate, isEditing, initialData?.dismissal_date]);
+
+    useEffect(() => {
+        if (!dismissalDate) {
+            if (isEditing && initialData?.payment_date) {
+                setPaymentDate(parseDismissalDate(initialData.payment_date));
+            } else {
+                setPaymentDate(undefined);
+            }
+            return;
+        }
+
+        const calculatedDate = calculatePaymentDate(dismissalDate);
+        setPaymentDate(calculatedDate);
+    }, [dismissalDate, isEditing, initialData?.payment_date]);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -116,6 +134,10 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
              return;
         }
 
+        if (paymentDate) {
+            formData.set('payment_date', format(paymentDate, 'yyyy-MM-dd'));
+        }
+
         try {
             let result;
             if (isEditing && initialData?.id) {
@@ -140,7 +162,7 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
     }
 
     return (
-        <Card className="w-full max-w-5xl mx-auto">
+        <Card className="w-full max-w-7xl mx-auto">
             <CardHeader>
                 <CardTitle>{readOnly ? 'Visualizar Rescisão' : (isEditing ? 'Editar Rescisão' : 'Nova Solicitação de Rescisão')}</CardTitle>
             </CardHeader>
@@ -182,7 +204,7 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                          {isEditing && <input type="hidden" name="employee_id" value={initialData.employee_id} />}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 items-start">
                         {/* Tipo de Aviso */}
                         <div className="space-y-2">
                             <Label htmlFor="notice_type">Tipo de Aviso *</Label>
@@ -217,6 +239,31 @@ export function DismissalForm({ companies, activeCompanyId, initialData, isEditi
                             <DatePicker
                                 date={dismissalDate}
                                 setDate={setDismissalDate}
+                                disabled={true}
+                                placeholder="Calculada automaticamente"
+                            />
+                        </div>
+
+                        {/* Data de Pagamento */}
+                        <div className="space-y-2 flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                                <Label>Data de Pagamento</Label>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button type="button" className="text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                                                <CircleHelp className="h-4 w-4" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                            <p>Data aproximada. A data real virá no Aviso Prévio enviado pela contabilidade. Serve apenas como parâmetro para o cliente.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <DatePicker
+                                date={paymentDate}
+                                setDate={setPaymentDate}
                                 disabled={true}
                                 placeholder="Calculada automaticamente"
                             />

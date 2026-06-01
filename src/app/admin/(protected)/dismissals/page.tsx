@@ -5,6 +5,7 @@ import { ColumnHeader } from '@/components/ui/column-header';
 import { DismissalActions } from '@/components/dismissals/dismissal-actions';
 import { DismissalFilters } from '@/components/dismissals/dismissal-filters';
 import { getSession } from '@/lib/auth';
+import { calculatePaymentDate, formatDismissalDate } from '@/lib/dismissal-dates';
 import { redirect } from 'next/navigation';
 import { getUserPermissions } from '@/app/actions/permissions';
 
@@ -50,9 +51,11 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   const dismissalDate = typeof resolvedSearchParams.dismissal_date === 'string' ? resolvedSearchParams.dismissal_date : '';
 
   // Whitelist allowed sort columns
-  const allowedSorts = ['protocol_number', 'created_at', 'company_name', 'employee_name', 'dismissal_date', 'status'];
+  const allowedSorts = ['protocol_number', 'created_at', 'company_name', 'employee_name', 'notice_date', 'dismissal_date', 'payment_date', 'status'];
   const safeSort = allowedSorts.includes(sort) ? sort : 'created_at';
   const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+  await db.query(`ALTER TABLE dismissals ADD COLUMN IF NOT EXISTS payment_date TEXT`, []);
 
   let query = `
     SELECT 
@@ -117,7 +120,9 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
   // Serialize dates to avoid Server Components render error
   const dismissals = dismissalsData.map(dismissal => ({
     ...dismissal,
+    notice_date: dismissal.notice_date ? new Date(dismissal.notice_date).toISOString() : null,
     dismissal_date: dismissal.dismissal_date ? new Date(dismissal.dismissal_date).toISOString() : null,
+    payment_date: dismissal.payment_date ? new Date(dismissal.payment_date).toISOString() : null,
     created_at: dismissal.created_at ? new Date(dismissal.created_at).toISOString() : null,
     updated_at: dismissal.updated_at ? new Date(dismissal.updated_at).toISOString() : null,
   }));
@@ -147,7 +152,13 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                 <ColumnHeader column="employee_name" title="Funcionário" />
               </TableHead>
               <TableHead>
+                <ColumnHeader column="notice_date" title="Data do Aviso" />
+              </TableHead>
+              <TableHead>
                 <ColumnHeader column="dismissal_date" title="Desligamento" />
+              </TableHead>
+              <TableHead>
+                <ColumnHeader column="payment_date" title="Pagamento" />
               </TableHead>
               <TableHead>Tipo Aviso</TableHead>
               <TableHead>
@@ -159,18 +170,23 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
           <TableBody>
             {dismissals.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={10} className="h-24 text-center">
                         Nenhuma solicitação de rescisão encontrada.
                     </TableCell>
                 </TableRow>
             ) : (
                 dismissals.map((dismissal) => {
                 let formattedCreatedAt = '-';
+                let formattedNoticeDate = '-';
                 let formattedDismissalDate = '-';
+                let formattedPaymentDate = '-';
+                const resolvedPaymentDate = dismissal.payment_date || formatDismissalDate(calculatePaymentDate(dismissal.dismissal_date)!);
                 
                 try {
                     if (dismissal.created_at) formattedCreatedAt = format(new Date(dismissal.created_at), 'dd/MM/yyyy');
+                    if (dismissal.notice_date) formattedNoticeDate = format(new Date(dismissal.notice_date), 'dd/MM/yyyy');
                     if (dismissal.dismissal_date) formattedDismissalDate = format(new Date(dismissal.dismissal_date), 'dd/MM/yyyy');
+                    if (resolvedPaymentDate) formattedPaymentDate = format(new Date(resolvedPaymentDate), 'dd/MM/yyyy');
                 } catch (e) {
                     console.error('Date formatting error', e);
                 }
@@ -181,7 +197,9 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                     <TableCell>{formattedCreatedAt}</TableCell>
                     <TableCell>{dismissal.company_name}</TableCell>
                     <TableCell>{dismissal.employee_name}</TableCell>
+                    <TableCell>{formattedNoticeDate}</TableCell>
                     <TableCell>{formattedDismissalDate}</TableCell>
+                    <TableCell>{formattedPaymentDate}</TableCell>
                     <TableCell>{dismissal.notice_type}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold
@@ -202,7 +220,7 @@ export default async function AdminDismissalsPage({ searchParams }: AdminDismiss
                     <TableCell className="text-center">
                         <DismissalActions 
                             dismissalId={dismissal.id}
-                            dismissalDate={dismissal.dismissal_date}
+                            paymentDate={resolvedPaymentDate}
                             status={dismissal.status}
                             employeeName={dismissal.employee_name}
                             isAdmin={isManager}

@@ -10,7 +10,7 @@ import { getUserPermissions } from './permissions';
 import { sendDismissalNotification } from '@/lib/emails/notifications';
 import { generateDismissalPDF } from '@/lib/pdf-generator';
 import { checkPendingRequests } from './employees';
-import { calculateDismissalDate, canRectifyDismissal, formatDismissalDate } from '@/lib/dismissal-dates';
+import { calculateDismissalDate, calculatePaymentDate, canRectifyDismissal, formatDismissalDate } from '@/lib/dismissal-dates';
 
 // Helper to generate Protocol Number (YYYYMMDD + 8 digits)
 function generateProtocolNumber() {
@@ -29,6 +29,7 @@ async function ensureDismissalsSchema() {
             notice_date TEXT,
             dismissal_cause TEXT NOT NULL,
             dismissal_date TEXT NOT NULL,
+            payment_date TEXT,
             observations TEXT,
             status TEXT NOT NULL DEFAULT 'SUBMITTED',
             protocol_number TEXT UNIQUE,
@@ -42,12 +43,31 @@ async function ensureDismissalsSchema() {
     `, []);
 
     await db.query(`ALTER TABLE dismissals ADD COLUMN IF NOT EXISTS notice_date TEXT`, []);
+    await db.query(`ALTER TABLE dismissals ADD COLUMN IF NOT EXISTS payment_date TEXT`, []);
     await db.query(`
         UPDATE dismissals
         SET notice_date = dismissal_date
         WHERE notice_date IS NULL
           AND COALESCE(notice_type, '') <> 'Trabalhado'
     `, []);
+
+    const dismissalsWithoutPaymentDate = (await db.query(`
+        SELECT id, dismissal_date
+        FROM dismissals
+        WHERE payment_date IS NULL
+          AND dismissal_date IS NOT NULL
+    `, [])).rows as Array<{ id: string; dismissal_date: string }>;
+
+    for (const dismissal of dismissalsWithoutPaymentDate) {
+        const calculatedPaymentDate = calculatePaymentDate(dismissal.dismissal_date);
+        if (!calculatedPaymentDate) continue;
+
+        await db.query(`
+            UPDATE dismissals
+            SET payment_date = $1
+            WHERE id = $2
+        `, [formatDismissalDate(calculatedPaymentDate), dismissal.id]);
+    }
 }
 
 // ----------------------------------------------------------------------
@@ -201,6 +221,7 @@ export async function createDismissal(formData: FormData) {
     }
 
     const dismissal_date = formatDismissalDate(calculatedDismissal);
+    const payment_date = formatDismissalDate(calculatePaymentDate(calculatedDismissal)!);
 
     // Check if user has access to this company
     if (session.role === 'client_user') {
@@ -236,9 +257,9 @@ export async function createDismissal(formData: FormData) {
         await db.query(`
             INSERT INTO dismissals (
                 id, company_id, employee_id, notice_type, notice_date, dismissal_cause, 
-                dismissal_date, observations, protocol_number, created_by_user_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        `, [id, company_id, employee_id, notice_type, notice_date, dismissal_cause, dismissal_date, observations, protocol_number, session.user_id]);
+                dismissal_date, payment_date, observations, protocol_number, created_by_user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `, [id, company_id, employee_id, notice_type, notice_date, dismissal_cause, dismissal_date, payment_date, observations, protocol_number, session.user_id]);
 
         await logAudit({
             actor_user_id: session.user_id,
@@ -260,6 +281,7 @@ export async function createDismissal(formData: FormData) {
             notice_date: notice_date,
             reason: dismissal_cause,
             dismissal_date: dismissal_date,
+            payment_date: payment_date,
             observations: observations,
             protocol_number: protocol_number
         });
@@ -300,8 +322,8 @@ export async function updateDismissal(id: string, formData: FormData) {
         return { error: 'Não é possível editar rescisão finalizada ou cancelada.' };
     }
 
-    if (!canRectifyDismissal(dismissal.dismissal_date)) {
-        return { error: 'Prazo para retificação expirado após a data do desligamento.' };
+    if (!canRectifyDismissal(dismissal.payment_date)) {
+        return { error: 'Prazo para retificação expirado após a data prevista de pagamento.' };
     }
 
     const notice_type = formData.get('notice_type') as string;
@@ -319,13 +341,14 @@ export async function updateDismissal(id: string, formData: FormData) {
     }
 
     const dismissal_date = formatDismissalDate(calculatedDismissal);
+    const payment_date = formatDismissalDate(calculatePaymentDate(calculatedDismissal)!);
 
     try {
         await db.query(`
             UPDATE dismissals 
-            SET notice_type = $1, notice_date = $2, dismissal_cause = $3, dismissal_date = $4, observations = $5, status = 'RECTIFIED', updated_at = CURRENT_TIMESTAMP
-            WHERE id = $6
-        `, [notice_type, notice_date, dismissal_cause, dismissal_date, observations, id]);
+            SET notice_type = $1, notice_date = $2, dismissal_cause = $3, dismissal_date = $4, payment_date = $5, observations = $6, status = 'RECTIFIED', updated_at = CURRENT_TIMESTAMP
+            WHERE id = $7
+        `, [notice_type, notice_date, dismissal_cause, dismissal_date, payment_date, observations, id]);
 
         await logAudit({
             actor_user_id: session.user_id,
@@ -333,7 +356,7 @@ export async function updateDismissal(id: string, formData: FormData) {
             action: 'UPDATE_DISMISSAL',
             entity_type: 'dismissals',
             entity_id: id,
-            metadata: { notice_type, notice_date, dismissal_cause, dismissal_date },
+            metadata: { notice_type, notice_date, dismissal_cause, dismissal_date, payment_date },
             success: true
         });
 
@@ -370,6 +393,7 @@ export async function updateDismissal(id: string, formData: FormData) {
     if (!areDatesEqual(dismissal.notice_date, notice_date)) changes.push('notice_date');
     if (normalize(dismissal.dismissal_cause) !== normalize(dismissal_cause)) changes.push('reason'); // Key must match PDF generator
     if (!areDatesEqual(dismissal.dismissal_date, dismissal_date)) changes.push('dismissal_date');
+    if (!areDatesEqual(dismissal.payment_date, payment_date)) changes.push('payment_date');
     if (normalize(dismissal.observations) !== normalize(observations)) changes.push('observations');
 
     // Send Email Notification
@@ -382,6 +406,7 @@ export async function updateDismissal(id: string, formData: FormData) {
                 notice_date: notice_date,
                 reason: dismissal_cause,
                 dismissal_date: dismissal_date,
+                payment_date: payment_date,
                 observations: observations,
                 protocol_number: dismissal.protocol_number,
                 changes
@@ -514,8 +539,10 @@ export async function approveDismissal(id: string) {
             companyCNPJ: company.cnpj,
             employee_name: employee.name,
             notice_type: dismissal.notice_type,
+            notice_date: dismissal.notice_date,
             reason: dismissal.dismissal_cause,
             dismissal_date: dismissal.dismissal_date,
+            payment_date: dismissal.payment_date,
             observations: dismissal.observations,
             protocol_number: dismissal.protocol_number
         });

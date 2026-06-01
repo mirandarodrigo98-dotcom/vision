@@ -49,10 +49,17 @@ export function calculateDismissalDate(noticeType: string, noticeDateValue?: str
   return cloneDate(noticeDate);
 }
 
-export function canRectifyDismissal(dismissalDateValue?: string | Date | null, referenceDate = new Date()): boolean {
+export function calculatePaymentDate(dismissalDateValue?: string | Date | null): Date | undefined {
   const dismissalDate = parseDismissalDate(dismissalDateValue);
-  if (!dismissalDate) return false;
+  if (!dismissalDate) return undefined;
+
+  return getPreviousBusinessDay(addDays(dismissalDate, 10));
+}
+
+export function canRectifyDismissal(paymentDateValue?: string | Date | null, referenceDate = new Date()): boolean {
+  const paymentDate = parseDismissalDate(paymentDateValue);
+  if (!paymentDate) return false;
 
   const today = cloneDate(referenceDate);
-  return today.getTime() <= dismissalDate.getTime();
+  return today.getTime() <= paymentDate.getTime();
 }

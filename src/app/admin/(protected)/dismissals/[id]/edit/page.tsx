@@ -37,8 +37,8 @@ export default async function AdminEditDismissalPage({ params }: { params: Promi
          return <div>Esta solicitação já foi finalizada ou cancelada e não pode ser editada.</div>;
     }
 
-    if (!canRectifyDismissal(dismissal.dismissal_date)) {
-        return <div>O prazo para retificação expirou após a data do desligamento.</div>;
+    if (!canRectifyDismissal(dismissal.payment_date)) {
+        return <div>O prazo para retificação expirou após a data prevista de pagamento.</div>;
     }
 
     // Get companies based on role
@@ -65,7 +65,7 @@ export default async function AdminEditDismissalPage({ params }: { params: Promi
     }
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto py-8">
+        <div className="space-y-6 max-w-7xl mx-auto py-8">
             <h1 className="text-3xl font-bold tracking-tight">Editar Solicitação de Rescisão</h1>
             <DismissalForm companies={companies} initialData={dismissal} isEditing={true} />
         </div>
