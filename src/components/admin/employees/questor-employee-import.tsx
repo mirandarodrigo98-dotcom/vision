@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,11 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchQuestorEmployees, saveQuestorEmployees } from '@/app/actions/employees';
-import { testQuestorConnectivity } from '@/app/actions/integrations/questor-syn';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
@@ -29,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import { QuestorConnectionStatus } from '@/components/integrations/questor/questor-connection-status';
 
 export function QuestorEmployeeImport() {
   const [open, setOpen] = useState(false);
@@ -38,16 +37,6 @@ export function QuestorEmployeeImport() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [companyData, setCompanyData] = useState<{ id: string, name: string } | null>(null);
-  const [checkingConnectivity, setCheckingConnectivity] = useState(false);
-  const [connectivityResult, setConnectivityResult] = useState<{
-    success: boolean;
-    details?: {
-      internal?: { success: boolean; url?: string; message?: string };
-      external?: { success: boolean; url?: string; message?: string };
-      resolved?: string;
-    };
-  } | null>(null);
-  const [lastConnectivityCheckAt, setLastConnectivityCheckAt] = useState<Date | null>(null);
 
   const resetState = () => {
     setStep('search');
@@ -55,8 +44,6 @@ export function QuestorEmployeeImport() {
     setSelectedEmployees(new Set());
     setCompanyData(null);
     setQuestorCode('');
-    setConnectivityResult(null);
-    setLastConnectivityCheckAt(null);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -65,47 +52,6 @@ export function QuestorEmployeeImport() {
       // Small delay to reset state after animation closes
       setTimeout(resetState, 300);
     }
-  };
-
-  useEffect(() => {
-    if (!open || step !== 'search') return;
-    void handleCheckConnectivity();
-  }, [open, step]);
-
-  const handleCheckConnectivity = async () => {
-    setCheckingConnectivity(true);
-    try {
-      const result = await testQuestorConnectivity();
-      if ('error' in result && result.error) {
-        toast.error(result.error);
-        setConnectivityResult(null);
-        return;
-      }
-
-      setConnectivityResult({
-        success: Boolean(result.success),
-        details: result.details
-      });
-      setLastConnectivityCheckAt(new Date());
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao testar conexão do Questor SYN.');
-      setConnectivityResult(null);
-    } finally {
-      setCheckingConnectivity(false);
-    }
-  };
-
-  const getStatusBadge = (success?: boolean, message?: string) => {
-    if (success) {
-      return <Badge className="bg-green-600 text-white hover:bg-green-600">Online</Badge>;
-    }
-
-    if (message) {
-      return <Badge variant="destructive">{message}</Badge>;
-    }
-
-    return <Badge variant="secondary">Não testado</Badge>;
   };
 
   const handleSearch = async () => {
@@ -205,52 +151,7 @@ export function QuestorEmployeeImport() {
 
         {step === 'search' ? (
           <div className="grid gap-4 py-4">
-            <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">Status da conexão Questor SYN</p>
-                  <p className="text-xs text-muted-foreground">
-                    Verifica se as URLs configuradas estão respondendo antes da importação.
-                  </p>
-                </div>
-                <Button type="button" variant="outline" size="sm" onClick={handleCheckConnectivity} disabled={checkingConnectivity}>
-                  {checkingConnectivity ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Verificando...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Verificar
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <div className="grid gap-2 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span>URL Interna</span>
-                  {getStatusBadge(connectivityResult?.details?.internal?.success, connectivityResult?.details?.internal?.message)}
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span>URL Externa</span>
-                  {getStatusBadge(connectivityResult?.details?.external?.success, connectivityResult?.details?.external?.message)}
-                </div>
-                <div className="flex items-start justify-between gap-3">
-                  <span>URL em uso</span>
-                  <span className="max-w-[220px] truncate text-right text-muted-foreground" title={connectivityResult?.details?.resolved || 'Ainda não resolvida'}>
-                    {connectivityResult?.details?.resolved || 'Ainda não resolvida'}
-                  </span>
-                </div>
-              </div>
-
-              {lastConnectivityCheckAt ? (
-                <p className="text-xs text-muted-foreground">
-                  Última verificação: {format(lastConnectivityCheckAt, 'dd/MM/yyyy HH:mm:ss')}
-                </p>
-              ) : null}
-            </div>
+            <QuestorConnectionStatus />
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="code" className="text-right">

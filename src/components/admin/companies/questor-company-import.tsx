@@ -19,6 +19,7 @@ import { saveQuestorCompany } from '@/app/actions/companies';
 import { fetchCompanyFromQuestor, QuestorCompanyData } from '@/app/actions/integrations/questor-companies';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { QuestorConnectionStatus } from '@/components/integrations/questor/questor-connection-status';
 import {
   Table,
   TableBody,
@@ -180,6 +181,7 @@ export function QuestorCompanyImport() {
 
         {step === 'search' && (
           <div className="grid gap-4 py-4">
+            <QuestorConnectionStatus />
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="identifier" className="text-right">
                 Cód. Empresa

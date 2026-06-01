@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { QuestorConnectionStatus } from "@/components/integrations/questor/questor-connection-status";
 import { ReceiptText, Calculator, FileText } from "lucide-react";
 
 export default function SimplesNacionalPage() {
@@ -12,6 +13,7 @@ export default function SimplesNacionalPage() {
           Gerencie as rotinas e integrações do Simples Nacional.
         </p>
       </div>
+      <QuestorConnectionStatus compact />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
