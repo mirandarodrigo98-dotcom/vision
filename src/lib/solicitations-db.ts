@@ -6,7 +6,7 @@ export async function ensureSolicitationsTables() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       description TEXT,
-      department_id TEXT NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+      department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -18,7 +18,7 @@ export async function ensureSolicitationsTables() {
       id TEXT PRIMARY KEY,
       company_id TEXT NOT NULL REFERENCES client_companies(id) ON DELETE CASCADE,
       request_type_id TEXT NOT NULL REFERENCES solicitation_types(id) ON DELETE RESTRICT,
-      department_id TEXT NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+      department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
       subject TEXT NOT NULL,
       details TEXT NOT NULL,
       attachment_key TEXT,
@@ -33,11 +33,76 @@ export async function ensureSolicitationsTables() {
   `);
 
   await db.query(`ALTER TABLE solicitation_types ADD COLUMN IF NOT EXISTS description TEXT`);
-  await db.query(`ALTER TABLE solicitation_types ADD COLUMN IF NOT EXISTS department_id TEXT REFERENCES departments(id) ON DELETE RESTRICT`);
+  await db.query(`ALTER TABLE solicitation_types ADD COLUMN IF NOT EXISTS department_id UUID`);
   await db.query(`ALTER TABLE solicitation_types ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE`);
   await db.query(`ALTER TABLE solicitations ADD COLUMN IF NOT EXISTS attachment_key TEXT`);
+  await db.query(`ALTER TABLE solicitations ADD COLUMN IF NOT EXISTS department_id UUID`);
   await db.query(`ALTER TABLE solicitations ADD COLUMN IF NOT EXISTS completed_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL`);
   await db.query(`ALTER TABLE solicitations ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'solicitation_types'
+          AND column_name = 'department_id'
+          AND data_type = 'text'
+      ) THEN
+        ALTER TABLE solicitation_types
+          ALTER COLUMN department_id TYPE UUID
+          USING NULLIF(department_id, '')::uuid;
+      END IF;
+    END $$;
+  `);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'solicitations'
+          AND column_name = 'department_id'
+          AND data_type = 'text'
+      ) THEN
+        ALTER TABLE solicitations
+          ALTER COLUMN department_id TYPE UUID
+          USING NULLIF(department_id, '')::uuid;
+      END IF;
+    END $$;
+  `);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'solicitation_types_department_id_fkey'
+      ) THEN
+        ALTER TABLE solicitation_types
+          ADD CONSTRAINT solicitation_types_department_id_fkey
+          FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT;
+      END IF;
+    END $$;
+  `);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'solicitations_department_id_fkey'
+      ) THEN
+        ALTER TABLE solicitations
+          ADD CONSTRAINT solicitations_department_id_fkey
+          FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT;
+      END IF;
+    END $$;
+  `);
 
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_solicitation_types_department_id

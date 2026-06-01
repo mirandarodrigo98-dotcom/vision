@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS solicitation_types (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     description TEXT,
-    department_id TEXT NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+    department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS solicitations (
     id TEXT PRIMARY KEY,
     company_id TEXT NOT NULL REFERENCES client_companies(id) ON DELETE CASCADE,
     request_type_id TEXT NOT NULL REFERENCES solicitation_types(id) ON DELETE RESTRICT,
-    department_id TEXT NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+    department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
     subject TEXT NOT NULL,
     details TEXT NOT NULL,
     attachment_key TEXT,
