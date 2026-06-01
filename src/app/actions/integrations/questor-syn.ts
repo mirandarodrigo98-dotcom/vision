@@ -15,6 +15,28 @@ import {
 
 // --- Helper: URL Resolution ---
 
+function isPrivateQuestorUrl(rawUrl: string): boolean {
+  try {
+    const { hostname } = new URL(rawUrl);
+    const normalizedHost = hostname.toLowerCase();
+
+    if (normalizedHost === 'localhost') return true;
+    if (normalizedHost === '0.0.0.0') return true;
+    if (normalizedHost.startsWith('127.')) return true;
+    if (normalizedHost.startsWith('10.')) return true;
+    if (normalizedHost.startsWith('192.168.')) return true;
+
+    if (normalizedHost.startsWith('172.')) {
+      const secondOctet = Number(normalizedHost.split('.')[1]);
+      if (secondOctet >= 16 && secondOctet <= 31) return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export async function resolveQuestorUrl(config: QuestorSynConfig): Promise<string> {
   const urlsToCheck = [];
   
@@ -28,6 +50,13 @@ export async function resolveQuestorUrl(config: QuestorSynConfig): Promise<strin
 
   if (urlsToCheck.length === 0) {
     throw new Error('Nenhuma URL do Questor configurada.');
+  }
+
+  // In Vercel/hosted environments, public URLs must take precedence over private LAN IPs.
+  if (process.env.VERCEL === '1' || Boolean(process.env.VERCEL_URL)) {
+    urlsToCheck.sort((a, b) => {
+      return Number(isPrivateQuestorUrl(a.url)) - Number(isPrivateQuestorUrl(b.url));
+    });
   }
 
   // Try Internal First (Short Timeout)
